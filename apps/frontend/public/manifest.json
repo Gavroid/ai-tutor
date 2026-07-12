@@ -1,0 +1,18 @@
+{
+  "name": "AI-репетитор 7 класса",
+  "short_name": "Репетитор",
+  "description": "Персональный AI-репетитор для школьной программы 7 класса",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0284c7",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+# Backend runtime dependencies (locked to working versions as of 2026-07).
+# Production: rebuild with --no-cache in Docker. Dev: `pip install -r requirements.txt -r requirements-dev.txt`.
+
+# Web framework
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+prometheus-client==0.21.1  # Sprint 5.1 — метрики /metrics
+pydantic-settings==2.7.0
+
+# Database
+sqlalchemy==2.0.36
+alembic==1.14.0
+psycopg2-binary==2.9.10
+asyncpg==0.30.0
+
+# Auth
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-jose[cryptography]==3.3.0
+python-multipart==0.0.20
+
+# HTTP client (для AI Gateway)
+httpx==0.28.1
+
+# Utilities
+python-dotenv==1.0.1
+email-validator==2.2.0
+
+# File processing (Этап 10)
+pypdf==5.1.0
+python-docx==1.1.2
+# OCR (Этап 10 — опционально, требует tesseract-ocr в системе)
+pytesseract==0.3.13
+Pillow==11.0.0
+
+# Rate limiting (Этап 11)
+slowapi==0.1.9
+
+# Redis для rate limit (Этап 11, опционально)
+redis==5.2.0

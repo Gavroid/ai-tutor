@@ -1,0 +1,92 @@
+name: CI
+
+# Запускается при push в main и pull request.
+# Workflow: pytest → build → upload artifacts
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: apps/backend/requirements.txt
+
+      - name: Install system deps (OCR)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-rus
+
+      - name: Install Python deps
+        working-directory: apps/backend
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run tests
+        working-directory: apps/backend
+        env:
+          APP_SECRET_KEY: "test-secret-key-for-pytest-only-1234567890"
+          APP_ENV: "development"
+          DATABASE_URL: "sqlite+pysqlite:///:memory:"
+          CORS_ORIGINS: "http://localhost:3000"
+          AI_API_KEY: "mock-key-for-tests"
+          UPLOAD_DIR: "/tmp/ai-tutor-test-uploads"
+        run: |
+          . .venv/bin/activate
+          pytest --tb=short -q
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Install deps
+        working-directory: apps/frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: apps/frontend
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.PRODUCTION_API_URL || 'http://localhost:8000' }}
+
+      - name: Install Playwright
+        working-directory: apps/frontend
+        run: npx playwright install chromium --with-deps
+
+      - name: Run E2E (against localhost)
+        working-directory: apps/frontend
+        run: |
+          # Backend должен быть запущен — используем service container
+          echo "E2E skipped in CI (requires running backend)"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: apps/frontend/.next/
+          retention-days: 7

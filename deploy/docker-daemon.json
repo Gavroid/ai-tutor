@@ -1,0 +1,9 @@
+{
+  "dns": ["8.8.8.8", "1.1.1.1", "104.16.0.34"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3",
+    "labels": "service,prod"
+  }
+}

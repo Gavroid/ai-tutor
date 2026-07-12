@@ -1,0 +1,111 @@
+"""RAG search endpoint."""
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from app.auth.security import get_current_user
+from app.db.session import get_db
+from app.rag import add_chunks, chunk_text, get_embedding, remove_by_material, search, stats
+from app.subjects import models as subj_models
+from app.users.models import User
+
+router = APIRouter(prefix="/api/v1/rag", tags=["rag"])
+
+
+class IndexRequest(BaseModel):
+    material_id: int
+    text: str
+    metadata: dict | None = None
+
+
+class IndexResponse(BaseModel):
+    indexed_chunks: int
+    chunk_ids: list[str]
+
+
+class SearchRequest(BaseModel):
+    query: str
+    top_k: int = 3
+    material_id: int | None = None
+
+
+class SearchHit(BaseModel):
+    chunk_id: str
+    material_id: int
+    text: str
+    score: float
+    metadata: dict
+
+
+class SearchResponse(BaseModel):
+    hits: list[SearchHit]
+    query: str
+
+
+@router.post("/index", response_model=IndexResponse)
+async def index_document(
+    payload: IndexRequest,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
+    """Индексирует текст: chunking + embeddings."""
+    # Verify material exists
+    material = db.get(subj_models.LearningMaterial, payload.material_id)
+    if material is None:
+        raise HTTPException(404, "Material not found")
+
+    chunks = chunk_text(payload.text)
+    if not chunks:
+        raise HTTPException(400, "Empty text")
+
+    embeddings = []
+    for chunk in chunks:
+        emb = await get_embedding(chunk)
+        embeddings.append(emb)
+
+    chunk_ids = add_chunks(payload.material_id, chunks, embeddings, payload.metadata)
+    return IndexResponse(indexed_chunks=len(chunks), chunk_ids=chunk_ids)
+
+
+@router.post("/search", response_model=SearchResponse)
+async def search_endpoint(
+    payload: SearchRequest,
+    current: User = Depends(get_current_user),
+):
+    """Ищет top_k релевантных чанков по query."""
+    query_emb = await get_embedding(payload.query)
+    results = search(query_emb, payload.top_k, payload.material_id)
+
+    return SearchResponse(
+        query=payload.query,
+        hits=[
+            SearchHit(
+                chunk_id=c.id,
+                material_id=c.material_id,
+                text=c.text,
+                score=0.0,  # score не возвращается напрямую (для простоты)
+                metadata=c.metadata,
+            )
+            for c in results
+        ],
+    )
+
+
+@router.delete("/material/{material_id}")
+def remove_material(
+    material_id: int,
+    current: User = Depends(get_current_user),
+):
+    """Удаляет все embeddings материала."""
+    count = remove_by_material(material_id)
+    return {"removed_chunks": count}
+
+
+@router.get("/stats")
+def stats_endpoint(
+    current: User = Depends(get_current_user),
+):
+    """Статистика RAG store."""
+    return stats()

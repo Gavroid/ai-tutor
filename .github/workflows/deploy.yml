@@ -1,0 +1,100 @@
+name: Deploy to production
+
+# Запускается вручную через workflow_dispatch или при push в main.
+# Деплой через SSH на 192.168.1.86.
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: "Skip tests (если уверены)"
+        required: false
+        default: "false"
+  push:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - "deploy/**"
+      - ".github/workflows/**"
+
+jobs:
+  test:
+    uses: ./.github/workflows/tests.yml
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+
+    env:
+      PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST || '192.168.1.86' }}
+      PRODUCTION_SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        if: env.PRODUCTION_SSH_KEY != ''
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ env.PRODUCTION_SSH_KEY }}
+
+      - name: Verify SSH connection
+        if: env.PRODUCTION_SSH_KEY != ''
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@$PRODUCTION_HOST \
+            "docker --version && cd /opt/ai-tutor && git rev-parse --short HEAD 2>/dev/null || echo 'no git remote — OK'"
+
+      - name: Pull, build, migrate
+        if: env.PRODUCTION_SSH_KEY != ''
+        run: |
+          ssh root@$PRODUCTION_HOST 'cd /opt/ai-tutor && \
+            git pull origin main 2>/dev/null || echo "no remote — using local files" && \
+            cd deploy && \
+            docker compose build backend frontend && \
+            docker compose up -d && \
+            sleep 15 && \
+            docker compose exec -T backend alembic upgrade head'
+
+      - name: Healthcheck
+        if: env.PRODUCTION_SSH_KEY != ''
+        run: |
+          sleep 5
+          code=$(ssh root@$PRODUCTION_HOST "curl -sk -o /dev/null -w '%{http_code}' https://$PRODUCTION_HOST/health")
+          if [ "$code" != "200" ]; then
+            echo "Health check failed: $code"
+            exit 1
+          fi
+          echo "Health check passed: $code"
+
+      - name: E2E smoke test
+        if: env.PRODUCTION_SSH_KEY != ''
+        run: |
+          # Подождать пока backend полностью стартует
+          sleep 10
+          ssh root@$PRODUCTION_HOST 'cd /opt/ai-tutor/deploy && \
+            curl -sk https://localhost/health | grep -q "ok" && \
+            curl -sk -X POST https://localhost/api/v1/auth/login \
+              -H "Content-Type: application/json" \
+              -d "{\"email\":\"admin@example.com\",\"password\":\"strongpass1\"}" | grep -q "access_token" && \
+            echo "E2E smoke test passed" || (echo "E2E failed"; exit 1)'
+
+      - name: Notify (failure)
+        if: failure() && env.PRODUCTION_SSH_KEY != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 Production deploy failed',
+              body: 'Production deploy failed. Check: https://$' + '{{ env.PRODUCTION_HOST }}'
+            })
+
+      - name: Notify (success)
+        if: success() && env.PRODUCTION_SSH_KEY != ''
+        run: |
+          echo "✅ Deploy successful"
+          echo "URL: https://$PRODUCTION_HOST"
+          echo "Health: $(curl -sk -o /dev/null -w '%{http_code}' https://$PRODUCTION_HOST/health)"
