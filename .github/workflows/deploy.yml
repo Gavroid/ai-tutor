@@ -50,12 +50,27 @@ jobs:
         if: env.PRODUCTION_SSH_KEY != ''
         run: |
           ssh root@$PRODUCTION_HOST 'cd /opt/ai-tutor && \
-            git pull origin main 2>/dev/null || echo "no remote — using local files" && \
+            (git pull origin main 2>/dev/null || echo "no remote configured — using local files from rsync") && \
             cd deploy && \
+            docker compose config --quiet && \
             docker compose build backend frontend && \
             docker compose up -d && \
             sleep 15 && \
             docker compose exec -T backend alembic upgrade head'
+
+      - name: Rsync fallback (no git remote)
+        if: env.PRODUCTION_SSH_KEY != ''
+        run: |
+          # Если git remote не настроен на проде — rsync приложение из workspace CI
+          ssh root@$PRODUCTION_HOST "[ -d /opt/ai-tutor/.git ] && cd /opt/ai-tutor && git status -s >/dev/null 2>&1 && exit 0 || exit 1"
+          if [ "$?" != "0" ]; then
+            echo "No git remote — using rsync"
+            rsync -avz --delete \
+              --exclude '.git' --exclude '.venv' --exclude '__pycache__' \
+              --exclude 'node_modules' --exclude '.next' --exclude '.env' \
+              --exclude 'uploads' --exclude '*.log' --exclude '.pytest_cache' \
+              ./ root@$PRODUCTION_HOST:/opt/ai-tutor/
+          fi
 
       - name: Healthcheck
         if: env.PRODUCTION_SSH_KEY != ''
