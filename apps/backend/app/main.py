@@ -412,6 +412,7 @@ def create_app() -> FastAPI:
     from app.admin.router import router as admin_router
     from app.teacher.router import router as teacher_router
     from app.student.router import router as student_materials_router
+    from app.student import models as _stu_models  # noqa: F401  (Alembic autogen + TopicDraft)
     from app.notifications.router import router as notifications_router
     from app.ai.websocket import router as ws_router
     from app.ai.websocket_more import router as ws_more_router

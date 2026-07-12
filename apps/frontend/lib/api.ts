@@ -63,16 +63,17 @@ export const api = {
 
   // AI
   aiPing: () => request<{ ok: boolean; model: string | null }>("/api/v1/ai/ping"),
+  // Sprint 7.1 — AI-ответы теперь с content_html (server-rendered sanitized Markdown).
   aiExplain: (topic_id: number) =>
-    request<{ content: string; model: string }>("/api/v1/ai/explain", {
-      method: "POST",
-      body: JSON.stringify({ topic_id }),
-    }),
+    request<{ content: string; content_html: string; model: string }>(
+      "/api/v1/ai/explain",
+      { method: "POST", body: JSON.stringify({ topic_id }) }
+    ),
   aiChat: (history: ChatMsg[], topic_id?: number) =>
-    request<{ content: string; model: string }>("/api/v1/ai/chat", {
-      method: "POST",
-      body: JSON.stringify({ history, topic_id }),
-    }),
+    request<{ content: string; content_html: string; model: string }>(
+      "/api/v1/ai/chat",
+      { method: "POST", body: JSON.stringify({ history, topic_id }) }
+    ),
   aiGenerate: (topic_id: number, difficulty: number) =>
     request<{
       question_text: string;
@@ -162,6 +163,39 @@ export const api = {
       published_at: string | null;
       created_at: string;
     }>(`/api/v1/student/materials/${id}`),
+
+  // Sprint 7.3 — автосохранение черновика урока.
+  // Используется при T1D: прерывание в любой момент без потери прогресса.
+  topicDraftLoad: async (topicId: number) => {
+    try {
+      const r = await request<{ topic_id: number; payload: Record<string, unknown>; updated_at: string }>(
+        `/api/v1/student/topics/${topicId}/draft`
+      );
+      return { ok: true as const, payload: r.payload };
+    } catch (e: unknown) {
+      // 404 — нормальная ситуация (черновика нет)
+      const err = e as { status?: number };
+      if (err?.status === 404) return { ok: false as const };
+      return { ok: false as const, error: err };
+    }
+  },
+  topicDraftSave: (topicId: number, payload: Record<string, unknown>) =>
+    request<{ topic_id: number; payload: Record<string, unknown>; updated_at: string }>(
+      `/api/v1/student/topics/${topicId}/draft`,
+      { method: "PUT", body: JSON.stringify({ payload }) }
+    ),
+  topicDraftClear: async (topicId: number) => {
+    const token = getToken();
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const r = await fetch(`${API_URL}/api/v1/student/topics/${topicId}/draft`, {
+      method: "DELETE",
+      headers,
+    });
+    if (!r.ok && r.status !== 204 && r.status !== 404) {
+      throw new Error(`HTTP ${r.status}`);
+    }
+  },
 
   // Sprint 2.3 — Voice transcription
   voiceTranscribe: async (audioBlob: Blob): Promise<{ text: string }> => {

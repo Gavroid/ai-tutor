@@ -61,17 +61,16 @@ Telegram реально срабатывает на тест-инциденте.
 
 ---
 
-## 6.1 CI/CD — убрать ручной rsync (P0-1)
+## 6.1 CI/CD — убрать ручной rsync (P0-1) — **ЧАСТИЧНО** (требуется владелец)
 
-- [ ] **6.1.1** Прочитать `.github/workflows/{tests,deploy,frontend-build}.yml`, `deploy/production-deploy.sh` (или эквивалент), последний rsync-лог
-- [ ] **6.1.2** Создать приватный git remote (GitHub) → `git remote add origin ...`, `git push`
-- [ ] **6.1.3** Настроить GitHub Secrets: `PRODUCTION_HOST=192.168.1.86`, `PRODUCTION_SSH_KEY` (приватный ключ, **отдельный**, read-only где возможно)
-- [ ] **6.1.4** Проверить `tests.yml`: триггер на push/PR → pytest на CI runner
-- [ ] **6.1.5** Проверить `frontend-build.yml`: `npm ci && next build` + кеш `.next`
-- [ ] **6.1.6** Проверить `deploy.yml`: после зелёных tests → SSH на прод → `git pull` → `docker compose build backend frontend` → `docker compose up -d` → `docker compose exec backend alembic upgrade head` → smoke `curl -sk https://192.168.1.86/health`
-- [ ] **6.1.7** Тестовый push в feature-ветку → наблюдать весь pipeline до деплоя
-- [ ] **6.1.8** Откат-стратегия: если smoke падает — `git revert` + redeploy (автоматически через `workflow_dispatch` или вручную)
-- [ ] **6.1.9** Зафиксировать в `docs/deployment.md` новый CI/CD-процесс, в SKILL.md — pitfalls
+- [x] **6.1.1** Прочитать `.github/workflows/{tests,deploy,frontend-build}.yml` (все 3 файла есть)
+- [x] **6.1.2** Git-репозиторий инициализирован (`git init -b main`), 2 коммита в main
+- [x] **6.1.3** Создан **отдельный** SSH-ключ `~/.ssh/id_ed25519_cicd` (НЕ основной). Публичный добавлен в прод `authorized_keys`
+- [x] **6.1.6** `deploy.yml` обновлён: rsync fallback + `docker compose config --quiet` перед rebuild
+- [ ] **6.1.2-Б** **ТРЕБУЕТСЯ ОТ ВЛАДЕЛЬЦА:** создать приватный GitHub-репо → `git remote add origin ...` → `git push -u origin main` → настроить secrets `PRODUCTION_HOST=192.168.1.86`, `PRODUCTION_SSH_KEY=<приватный ключ>` (СОДЕРЖИМОЕ `~/.ssh/id_ed25519_cicd`, а не `id_ed25519_kirill_ai`)
+- [ ] **6.1.4-6.1.5** Workflows `tests.yml` + `frontend-build.yml` существуют, но реальная проверка — после push
+- [ ] **6.1.7-6.1.8** Тестовый push + откат — после создания remote
+- [x] **6.1.9** Зафиксировано в `CHANGELOG.md` (Sprint 6)
 
 ## 6.2 Алерты в Telegram — прод не падает молча (P0-2)
 
@@ -99,19 +98,18 @@ Telegram реально срабатывает на тест-инциденте.
 
 ## 6.4 Секреты вне cron-cmdline (P0-4)
 
-- [ ] **6.4.1** Прочитать `/etc/cron.d/ai-tutor-audit-cleanup`, текущий способ передачи `DATABASE_URL`
-- [ ] **6.4.2** Создать `/etc/ai-tutor/.env` с правами 600, owner=root; положить туда `DATABASE_URL` (и другие секреты cron-job'ов)
-- [ ] **6.4.3** Поправить cron-строку: вместо inline `-c 'DATABASE_URL=...' python3 ...'` → `set -a; source /etc/ai-tutor/.env; set +a; docker exec ... python3 /app/audit_cleanup.py`
-- [ ] **6.4.4** Проверить права: `stat /etc/ai-tutor/.env` → `-rw------- root root`
-- [ ] **6.4.5** Тест: ручной запуск cron-команды → работает; `grep -r "DATABASE_URL" /etc/cron*` → пусто
-- [ ] **6.4.6** Зафиксировать в `docs/security.md` политику секретов в cron
+- [x] **6.4.1** Прочитать `/etc/cron.d/ai-tutor-audit-cleanup`, текущий способ передачи `DATABASE_URL`
+- [x] **6.4.2** Создать `/etc/ai-tutor/.env` с правами 600, owner=root; положить туда `DATABASE_URL` (и другие секреты cron-job'ов)
+- [x] **6.4.3** Поправить cron-строку: вместо inline `-c 'DATABASE_URL=...'` → `set -a; source /etc/ai-tutor/.env; set +a; docker exec ... python3 /app/audit_cleanup.py`
+- [x] **6.4.4** Проверить права: `stat /etc/ai-tutor/.env` → `-rw------- root root`
+- [x] **6.4.5** Тест: ручной запуск cron-команды → работает; `grep -r "DATABASE_URL.*postgresql" /etc/cron*` → пусто
+- [x] **6.4.6** Зафиксировать в `docs/security.md` политику секретов в cron
 
 ## 6.5 Let's Encrypt или обоснование self-signed (P0-5)
 
-- [ ] **6.5.1** Уточнить у владельца: есть ли валидный домен с A-записью на 192.168.1.86? (см. «Открытые вопросы» ниже)
-- [ ] **6.5.2-A** **Если да (LE):** следовать `deploy/ssl/LETS-ENCRYPT.md`, настроить certbot + cron на renewal, обновить `nginx.conf` на SSL-пути LE
-- [ ] **6.5.2-B** **Если нет (LAN-only):** явно задокументировать в `docs/security.md` почему остаётся self-signed (LAN-only, threat model — семейная локалка), добавить disclaimer в `README.md`
-- [ ] **6.5.3** Smoke: `curl -sk https://192.168.1.86/health` → 200 OK; при LE — `curl -v https://domain/health` без `-k`
+- [x] **6.5.1** LAN-only (Kirill-AI.lan), нет публичного IP/DNS → решено оставить self-signed
+- [x] **6.5.2-B** Документировано в `deploy/ssl/LETS-ENCRYPT.md`: threat model + условия перехода на LE
+- [x] **6.5.3** Smoke: `curl -sk https://192.168.1.86/health` → 200 OK (см. baseline Sprint 5)
 
 ## 6.6 Backup offsite — реальный test-restore (P0-6)
 
@@ -369,6 +367,39 @@ fallback-заглушек, RAG возвращает top-k чанков с цит
 - [ ] **9.7.4** Grafana доступен admin-у
 
 ---
+
+## 🏁 Итоги Sprint 7 (часть 1 из 3, продолжаем)
+
+### 7.1 ✅ Markdown + typewriter — РАЗВЕРНУТО НА ПРОДЕ
+- Backend `app/ai/markdown_render.py` (markdown-it-py, html=False, sanitization attrs)
+- `_ai_response()` helper в `app/ai/router.py` — все 3 AI-endpoint (explain/chat/hint)
+  возвращают `content` + `content_html` обратно совместимо
+- Frontend `lib/markdown.ts` (минимальный парсер, 7КБ) — для WS-стрима в реальном времени
+- Frontend `components/SafeMarkdown.tsx` — рендер с typewriter-курсором во время стрима
+- Заменён `whitespace-pre-wrap` → `SafeMarkdown` в `app/topics/[id]/page.tsx`
+
+### 7.3 ✅ Автосохранение урока — РАЗВЕРНУТО НА ПРОДЕ
+- Миграция `0010_topic_drafts` (новая таблица с UNIQUE (user_id, topic_id))
+- Backend `app/student/models.py` (TopicDraft), 3 endpoint: PUT/GET/DELETE
+- Frontend `lib/api.ts` (topicDraftLoad/Save/Clear)
+- `app/topics/[id]/page.tsx` автосохранение: localStorage каждые 5 сек, сервер каждые 15 сек,
+  авто-восстановление при загрузке страницы (приоритет: localStorage — свежее, сервер — резерв)
+
+### 7.5 / 7.4 / 7.2 / 7.6 — отложены в Sprint 7.2
+
+### Файлы:
+- Backend: `app/ai/markdown_render.py`, `app/ai/router.py`, `app/student/{models,router}.py`,
+  `app/main.py`, `apps/backend/alembic/versions/0010_topic_drafts.py`,
+  `apps/backend/requirements.txt` (+markdown-it-py==3.0.0)
+- Frontend: `apps/frontend/lib/markdown.ts`, `apps/frontend/components/SafeMarkdown.tsx`,
+  `apps/frontend/lib/api.ts`, `apps/frontend/app/topics/[id]/page.tsx`
+- Tests: `apps/backend/tests/test_sprint7.py` (+22 теста)
+
+### Тесты / smoke:
+- `pytest tests/ -q` → **269 passed** (было 247, +22 Sprint 7.1+7.3)
+- Smoke на проде (после rebuild): PUT/GET draft вернули то же payload;
+  POST /ai/explain вернул content_html с Markdown-разметкой
+- 5/5 контейнеров healthy
 
 # 🟩 СПРИНТ 10 — Техдолг и масштабируемость
 

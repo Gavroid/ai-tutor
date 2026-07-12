@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, getToken } from "@/lib/api";
 import { useChatStream } from "@/lib/ws-chat";
+import { renderMarkdown } from "@/lib/markdown";
+import SafeMarkdown from "@/components/SafeMarkdown";
 import type { Topic, ChatMsg } from "@/types";
 
 type Exercise = {
@@ -14,6 +16,26 @@ type Exercise = {
   correct_answer?: string; // скрыт от ученика
   explanation?: string;
 };
+
+// LocalStorage ключ для автосохранения урока (Sprint 7.3)
+function draftKey(topicId: number): string {
+  return `ai-tutor:draft:${topicId}`;
+}
+
+interface SavedDraft {
+  msgs: ChatMsg[];
+  exercise: Exercise | null;
+  userAnswer: string;
+  input: string;
+  checkResult: {
+    is_correct: boolean;
+    score: number;
+    first_error: string | null;
+    explanation: string;
+    hint_level: number;
+  } | null;
+  savedAt: number;
+}
 
 export default function TopicPage() {
   const params = useParams<{ id: string }>();
@@ -44,6 +66,93 @@ export default function TopicPage() {
     if (!topicId || Number.isNaN(topicId)) return;
     api.topic(topicId).then(setTopic).catch(() => router.push("/subjects"));
   }, [topicId, router]);
+
+  // Sprint 7.3 — восстановление черновика урока (критично при T1D).
+  // Приоритет: серверный черновик (свежее) > localStorage.
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+  useEffect(() => {
+    if (!topicId || !getToken() || draftRestored) return;
+    let cancelled = false;
+    (async () => {
+      // 1) пытаемся серверный
+      const srv = await api.topicDraftLoad(topicId);
+      if (cancelled) return;
+      if (srv.ok && srv.payload) {
+        const d = srv.payload as Partial<SavedDraft>;
+        if (d.msgs && Array.isArray(d.msgs) && d.msgs.length > 0) {
+          setShowRestorePrompt(true);
+          // Сохраним в стороне, чтобы пользователь мог решить.
+          (window as Window & { __aiTutorPendingDraft?: SavedDraft }).__aiTutorPendingDraft = {
+            msgs: d.msgs as ChatMsg[],
+            exercise: d.exercise ?? null,
+            userAnswer: d.userAnswer ?? "",
+            input: d.input ?? "",
+            checkResult: d.checkResult ?? null,
+            savedAt: Date.now(),
+          };
+        }
+      }
+      // 2) localStorage — восстанавливаем всегда (даже если сервер дал 404)
+      const ls = localStorage.getItem(draftKey(topicId));
+      if (ls) {
+        try {
+          const d = JSON.parse(ls) as SavedDraft;
+          if (!cancelled && d && Array.isArray(d.msgs)) {
+            setMsgs(d.msgs);
+            setExercise(d.exercise ?? null);
+            setUserAnswer(d.userAnswer ?? "");
+            setInput(d.input ?? "");
+            setCheckResult(d.checkResult ?? null);
+          }
+        } catch {
+          // ignore corrupted draft
+        }
+      }
+      setDraftRestored(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [topicId, draftRestored]);
+
+  // Sprint 7.3 — автосохранение в localStorage каждые ~5 сек (debounce) + sync на сервер каждые ~15 сек.
+  useEffect(() => {
+    if (!topicId || !draftRestored) return;
+    const ls = setInterval(() => {
+      const payload: SavedDraft = {
+        msgs,
+        exercise,
+        userAnswer,
+        input,
+        checkResult,
+        savedAt: Date.now(),
+      };
+      try {
+        localStorage.setItem(draftKey(topicId), JSON.stringify(payload));
+      } catch {
+        // quota exceeded — пропускаем
+      }
+    }, 5_000);
+    const srv = setInterval(() => {
+      if (msgs.length === 0 && !exercise && !userAnswer && !input) return;
+      const payload: Record<string, unknown> = {
+        msgs,
+        exercise,
+        userAnswer,
+        input,
+        checkResult,
+        savedAt: Date.now(),
+      };
+      api.topicDraftSave(topicId, payload).catch(() => {
+        // Не блокируем UI, если сервер недоступен — localStorage компенсирует.
+      });
+    }, 15_000);
+    return () => {
+      clearInterval(ls);
+      clearInterval(srv);
+    };
+  }, [topicId, draftRestored, msgs, exercise, userAnswer, input, checkResult]);
 
   useEffect(() => {
     return () => chat.cancel();
@@ -249,13 +358,23 @@ export default function TopicPage() {
         {msgs.map((m, i) => (
           <div
             key={i}
-            className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2 text-sm ${
+            className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
               m.role === "user"
                 ? "ml-auto bg-sky-600 text-white"
-                : "mr-auto bg-white text-slate-900 shadow-sm"
+                : "mr-auto bg-white text-slate-900"
             }`}
           >
-            {m.content}
+            {m.role === "user" ? (
+              <span className="whitespace-pre-wrap">{m.content}</span>
+            ) : (
+              // Sprint 7.1: AI-сообщения рендерим Markdown → безопасный HTML.
+              // streaming=true только для последнего ассистентского сообщения, которое
+              // ещё не подтверждено `done` — даёт typewriter-эффект.
+              <SafeMarkdown
+                text={m.content}
+                streaming={i === msgs.length - 1 && busy && m.role === "assistant"}
+              />
+            )}
           </div>
         ))}
         {busy && (

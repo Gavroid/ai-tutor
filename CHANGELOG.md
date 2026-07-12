@@ -6,6 +6,43 @@
 
 ---
 
+## [Unreleased] — Sprint 6 (2026-07-13) — Надёжность прод-контура (P0)
+
+### 6.4 — Секреты в cron
+- Создан `/etc/ai-tutor/.env` (600 root:root) с DATABASE_URL и POSTGRES_PASSWORD.
+- Cron `/etc/cron.d/ai-tutor-audit-cleanup` переведён на `set -a; source .env; set +a`
+  (inline-пароль из команды убран).
+- Документация: `docs/security.md` — новый раздел «Секреты в cron».
+
+### 6.5 — SSL/LAN-only
+- Зафиксировано: прод остаётся на self-signed (LAN-only за NAT, нет публичного IP/DNS).
+- Документ `deploy/ssl/LETS-ENCRYPT.md` обновлён: threat model, условия перехода на LE.
+
+### 6.1 — CI/CD (начато)
+- Git-репозиторий инициализирован (`git init -b main`), 2 коммита.
+- Создан **отдельный** SSH-ключ `~/.ssh/id_ed25519_cicd` для CI/CD (НЕ основной
+  `id_ed25519_kirill_ai`), публичный добавлен в `authorized_keys` на проде.
+- `deploy.yml`: добавлен rsync-fallback (если на проде нет git remote),
+  добавлен `docker compose config --quiet` перед rebuild.
+- **Требует от владельца:** создать приватный GitHub-репо → запушить →
+  настроить `PRODUCTION_HOST/PRODUCTION_SSH_KEY` secrets.
+- Приватный ключ cicd НЕ закоммичен (он локальный, пока не нужен GitHub).
+
+### 6.6 — Backup offsite (ВЫЯВЛЕНО)
+- **Offsite backup фактически не существует:** `ai-tutor-backup-offsite.sh`
+  копирует в `/var/backups/ai-tutor` — это ТА ЖЕ директория, что и src.
+  Нет реальной удалённой копии.
+- Действие требует от владельца: реальный путь назначения
+  (`BACKUP_OFFSITE_DEST=user@backup-host:/path/`) через ssh-rsync.
+
+### Блокеры до Sprint 7
+- (6.2) TG-алерты — нет у владельца TELEGRAM_BOT_TOKEN/CHAT_ID. Требуется создать
+  бота и прислать chat_id.
+- (6.1) GitHub remote — требует создания приватного репо владельцем.
+- (6.3) WS Redis pub/sub — требует рефакторинга ConnectionManager
+  (deferred до согласования с владельцем по multi-worker).
+- (6.6) Backup offsite — требует реальный remote-назначение (см. выше).
+
 ## [Unreleased] — Sprint 1 (2026-07-12) — Роль Учителя
 
 ### Added (Backend)

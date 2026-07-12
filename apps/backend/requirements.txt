@@ -39,3 +39,7 @@ slowapi==0.1.9
 
 # Redis для rate limit (Этап 11, опционально)
 redis==5.2.0
+
+# Markdown render (Sprint 7.1)
+# Используется для безопасного рендеринга AI-ответов с markdown → HTML.
+markdown-it-py==3.0.0
