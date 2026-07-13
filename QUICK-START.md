@@ -158,5 +158,6 @@ docker exec deploy-redis-1 redis-cli KEYS "*"
 ---
 
 **Промты для AI-агентов:**
-- Базовый (разработка): `PROMPT-FOR-OTHER-AI.md` (559 строк)
+- Базовый (разработка): `PROMPT-FOR-OTHER-AI.md` (~643 строки, синхронизирован с Sprint 6-10)
 - Глубокий (аудит): `AI-DEEP-AUDIT-PROMPT.md` (990 строк) — тех. долг, фичи, UX, roadmap
+- **Полный AI-handover (handover-style, июль 2026)**: `docs/MASTER-HANDOVER-PROMPT.md` — самый подробный документ, включает архитектуру, схему БД, развёртывание, известные pitfalls, вопросы к AI-аудитору

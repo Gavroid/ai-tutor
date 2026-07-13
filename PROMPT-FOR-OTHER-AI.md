@@ -549,10 +549,84 @@ docker stats --no-stream
 - **Project path**: `/opt/ai-tutor/`
 - **Workspace**: `/root/workspace/ai-tutor/`
 - **Production cron**:
-  - `0 3 * * *` backup → offsite
+  - `0 3 * * *` backup + backup-verify (пн 04:00)
   - `*/5 * * * *` healthcheck
   - `*/5 * * * *` error-rate
   - `*/5 * * * *` smtp-worker
+  - `/etc/cron.d/ai-tutor-audit-cleanup` ежедневно 03:00 (Sprint 4.2)
+  - `/etc/cron.d/ai-tutor-weekly-summary` вс 18:00 MSK (Sprint 9.1)
+  - `/etc/cron.d/ai-tutor-backup-verify` пн 04:00 (Sprint 10.4)
+
+- **Секреты**: `/etc/ai-tutor/.env` (chmod 600, root:root) — для cron-задач
+
+---
+
+## 1️⃣6️⃣ Обновлено: июль 2026 — Sprint 6-10 завершены
+
+После первого промта (Sprint 1-5) проект прошёл через 5 дополнительных спринтов автоматизированной работы. Ниже — сводка для AI, проводящей аудит (см. также `docs/plans/SPRINT-6-PLAN.md`).
+
+### Что нового (Sprint 6-10)
+
+- **Sprint 6 (P0 — Надёжность прод)**:
+  - 6.4 Cron-секреты вынесены в `/etc/ai-tutor/.env` (600), inline-пароли убраны
+  - 6.5 SSL зафиксирован: self-signed (LAN-only, threat model в `deploy/ssl/LETS-ENCRYPT.md`)
+  - 6.1 CI/CD: workflows есть, отдельный SSH-ключ `id_ed25519_cicd` (ТРЕБУЕТ GitHub-репо)
+  - 6.6 Backup verify: smoke test-restore прошёл (3 users, 12 subjects, 186 topics, 17 audit logs)
+
+- **Sprint 7 (UX ученика — для T1D)**:
+  - 7.1 Markdown-рендер AI-ответов (server `markdown-it-py` + client минимальный парсер) с защитой от XSS
+  - 7.2 Кнопка микрофона (MediaRecorder API) → POST `/voice/transcribe` с rate-limit 20/мин/user
+  - 7.3 Автосохранение урока: миграция `0010_topic_drafts`, localStorage каждые 5с + сервер каждые 15с
+  - 7.4 Hint с 3 уровнями (наводящий / подсказка / разбор)
+  - 7.5 Баджи за УСИЛИЕ (10 баджей, миграция `0011_badges`, UI `/student/badges`, **НИКАКИХ streak'ов**)
+  - 7.6 E2E полный цикл в `e2e/student.spec.ts`
+
+- **Sprint 8 (AI-качество)**:
+  - 8.1 Structured output + retry (3 попытки для teacher-генерации)
+  - 8.2 Чекеры `app/practice/checkers.py`: numeric + keyword + exact
+  - 8.3 RAG embedding cache: миграция `0012_rag_chunks`, hash-fallback для MiniMax
+  - 8.4 `record_ai_request()` во всех 5 режимах + `ai_parse_status_total`
+  - 8.5 CAT адаптивная диагностика: `app/diagnostics/cat.py`, θ-обновление после каждого ответа
+
+- **Sprint 9 (Родитель+Админ)**:
+  - 9.1 Weekly summary email: cron вс 18:00 MSK, HTML f-string шаблон
+  - 9.2 Multi-child UI: сохранение выбора в localStorage
+  - 9.3 Real-time /admin: WS `/api/v1/admin/ws` + UI `/admin/realtime` с KPI dashboard
+  - 9.4 AI-бюджет: `app/ai/budget.py` (Redis + in-memory fallback, 200 req / 200K токенов/день)
+  - 9.5 **Добавлены контейнеры Prometheus + Grafana** (теперь 7/7 healthy)
+
+- **Sprint 10 (Техдолг)**:
+  - 10.1 JWT в httpOnly cookie: `ai_tutor_access` + `ai_tutor_refresh` (Secure+SameSite=Lax)
+  - 10.3 `/api/v2` каркас (готов для breaking changes)
+  - 10.4 Backup verify автоматизирован (cron)
+  - 10.5 E2E parent dashboard
+
+### Метрики на 2026-07-13
+
+- Backend tests: **405 passed** (было 247 — +158 за Sprint 6-10)
+- Миграции: 0010-0012 (3 новых поверх 0009)
+- HTTP endpoints: ~85 REST + 5 WS (admin + ai-chat-WS + realtime + 2 open)
+- UI pages: 14 (admin/, parent/, parents/, student/badges, subjects/, topics/, teacher/, login, register, diagnostic, link-parent, forgot-password, root)
+- Cron jobs: 8 (4 базовых + audit_cleanup + weekly_summary + backup-verify + timezone-setup)
+- Контейнеры: **7/7 healthy** на `192.168.1.86`
+- Memory: ~398MB / 4GB (10%)
+- Git: `main` ветка, 12+ коммитов
+
+### Что осталось (внешние блокеры)
+
+1. **Telegram-алерты (6.2)** — нужен `TELEGRAM_BOT_TOKEN/CHAT_ID` от владельца
+2. **Реальный offsite backup (6.6)** — нужен `BACKUP_OFFSITE_DEST` (сейчас копирует в ту же папку)
+3. **GitHub-репо (6.1)** — нужен приватный remote + secrets `PRODUCTION_HOST/PRODUCTION_SSH_KEY`
+4. **pgvector (8.3)** — текущая реализация: embeddings cache в SQLite (hash-fallback для MiniMax). Если у MiniMax появится `/embeddings`, можно подключить. Альтернатива — pgvector с локальной моделью, но риск OOM на 4GB.
+
+### Backlog идеи (НЕ из плана, но интересные)
+
+- AI-judge для semantic чекеров (`checker_type=semantic`) — сейчас placeholder
+- IRT 2PL для адаптивной диагностики (заменит heuristic CAT)
+- Zustand для frontend state management (см. `PLAN` 10.2)
+- TTS (text-to-speech) — озвучка ответов AI для T1D-ученика (отложено: см. PROMPT)
+- Оффлайн-PWA (для ненадёжного интернета на даче)
+- Multi-tenant: расширение на других семей / школьный SaaS (требует security review)
 
 ---
 

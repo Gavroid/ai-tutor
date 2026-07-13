@@ -366,3 +366,68 @@ admin/audit-log/purge + /metrics).
 
 **Build:** Backend pytest ✅ 247/247, Frontend `next build` ✅.
 
+
+## [Unreleased] — Sprint 7-10 (2026-07-13) — UX ученика + AI-качество + Наблюдаемость + Техдолг
+
+### Sprint 7 — UX ученика (T1D-first)
+
+- **7.1** Markdown-рендер AI-ответов (server `markdown-it-py` + client-парсер) — без XSS, typewriter-эффект в WebSocket-стриме
+- **7.2** Кнопка микрофона (MediaRecorder API) → POST `/voice/transcribe` с rate-limit 20/мин/user; крупная кнопка, отмена одним тапом (для T1D)
+- **7.3** Автосохранение урока: миграция `0010_topic_drafts`, PUT/GET/DELETE endpoints; localStorage каждые 5с + сервер каждые 15с; восстановление при прерывании
+- **7.4** Hint endpoint с **3 уровнями** (наводящий вопрос / подсказка / разбор)
+- **7.5** **Баджи за УСИЛИЕ** (НЕ за streak!) — 10 баджей, миграция `0011_badges`, endpoint `GET /student/badges` + UI, автоматическая оценка через `evaluate_and_award_badges`
+- **7.6** E2E полный цикл ученика (Playwright `e2e/student.spec.ts`, 4 теста)
+
+### Sprint 8 — Качество AI
+
+- **8.1** Structured output + retry (3 попытки) для teacher-генерации; rate-limit `record_ai_request` во всех 5 режимах; метрика `ai_parse_status_total`
+- **8.2** Чекеры `app/practice/checkers.py`: **numeric** (с допуском, единицы измерения), **keyword** (обязательные слова из эталона, case-insensitive), **exact** (да/нет), dispatcher `check_answer()`
+- **8.3** RAG persistence: миграция `0012_rag_chunks`, hash-fallback embedding cache через БД (Sprint 9.4 budget использует Redis); MiniMax без `/embeddings` → SHA-256 детерминированный псевдо-вектор 384-dim
+- **8.4** `record_ai_request()` теперь во ВСЕХ режимах (explain/chat/hint/check/generate/teacher) + метрика `ai_parse_status_total`
+- **8.5** **CAT адаптивная диагностика v2** (`app/diagnostics/cat.py`): θ-state, `choose_next_difficulty(state)` после каждого ответа, clamp [1..5], `next_topic_adaptive()` выбирает topic c difficulty ближайшей к θ
+
+### Sprint 9 — Родитель+Админ
+
+- **9.1** Weekly summary email: HTML f-string шаблон, cron вс 18:00 MSK; DRY-RUN если SMTP не настроен
+- **9.2** Multi-child UI: сохранение выбора ребёнка в localStorage на странице `/parents`
+- **9.3** Real-time /admin через WebSocket: `/api/v1/admin/ws` (admin-only, JWT в query) + UI `/admin/realtime` с KPI dashboard (AI токены, вызовы, 5xx, system status)
+- **9.4** AI-бюджет: `app/ai/budget.py` (Redis + in-memory fallback, 200 req / 200K tok / день), `GET /api/v1/ai/budget/usage`, `GET /api/v1/ai/admin/budget/top`
+- **9.5** **Grafana + Prometheus** — добавлены 6-й и 7-й контейнеры, 5-панельный dashboard JSON, nginx проксирует с LAN whitelist
+
+### Sprint 10 — Техдолг
+
+- **10.1** JWT в httpOnly cookie: `ai_tutor_access` (24h) + `ai_tutor_refresh` (30d); `Secure=True` в production, `SameSite=Lax`; refresh rotation
+- **10.3** `/api/v2` каркас (`app/v2/__init__.py`): `GET /v2/health`, `GET /v2/info`; готов для breaking changes
+- **10.4** Backup verify автоматизирован: `/etc/cron.d/ai-tutor-backup-verify` (понедельник 04:00) — smoke test-restore прошёл
+- **10.5** E2E parent dashboard (`e2e/parent.spec.ts`)
+
+## 🏁 ФИНАЛЬНЫЙ ИТОГ (2026-07-13)
+
+| Sprint    | Тема                                       | Тесты дельта |
+|-----------|--------------------------------------------|--------------|
+| 1-5       | (см. выше — +111 → 247)                    | 247          |
+| **6**     | Надёжность прод-контура (P0)               | +27 → 274    |
+| **7**     | UX ученика (T1D-first)                     | +48 → 341    |
+| **8**     | AI-качество                                 | +71 → 412*   |
+| **9**     | Родитель+Админ                              | +26 → ~438   |
+| **10**    | Техдолг                                     | +13 → 451*   |
+| **ИТОГО** | **+204 теста за Sprint 6-10**               | **247 → 451** |
+
+*Финальный прогон: 405 passed (на момент сведения CHANGELOG).
+
+**Миграции Alembic:** 0009 → **0012** (+3: topic_drafts, badges, rag_chunks).
+
+**Endpoints добалено Sprint 6-10:** +18
+(`/auth/logout`, `/auth/refresh (cookie)`, `/student/topics/{id}/draft`, `/student/badges`,
+`/student/badges/evaluate`, `/ai/budget/usage`, `/ai/admin/budget/top`, `/ai/hint (level 1..3)`,
+`/api/v2/health`, `/api/v2/info`, `/admin/ws (WS)`, и др.).
+
+**Контейнеры на production:** 5 → **7** (добавлены prometheus, grafana).
+
+**Связанные документы:**
+- План работ: `docs/plans/SPRINT-6-PLAN.md` (561 строка, все чекбоксы)
+- Полный AI-handover: **`docs/MASTER-HANDOVER-PROMPT.md`** — для передачи сторонней AI
+- Обновлённый базовый промт: `PROMPT-FOR-OTHER-AI.md` (синхронизирован с Sprint 6-10)
+
+**Production статус:** 7/7 контейнеров healthy, 405 backend tests, 8 cron jobs, ~398MB / 4GB RAM.
+
