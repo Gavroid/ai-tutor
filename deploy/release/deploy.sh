@@ -7,7 +7,7 @@
 #   deploy.sh <commit-sha>     # деплоит указанный commit (проверяется в preflight)
 #
 # Возвращает non-zero exit, если что-то пошло не так; rollback.sh
-# восстанавливает предыдущий tar.
+# восстанавливает предыдущий tar + image-snapshot.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -20,11 +20,11 @@ COMPOSE_DIR="$RELEASE_DIR/deploy"
 log() { printf '\033[1;34m[deploy]\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31m[deploy FAIL]\033[0m %s\n' "$*"; exit 1; }
 
+ACT="$(git -C "$PROJECT_ROOT" rev-parse --short HEAD 2>/dev/null || echo local)"
 TARGET_SHA="${1:-}"
 if [ -n "$TARGET_SHA" ]; then
-  ACT=$(git -C "$PROJECT_ROOT" rev-parse --short HEAD)
   if [ "$ACT" != "${TARGET_SHA:0:7}" ]; then
-    fail "локальный HEAD=$ACT, а в deploy.sh передан ${TARGET_SHA:0:7}; checkout в нужный commit или не передавай аргумент"
+    fail "локальный HEAD=$ACT, а в deploy.sh передан ${TARGET_SHA:0:7}"
   fi
 fi
 
@@ -38,8 +38,7 @@ ssh -i "$SSH_KEY" root@"$PROD_HOST" "cd $COMPOSE_DIR && POSTGRES_USER=tutor POST
 
 # 3) Save current release metadata
 log "3) snapshot prev release"
-PREV_SHA=$(ssh -i "$SSH_KEY" root@"$PROD_HOST" \
-  "cd $RELEASE_DIR && (test -d .git && git rev-parse --short HEAD) || echo unknown" 2>/dev/null || echo unknown)
+PREV_SHA=$(ssh -i "$SSH_KEY" root@"$PROD_HOST"   "cat /tmp/ai-tutor-current-release-id 2>/dev/null || echo unknown" 2>/dev/null || echo unknown)
 echo "$PREV_SHA" > /tmp/ai-tutor-prev-sha.txt
 log "  prev=$PREV_SHA"
 
@@ -79,13 +78,19 @@ for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18; do
   if [ "$i" = "18" ]; then fail "/health не поднялся за 90 сек"; fi
 done
 
-# 8) Apply migrations (only if there are pending heads)
-log "8) alembic upgrade head (если есть pending)"
+# 8) Apply migrations (no heredoc — single ssh with env-vars)
+log "8) alembic upgrade head"
 APP_SECRET_KEY=$(ssh -i "$SSH_KEY" root@"$PROD_HOST" "grep ^APP_SECRET_KEY= $RELEASE_DIR/.env | cut -d= -f2-")
-DATABASE_URL="postgresql+psycopg2://tutor:$(ssh -i "$SSH_KEY" root@"$PROD_HOST" "grep ^POSTGRES_PASSWORD= $RELEASE_DIR/.env | cut -d= -f2-")@db:5432/tutor"
-ssh -i "$SSH_KEY" root@"$PROD_HOST" "cd $RELEASE_DIR && docker exec -u root deploy-backend-1 bash -c \"
-  APP_SECRET_KEY='$APP_SECRET_KEY' \
-  DATABASE_URL='$DATABASE_URL' \
-  python3 -m alembic upgrade head\"" 2>&1 | tail -3
+POSTGRES_PASSWORD=$(ssh -i "$SSH_KEY" root@"$PROD_HOST" "grep ^POSTGRES_PASSWORD= $RELEASE_DIR/.env | cut -d= -f2-")
+ssh -i "$SSH_KEY" root@"$PROD_HOST" "docker exec -u root deploy-backend-1 env APP_SECRET_KEY='$APP_SECRET_KEY' DATABASE_URL='postgresql+psycopg2://tutor:$POSTGRES_PASSWORD@db:5432/tutor' python3 -m alembic upgrade head" 2>&1 | tail -3
 
-log "OK: deploy завершён (prev=$PREV_SHA)"
+# 9) Snapshot image-слой + code для rollback (post-impl review)
+RELEASE_ID="$(date -u +%Y%m%dT%H%M%SZ)-${ACT}"
+SNAPSHOT_DIR="/opt/ai-tutor/deploy/release/releases/$RELEASE_ID"
+log "9) snapshot image+code: $SNAPSHOT_DIR"
+ssh -i "$SSH_KEY" root@"$PROD_HOST" "set -eu; mkdir -p $SNAPSHOT_DIR && cd $COMPOSE_DIR && docker save -o $SNAPSHOT_DIR/images.tar deploy-backend deploy-frontend && echo $RELEASE_ID > $SNAPSHOT_DIR/release-id && echo $RELEASE_ID > /tmp/ai-tutor-current-release-id && ls -la $SNAPSHOT_DIR" 2>&1 | tail -5
+
+# Code snapshot (отдельной командой — pipe tar | zstd не работает в heredoc с bash -s)
+ssh -i "$SSH_KEY" root@"$PROD_HOST" "set -eu; cd $RELEASE_DIR; tar --exclude=node_modules --exclude=.next --exclude=.venv --exclude=__pycache__ --exclude=.git --exclude=.hermes --exclude=deploy/backup/_out -cf - apps deploy 2>/dev/null | zstd -3 > $SNAPSHOT_DIR/code.tar.zst; ls -la $SNAPSHOT_DIR/code.tar.zst"
+
+log "OK: deploy завершён (prev=$PREV_SHA, release=$RELEASE_ID)"

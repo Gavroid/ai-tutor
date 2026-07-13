@@ -20,6 +20,12 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SSH_KEY="${SSH_KEY:-/root/.ssh/id_ed25519_kirill_ai}"
 PROD_HOST="${PROD_HOST:-192.168.1.86}"
 
+# Pilot Core Stage 1 (post-impl review): пилот-креденшалы через env,
+# НЕ hardcoded. Если не заданы — smoke использует admin@example.com
+# (по согласованию с владельцем, см. pilot-scenarios.md).
+SMOKE_USER="${SMOKE_USER:-admin@example.com}"
+SMOKE_PASS="${SMOKE_PASS:-strongpass1}"
+
 log() { printf '\033[1;34m[smoke]\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31m[smoke FAIL]\033[0m %s\n' "$*"; exit 1; }
 
@@ -38,7 +44,7 @@ log "1) /health"
 log "2) auth/register (student)"
 TS=$(date +%s)
 STUDENT_CODE=$(curl -sk -X POST "https://$PROD_HOST/api/v1/auth/register" -H "Content-Type: application/json" \
-  -d "{\"email\":\"smoke-${TS}@example.com\",\"password\":\"strongpass1\",\"display_name\":\"smoke\",\"role\":\"student\",\"grade\":7}" \
+  -d "{\"email\":\"smoke-${TS}@example.com\",\"password\":\"$SMOKE_PASS\",\"display_name\":\"smoke\",\"role\":\"student\",\"grade\":7}" \
   -o /tmp/smoke.body -w "%{http_code}")
 [ "$STUDENT_CODE" = "201" ] || fail "register student = $STUDENT_CODE"
 
@@ -51,11 +57,11 @@ if [ "$ADMIN_CODE" != "422" ] && [ "$ADMIN_CODE" != "403" ]; then
   fail "register admin = $ADMIN_CODE (ожидаем 422/403)"
 fi
 
-# 4) v2 exercises — admin token
-log "4) /api/v2/exercises/generate (admin)"
+# 4) v2 exercises — admin token (SMOKE_USER/SMOKE_PASS)
+log "4) /api/v2/exercises/generate ($SMOKE_USER)"
 ADMIN_LOGIN=$(curl -sk -X POST "https://$PROD_HOST/api/v1/auth/login" -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"strongpass1"}' -o /tmp/smoke.body -w "%{http_code}")
-[ "$ADMIN_LOGIN" = "200" ] || fail "admin login = $ADMIN_LOGIN"
+  -d "{\"email\":\"$SMOKE_USER\",\"password\":\"$SMOKE_PASS\"}" -o /tmp/smoke.body -w "%{http_code}")
+[ "$ADMIN_LOGIN" = "200" ] || fail "smoke-user login = $ADMIN_LOGIN (user=$SMOKE_USER)"
 ADMIN_TOKEN=$(python3 -c "import sys, json; print(json.load(open('/tmp/smoke.body'))['access_token'])")
 
 GEN_CODE=$(curl -sk -X POST "https://$PROD_HOST/api/v2/exercises/generate" -H "Authorization: Bearer $ADMIN_TOKEN" \
