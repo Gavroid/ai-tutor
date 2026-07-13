@@ -43,3 +43,6 @@ redis==5.2.0
 # Markdown render (Sprint 7.1)
 # Используется для безопасного рендеринга AI-ответов с markdown → HTML.
 markdown-it-py==3.0.0
+
+# WebSockets client (Sprint 9.3 — admin WS smoke; уже нужен фронтом на prod-tools)
+websockets==13.1

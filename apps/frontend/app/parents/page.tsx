@@ -44,9 +44,25 @@ export default function ParentsPage() {
       .parentsChildren()
       .then((c) => {
         setChildren(c);
-        if (c.length > 0 && !selectedId) setSelectedId(c[0].student_id);
+        // Sprint 9.2: восстанавливаем выбор из localStorage
+        const saved = typeof window !== "undefined" ? localStorage.getItem("ai-tutor:parent:selected") : null;
+        if (saved && c.some((x) => String(x.student_id) === saved)) {
+          setSelectedId(Number(saved));
+        } else if (c.length > 0 && !selectedId) {
+          setSelectedId(c[0].student_id);
+        }
       })
       .catch(() => {});
+  }
+
+  function pickChild(id: number) {
+    setSelectedId(id);
+    // Sprint 9.2: сохраняем выбор
+    try {
+      localStorage.setItem("ai-tutor:parent:selected", String(id));
+    } catch {
+      // quota или SSR
+    }
   }
 
   useEffect(() => {
@@ -114,7 +130,7 @@ export default function ParentsPage() {
                 }`}
               >
                 <button
-                  onClick={() => setSelectedId(c.student_id)}
+                  onClick={() => pickChild(c.student_id)}
                   className="rounded-md px-2 py-1 text-sm"
                 >
                   {c.display_name}

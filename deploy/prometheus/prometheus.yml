@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Backend FastAPI — основной источник метрик.
+  - job_name: 'ai-tutor-backend'
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      # Prometheus бежит внутри Docker-network → может обращаться к backend по service-name.
+      - targets: ['backend:8000']
+        labels:
+          tier: 'production'
+
+  # Self-monitoring Prometheus.
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

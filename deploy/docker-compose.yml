@@ -116,10 +116,60 @@ services:
     networks:
       - internal
 
+  # Prometheus — scrape /metrics с backend (Sprint 9.5).
+  # Только внутри сети — НЕ публикуется наружу.
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
+      - '--storage.tsdb.retention.size=2GB'
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # Grafana — UI для метрик (Sprint 9.5).
+  # Bind на localhost:3001 — доступ ТОЛЬКО через nginx proxy (или SSH-tunnel).
+  grafana:
+    image: grafana/grafana:11.3.1
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_started
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-changeme}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+      GF_LOG_LEVEL: warn
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafanadata:/var/lib/grafana
+    networks:
+      - internal
+      - external
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
 volumes:
   pgdata:
   uploads:
   redisdata:
+  grafanadata:
 
 networks:
   internal:

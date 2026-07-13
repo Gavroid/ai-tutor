@@ -410,6 +410,7 @@ def create_app() -> FastAPI:
     from app.parents.router import student_router as link_parent_router
     from app.materials.router import router as materials_router
     from app.admin.router import router as admin_router
+    from app.admin.realtime import router as admin_realtime_router  # Sprint 9.3 — WS для админа
     from app.teacher.router import router as teacher_router
     from app.student.router import router as student_materials_router
     from app.student import models as _stu_models  # noqa: F401  (Alembic autogen + TopicDraft)
@@ -428,6 +429,7 @@ def create_app() -> FastAPI:
     app.include_router(link_parent_router)
     app.include_router(materials_router)
     app.include_router(admin_router)
+    app.include_router(admin_realtime_router)
     app.include_router(teacher_router)
     app.include_router(student_materials_router)
     app.include_router(notifications_router)
