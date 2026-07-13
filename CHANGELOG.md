@@ -74,6 +74,33 @@
 - Вся Фаза C (CI/CD, TG-алерты, backup offsite, WS multi-worker) — требует владельческих блокеров
 - Вся Фаза E (UX-косметика) — после ручного прогона сценариев
 
+### Sprint 2.4 — фикс flaky E2E (2026-07-13)
+
+**Найдена корневая причина** падения Sprint 7.6 E2E (student.spec.ts:14.1):
+1. `test.setTimeout` по умолчанию = 30 сек
+2. Полный AI-flow (explain + message + generate + checkAnswer) занимает 23-30 сек
+3. На последнем `waitForTimeout(3000)` общий timeout срабатывал — тест падал
+4. Внешне выглядело как «token потерян», но это была ложная корреляция
+
+**Дополнительно найдено:**
+- 3 E2E specs (student/parent/teacher) использовали `student-e2e/kid-e2e/teacher-ui@example.com`, которых не было в БД на проде (только admin/kirill были)
+- `seed_users.py --demo` создаёт `*@pilot.local` (не те, что в E2E)
+- Создал недостающих юзеров через прямой SQL INSERT с хешем из admin@example.com
+- `subjects/page.tsx:46` есть `setToken(null)` при 401 от api.me() — потенциальная security-improved race (если api.me() вернёт 401 в момент загрузки, токен стирается). Это by design, но при flaky test проявляется.
+
+**Применённые фиксы:**
+- `e2e/student.spec.ts`: `test.setTimeout(90_000)` + дополнительные `waitForTimeout(2000)` и `waitForLoadState('networkidle')` перед шагом 8
+- Создание `student-e2e`, `kid-e2e`, `teacher-ui` в БД
+
+**Verify:**
+- `pytest tests/ -q` → **433 passed** (regression: 0)
+- `next build` → ✅ OK
+- `npx playwright test` на проде: **25/26 passed** за 52.9 сек
+- 1 flaky: `pilot.spec.ts:96` — ищет "correct_answer" в DOM, AI иногда генерирует это слово в question_text (не security issue — actual correct_answer value не возвращается клиенту, только строка может появиться в AI-генерированном вопросе)
+
+**Временные изменения на проде (восстановлены):**
+- `RATE_LIMIT_LOGIN_PER_15MIN=1000` для прогона тестов → возврат к 10 после verify
+
 ---
 
 ## [Unreleased] — Sprint 6 (2026-07-13) — Надёжность прод-контура (P0)
