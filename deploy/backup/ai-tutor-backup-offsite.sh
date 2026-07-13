@@ -16,8 +16,6 @@
 #   SMB_HOST, SMB_SHARE, SMB_CREDS — параметры SMB (дефолты для 192.168.1.91)
 #   SMB_OFFSITE_DIR                — путь внутри share (по умолчанию "ai-tutor/offsite")
 #   OFFSITE_RETENTION_DAYS         — retention в днях (по умолчанию 30)
-#   BACKUP_OFFSITE_REQUIRED        — если =0, exit 0 при ошибках (только для dev/test)
-#                                    по умолчанию =1 (fail-closed для prod)
 #
 # Cron (на проде, /etc/cron.d/ai-tutor-backup):
 #   0 3 * * * /opt/ai-tutor/deploy/backup/backup.sh && /opt/ai-tutor/deploy/backup/ai-tutor-backup-offsite.sh
@@ -37,7 +35,6 @@ SMB_SHARE="${SMB_SHARE:-Kirill-AI}"
 SMB_CREDS="${SMB_CREDS:-/root/.ai-tutor-secrets/smb.creds}"
 SMB_OFFSITE_DIR="${SMB_OFFSITE_DIR:-ai-tutor/offsite}"
 OFFSITE_RETENTION_DAYS="${OFFSITE_RETENTION_DAYS:-30}"
-BACKUP_OFFSITE_REQUIRED="${BACKUP_OFFSITE_REQUIRED:-1}"
 LOG="/var/log/ai-tutor-backup.log"
 
 log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"; }
@@ -175,8 +172,7 @@ COUNT=$(printf '%s\n' "$SMB_LIST" | awk '/^[[:space:]]+[A-Za-z0-9_.-]+[[:space:]
 log "OFFSITE OK: $UPLOAD_COUNT uploaded, $DELETED deleted, $COUNT total on SMB"
 echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) offsite backup done: uploaded=$UPLOAD_COUNT deleted=$DELETED total=$COUNT" >> "$LOG"
 
-# Honor BACKUP_OFFSITE_REQUIRED=0 для dev
-if [ "$BACKUP_OFFSITE_REQUIRED" = "0" ]; then
-  exit 0
-fi
-exit 0
+# Honor script: print final status. Fail-closed behavior is hard-coded in
+# every error branch above (exit 1). BACKUP_OFFSITE_REQUIRED env var removed —
+# the script always fails loudly if SMB is unavailable. This is the correct
+# default for prod (Pilot Core Stage 1 — P1.4.3 fail-closed).
