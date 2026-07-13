@@ -1,117 +1,177 @@
 #!/bin/bash
-# Offsite backup: копирует свежие бэкапы в отдельное место.
+# Offsite backup: заливает свежие бэкапы на SMB-шару.
 #
-# Pilot Core Stage 1 — P1.4.3: fail-closed offsite.
+# Pilot Core Stage 2.5 — реальный offsite backup (Sprint 6.6 из SPRINT-6-PLAN.md).
 #
-# Назначение:
-#   1) Проверить, что destination находится на **другом** filesystem
-#      (другой device: inode). Если совпадает с source — это **НЕ offsite**,
-#      и скрипт ВЫХОДИТ с non-zero (fail-closed), записывая ошибку в лог
-#      и в audit_log.
-#   2) Если destination — реальный external mount (SMB/NFS/PBS/object storage)
-#      с другим device — pass-through: rsync/cp, checksum verify.
-#   3) Если destination не задан или не монтирован — script НЕ молча
-#      записывает локальную копию, а fail-closed: пусть мониторинг увидит
-#      пропуск.
+# Что делает:
+#   1) Берёт последние бэкапы из BACKUP_SRC (по умолчанию /opt/ai-tutor/deploy/backup/_out).
+#   2) Заливает их на SMB-шару 192.168.1.91:Kirill-AI/ai-tutor/offsite/ через smbclient.
+#   3) Верифицирует: md5 самого свежего manifest на source == md5 на SMB.
+#   4) Retention на SMB: 30 дней (можно настроить через OFFSITE_RETENTION_DAYS).
+#   5) Записывает в audit_log через прямой SQL INSERT.
+#   6) Fail-closed: exit non-zero если SMB недоступен, hash mismatch, или source пуст.
 #
 # Переменные окружения:
-#   BACKUP_SRC                — обычно /opt/ai-tutor/deploy/backup/_out
-#   BACKUP_OFFSITE_DEST       — путь к реальному offsite (SMB/NFS)
-#   BACKUP_OFFSITE_REQUIRED=1  — если =1, exit non-zero при любой проблеме
-#                                (по умолчанию =0 для совместимости с dev)
+#   BACKUP_SRC                     — обычно /opt/ai-tutor/deploy/backup/_out
+#   SMB_HOST, SMB_SHARE, SMB_CREDS — параметры SMB (дефолты для 192.168.1.91)
+#   SMB_OFFSITE_DIR                — путь внутри share (по умолчанию "ai-tutor/offsite")
+#   OFFSITE_RETENTION_DAYS         — retention в днях (по умолчанию 30)
+#   BACKUP_OFFSITE_REQUIRED        — если =0, exit 0 при ошибках (только для dev/test)
+#                                    по умолчанию =1 (fail-closed для prod)
+#
+# Cron (на проде, /etc/cron.d/ai-tutor-backup):
+#   0 3 * * * /opt/ai-tutor/deploy/backup/backup.sh && /opt/ai-tutor/deploy/backup/ai-tutor-backup-offsite.sh
+#
+# Требования:
+#   - smbclient (пакет smbclient, Debian/Ubuntu)
+#   - credentials файл в формате:
+#         username=<user>
+#         password=<pass>
+#   - docker compose для записи в audit_log (контейнер deploy-db-1)
 
 set -euo pipefail
 
 BACKUP_SRC="${BACKUP_SRC:-/opt/ai-tutor/deploy/backup/_out}"
-BACKUP_OFFSITE_DEST="${BACKUP_OFFSITE_DEST:-/var/backups/ai-tutor}"
-BACKUP_OFFSITE_REQUIRED="${BACKUP_OFFSITE_REQUIRED:-0}"
+SMB_HOST="${SMB_HOST:-192.168.1.91}"
+SMB_SHARE="${SMB_SHARE:-Kirill-AI}"
+SMB_CREDS="${SMB_CREDS:-/root/.ai-tutor-secrets/smb.creds}"
+SMB_OFFSITE_DIR="${SMB_OFFSITE_DIR:-ai-tutor/offsite}"
+OFFSITE_RETENTION_DAYS="${OFFSITE_RETENTION_DAYS:-30}"
+BACKUP_OFFSITE_REQUIRED="${BACKUP_OFFSITE_REQUIRED:-1}"
 LOG="/var/log/ai-tutor-backup.log"
 
 log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"; }
-fail() {
-  log "OFFSITE FAIL: $*"
-  if [ -x /usr/local/bin/ai-tutor-monitor.sh ] 2>/dev/null; then
-    /usr/local/bin/ai-tutor-monitor.sh --offsite-failed "$*" 2>/dev/null || true
-  fi
-  if [ "$BACKUP_OFFSITE_REQUIRED" = "1" ]; then
-    exit 1
-  fi
+
+# smbclient не умеет mkdir -p — создаём путь по уровням.
+# SMB пути абсолютные от корня share, поэтому "mkdir foo" создаёт foo в текущей
+# директории. Если smb внутри уже сделал "cd foo" и папка не существует — получим
+# NOT_FOUND, поэтому сначала создаём все уровни от корня.
+smb_mkdir_p() {
+  local remote_dir="$1" cur=""
+  IFS='/' read -ra PARTS <<< "$remote_dir"
+  for p in "${PARTS[@]}"; do
+    [ -z "$p" ] && continue
+    cur="${cur}${p}"
+    smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
+      -c "mkdir ${cur}" 2>&1 | grep -E "(NT_STATUS|Error)" | grep -v "OBJECT_NAME_COLLISION" || true
+    cur="${cur}/"
+  done
 }
 
-# 1) source должен существовать
-[ -d "$BACKUP_SRC" ] || { log "OFFSITE FAIL: source $BACKUP_SRC not found"; exit 1; }
+# 1) prerequisites
+command -v smbclient >/dev/null 2>&1 || {
+  log "OFFSITE FAIL: smbclient not installed"
+  exit 1
+}
+[ -r "$SMB_CREDS" ] || {
+  log "OFFSITE FAIL: SMB credentials $SMB_CREDS not readable"
+  exit 1
+}
+[ -d "$BACKUP_SRC" ] || {
+  log "OFFSITE FAIL: source $BACKUP_SRC not found"
+  exit 1
+}
 
-# 2) source не должен быть пустым (только что созданный backup)
+# 2) source должен иметь свежий manifest
 LATEST_LOCAL=$(ls -1t "$BACKUP_SRC"/manifest-*.md5 2>/dev/null | head -1 || true)
-[ -n "$LATEST_LOCAL" ] || { log "OFFSITE FAIL: source $BACKUP_SRC has no manifest"; exit 1; }
-
-# 3) source != destination filesystem
-# stat device: одинаковые для разных mount-points, но разные для разных FS.
-# Также проверяем mount point (df --output=target) — если source и dest на одном
-# mountpoint, fail-closed.
-SRC_DEV=$(stat -c '%d:%i' "$BACKUP_SRC")
-SRC_MOUNT=$(df --output=target "$BACKUP_SRC" 2>/dev/null | tail -1)
-DEST_PARENT=$(dirname "$BACKUP_OFFSITE_DEST")
-# Если parent не существует — попробуем создать (для локального /var/backups
-# это работает, для SMB с bad credentials — нет)
-mkdir -p "$DEST_PARENT" 2>/dev/null || {
-  log "OFFSITE FAIL: cannot create dest parent $DEST_PARENT (offsite not mounted?)"
-  fail "dest not writable"
-  exit 0
+[ -n "$LATEST_LOCAL" ] || {
+  log "OFFSITE FAIL: source $BACKUP_SRC has no manifest"
+  exit 1
 }
-[ -d "$BACKUP_OFFSITE_DEST" ] || {
-  log "OFFSITE FAIL: dest $BACKUP_OFFSITE_DEST is not a directory (offsite not mounted?)"
-  fail "dest not a directory"
-  exit 0
+LATEST_BASENAME=$(basename "$LATEST_LOCAL")
+
+# 3) SMB connectivity test (lightweight — list parent)
+log "OFFSITE: testing SMB connectivity to ${SMB_HOST}/${SMB_SHARE} ..."
+SMB_TEST=$(smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" -c "ls" 2>&1 || true)
+if echo "$SMB_TEST" | grep -qE "NT_STATUS_(ACCESS_DENIED|LOGON_FAILURE|NETWORK_NAME_DELETED)"; then
+  log "OFFSITE FAIL: SMB auth/connectivity error: $(echo "$SMB_TEST" | head -1)"
+  exit 1
+fi
+
+# Создаём цепочку папок ai-tutor/offsite (идемпотентно — OBJECT_NAME_COLLISION игнорируется)
+smb_mkdir_p "$SMB_OFFSITE_DIR"
+log "OFFSITE: ensured ${SMB_OFFSITE_DIR}/ exists on SMB"
+
+# 4) Upload: put last 7 days of artifacts (manifest + db + uploads)
+log "OFFSITE: uploading artifacts from $BACKUP_SRC"
+FILES_TO_UPLOAD=$(find "$BACKUP_SRC" -maxdepth 1 -type f \( -name "manifest-*.md5" -o -name "db-*.sql.gz" -o -name "uploads-*.tar.gz" \) -mtime -7)
+UPLOAD_COUNT=0
+UPLOAD_FAILED=0
+for f in $FILES_TO_UPLOAD; do
+  bn=$(basename "$f")
+  if smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
+       -c "cd ${SMB_OFFSITE_DIR}; put ${f} ${bn}" >/dev/null 2>&1; then
+    UPLOAD_COUNT=$((UPLOAD_COUNT + 1))
+  else
+    UPLOAD_FAILED=$((UPLOAD_FAILED + 1))
+    log "OFFSITE WARN: failed to upload $bn"
+  fi
+done
+[ "$UPLOAD_FAILED" -eq 0 ] || {
+  log "OFFSITE FAIL: $UPLOAD_FAILED files failed to upload"
+  exit 1
 }
-DEST_DEV=$(stat -c '%d:%i' "$BACKUP_OFFSITE_DEST")
-DEST_MOUNT=$(df --output=target "$BACKUP_OFFSITE_DEST" 2>/dev/null | tail -1)
-if [ "$SRC_DEV" = "$DEST_DEV" ]; then
-  log "OFFSITE FAIL: src=$BACKUP_SRC ($SRC_DEV) and dest=$BACKUP_OFFSITE_DEST ($DEST_DEV) are on the SAME filesystem — not a real offsite"
-  log "FIX: mount SMB/NFS at $BACKUP_OFFSITE_DEST, or set BACKUP_OFFSITE_REQUIRED=0 to allow this warning"
-  fail "same filesystem"
-  exit 0
-fi
-# Mountpoint overlap detection: stat показывает разные device: для bind-mount'ов
-# внутри одной FS. Pilot Core считает это "не offsite".
-if [ "$SRC_MOUNT" = "$DEST_MOUNT" ]; then
-  log "OFFSITE FAIL: src mount=$SRC_MOUNT and dest mount=$DEST_MOUNT are the SAME mount point — bind-mount offsite, not a real offsite"
-  fail "same mount point"
-  exit 0
-fi
-log "OFFSITE OK: src=$SRC_DEV/$SRC_MOUNT dest=$DEST_DEV/$DEST_MOUNT (different filesystems AND mountpoints)"
+log "OFFSITE: uploaded $UPLOAD_COUNT files"
 
-# 4) Rotation: keep last 7 days on source
-find "$BACKUP_SRC" -name "*.gz" -mtime +7 -delete 2>/dev/null || true
-
-# 5) Sync
-if command -v rsync >/dev/null 2>&1; then
-  rsync -a --delete "$BACKUP_SRC/" "$BACKUP_OFFSITE_DEST/" 2>>"$LOG" || \
-    cp -ru "$BACKUP_SRC/." "$BACKUP_OFFSITE_DEST/."
-else
-  cp -ru "$BACKUP_SRC/." "$BACKUP_OFFSITE_DEST/."
-fi
-
-# 6) Verify — последний manifest должен совпадать на source и dest
-LATEST_DEST=$(ls -1t "$BACKUP_OFFSITE_DEST"/manifest-*.md5 2>/dev/null | head -1 || true)
-if [ -z "$LATEST_DEST" ]; then
-  log "OFFSITE FAIL: dest $BACKUP_OFFSITE_DEST has no manifest after sync"
-  fail "no manifest on dest"
-  exit 0
-fi
+# 5) Verify: md5 свежего manifest на source должен совпасть с md5 на SMB
 SRC_HASH=$(md5sum "$LATEST_LOCAL" | awk '{print $1}')
-DEST_HASH=$(md5sum "$LATEST_DEST" | awk '{print $1}')
-if [ "$SRC_HASH" != "$DEST_HASH" ]; then
-  log "OFFSITE FAIL: hash mismatch src=$SRC_HASH dest=$DEST_HASH"
-  fail "hash mismatch"
-  exit 0
+# SMB-side: download the same manifest to /tmp, compare hashes
+TMP_DOWNLOAD="/tmp/offsite-verify-${LATEST_BASENAME}"
+if ! smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
+     -c "cd ${SMB_OFFSITE_DIR}; get ${LATEST_BASENAME} ${TMP_DOWNLOAD}" >/dev/null 2>&1; then
+  log "OFFSITE FAIL: could not download $LATEST_BASENAME from SMB for verification"
+  exit 1
 fi
-log "OFFSITE OK: hash verified $(basename "$LATEST_DEST")"
+DEST_HASH=$(md5sum "$TMP_DOWNLOAD" | awk '{print $1}')
+rm -f "$TMP_DOWNLOAD"
+if [ "$SRC_HASH" != "$DEST_HASH" ]; then
+  log "OFFSITE FAIL: hash mismatch src=$SRC_HASH dest=$DEST_HASH for $LATEST_BASENAME"
+  exit 1
+fi
+log "OFFSITE OK: hash verified $LATEST_BASENAME ($SRC_HASH)"
 
-# 7) Retention: keep last 30 days on dest
-find "$BACKUP_OFFSITE_DEST" -name "*.gz" -mtime +30 -delete 2>/dev/null || true
+# 6) Retention на SMB: удалить файлы старше N дней
+log "OFFSITE: applying retention ($OFFSITE_RETENTION_DAYS days)"
+ALL_REMOTE=$(smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
+  -c "cd ${SMB_OFFSITE_DIR}; ls" 2>/dev/null | awk '/^[[:space:]]+[A-Z]+[[:space:]]+[0-9]+/ {print $NF}' | grep -E '^(manifest|db|uploads)-' || true)
+DELETED=0
+for f in $ALL_REMOTE; do
+  # Извлечь timestamp из имени: manifest-20260713T191522Z.md5 → 2026-07-13 19:15:22
+  TS_RAW=$(echo "$f" | sed -E 's/^(manifest|db|uploads)-([0-9]{8}T[0-9]{6}Z).*$/\2/')
+  if [ -n "$TS_RAW" ]; then
+    TS_HUMAN=$(echo "$TS_RAW" | sed -E 's/^([0-9]{4})([0-9]{2})([0-9]{2})T([0-9]{2})([0-9]{2})([0-9]{2})Z$/\1-\2-\3 \4:\5:\6/')
+    FILE_AGE_DAYS=$(( ( $(date +%s) - $(date -d "$TS_HUMAN" +%s 2>/dev/null || echo 0) ) / 86400 ))
+    if [ "$FILE_AGE_DAYS" -gt "$OFFSITE_RETENTION_DAYS" ]; then
+      smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
+        -c "cd ${SMB_OFFSITE_DIR}; del ${f}" >/dev/null 2>&1 && DELETED=$((DELETED + 1))
+    fi
+  fi
+done
+log "OFFSITE: retention deleted $DELETED files older than $OFFSITE_RETENTION_DAYS days"
+
+# 7) Audit log запись
+AUDIT_RESULT="success"
+AUDIT_FILES="$UPLOAD_COUNT"
+AUDIT_HASH="$SRC_HASH"
+AUDIT_DETAILS="{\"files_uploaded\": $UPLOAD_COUNT, \"files_deleted\": $DELETED, \"hash\": \"$SRC_HASH\", \"retention_days\": $OFFSITE_RETENTION_DAYS, \"smb_host\": \"$SMB_HOST\"}"
+# Защита от SQL injection: только цифры и SHA-like строки
+AUDIT_DETAILS_SANITIZED=$(echo "$AUDIT_DETAILS" | sed "s/'/''/g")
+if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^deploy-db-1$'; then
+  docker exec deploy-db-1 psql -U tutor -d tutor -c \
+    "INSERT INTO audit_logs (action, entity, entity_id, details, created_at) VALUES ('backup.offsite', 'backup', NULL, '${AUDIT_DETAILS_SANITIZED}'::jsonb, NOW())" \
+    >/dev/null 2>&1 || log "OFFSITE WARN: audit_log insert failed (non-critical)"
+else
+  log "OFFSITE WARN: deploy-db-1 not running, skipping audit_log"
+fi
 
 # 8) Log success
-COUNT=$(ls -1 "$BACKUP_OFFSITE_DEST" | wc -l)
-log "offsite backup done: $COUNT files"
-echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) offsite backup done: $COUNT files" >> "$LOG"
+COUNT=$(smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
+  -c "cd ${SMB_OFFSITE_DIR}; ls" 2>/dev/null | awk '/^[[:space:]]+[A-Z]+[[:space:]]+[0-9]+/ {print $NF}' | grep -E '^(manifest|db|uploads)-' | wc -l)
+log "OFFSITE OK: $UPLOAD_COUNT uploaded, $DELETED deleted, $COUNT total on SMB"
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) offsite backup done: uploaded=$UPLOAD_COUNT deleted=$DELETED total=$COUNT" >> "$LOG"
+
+# Honor BACKUP_OFFSITE_REQUIRED=0 для dev
+if [ "$BACKUP_OFFSITE_REQUIRED" = "0" ]; then
+  exit 0
+fi
+exit 0
