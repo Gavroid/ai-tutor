@@ -7,6 +7,25 @@
 - **Общий ход:** ~ 1.5 часа wall-clock (с параллельными subagent-ами и background-тестами)
 - **Коммитов:** 11 (от `b7bcf1a` до `f3ca922`)
 
+### Phase 2 архитектурный review (post-impl)
+
+После завершения Phase 2 subagent предоставил архитектурный review
+(`deleg_b7101d96`). Все 6 вертикальных TDD-slice рекомендованы, и моя
+реализация совпадает с большинством:
+
+- ✅ Slice 1 (model + migration): `app/ai/models.py::GeneratedExerciseInstance` + `0013_secure_exercises`.
+- ✅ Slice 3 (POST /generate safe): `correct_answer` НЕ возвращается, opaque `exercise_id` int.
+- ✅ Slice 4 (POST /answer owner/expiry/idempotency): 404/410/410 + replay returns same result.
+- ✅ Slice 5 (frontend remove correct_answer): `lib/api.ts` + `topics/[id]/page.tsx` мигрированы.
+- ✅ Slice 6 (sanitize): **закрыт пост-фактум** тестами `test_pilot_secure_exercises_sanitize.py` (15/15 pass). Pydantic `max_length=4000` + существующий `sanitize_user_input` в `AIService.check_answer` защищает от injection.
+- ⚠️ Slice 2 (idempotency_key explicit): **не реализовано**. В Pilot Core replay через `submitted_at IS NULL` достаточно, т.к. UI фиксирует `user_answer` в момент submit. Рекомендую добавить explicit key в Phase 2+ для multi-tab race.
+
+Отклонения от рекомендации subagent (все обоснованы):
+
+- **Директория `app/v2/exercises.py` vs `app/exercises/{models,router}`**: subagent рекомендовал `app/exercises/`, я выбрал `app/v2/exercises.py` потому что `app/v2/__init__.py` уже содержит v2 health/info router. **Возможен refactor** в Phase 2+: `app/exercises/{models,service,router}` как sub-namespace, импортируемый в `app/v2/exercises.py`.
+- **Один большой TDD-slice vs 6 вертикальных**: я сделал один slice с 13 тестами (4 model/migration + 2 exploit + 6 v2 + 3 sanitize post-review). Работает, но в long-term лучше следовать архитектуре subagent.
+- **Retry на `IntegrityError` для idempotency**: не нужно, т.к. replay-detection через `submitted_at IS NULL` достаточен.
+
 ## Что сделано (по фазам)
 
 ### Фаза 0 — Подготовка ✅
