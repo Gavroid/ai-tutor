@@ -1,4 +1,10 @@
-"""Сервис AI-репетитора: объяснение, подсказка, проверка, генерация."""
+"""Сервис AI-репетитора: объяснение, подсказка, проверка, генерация.
+
+Sprint 8.4: record_ai_request() вызывается во ВСЕХ режимах (было только в explain).
+Sprint 8.1 (частично): baseline Pydantic-схема `GeneratedMaterial` для structured output;
+                       сам provider пока не поддерживает strict_json — fallback оставлен
+                       как best-effort, метрика `ai_parse_status{result=ok|fallback|error}`.
+"""
 from __future__ import annotations
 
 import json
@@ -35,6 +41,54 @@ class GeneratedExercise:
     typical_mistakes: list[str]
 
 
+def _record_ai(
+    mode: str,
+    status: str,
+    resp: AIResponse | None = None,
+    parse_status: str | None = None,
+) -> None:
+    """Best-effort запись метрик AI. Ошибки метрик НЕ должны ломать основной поток.
+
+    Args:
+        mode: режим ('explain' | 'chat' | 'hint' | 'check' | 'generate' | 'teacher' | 'judge').
+        status: 'ok' | 'error'.
+        resp: ответ AI (если есть).
+        parse_status: 'ok' | 'fallback' | 'error' (только если есть structured output).
+    """
+    try:
+        from app.observability import record_ai_request
+        in_tok = getattr(resp, "input_tokens", 0) if resp else 0
+        out_tok = getattr(resp, "output_tokens", 0) if resp else 0
+        record_ai_request(
+            mode=mode,
+            status=status,
+            input_tokens=in_tok,
+            output_tokens=out_tok,
+        )
+        if parse_status:
+            try:
+                from prometheus_client import Counter
+                _PARSE_CNT.labels(mode=mode, result=parse_status).inc()
+            except (ImportError, AttributeError, ValueError):
+                # метрика может быть ещё не определена — игнорируем
+                pass
+    except Exception:
+        # метрики — best-effort, не роняем основной поток
+        pass
+
+
+# === Метрика парсинга structured output (Sprint 8.1) ===
+try:
+    from prometheus_client import Counter
+    _PARSE_CNT = Counter(
+        "ai_parse_status_total",
+        "Structured output parse result (ok=валидно, fallback=heuristic, error=invalid JSON).",
+        labelnames=("mode", "result"),
+    )
+except ImportError:  # pragma: no cover — prometheus не в requirements-dev
+    _PARSE_CNT = None  # type: ignore
+
+
 class AIService:
     def __init__(self, provider: AIProvider) -> None:
         self.provider = provider
@@ -52,23 +106,11 @@ class AIService:
         )
         try:
             resp = await self.provider.complete(req)
-            # Sprint 5.1: метрики
-            try:
-                from app.observability import record_ai_request
-                record_ai_request(
-                    mode="explain", status="ok",
-                    input_tokens=resp.input_tokens,
-                    output_tokens=resp.output_tokens,
-                )
-            except Exception:
-                pass
+            _record_ai("explain", "ok", resp=resp)
             return resp
-        except Exception:
-            try:
-                from app.observability import record_ai_request
-                record_ai_request(mode="explain", status="error")
-            except Exception:
-                pass
+        except Exception as e:
+            _record_ai("explain", "error")
+            logger.exception("AI explain failed: %s", e)
             raise
 
     async def hint(self, question_text: str) -> AIResponse:
@@ -80,7 +122,14 @@ class AIService:
             mode="hint",
             max_tokens=400,
         )
-        return await self.provider.complete(req)
+        try:
+            resp = await self.provider.complete(req)
+            _record_ai("hint", "ok", resp=resp)
+            return resp
+        except Exception as e:
+            _record_ai("hint", "error")
+            logger.exception("AI hint failed: %s", e)
+            raise
 
     async def check_answer(
         self,
@@ -91,6 +140,7 @@ class AIService:
         user_answer = sanitize.sanitize_user_input(user_answer, self._settings.ai_max_input_chars)
         if sanitize.detect_injection(user_answer):
             # Подозрительный ввод — не отправляем в LLM, считаем ошибкой
+            _record_ai("check", "ok", parse_status="fallback")  # не LLM, но это решение
             return CheckResult(
                 is_correct=False,
                 score=0.0,
@@ -111,28 +161,36 @@ class AIService:
             max_tokens=500,
             temperature=0.0,
         )
-        resp = await self.provider.complete(req)
-        if resp.structured:
-            try:
-                return CheckResult(
-                    is_correct=bool(resp.structured.get("is_correct")),
-                    score=float(resp.structured.get("score", 0.0)),
-                    first_error=resp.structured.get("first_error"),
-                    explanation=str(resp.structured.get("explanation", "")),
-                    hint_level=int(resp.structured.get("hint_level", 1)),
-                    next_difficulty=int(resp.structured.get("next_difficulty", 1)),
-                )
-            except (TypeError, ValueError):
-                pass
-        # Fallback: эвристический парсинг или возврат общего ответа
-        return CheckResult(
-            is_correct=False,
-            score=0.0,
-            first_error=None,
-            explanation=resp.content[:1000] or "Не удалось разобрать ответ.",
-            hint_level=1,
-            next_difficulty=2,
-        )
+        try:
+            resp = await self.provider.complete(req)
+            if resp.structured:
+                try:
+                    result = CheckResult(
+                        is_correct=bool(resp.structured.get("is_correct")),
+                        score=float(resp.structured.get("score", 0.0)),
+                        first_error=resp.structured.get("first_error"),
+                        explanation=str(resp.structured.get("explanation", "")),
+                        hint_level=int(resp.structured.get("hint_level", 1)),
+                        next_difficulty=int(resp.structured.get("next_difficulty", 1)),
+                    )
+                    _record_ai("check", "ok", resp=resp, parse_status="ok")
+                    return result
+                except (TypeError, ValueError):
+                    _record_ai("check", "ok", resp=resp, parse_status="error")
+            # Fallback: эвристический парсинг или возврат общего ответа
+            _record_ai("check", "ok", resp=resp, parse_status="fallback")
+            return CheckResult(
+                is_correct=False,
+                score=0.0,
+                first_error=None,
+                explanation=resp.content[:1000] or "Не удалось разобрать ответ.",
+                hint_level=1,
+                next_difficulty=2,
+            )
+        except Exception as e:
+            _record_ai("check", "error")
+            logger.exception("AI check failed: %s", e)
+            raise
 
     async def generate_exercise(
         self,
@@ -152,28 +210,39 @@ class AIService:
             max_tokens=700,
             temperature=0.6,
         )
-        resp = await self.provider.complete(req)
-        if resp.structured:
-            s = resp.structured
-            opts = s.get("options")
-            tm = s.get("typical_mistakes", [])
+        try:
+            resp = await self.provider.complete(req)
+            if resp.structured:
+                s = resp.structured
+                opts = s.get("options")
+                tm = s.get("typical_mistakes", [])
+                try:
+                    result = GeneratedExercise(
+                        question_text=str(s.get("question_text", "")),
+                        type=str(s.get("type", "text")),
+                        options=list(opts) if isinstance(opts, list) else None,
+                        correct_answer=str(s.get("correct_answer", "")),
+                        explanation=str(s.get("explanation", "")),
+                        typical_mistakes=list(tm) if isinstance(tm, list) else [],
+                    )
+                    _record_ai("generate", "ok", resp=resp, parse_status="ok")
+                    return result
+                except (TypeError, ValueError):
+                    _record_ai("generate", "ok", resp=resp, parse_status="error")
+            # Fallback — текстовое задание
+            _record_ai("generate", "ok", resp=resp, parse_status="fallback")
             return GeneratedExercise(
-                question_text=str(s.get("question_text", "")),
-                type=str(s.get("type", "text")),
-                options=list(opts) if isinstance(opts, list) else None,
-                correct_answer=str(s.get("correct_answer", "")),
-                explanation=str(s.get("explanation", "")),
-                typical_mistakes=list(tm) if isinstance(tm, list) else [],
+                question_text=resp.content[:500],
+                type="text",
+                options=None,
+                correct_answer="(см. объяснение)",
+                explanation=resp.content[:1000],
+                typical_mistakes=[],
             )
-        # Fallback — текстовое задание
-        return GeneratedExercise(
-            question_text=resp.content[:500],
-            type="text",
-            options=None,
-            correct_answer="(см. объяснение)",
-            explanation=resp.content[:1000],
-            typical_mistakes=[],
-        )
+        except Exception as e:
+            _record_ai("generate", "error")
+            logger.exception("AI generate failed: %s", e)
+            raise
 
     async def chat(
         self,
@@ -192,7 +261,14 @@ class AIService:
             if r in ("user", "assistant") and c:
                 msgs.append(AIMessage(role=r, content=c))
         req = AIRequest(messages=msgs, mode="chat", max_tokens=900)
-        return await self.provider.complete(req)
+        try:
+            resp = await self.provider.complete(req)
+            _record_ai("chat", "ok", resp=resp)
+            return resp
+        except Exception as e:
+            _record_ai("chat", "error")
+            logger.exception("AI chat failed: %s", e)
+            raise
 
 
 # Singleton-провайдер (ленивая инициализация)

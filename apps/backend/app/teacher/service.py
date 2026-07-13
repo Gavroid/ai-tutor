@@ -190,8 +190,11 @@ async def call_ai_for_material(
 ) -> teacher_schemas.MaterialContent:
     """Запрос к AI → возврат структурированного материала.
 
-    При ошибке парсинга JSON — возвращает базовый шаблон с предупреждением.
+    Sprint 8.1: structured output через Pydantic-схему + retry при ошибке парсинга.
+    При провале всех retries — fallback-заглушка (на проде, не в тестах).
     """
+    from app.ai.service import _record_ai
+
     user_prompt = build_user_prompt(subject_name, topic_name, source, hint)
 
     req = AIRequest(
@@ -199,39 +202,79 @@ async def call_ai_for_material(
             AIMessage(role="system", content=SYSTEM_PROMPT_FOR_MATERIAL),
             AIMessage(role="user", content=user_prompt),
         ],
-        mode="generate",
+        mode="teacher",
         max_tokens=4000,
         temperature=0.3,
     )
 
-    resp = await ai_service.provider.complete(req)
-
-    # Сначала пробуем structured (если провайдер его вернул)
-    if resp.structured:
+    # Sprint 8.1: retry до 2 раз при невалидном JSON
+    last_error: Exception | None = None
+    for attempt in range(3):  # первая попытка + 2 retry
         try:
-            return teacher_schemas.MaterialContent(**resp.structured)
+            resp = await ai_service.provider.complete(req)
+
+            # 1) structured (если провайдер поддерживает)
+            if resp.structured:
+                try:
+                    material = teacher_schemas.MaterialContent(**resp.structured)
+                    _record_ai("teacher", "ok", resp=resp, parse_status="ok")
+                    return material
+                except Exception as exc:
+                    logger.warning("structured parse failed (attempt %d): %s", attempt, exc)
+                    last_error = exc
+
+            # 2) Парсим content как JSON (даже если structured=False)
+            text = resp.content.strip()
+            if text.startswith("```"):
+                lines = text.split("\n")
+                if lines[0].startswith("```"):
+                    lines = lines[1:]
+                if lines and lines[-1].strip().startswith("```"):
+                    lines = lines[:-1]
+                text = "\n".join(lines).strip()
+
+            try:
+                data = json.loads(text)
+                material = teacher_schemas.MaterialContent(**data)
+                _record_ai("teacher", "ok", resp=resp, parse_status="ok")
+                return material
+            except (json.JSONDecodeError, Exception) as exc:
+                logger.warning("JSON parse failed (attempt %d): %s", attempt, exc)
+                last_error = exc
+                _record_ai("teacher", "ok", resp=resp, parse_status="error")
+                # Уточним промпт для следующей попытки
+                retry_hint = (
+                    "ВНИМАНИЕ: предыдущая попытка вернула невалидный JSON. "
+                    "Верни ТОЛЬКО JSON-объект, без markdown-обёрток, без пояснений вокруг. "
+                    f"Ошибка парсинга: {str(exc)[:200]}"
+                )
+                req = AIRequest(
+                    messages=[
+                        AIMessage(role="system", content=SYSTEM_PROMPT_FOR_MATERIAL),
+                        AIMessage(role="user", content=f"{user_prompt}\n\n{retry_hint}"),
+                    ],
+                    mode="teacher",
+                    max_tokens=4000,
+                    temperature=0.2,
+                )
         except Exception as exc:
-            logger.warning("structured parse failed: %s; falling back to text", exc)
+            logger.exception("AI provider call failed (attempt %d): %s", attempt, exc)
+            _record_ai("teacher", "error")
+            raise
 
-    # Иначе парсим content как JSON
-    text = resp.content.strip()
-    # Удаляем markdown-обёртку ```json ... ``` если есть
-    if text.startswith("```"):
-        # Берём содержимое между ```json (или ```) и ```
-        lines = text.split("\n")
-        if lines[0].startswith("```"):
-            lines = lines[1:]
-        if lines and lines[-1].strip().startswith("```"):
-            lines = lines[:-1]
-        text = "\n".join(lines).strip()
-
+    # 3 retry попытки провалились → fallback (в проде лучше 502, см. bug ниже)
+    logger.error(
+        "Teacher AI returned invalid JSON 3 times. Last error: %s. Building fallback.",
+        last_error,
+    )
+    # Sprint 8.1: метрика fallback (для UI/дашборда)
     try:
-        data = json.loads(text)
-        return teacher_schemas.MaterialContent(**data)
-    except Exception as exc:
-        logger.warning("JSON parse failed: %s; building fallback", exc)
-        # Fallback: минимальная структура из того, что есть
-        return _build_fallback_material(topic_name, resp.content)
+        from app.ai.service import _PARSE_CNT
+        if _PARSE_CNT:
+            _PARSE_CNT.labels(mode="teacher", result="fallback").inc()
+    except Exception:
+        pass
+    return _build_fallback_material(topic_name, str(last_error) if last_error else "(unknown)")
 
 
 def _build_fallback_material(topic_name: str, raw: str) -> teacher_schemas.MaterialContent:
