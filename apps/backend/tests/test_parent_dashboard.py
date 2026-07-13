@@ -150,6 +150,7 @@ def test_dashboard_blocks_teacher(client):
                 display_name="Учитель",
                 role="teacher",
             ),
+            allow_private_bypass=True,
         )
     finally:
         s.close()

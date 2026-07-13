@@ -47,6 +47,7 @@ def client():
                 display_name="Учитель",
                 role="teacher",
             ),
+            allow_private_bypass=True,
         )
         user_service.register_user(
             s,

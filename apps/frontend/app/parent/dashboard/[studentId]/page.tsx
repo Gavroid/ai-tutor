@@ -152,12 +152,6 @@ export default function ParentDashboardPage() {
               })}
             </p>
           </div>
-          <button
-            onClick={downloadPdf}
-            className="rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700"
-          >
-            📄 Скачать отчёт
-          </button>
         </div>
       </header>
 

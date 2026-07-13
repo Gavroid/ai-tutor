@@ -57,6 +57,7 @@ export default function TopicPage() {
   }>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const chat = useChatStream(getToken());
+  const voiceEnabled = process.env.NEXT_PUBLIC_VOICE_ENABLED === "1";
 
   useEffect(() => {
     if (!getToken()) {
@@ -415,12 +416,13 @@ export default function TopicPage() {
           className="flex-1 rounded-lg border border-slate-300 px-3 py-2"
           disabled={busy}
         />
-        {/* Sprint 7.2 — кнопка микрофона. T1D: крупная, отмена одним тапом. */}
-        <VoiceMicButton
-          disabled={busy}
-          onTranscript={(text) => setInput((prev) => (prev ? prev + " " : "") + text)}
-          onError={(msg) => alert("Микрофон: " + msg)}
-        />
+        {voiceEnabled && (
+          <VoiceMicButton
+            disabled={busy}
+            onTranscript={(text) => setInput((prev) => (prev ? prev + " " : "") + text)}
+            onError={(msg) => alert("Микрофон: " + msg)}
+          />
+        )}
         <button
           type="submit"
           disabled={busy || !input.trim()}

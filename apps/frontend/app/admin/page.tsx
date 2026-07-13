@@ -126,12 +126,6 @@ export default function AdminPage() {
         <Tab active={tab === "tools"} onClick={() => setTab("tools")}>
           Инструменты
         </Tab>
-        <Link
-          href="/admin/realtime"
-          className="ml-auto rounded-md bg-emerald-100 px-3 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-200"
-        >
-          📡 Real-time
-        </Link>
       </nav>
 
       {error && (
@@ -327,82 +321,10 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 }
 
 function ToolsTab() {
-  const [email, setEmail] = useState("admin@example.com");
-  const [result, setResult] = useState<null | { ok: boolean; status: string; error: string | null; smtp_configured: boolean; record_id: number }>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function sendTest() {
-    setBusy(true);
-    setError(null);
-    try {
-      const r = await api.adminTestNotification(email);
-      setResult(r);
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-slate-900">📧 Тест уведомления</h3>
-        <p className="mt-1 text-sm text-slate-600">
-          Отправляет тестовый email чтобы проверить настройку SMTP. Результат пишется в audit log.
-        </p>
-
-        <div className="mt-4 flex gap-3">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="email@example.com"
-            className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-          <button
-            onClick={sendTest}
-            disabled={busy}
-            className="rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
-          >
-            {busy ? "Отправка..." : "Отправить тест"}
-          </button>
-        </div>
-
-        {error && (
-          <div className="mt-3 rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">
-            {error}
-          </div>
-        )}
-
-        {result && (
-          <div className="mt-4 space-y-2 rounded-md bg-slate-50 p-4 text-sm">
-            <div>
-              <strong>SMTP configured:</strong>{" "}
-              <span className={result.smtp_configured ? "text-green-700" : "text-amber-700"}>
-                {result.smtp_configured ? "✓ Да" : "✗ Нет (dry_run)"}
-              </span>
-            </div>
-            <div>
-              <strong>Status:</strong>{" "}
-              <span className={
-                result.status === "sent" ? "text-green-700" :
-                result.status === "dry_run" ? "text-amber-700" :
-                "text-rose-700"
-              }>
-                {result.status}
-              </span>
-            </div>
-            {result.error && (
-              <div><strong>Error:</strong> <code>{result.error}</code></div>
-            )}
-            <div><strong>Record ID:</strong> #{result.record_id}</div>
-          </div>
-        )}
-      </div>
-
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h3 className="text-lg font-semibold text-slate-900">🔧 Диагностика</h3>
         <p className="mt-1 text-sm text-slate-600">

@@ -10,13 +10,44 @@ from app.auth.security import create_access_token, create_refresh_token, hash_pa
 from app.users import schemas
 from app.users.models import Role, StudentProfile, User
 
+# Pilot Core Stage 1 — P1.1.3: единый allowlist ролей для публичной регистрации.
+# Импортируется из схем, чтобы источник правды был один и тот же.
+from app.users.schemas import PUBLIC_REGISTRATION_ALLOWED_ROLES  # noqa: E402,F401
 
-def register_user(db: Session, payload: schemas.UserCreate) -> User:
+
+def register_user(
+    db: Session,
+    payload: schemas.UserCreate,
+    *,
+    allow_private_bypass: bool = False,
+) -> User:
     """Создаёт пользователя + (если student) профиль ученика.
+
+    Args:
+        db: SQLAlchemy session.
+        payload: данные регистрации.
+        allow_private_bypass: True — пропустить allowlist ролей.
+            Используется seed_users CLI и pytest fixtures, которые
+            создают teacher/admin через сервис. На публичном пути
+            (HTTP /api/v1/auth/register) вызов идёт с дефолтным False.
 
     Raises:
         HTTPException 409 если email уже занят.
+        HTTPException 403 если allow_private_bypass=False и role
+            вне PUBLIC_REGISTRATION_ALLOWED_ROLES (P1.1.1 / P1.1.2).
     """
+    # Pilot Core Stage 1 — P1.1.3: гейт ролей на уровне сервиса,
+    # чтобы все callers (router и прямые) шли через одну точку.
+    if not allow_private_bypass and payload.role.value not in PUBLIC_REGISTRATION_ALLOWED_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                f"Role '{payload.role.value}' is not available for self-registration. "
+                "Privileged roles (teacher/admin) are created only via the "
+                "seed_users CLI (PILOT_SEED_TOKEN required)."
+            ),
+        )
+
     existing = db.scalar(select(User).where(User.email == payload.email.lower()))
     if existing is not None:
         raise HTTPException(

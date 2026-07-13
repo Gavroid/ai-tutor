@@ -110,7 +110,7 @@ test.describe("Student full cycle", () => {
     expect(page.url()).toMatch(/login/);
   });
 
-  test("14.3. микрофон доступен на /topics/[id]", async ({ page }) => {
+  test("14.3. микрофон скрыт по умолчанию на /topics/[id]", async ({ page }) => {
     // Login
     await page.goto("/login");
     await page
@@ -132,9 +132,9 @@ test.describe("Student full cycle", () => {
     await topicLink.click();
     await page.waitForURL(/\/topics\/\d+/, { timeout: 10_000 });
 
-    // Видна кнопка микрофона (aria-label="Записать голосовое сообщение")
+    // Pilot Core: voice остаётся в коде, но скрыт без NEXT_PUBLIC_VOICE_ENABLED=1.
     const micBtn = page.getByLabel(/Записать голосовое сообщение/i);
-    await expect(micBtn).toBeVisible();
+    await expect(micBtn).toHaveCount(0);
   });
 
   test("14.4. Markdown рендерится в AI-ответе", async ({ page }) => {

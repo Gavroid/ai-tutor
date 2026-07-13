@@ -136,6 +136,23 @@ test.describe("Admin flow", () => {
     await page.getByRole("button", { name: /применить/i }).click();
     await page.waitForTimeout(2000);
   });
+
+  test("10.1. Pilot UI hides unfinished admin tools", async ({ page, request }) => {
+    const r = await request.post("/api/v1/auth/login", {
+      data: { email: ADMIN_USER.email, password: ADMIN_USER.password },
+    });
+    expect(r.status()).toBe(200);
+    const body = await r.json();
+    await page.addInitScript((token: string) => {
+      window.localStorage.setItem("ai-tutor-token", token);
+    }, body.access_token);
+
+    await page.goto("/admin");
+    await expect(page.getByRole("link", { name: /Real-time/i })).toHaveCount(0);
+    await page.getByRole("button", { name: /Инструменты/i }).click();
+    await expect(page.getByText(/Тест уведомления/i)).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Отправить тест/i })).toHaveCount(0);
+  });
 });
 
 test.describe("Health", () => {

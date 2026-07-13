@@ -71,6 +71,7 @@ def client():
                 display_name="Учитель",
                 role="teacher",
             ),
+            allow_private_bypass=True,
         )
         user_service.register_user(
             s,
@@ -99,6 +100,7 @@ def client():
                 display_name="Учитель2",
                 role="teacher",
             ),
+            allow_private_bypass=True,
         )
         # Сидим curriculum → получаем topic
         from app.subjects.scripts_seed_runner import seed_for_tests

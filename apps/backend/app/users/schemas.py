@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.users.models import Role
 
@@ -18,9 +18,29 @@ DisplayNameStr = Annotated[str, Field(min_length=2, max_length=100)]
 # уникальными ответами. Все пароли проверяются одинаково через bcrypt → 401.
 LoginPasswordStr = Annotated[str, Field(min_length=1, max_length=128)]
 
+# Pilot Core Stage 1 — P1.1.3: явный белый список ролей для ПУБЛИЧНОЙ регистрации.
+#
+# Политика пилота: teacher и admin — привилегированные роли и создаются ТОЛЬКО
+# через seed-скрипт (см. app/scripts/seed_users.py и pilot-core-stage-1.md §P1.1.4).
+# Сам allowlist НЕ ставится в pydantic-валидаторе UserCreate: схема остаётся
+# свободной для seed_users CLI и для pytest fixtures, а гейт реализован
+# на уровне публичного HTTP boundary — см.
+# `app/users/service.py::PUBLIC_REGISTRATION_ALLOWED_ROLES` и его
+# использование в `app/auth/router.py::register`.
+PUBLIC_REGISTRATION_ALLOWED_ROLES: frozenset[str] = frozenset({"student", "parent"})
+
 
 class UserCreate(BaseModel):
-    """Регистрация."""
+    """Регистрация.
+
+    Схема намеренно НЕ валидирует role против public allowlist — это
+    responsibility of the HTTP router (см. auth/router.register) и
+    service.register_user(allow_private_bypass=True). Схема остаётся
+    свободной для seed_users CLI и существующих RBAC-тестов, где
+    teacher/admin учётки создаются напрямую.
+    """
+
+    model_config = ConfigDict(extra="forbid")
 
     email: EmailStr
     password: PasswordStr
@@ -28,14 +48,6 @@ class UserCreate(BaseModel):
     role: Role = Role.STUDENT
     # Только для student:
     grade: int | None = Field(default=None, ge=1, le=11)
-
-    @field_validator("role")
-    @classmethod
-    def _no_self_admin(cls, v: Role) -> Role:
-        if v == Role.ADMIN:
-            # Создание админа через /auth/register запрещено — только инвайт от существующего админа.
-            raise ValueError("Admin role cannot be self-registered")
-        return v
 
 
 class UserLogin(BaseModel):

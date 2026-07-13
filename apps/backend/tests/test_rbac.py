@@ -34,7 +34,12 @@ def client():
 
     s = SessionLocal()
     try:
-        # Admin создаётся напрямую — саморегистрация admin запрещена.
+        # Pilot Core Stage 1 — P1.1.3: создание admin/teacher обходит
+        # PUBLIC_REGISTRATION_ALLOWED_ROLES через прямые вставки User.
+        # Это эквивалент «privileged role via seed» в тестовой среде.
+        from app.auth.security import hash_password
+        from app.users.models import Role as UserRole, User
+
         admin = User(
             email="admin@example.com",
             password_hash=hash_password("strongpass1"),
@@ -43,15 +48,14 @@ def client():
         )
         s.add(admin)
 
-        user_service.register_user(
-            s,
-            UserCreate(
-                email="teacher@example.com",
-                password="strongpass1",
-                display_name="Учитель",
-                role="teacher",
-            ),
+        teacher = User(
+            email="teacher@example.com",
+            password_hash=hash_password("strongpass1"),
+            display_name="Учитель",
+            role=UserRole.TEACHER,
         )
+        s.add(teacher)
+
         user_service.register_user(
             s,
             UserCreate(

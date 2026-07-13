@@ -59,6 +59,7 @@ def client():
                 display_name="Учитель",
                 role="teacher",
             ),
+            allow_private_bypass=True,
         )
         seed_for_tests(s, reset=False)
     finally:

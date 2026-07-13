@@ -82,11 +82,110 @@ def test_register_duplicate_email_returns_409(client):
 
 
 def test_admin_role_self_registration_blocked(client):
+    """Pilot Core P1.1.2: public /auth/register must NOT create an admin user.
+
+    Phase 1 changes the rejection channel: a 403 from the service-level
+    allowlist is now the canonical answer (and 422 is also acceptable if a
+    future Pydantic validator pre-empts the call). The hard requirement is
+    that no row is inserted.
+    """
+    from sqlalchemy import select
+
+    from app.db.session import SessionLocal
+    from app.users.models import User
+
     r = client.post(
         "/api/v1/auth/register",
         json={"email": "evil@example.com", "password": "strongpass1", "display_name": "Bad", "role": "admin"},
     )
-    assert r.status_code == 422  # validation error
+    assert r.status_code in (422, 403), r.text
+
+    with SessionLocal() as s:
+        u = s.scalar(select(User).where(User.email == "evil@example.com"))
+        assert u is None, "Public registration must NOT have created an admin user"
+
+
+def test_teacher_role_self_registration_blocked(client):
+    """P1.1.1 RED: public /api/v1/auth/register must NOT create teacher accounts.
+
+    Pilot policy (see pilot-core-stage-1.md §P1.1.1): teacher and admin roles are
+    privileged and must be created only via the seed script.
+    """
+    from sqlalchemy import select
+
+    from app.db.session import SessionLocal
+    from app.users.models import User
+
+    r = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "teacher-rogue@example.com",
+            "password": "strongpass1",
+            "display_name": "Самозванец",
+            "role": "teacher",
+        },
+    )
+    # Either 422 (schema rejection) or 403 (policy rejection) — both are acceptable.
+    assert r.status_code in (422, 403), r.text
+
+    # And — critically — there must be NO user with this email in the DB.
+    with SessionLocal() as s:
+        u = s.scalar(select(User).where(User.email == "teacher-rogue@example.com"))
+        assert u is None, "Public registration must NOT have created a teacher user"
+
+
+def test_admin_role_does_not_create_user(client):
+    """P1.1.2 RED: same guarantee for admin (companion to P1.1.1).
+
+    The existing test_admin_role_self_registration_blocked only asserts the HTTP
+    status; this test additionally proves that no row was inserted.
+    """
+    from sqlalchemy import select
+
+    from app.db.session import SessionLocal
+    from app.users.models import User
+
+    r = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "admin-rogue@example.com",
+            "password": "strongpass1",
+            "display_name": "Самозванец",
+            "role": "admin",
+        },
+    )
+    assert r.status_code in (422, 403), r.text
+
+    with SessionLocal() as s:
+        u = s.scalar(select(User).where(User.email == "admin-rogue@example.com"))
+        assert u is None, "Public registration must NOT have created an admin user"
+
+
+def test_registration_allowlist_is_student_and_parent_only(client):
+    """P1.1.3 GREEN: explicit allowlist covers student+parent; any other role rejected."""
+    # student — accepted
+    r = client.post(
+        "/api/v1/auth/register",
+        json={"email": "stud-allowed@example.com", "password": "strongpass1", "display_name": "Ученик", "role": "student", "grade": 7},
+    )
+    assert r.status_code == 201, r.text
+
+    # parent — accepted
+    r = client.post(
+        "/api/v1/auth/register",
+        json={"email": "parent-allowed@example.com", "password": "strongpass1", "display_name": "Родитель", "role": "parent"},
+    )
+    assert r.status_code == 201, r.text
+
+
+def test_registration_unknown_role_rejected(client):
+    """P1.1.3 GREEN: roles outside the explicit allowlist (teacher/admin/garbage) are rejected."""
+    for role in ("teacher", "admin", "superuser", "moderator"):
+        r = client.post(
+            "/api/v1/auth/register",
+            json={"email": f"x-{role}@example.com", "password": "strongpass1", "display_name": "X", "role": role},
+        )
+        assert r.status_code in (422, 403), f"role={role} -> {r.status_code} {r.text}"
 
 
 def test_weak_password_rejected(client):
