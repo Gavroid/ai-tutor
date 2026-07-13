@@ -131,6 +131,8 @@ fi
 log "OFFSITE OK: hash verified $LATEST_BASENAME ($SRC_HASH)"
 
 # 6) Retention на SMB: удалить файлы старше N дней
+# Используем "cd dir; ls" — wildcard * в shell-команде раскрывается локально,
+# а не на SMB-сервере, что ломает перечисление файлов.
 log "OFFSITE: applying retention ($OFFSITE_RETENTION_DAYS days)"
 ALL_REMOTE=$(smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
   -c "cd ${SMB_OFFSITE_DIR}; ls" 2>/dev/null | awk '/^[[:space:]]+[A-Z]+[[:space:]]+[0-9]+/ {print $NF}' | grep -E '^(manifest|db|uploads)-' || true)
@@ -166,7 +168,7 @@ fi
 
 # 8) Log success
 COUNT=$(smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
-  -c "cd ${SMB_OFFSITE_DIR}; ls" 2>/dev/null | awk '/^[[:space:]]+[A-Z]+[[:space:]]+[0-9]+/ {print $NF}' | grep -E '^(manifest|db|uploads)-' | wc -l)
+  -c "cd ${SMB_OFFSITE_DIR}; ls" 2>/dev/null | awk '/^[[:space:]]+[A-Z]+[[:space:]]+[0-9]+/ {print $NF}' | grep -cE '^(manifest|db|uploads)-' || echo 0)
 log "OFFSITE OK: $UPLOAD_COUNT uploaded, $DELETED deleted, $COUNT total on SMB"
 echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) offsite backup done: uploaded=$UPLOAD_COUNT deleted=$DELETED total=$COUNT" >> "$LOG"
 
