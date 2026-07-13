@@ -29,3 +29,28 @@ ufw allow 80/tcp
 ufw allow 443/tcp
 ufw enable
 # PostgreSQL наружу НЕ открывать (и так не светится — публикуется только proxy).
+
+## Известные ограничения unprivileged LXC (без Docker, наша среда)
+
+**Если контейнер запущен в unprivileged mode** (как текущий prod, 4 GB RAM,
+swap=0, capabilities включая CAP_SYS_ADMIN):
+
+1. **Docker не работает** (по дизайну unprivileged LXC). Решения:
+   - Использовать внешнюю VM/хост для запуска PostgreSQL + Redis.
+   - `apt install postgresql-client` + `pg_dump -h <external-host>` для бэкапа.
+   - Перейти на **restic** или **borgbackup** для инкрементальных бэкапов
+     (вместо `docker exec pg_dump`).
+
+2. **`mount -t cifs` возвращает "Operation not permitted"**, даже с правильными
+   capabilities. Workaround — использовать **`smbclient`** напрямую:
+   ```bash
+   apt install -y cifs-utils smbclient
+   smbclient //<server>/<share> -A /etc/samba/creds -c "put <local> <remote>"
+   ```
+   Пример: бэкап-скрипт `scripts/backup-full.sh` использует `smbclient put`
+   вместо `mount.cifs`. Это работает в любом окружении (включая unprivileged LXC).
+
+3. **Сетевые capabilities ограничены.** Если что-то требует raw-socket
+   (tcpdump, nmap), запускать в privileged LXC или VM.
+
+**Для production рекомендуется VM** (не LXC) — там этих ограничений нет.
