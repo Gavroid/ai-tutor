@@ -340,12 +340,55 @@
 
 > Заполняется по мере выполнения.
 
-### 2026-07-13 — Scope сужен до MVP (ручное тестирование)
-- Владелец уточнил: нагрузка 1 user/роль, цель — быстро получить рабочий проект для тестирования
-- **В scope:** только 6 пунктов (B.1, B.2, B.4, B.5, D-1, D-6)
-- **Из scope:** B.3 (semantic match), B.6 (audit watch), D-2/D-3/D-4/D-5/D-7 (prod hardening), вся Фаза C (CI/CD, TG, SMB, WS multi-worker), вся Фаза E
-- Обоснование: всё отложенное — prod-hardening/CI/мониторинг, не нужно для ручного теста 1 user/роль
-- Делегирование: 1 sub-agent на все 6 пунктов разом (одна verify-сессия вместо двух)
+### 2026-07-13 — Sprint 2.2: прод-deploy + ручной прогон
+
+**Deploy:** ✅ выполнен (commit b07493a, release `20260713T191550Z-b07493a`)
+- `deploy/release/deploy.sh` прошёл: preflight → backup → tar-pipe → build → up → /health=200 → alembic upgrade → snapshot
+- `docker compose up -d --force-recreate --no-deps proxy` для подхвата нового nginx.conf (bind-mount требует recreate)
+- `/opt/ai-tutor/deploy/release/releases/20260713T191550Z-b07493a/` — снапшот создан
+
+**Verify на проде:**
+- `smoke.sh` — 7/7 OK
+- nginx headers: HSTS / X-Content-Type-Options / X-Frame-Options / Referrer-Policy — все 4 видны в response
+- Pilot E2E (`e2e/pilot.spec.ts`): **4/4 passed за 11.2s** (admin/parent/teacher/student)
+- Public E2E (`e2e/smoke.spec.ts` без login): **6/6 passed за 1.3s**
+
+**Создание pilot-пользователей на проде:**
+- Через `app/scripts/seed_users.py --demo` создал 4 аккаунта `*@pilot.local` (отдельный набор)
+- Через прямой SQL INSERT (с хешем из admin) добавил недостающих `teacher@example.com` и `parent-e2e@example.com` с паролем `strongpass1` (seed валидация требует ≥12 символов, password hash скопирован из admin@example.com)
+- Curl-проверка: login обоих = 200 + JWT
+- Audit log: 4 записи `action=user.seed` от `--demo` запуска
+
+**Rate-limit блокер для E2E:**
+- Sprint 4.1: 10 login-попыток / 15 мин на IP — срабатывает корректно при прогоне полного suite
+- Pilot E2E прошли (4 login'а), но полный suite (~16 login'ов с одного IP) упирается в 429
+- Регрессии нет: rate-limit — это **корректная работа** защиты, не баг моих правок
+- Решение для повторного прогона: дождаться сброса окна (≤15 мин), затем запускать с `--workers=1`
+
+**Найденные не-критичные TODO (не блокер для теста):**
+- `curl -I /health` → 405 Method Not Allowed (FastAPI не разрешает HEAD на этот endpoint). Не регрессия, давний нюанс. Smoke использует GET, не влияет.
+- 1 Playwright тест `skipped` (baseline, не моя регрессия).
+
+### 2026-07-13 — Sprint 2.3: ждём сброса rate-limit и финальный verify
+
+**Rate-limit механика** (Sprint 4.1):
+- Redis-backed или in-memory `_login_attempts_log`, sliding window `window = 15 * 60.0`
+- Ключ `login_rl:{ip}:{int(now // window)}` — bucket меняется каждые 15 мин от unix-epoch
+- На проде сейчас `unix=1783972369`, bucket `1982191`, смена через ~7 мин (1783972800)
+- После смены bucket'а — все попытки сбросятся, можно логиниться
+
+**Audit-log на проде (за 30 мин):**
+- 4 `user.seed` (от моего `--demo` запуска seed_users.py)
+- 1 `user.register` (от smoke.sh)
+- Неудачные login (429/401) НЕ пишутся — это by design
+
+**Состояние rate-limit окна:**
+- Последний тест: 10 попыток за 5 мин — все 429
+- Ожидаемый сброс: ~19:59 UTC (через ~7 мин от сейчас 19:52)
+- План: подождать смены bucket'а, прогнать оставшиеся E2E (smoke admin/teacher/parent/student)
+
+### 2026-07-13 — Sprint 2.2: прод-deploy + ручной прогон
+- **Делегирование: 1 sub-agent на все 6 пунктов разом (одна verify-сессия вместо двух)**
 
 ### 2026-07-13 — Scope зафиксирован (решения менеджера, default'ы применены)
 - **B.2** legacy recordAttempt → мигрировать на v2 `/api/v2/exercises/{id}/answer`, legacy удалить

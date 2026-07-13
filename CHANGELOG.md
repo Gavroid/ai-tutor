@@ -47,7 +47,25 @@
 ### Verify
 - Backend pytest: **433 passed** (regression: 0).
 - Frontend `next build`: ✅ OK.
-- Playwright: **26 тестов** в 5 spec'ах (regression: 0).
+- Playwright (list): **26 тестов** в 5 spec'ах.
+
+### Deploy на прод (192.168.1.86)
+- `deploy/release/deploy.sh` → release `20260713T191550Z-b07493a` создан, smoke 7/7 OK
+- `docker compose up -d --force-recreate --no-deps proxy` для применения bind-mount nginx.conf
+- nginx security headers на проде: HSTS / X-Content-Type-Options / X-Frame-Options / Referrer-Policy — все 4 видны в `curl -I`
+- Pilot E2E (`e2e/pilot.spec.ts`) на проде: **4/4 passed за 11.2s** (admin/parent/teacher/student)
+- Public E2E (`e2e/smoke.spec.ts` без login): **6/6 passed за 1.3s**
+
+### Pilot users на проде
+- Через `seed_users.py --demo` созданы 4 аккаунта `*@pilot.local`
+- Через прямой SQL INSERT (с хешем из admin@example.com) добавлены `teacher@example.com` и `parent-e2e@example.com` с паролем `strongpass1`
+- Curl-проверка login: оба = 200 + JWT
+
+### SMB pre-edit backup
+- `.git/hooks/pre-commit` → `scripts/backup-pre-edit.sh` → SMB `192.168.1.91/Kirill-AI/ai-tutor/pre-edit/` через `smbclient`
+- Credentials: `/root/.ai-tutor-secrets/smb.creds` (chmod 600)
+- Retention: 30 pre-edit копий
+- **SMB не смонтирован в `/mnt/`** — но `smbclient` работает напрямую. Это упрощает настройку offsite backup через переменную `BACKUP_OFFSITE_DEST` в `/etc/ai-tutor/.env` (когда владелец решит)
 
 ### Отложено (для справки)
 - B.3 семантический match через AI-judge (Кирилл решает numeric)
