@@ -167,8 +167,9 @@ else
 fi
 
 # 8) Log success
-COUNT=$(smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
-  -c "cd ${SMB_OFFSITE_DIR}; ls" 2>/dev/null | awk '/^[[:space:]]+[A-Z]+[[:space:]]+[0-9]+/ {print $NF}' | grep -cE '^(manifest|db|uploads)-' || echo 0)
+SMB_LIST=$(smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
+  -c "cd ${SMB_OFFSITE_DIR}; ls" 2>/dev/null)
+COUNT=$(printf '%s\n' "$SMB_LIST" | awk '/^[[:space:]]+[A-Z]+[[:space:]]+[0-9]+/ {print $NF}' | grep -cE '^(manifest|db|uploads)-' || echo 0)
 log "OFFSITE OK: $UPLOAD_COUNT uploaded, $DELETED deleted, $COUNT total on SMB"
 echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) offsite backup done: uploaded=$UPLOAD_COUNT deleted=$DELETED total=$COUNT" >> "$LOG"
 
