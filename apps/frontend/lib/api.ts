@@ -243,15 +243,11 @@ export const api = {
     }
     return r.json();
   },
-  recordAttempt: (data: {
-    topic_id: number;
-    question_text: string;
-    user_answer: string;
-    correct_answer: string;
-    is_correct: boolean;
-    score: number;
-    feedback?: string;
-  }) => request("/api/v1/progress/attempts", { method: "POST", body: JSON.stringify(data) }),
+  // Stage 2 B.2: legacy `recordAttempt` (POST /api/v1/progress/attempts) was removed.
+  // The frontend hot-path (`app/topics/[id]/page.tsx`) already uses the server-trusted
+  // v2 endpoints below (`v2GenerateExercise`, `v2SubmitAnswer`). This helper was dead
+  // code since Pilot Core Stage 1 and is unsafe (sends `correct_answer` from the client).
+  // If any caller still needs progress tracking, they must migrate to v2.
 
   // Pilot Core Stage 1 — server-owned secure exercise flow.
   // Client НЕ получает correct_answer, отправляет только user_answer и

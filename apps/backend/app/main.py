@@ -4,6 +4,7 @@
 Авторизация, учебные модули и AI будут подключаться в следующих этапах.
 """
 from contextlib import asynccontextmanager
+import logging
 import os
 import time as _time
 from typing import AsyncIterator
@@ -88,8 +89,12 @@ def create_app() -> FastAPI:
         try:
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
-        except Exception as exc:  # noqa: BLE001
-            return {"status": "not_ready", "reason": repr(exc)}
+        except Exception:  # noqa: BLE001
+            # Stage 2 B.1: full exception (potentially contains DB host/credentials/error
+            # details) goes only to logs. HTTP body is intentionally generic so we never
+            # leak SQL state into a public healthcheck response.
+            logging.getLogger(__name__).exception("/ready DB check failed")
+            return {"status": "not_ready", "reason": "db_unavailable"}
         return {"status": "ready"}
 
     # Простой in-memory rate limit для /api/v1/ai/* — защита от спама.

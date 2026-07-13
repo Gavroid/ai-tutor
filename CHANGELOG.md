@@ -6,6 +6,58 @@
 
 ---
 
+## [Unreleased] — Pilot Core Stage 2 MVP (2026-07-13)
+
+Узкий scope: убрать то, что может сломать UX при ручном тестировании
+(1 user/роль, LAN-only, self-hosted). План: `docs/pilot-core-stage-2-plan.md`.
+
+### B.1 — `/ready` без утечки SQL-ошибки
+- `apps/backend/app/main.py::ready()` — убран `repr(exc)` из HTTP body.
+- При DB-fail возвращается `{"status": "not_ready", "reason": "db_unavailable"}`.
+- Полный exception → `logger.exception()` (только в логи).
+- Verify: замокан DB-fail с фиктивным `secret-password-XYZ@db-host:5432` → в response body ничего не утекло.
+
+### B.2 — Frontend v2 cutover (legacy `recordAttempt`)
+- `apps/frontend/lib/api.ts` — удалён мёртвый helper `recordAttempt` (POST `/api/v1/progress/attempts`).
+- Hot-path уже на v2: `app/topics/[id]/page.tsx` использует `v2GenerateExercise` и `v2SubmitAnswer`.
+- Frontend больше не отправляет `correct_answer` с клиента (server-trusted с Pilot Core Stage 1).
+- Verify: `grep -r 'recordAttempt' apps/frontend/` → 0 вхождений.
+
+### B.4 — tesseract в Docker image (уже было)
+- Подтверждено: `apps/backend/Dockerfile` уже содержит `tesseract-ocr tesseract-ocr-rus tesseract-ocr-eng`.
+- `pytesseract==0.3.13` в `requirements.txt`. Без изменений.
+
+### B.5 — Admin WS (уже было)
+- Подтверждено: `app/admin/realtime.py::/ws` существует. UI-линк скрыт в Pilot Core Stage 1 Phase 5.
+- Без изменений.
+
+### D-1 — seed CLI safety (уже было)
+- Подтверждено: `apps/backend/app/scripts/seed_users.py::_require_pilot_token()` enforced (exit 2 без токена).
+- `_record_audit()` пишет `action="user.seed"`. Без изменений.
+
+### D-6 — Security headers в nginx
+- `deploy/nginx/nginx.conf` — добавлены 4 header'а в `server 443`:
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains`
+  - `X-Content-Type-Options: nosniff`
+  - `X-Frame-Options: DENY`
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+- CSP намеренно не добавлен (сломает Next.js devtools и inline-stream рендер).
+- Применяется после передеплоя на проде (`docker compose restart proxy`).
+
+### Verify
+- Backend pytest: **433 passed** (regression: 0).
+- Frontend `next build`: ✅ OK.
+- Playwright: **26 тестов** в 5 spec'ах (regression: 0).
+
+### Отложено (для справки)
+- B.3 семантический match через AI-judge (Кирилл решает numeric)
+- B.6 audit 7d watch (time-only, не код)
+- D-2/D-3/D-4/D-5/D-7 (CI/CD-уровень)
+- Вся Фаза C (CI/CD, TG-алерты, backup offsite, WS multi-worker) — требует владельческих блокеров
+- Вся Фаза E (UX-косметика) — после ручного прогона сценариев
+
+---
+
 ## [Unreleased] — Sprint 6 (2026-07-13) — Надёжность прод-контура (P0)
 
 ### 6.4 — Секреты в cron
