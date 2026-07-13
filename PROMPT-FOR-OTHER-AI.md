@@ -12,8 +12,8 @@
 - **Codebase**: `/root/workspace/ai-tutor/`
 - **Stack**: FastAPI 0.115 + SQLAlchemy 2 + Next.js 16 + Postgres 16 + Nginx + Redis + Docker Compose
 - **AI**: MiniMax-M3 через OpenAI-compatible API
-- **Tests**: 136 backend + 12 Playwright E2E (все зелёные)
-- **Status**: развёрнут в production, мониторинг работает, backup+offsite+md5 verify работают
+- **Tests**: 428/428 backend pytest + 15 Playwright E2E (все зелёные; +111 в Sprint 1-5, +23 в Pilot Core Stage 1)
+- **Status**: развёрнут в production, мониторинг работает, backup+offsite+md5 verify работают, GitHub remote активирован (Gavroid/ai-tutor)
 
 ---
 
@@ -23,28 +23,33 @@
 
 **Backend (apps/backend):**
 - Python 3.12 + FastAPI 0.115 + SQLAlchemy 2 + Pydantic v2 + Alembic
-- 50 файлов Python (~5000 LOC), 17 тестовых файлов (136 тестов)
-- Dependencies: bcrypt, jose (JWT), httpx, aiosmtplib, pypdf, python-docx, pytesseract, Pillow, redis, slowapi
+- 50+ файлов Python (~6500 LOC), 25+ тестовых файлов (428 тестов)
+- Dependencies: bcrypt, jose (JWT), httpx, aiosmtplib, pypdf, python-docx, pytesseract, Pillow, redis, slowapi, prometheus-client, markdown-it-py
 
 **Frontend (apps/frontend):**
 - Next.js 16 + React 19 + TypeScript strict + Tailwind CSS
-- 12 страниц + PWA (manifest.json + icon.svg + service worker)
-- 3 клиентских модуля: api.ts (REST), ws-chat.ts (WebSocket), types/index.ts
+- 15 страниц + PWA (manifest.json + icon.svg + service worker)
+- 4 клиентских модуля: api.ts (REST), ws-chat.ts (WebSocket), admin-ws.ts, markdown.ts
 
 **Database (PostgreSQL 16):**
-- 7 миграций (0001-0007), 12 таблиц
-- Схема: users, student_profiles, parent_student_links, subjects, sections, topics, subtopics, learning_materials, questions, common_mistakes, attempts, mistakes, progress, diagnostic_sessions, diagnostic_answers, audit_logs, notifications, email_notifications, password_reset_tokens
+- **13 миграций** (0001-0013; последняя `0013_secure_exercises`)
+- Схема: users, student_profiles, parent_student_links, subjects, sections, topics, subtopics, learning_materials, questions, common_mistakes, attempts, mistakes, progress, diagnostic_sessions, diagnostic_answers, audit_logs, notifications, email_notifications, password_reset_tokens, **generated_exercise_instances** (v2 secure flow)
 
 **Infrastructure:**
-- Docker Compose: 5 контейнеров (db, backend, frontend, proxy, redis)
+- Docker Compose: 7 контейнеров (db, backend, frontend, proxy, redis, **prometheus, grafana**)
 - Nginx 1.27: HTTPS reverse proxy с WebSocket upgrade, rate limits (5r/s auth, 30r/s api)
 - Redis 7-alpine: rate limiting для multi-worker (login_rl:*, ai_rl:*, ws_rl:*)
 - Proxmox LXC: 4 CPU, 4 GB RAM, swap=0
 
 **CI/CD:**
-- GitHub Actions: `.github/workflows/tests.yml` + `deploy.yml`
-- Backup скрипт с md5 manifest + test-restore.sh
-- Мониторинг: cron `*/5 * * * *` для healthcheck + error-rate + smtp-worker
+- GitHub Actions: `.github/workflows/ci.yml` (2 jobs: backend pytest + frontend tsc/lint/build)
+- Backup: `deploy/backup/backup.sh` (локальный) + `scripts/backup-*.sh` через `smbclient` на SMB шару `\\192.168.1.91\Kirill-AI\ai-tutor\`
+- Мониторинг: cron `*/5 * * * *` для healthcheck + error-rate; **Telegram-алерты отложены** (нет `TELEGRAM_BOT_TOKEN`)
+
+**Pilot Core Stage 1 (завершён 13.07.2026):**
+- Secure flow: `/api/v2/exercises/{generate,answer}` с server-trusted score.
+- Pilot role policy: `student`/`parent` — public, `teacher`/`admin` — только seed CLI.
+- Atomic deploy: `deploy/release/{preflight,deploy,rollback,smoke}.sh`.
 
 ---
 
