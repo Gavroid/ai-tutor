@@ -19,31 +19,32 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SSH_KEY="${SSH_KEY:-/root/.ssh/id_ed25519_kirill_ai}"
 PROD_HOST="${PROD_HOST:-192.168.1.86}"
-BASE="https://localhost"
 
 log() { printf '\033[1;34m[smoke]\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31m[smoke FAIL]\033[0m %s\n' "$*"; exit 1; }
 
 ssh_q() { ssh -o BatchMode=yes -o ConnectTimeout=5 -i "$SSH_KEY" root@"$PROD_HOST" "$*"; }
-curl_q() { curl -sk "$1" -o /tmp/smoke.body -w "%{http_code}"; }
+# Production — self-signed cert; bypass с -k. Подключаемся по 192.168.1.86,
+# а не по https://localhost (localhost на workspace ≠ localhost на prod).
+curl_q() { curl -sk "https://$PROD_HOST$1" -o /tmp/smoke.body -w "%{http_code}"; }
 
 # 1) Health
 log "1) /health"
-[ "$(curl_q $BASE/health)" = "200" ] || fail "/health != 200"
-[ "$(curl_q $BASE/ready)" = "200" ] || fail "/ready != 200"
-[ "$(curl_q $BASE/api/v2/health)" = "200" ] || fail "/api/v2/health != 200"
+[ "$(curl_q /health)" = "200" ] || fail "/health != 200"
+[ "$(curl_q /ready)" = "200" ] || fail "/ready != 200"
+[ "$(curl_q /api/v2/health)" = "200" ] || fail "/api/v2/health != 200"
 
 # 2) auth positive
 log "2) auth/register (student)"
 TS=$(date +%s)
-STUDENT_CODE=$(curl -sk -X POST $BASE/api/v1/auth/register -H "Content-Type: application/json" \
+STUDENT_CODE=$(curl -sk -X POST "https://$PROD_HOST/api/v1/auth/register" -H "Content-Type: application/json" \
   -d "{\"email\":\"smoke-${TS}@example.com\",\"password\":\"strongpass1\",\"display_name\":\"smoke\",\"role\":\"student\",\"grade\":7}" \
   -o /tmp/smoke.body -w "%{http_code}")
 [ "$STUDENT_CODE" = "201" ] || fail "register student = $STUDENT_CODE"
 
 # 3) auth negative (security gate)
 log "3) auth/register (admin) — должно быть 4xx"
-ADMIN_CODE=$(curl -sk -X POST $BASE/api/v1/auth/register -H "Content-Type: application/json" \
+ADMIN_CODE=$(curl -sk -X POST "https://$PROD_HOST/api/v1/auth/register" -H "Content-Type: application/json" \
   -d "{\"email\":\"smoke-admin-${TS}@example.com\",\"password\":\"strongpass1\",\"display_name\":\"x\",\"role\":\"admin\"}" \
   -o /tmp/smoke.body -w "%{http_code}")
 if [ "$ADMIN_CODE" != "422" ] && [ "$ADMIN_CODE" != "403" ]; then
@@ -52,12 +53,12 @@ fi
 
 # 4) v2 exercises — admin token
 log "4) /api/v2/exercises/generate (admin)"
-ADMIN_LOGIN=$(curl -sk -X POST $BASE/api/v1/auth/login -H "Content-Type: application/json" \
+ADMIN_LOGIN=$(curl -sk -X POST "https://$PROD_HOST/api/v1/auth/login" -H "Content-Type: application/json" \
   -d '{"email":"admin@example.com","password":"strongpass1"}' -o /tmp/smoke.body -w "%{http_code}")
 [ "$ADMIN_LOGIN" = "200" ] || fail "admin login = $ADMIN_LOGIN"
 ADMIN_TOKEN=$(python3 -c "import sys, json; print(json.load(open('/tmp/smoke.body'))['access_token'])")
 
-GEN_CODE=$(curl -sk -X POST $BASE/api/v2/exercises/generate -H "Authorization: Bearer $ADMIN_TOKEN" \
+GEN_CODE=$(curl -sk -X POST "https://$PROD_HOST/api/v2/exercises/generate" -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" -d '{"topic_id":1,"difficulty":1}' \
   -o /tmp/smoke.body -w "%{http_code}")
 [ "$GEN_CODE" = "200" ] || fail "v2 generate = $GEN_CODE"
@@ -70,24 +71,19 @@ log "  exercise_id=$EID, no correct_answer in payload — OK"
 
 # 5) v2 answer
 log "5) /api/v2/exercises/{id}/answer (admin)"
-ANS_CODE=$(curl -sk -X POST $BASE/api/v2/exercises/$EID/answer -H "Authorization: Bearer $ADMIN_TOKEN" \
+ANS_CODE=$(curl -sk -X POST "https://$PROD_HOST/api/v2/exercises/$EID/answer" -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" -d '{"user_answer":"definitely_wrong_xyz"}' \
   -o /tmp/smoke.body -w "%{http_code}")
 [ "$ANS_CODE" = "200" ] || fail "v2 answer = $ANS_CODE"
 log "  body: $(cat /tmp/smoke.body | head -c 200)"
 
-# 6) admin tools page does NOT have Real-time (frontend уже скрыт в Phase 5)
-#  - это E2E тест, не shell smoke. Проверяем, что HTML НЕ содержит "Real-time"
-#  ссылку через /admin (но это SPA — текст рендерится JS, поэтому smoke не видит).
-#  Здесь smoke только проверяет, что /admin/realtime возвращает НЕ 200 для plain GET.
-RT_CODE=$(curl_q $BASE/admin/realtime)
-if [ "$RT_CODE" = "200" ]; then
-  log "  /admin/realtime вернул 200 (WebSocket upgrade ожидается — это OK для nginx proxy)"
-fi
+# 6) /admin/realtime через nginx
+log "6) /admin/realtime через nginx"
+RT_CODE=$(curl_q /admin/realtime)
+log "  /admin/realtime=$RT_CODE (любой не-200 для plain GET — OK, это WS endpoint)"
 
 # 7) backup age < 26h
 log "7) backup age < 26h"
-ssh_q "test -d $BASE" >/dev/null 2>&1 || true
 LATEST=$(ssh_q "ls -1t /opt/ai-tutor/deploy/backup/_out/manifest-*.md5 2>/dev/null | head -1" || true)
 if [ -z "$LATEST" ]; then
   log "  нет backup-файла — пропускаю"
