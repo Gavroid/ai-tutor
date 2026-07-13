@@ -1,10 +1,18 @@
-"""Аутентификация: хэширование паролей, JWT, зависимости."""
+"""Аутентификация: хэширование паролей, JWT, зависимости.
+
+Sprint 10.1: JWT теперь можно передавать через cookie (httpOnly) ИЛИ через
+Authorization header (обратная совместимость с фронтом). Sprint 10.1 НЕ ломает
+существующий API- контракт: фронт продолжает использовать `Authorization: Bearer`,
+но сервер при логине теперь дополнительно устанавливает httpOnly-куки для
+постепенного перехода. После полного перехода фронта на cookie — header auth
+может быть выключен.
+"""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -20,7 +28,12 @@ _settings = get_settings()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
 
 # tokenUrl — это эндпоинт /api/v1/auth/login (OAuth2 password flow для Swagger).
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=True)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
+
+
+# Cookie names (Sprint 10.1)
+ACCESS_COOKIE = "ai_tutor_access"
+REFRESH_COOKIE = "ai_tutor_refresh"
 
 
 def hash_password(plain: str) -> str:
@@ -64,11 +77,69 @@ def decode_token(token: str) -> dict[str, Any]:
         ) from exc
 
 
+def set_auth_cookies(
+    response: Response,
+    access_token: str,
+    refresh_token: str | None = None,
+) -> None:
+    """Установить httpOnly+SameSite cookies после логина/refresh (Sprint 10.1).
+
+    - httpOnly: JS не может прочитать → не украдёт через XSS.
+    - Secure: только HTTPS (в production). В тестах/локальной разработке — False,
+      иначе TestClient (ASGI) не передаёт Secure-cookies по http://.
+    - SameSite=Lax: базовая CSRF защита.
+    """
+    is_https_env = str(getattr(_settings, "app_env", "development")).lower() in ("production", "prod")
+    response.set_cookie(
+        key=ACCESS_COOKIE,
+        value=access_token,
+        httponly=True,
+        secure=is_https_env,
+        samesite="lax",
+        path="/",
+        max_age=_settings.jwt_access_ttl_minutes * 60,
+    )
+    if refresh_token:
+        response.set_cookie(
+            key=REFRESH_COOKIE,
+            value=refresh_token,
+            httponly=True,
+            secure=is_https_env,
+            samesite="lax",
+            path="/api/v1/auth/",  # только auth endpoints читают refresh
+            max_age=_settings.jwt_refresh_ttl_days * 86400,
+        )
+
+
+def clear_auth_cookies(response: Response) -> None:
+    """Очистить cookies (logout)."""
+    response.delete_cookie(key=ACCESS_COOKIE, path="/")
+    response.delete_cookie(key=REFRESH_COOKIE, path="/api/v1/auth/")
+
+
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
+    token: str | None = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> User:
-    payload = decode_token(token)
+    """Текущий пользователь — из Bearer header ИЛИ cookie (Sprint 10.1).
+
+    Приоритет: Bearer header → Cookie. Это позволяет плавно мигрировать.
+    После полного перехода фронта, можно убрать Bearer fallback.
+    """
+    # 1) Bearer header (приоритет)
+    raw_token = token
+    # 2) Cookie — если header нет
+    if not raw_token:
+        raw_token = request.cookies.get(ACCESS_COOKIE)
+    if not raw_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing token (header or cookie)",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    payload = decode_token(raw_token)
     if payload.get("type") != "access":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Wrong token type"

@@ -400,6 +400,7 @@ def create_app() -> FastAPI:
     from app.auth.oauth import router as oauth_router
     from app.voice.router import router as voice_router
     from app.rag_router import router as rag_router
+    from app.v2 import router as v2_router  # Sprint 10.3 — /api/v2 каркас
     from app.auth.router import student_router as student_profile_router
     from app.subjects.router import router as subjects_router
     from app.subjects.router import topics_router
@@ -438,6 +439,7 @@ def create_app() -> FastAPI:
     app.include_router(oauth_router)
     app.include_router(voice_router)
     app.include_router(rag_router)
+    app.include_router(v2_router)
 
     return app
 

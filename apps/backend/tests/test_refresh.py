@@ -105,6 +105,12 @@ def test_refresh_for_inactive_user_rejected(client):
 
 
 def test_refresh_missing_token_field(client):
-    """Без поля refresh_token → 422."""
+    """Без refresh_token (ни body, ни cookie) → 401.
+
+    Sprint 10.1: cookie теперь тоже источник токена, поэтому 401,
+    а не 422. Тест явно очищает cookies перед запросом.
+    """
+    # Очищаем cookies клиента, чтобы убедиться что refresh действительно missing.
+    client.cookies.clear()
     r = client.post("/api/v1/auth/refresh", json={})
-    assert r.status_code == 422
+    assert r.status_code == 401

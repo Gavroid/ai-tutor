@@ -1,7 +1,7 @@
 """Роутер авторизации и профиля."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
@@ -32,29 +32,61 @@ def register(
 
 
 @router.post("/login", response_model=schemas.TokenPair)
-def login(payload: schemas.UserLogin, db: Session = Depends(get_db)) -> schemas.TokenPair:
+def login(
+    payload: schemas.UserLogin,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> schemas.TokenPair:
     user = service.authenticate(db, payload.email, payload.password)
-    return service.issue_tokens(user)
+    tokens = service.issue_tokens(user)
+    # Sprint 10.1: дублируем токены в httpOnly cookies (для будущего перехода фронта).
+    # Сейчас фронт использует Authorization header из tokens.access_token — продолжает работать.
+    from app.auth.security import set_auth_cookies
+
+    set_auth_cookies(
+        response,
+        access_token=tokens.access_token,
+        refresh_token=tokens.refresh_token,
+    )
+    return tokens
 
 
 class RefreshRequest(BaseModel):
-    refresh_token: str = Field(min_length=10)
+    refresh_token: str | None = Field(default=None, min_length=10)
+    """Refresh-токен. Можно передать в JSON body ИЛИ в httpOnly cookie.
+
+    Если в body — Pydantic валидирует min_length=10 (защита от мусора).
+    Если в cookie — валидация на этапе decode_token.
+    """
 
 
 @router.post("/refresh", response_model=schemas.TokenPair)
-def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> schemas.TokenPair:
-    """Обновление пары токенов по refresh_token.
+def refresh(
+    request: Request,
+    response: Response,
+    payload: RefreshRequest = RefreshRequest(),
+    db: Session = Depends(get_db),
+) -> schemas.TokenPair:
+    """Обновление пары токенов по refresh_token (rotation — Sprint 10.1).
 
-    Тип токена проверяется через claim "typ" — должен быть "refresh".
-    Возвращает НОВУЮ пару токенов (rotation) — старый refresh_token остаётся
-    валидным до истечения TTL, но для production стоит добавить blacklist.
+    Источник refresh_token (по приоритету):
+    1. JSON body (обратная совместимость — фронт сейчас так).
+    2. httpOnly cookie `ai_tutor_refresh` (новый flow без localStorage).
     """
     from fastapi import HTTPException
 
-    from app.auth.security import decode_token
+    from app.auth.security import (
+        REFRESH_COOKIE,
+        decode_token,
+        set_auth_cookies,
+    )
+
+    raw = payload.refresh_token or request.cookies.get(REFRESH_COOKIE)
+    if not raw:
+        raise HTTPException(status_code=401, detail="Missing refresh token")
 
     try:
-        claim = decode_token(payload.refresh_token)
+        claim = decode_token(raw)
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
@@ -66,7 +98,19 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> schemas.T
     if user is None or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
 
-    return service.issue_tokens(user)
+    tokens = service.issue_tokens(user)
+    set_auth_cookies(response, access_token=tokens.access_token, refresh_token=tokens.refresh_token)
+    return tokens
+
+
+@router.post("/logout", status_code=204, response_class=Response)
+def logout(response: Response) -> Response:
+    """Logout: очищаем httpOnly cookies (Sprint 10.1)."""
+    from app.auth.security import clear_auth_cookies
+
+    clear_auth_cookies(response)
+    response.status_code = 204
+    return response
 
 
 @router.get("/me", response_model=schemas.UserOut)
