@@ -1,7 +1,7 @@
 name: CI
 
-# Запускается при push в main и pull request.
-# Workflow: pytest → build → upload artifacts
+# Объединённый CI: backend pytest + frontend tsc/lint/build.
+# Триггеры: push в main, pull_request в main.
 
 on:
   push:
@@ -9,10 +9,20 @@ on:
   pull_request:
     branches: [main]
 
+# Один одновременный запуск на ветку; новые коммиты отменяют старые.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Минимальные права: только чтение репозитория.
+permissions:
+  contents: read
+
 jobs:
-  test-backend:
+  backend:
+    name: Backend (pytest)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +32,7 @@ jobs:
         with:
           python-version: "3.12"
           cache: "pip"
-          cache-dependency-path: apps/backend/requirements.txt
+          cache-dependency-path: apps/backend/requirements.txt apps/backend/requirements-dev.txt
 
       - name: Install system deps (OCR)
         run: |
@@ -40,17 +50,17 @@ jobs:
       - name: Run tests
         working-directory: apps/backend
         env:
-          APP_SECRET_KEY: "test-secret-key-for-pytest-only-1234567890"
-          APP_ENV: "development"
-          DATABASE_URL: "sqlite+pysqlite:///:memory:"
-          CORS_ORIGINS: "http://localhost:3000"
-          AI_API_KEY: "mock-key-for-tests"
+          # conftest.py выставляет APP_SECRET_KEY, APP_ENV, DATABASE_URL, CORS_ORIGINS.
+          # Дублировать их здесь НЕ нужно — единственное, что conftest не делает,
+          # это AI_API_KEY (нужен для MockProvider: key содержит "mock").
+          AI_API_KEY: "mock-key-for-ci"
           UPLOAD_DIR: "/tmp/ai-tutor-test-uploads"
         run: |
           . .venv/bin/activate
           pytest --tb=short -q
 
-  build-frontend:
+  frontend:
+    name: Frontend (tsc + lint + build)
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -60,7 +70,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "20"
           cache: "npm"
           cache-dependency-path: apps/frontend/package-lock.json
 
@@ -68,21 +78,19 @@ jobs:
         working-directory: apps/frontend
         run: npm ci
 
+      - name: Type check
+        working-directory: apps/frontend
+        run: npx tsc --noEmit
+
+      - name: Lint
+        working-directory: apps/frontend
+        run: npm run lint
+
       - name: Build
         working-directory: apps/frontend
-        run: npm run build
         env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.PRODUCTION_API_URL || 'http://localhost:8000' }}
-
-      - name: Install Playwright
-        working-directory: apps/frontend
-        run: npx playwright install chromium --with-deps
-
-      - name: Run E2E (against localhost)
-        working-directory: apps/frontend
-        run: |
-          # Backend должен быть запущен — используем service container
-          echo "E2E skipped in CI (requires running backend)"
+          NEXT_PUBLIC_API_URL: "https://example.com/api"
+        run: NEXT_TELEMETRY_DISABLED=1 npm run build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

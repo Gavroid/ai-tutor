@@ -1,5 +1,7 @@
 # AI-репетитор 7 класса
 
+[![CI](https://github.com/Gavroid/ai-tutor/actions/workflows/ci.yml/badge.svg)](https://github.com/Gavroid/ai-tutor/actions/workflows/ci.yml)
+
 Персональный AI-репетитор для школьной программы 7 класса.
 **Production-ready MVP** (12 этапов MVP + расширения + production hardening).
 
