@@ -134,10 +134,12 @@ log "OFFSITE OK: hash verified $LATEST_BASENAME ($SRC_HASH)"
 # Используем "cd dir; ls" — wildcard * в shell-команде раскрывается локально,
 # а не на SMB-сервере, что ломает перечисление файлов.
 log "OFFSITE: applying retention ($OFFSITE_RETENTION_DAYS days)"
-ALL_REMOTE=$(smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
-  -c "cd ${SMB_OFFSITE_DIR}; ls" 2>/dev/null | awk '/^[[:space:]]+[A-Z]+[[:space:]]+[0-9]+/ {print $NF}' | grep -E '^(manifest|db|uploads)-' || true)
+SMB_LIST_R=$(smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
+  -c "cd ${SMB_OFFSITE_DIR}; ls" 2>/dev/null)
+ALL_REMOTE=$(printf '%s\n' "$SMB_LIST_R" | awk '/^[[:space:]]+[A-Za-z0-9_.-]+[[:space:]]+A[[:space:]]+[0-9]+/ {print $1}' || true)
 DELETED=0
 for f in $ALL_REMOTE; do
+  [ -z "$f" ] && continue
   # Извлечь timestamp из имени: manifest-20260713T191522Z.md5 → 2026-07-13 19:15:22
   TS_RAW=$(echo "$f" | sed -E 's/^(manifest|db|uploads)-([0-9]{8}T[0-9]{6}Z).*$/\2/')
   if [ -n "$TS_RAW" ]; then
@@ -169,7 +171,7 @@ fi
 # 8) Log success
 SMB_LIST=$(smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
   -c "cd ${SMB_OFFSITE_DIR}; ls" 2>/dev/null)
-COUNT=$(printf '%s\n' "$SMB_LIST" | awk '/^[[:space:]]+[A-Z]+[[:space:]]+[0-9]+/ {print $NF}' | grep -cE '^(manifest|db|uploads)-' || echo 0)
+COUNT=$(printf '%s\n' "$SMB_LIST" | awk '/^[[:space:]]+[A-Za-z0-9_.-]+[[:space:]]+A[[:space:]]+[0-9]+/ {print $1}' | grep -cE '^(manifest|db|uploads)-' || echo 0)
 log "OFFSITE OK: $UPLOAD_COUNT uploaded, $DELETED deleted, $COUNT total on SMB"
 echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) offsite backup done: uploaded=$UPLOAD_COUNT deleted=$DELETED total=$COUNT" >> "$LOG"
 
