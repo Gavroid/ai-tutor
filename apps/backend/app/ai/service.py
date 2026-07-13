@@ -41,6 +41,25 @@ class GeneratedExercise:
     typical_mistakes: list[str]
 
 
+@dataclass
+class QuizQuestion:
+    """Один вопрос квиза (режим mode='quiz').
+
+    Поля совпадают со схемой, которую LLM возвращает в JSON.
+    """
+    question_text: str
+    type: str  # "single" | "multiple" | "numeric" | "text"
+    options: list[str] | None
+    correct_answer: str
+    explanation: str
+
+
+@dataclass
+class Quiz:
+    """Набор вопросов, сгенерированных AI для квиза."""
+    questions: list[QuizQuestion]
+
+
 def _record_ai(
     mode: str,
     status: str,
@@ -254,6 +273,75 @@ class AIService:
         except Exception as e:
             _record_ai("generate", "error")
             logger.exception("AI generate failed: %s", e)
+            raise
+
+    async def generate_quiz(
+        self,
+        subject_name: str,
+        topic_name: str,
+        difficulty: int,
+        count: int,
+    ) -> Quiz:
+        """Сгенерировать набор из `count` разнотипных вопросов по теме (квиз).
+
+        Парсит JSON {"questions": [...]} из resp.structured. Если парсинг не удался —
+        возвращает квиз из одного текстового вопроса (fallback). Метрика parse_status:
+        ok / fallback / error.
+        """
+        max_tokens = max(2048, count * 350)
+        req = AIRequest(
+            messages=[
+                AIMessage(
+                    role="system",
+                    content=prompts.quiz_system(subject_name, topic_name, difficulty, count),
+                ),
+                AIMessage(role="user", content="Сгенерируй квиз."),
+            ],
+            mode="quiz",
+            max_tokens=max_tokens,
+            temperature=0.6,
+        )
+        try:
+            resp = await self.provider.complete(req)
+            if resp.structured:
+                raw_questions = resp.structured.get("questions")
+                if isinstance(raw_questions, list) and raw_questions:
+                    try:
+                        questions: list[QuizQuestion] = []
+                        for item in raw_questions:
+                            if not isinstance(item, dict):
+                                continue
+                            opts = item.get("options")
+                            questions.append(
+                                QuizQuestion(
+                                    question_text=str(item.get("question_text", "")),
+                                    type=str(item.get("type", "text")),
+                                    options=list(opts) if isinstance(opts, list) else None,
+                                    correct_answer=str(item.get("correct_answer", "")),
+                                    explanation=str(item.get("explanation", "")),
+                                )
+                            )
+                        if questions:
+                            _record_ai("quiz", "ok", resp=resp, parse_status="ok")
+                            return Quiz(questions=questions)
+                    except (TypeError, ValueError):
+                        _record_ai("quiz", "ok", resp=resp, parse_status="error")
+            # Fallback: один текстовый вопрос с обрезанным содержимым ответа
+            _record_ai("quiz", "ok", resp=resp, parse_status="fallback")
+            return Quiz(
+                questions=[
+                    QuizQuestion(
+                        question_text=resp.content[:500] or "(нет ответа)",
+                        type="text",
+                        options=None,
+                        correct_answer="(см. объяснение)",
+                        explanation=resp.content[:1000],
+                    )
+                ]
+            )
+        except Exception as e:
+            _record_ai("quiz", "error")
+            logger.exception("AI quiz failed: %s", e)
             raise
 
     async def chat(

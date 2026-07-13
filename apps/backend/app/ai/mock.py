@@ -56,6 +56,38 @@ class MockProvider(AIProvider):
                 structured=structured,
             )
 
+        if mode == "quiz":
+            structured = {
+                "questions": [
+                    {
+                        "question_text": "[mock] Вопрос 1: что такое дробь?",
+                        "type": "single",
+                        "options": ["Число", "Буква", "Знак", "Слово"],
+                        "correct_answer": "Число",
+                        "explanation": "Дробь — это число, обозначающее часть целого.",
+                    },
+                    {
+                        "question_text": "[mock] Вопрос 2: чему равно 2 + 2?",
+                        "type": "numeric",
+                        "options": None,
+                        "correct_answer": "4",
+                        "explanation": "Это базовая арифметика.",
+                    },
+                    {
+                        "question_text": "[mock] Вопрос 3: поясни своими словами, что такое уравнение.",
+                        "type": "text",
+                        "options": None,
+                        "correct_answer": "Равенство с неизвестным",
+                        "explanation": "Уравнение — это равенство, содержащее неизвестную переменную.",
+                    },
+                ]
+            }
+            return AIResponse(
+                content=json.dumps(structured, ensure_ascii=False),
+                model=self.model_name,
+                structured=structured,
+            )
+
         if mode == "hint":
             return AIResponse(
                 content="Подумай: с чего начинается решение? Какие данные тебе даны?",

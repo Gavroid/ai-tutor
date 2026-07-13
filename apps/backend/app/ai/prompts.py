@@ -117,3 +117,33 @@ def generate_exercise_system(subject_name: str, topic_name: str, difficulty: int
         + ' "options": [string]?|null, "correct_answer": string, "explanation": string,'
         + ' "typical_mistakes": [string]}.'
     )
+
+
+def quiz_system(subject_name: str, topic_name: str, difficulty: int, count: int) -> str:
+    """Системный промпт для генерации набора разнотипных вопросов (квиза).
+
+    LLM возвращает СТРОГО JSON: {"questions": [<объект_вопроса>]} без markdown-блоков.
+    Каждый вопрос: {"question_text", "type", "options", "correct_answer", "explanation"}.
+    В quiz допускаются ТОЛЬКО типы single/multiple/numeric/text (без fill/code).
+    """
+    return (
+        BASE_SYSTEM
+        + f"\n\nРЕЖИМ: ГЕНЕРАЦИЯ КВИЗА. Предмет «{subject_name}», тема «{topic_name}», "
+        + f"сложность {difficulty}/5, количество вопросов: {count}."
+        + "\nСгенерируй набор разнообразных вопросов для проверки знаний по теме. "
+        + "Чередуй типы вопросов (single/multiple/numeric/text), чтобы квиз был интересным."
+        + "\nВерни СТРОГО JSON без markdown-блоков и пояснений вокруг:"
+        + ' {"questions": [<объект_вопроса>]}.'
+        + "\nКаждый элемент массива — объект вида:"
+        + ' {"question_text": string,'
+        + ' "type": "single"|"multiple"|"numeric"|"text",'
+        + ' "options": [string]?|null,'
+        + ' "correct_answer": string,'
+        + ' "explanation": string}.'
+        + "\nПравила по типам:"
+        + "\n- \"single\": один правильный вариант; options обязателен (>=2 элементов); correct_answer — строка-вариант из options."
+        + "\n- \"multiple\": несколько правильных; options обязателен (>=2 элементов); correct_answer — строка с правильными вариантами через запятую."
+        + "\n- \"numeric\": числовой ответ; options=null; correct_answer — строка с числом."
+        + "\n- \"text\": свободный ответ; options=null; correct_answer — эталонный короткий ответ."
+        + f"\nСгенерируй ровно {count} вопросов."
+    )

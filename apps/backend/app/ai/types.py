@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal, Protocol
 
-Mode = Literal["explain", "hint", "check", "generate", "diagnose", "chat"]
+Mode = Literal["explain", "hint", "check", "generate", "diagnose", "chat", "quiz"]
 Role = Literal["system", "user", "assistant"]
 
 

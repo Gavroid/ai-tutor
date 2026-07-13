@@ -63,6 +63,24 @@ class GeneratedOut(BaseModel):
     typical_mistakes: list[str]
 
 
+class QuizIn(BaseModel):
+    topic_id: int
+    difficulty: int = Field(ge=1, le=5, default=2)
+    count: int = Field(ge=1, le=20, default=5)
+
+
+class QuestionOut(BaseModel):
+    question_text: str
+    type: str
+    options: list[str] | None
+    correct_answer: str
+    explanation: str
+
+
+class QuizOut(BaseModel):
+    questions: list[QuestionOut]
+
+
 def _ai_response(content: str, model: str | None = None) -> dict[str, Any]:
     """AI-ответ в формате {content, content_html, model}."""
     return {
@@ -144,6 +162,38 @@ async def generate(
         correct_answer=gen.correct_answer,
         explanation=gen.explanation,
         typical_mistakes=gen.typical_mistakes,
+    )
+
+
+@router.post("/quiz", response_model=QuizOut)
+async def quiz(
+    payload: QuizIn,
+    db: Session = Depends(get_db),
+    current: user_models.User = Depends(get_current_user),
+):
+    """Сгенерировать квиз (набор разнотипных вопросов) по теме."""
+    _enforce_budget(current)
+    topic = db.get(subj_models.Topic, payload.topic_id)
+    if topic is None:
+        raise HTTPException(404, "Topic not found")
+    svc = get_ai_service()
+    quiz_obj = await svc.generate_quiz(
+        topic.section.subject.name,
+        topic.name,
+        payload.difficulty,
+        payload.count,
+    )
+    return QuizOut(
+        questions=[
+            QuestionOut(
+                question_text=q.question_text,
+                type=q.type,
+                options=q.options,
+                correct_answer=q.correct_answer,
+                explanation=q.explanation,
+            )
+            for q in quiz_obj.questions
+        ]
     )
 
 

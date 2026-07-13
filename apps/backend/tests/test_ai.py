@@ -120,6 +120,17 @@ async def test_generate_exercise_returns_structured():
     assert gen.correct_answer
 
 
+@pytest.mark.asyncio
+async def test_generate_quiz_returns_structured():
+    svc = AIService(MockProvider())
+    quiz = await svc.generate_quiz("Алгебра", "Линейные уравнения", 2, count=3)
+    assert len(quiz.questions) >= 1
+    for q in quiz.questions:
+        assert q.question_text
+        assert q.type in {"single", "multiple", "numeric", "text"}
+        assert q.correct_answer
+
+
 def test_sanitize_short_input():
     from app.ai.sanitize import sanitize_user_input, detect_injection
 
@@ -219,3 +230,37 @@ def test_ai_generate_exercise(client_with_student_and_seed):
     body = r.json()
     assert body["question_text"]
     assert body["type"]
+
+
+def test_ai_quiz(client_with_student_and_seed):
+    token = _login(client_with_student_and_seed)
+    s = SessionLocal()
+    try:
+        from app.subjects import models as subj_models
+        from sqlalchemy import select
+
+        algebra = s.scalar(select(subj_models.Subject).where(subj_models.Subject.code == "algebra"))
+        topic = s.scalar(
+            select(subj_models.Topic)
+            .join(subj_models.Section)
+            .where(subj_models.Section.subject_id == algebra.id)
+            .limit(1)
+        )
+        tid = topic.id
+    finally:
+        s.close()
+
+    r = client_with_student_and_seed.post(
+        "/api/v1/ai/quiz",
+        json={"topic_id": tid, "difficulty": 2, "count": 3},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert "questions" in body
+    assert isinstance(body["questions"], list)
+    assert len(body["questions"]) >= 1
+    for q in body["questions"]:
+        assert q["question_text"]
+        assert q["type"] in {"single", "multiple", "numeric", "text"}
+        assert q["correct_answer"]
