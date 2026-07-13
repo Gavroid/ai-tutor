@@ -81,7 +81,14 @@ class GeneratedExerciseInstance(Base):
 
     @property
     def is_expired(self) -> bool:
-        return datetime.now(timezone.utc) >= self.expires_at
+        expires = self.expires_at
+        if expires is None:
+            return False
+        # SQLite возвращает naive datetime даже для DateTime(timezone=True).
+        # Нормализуем к UTC для сравнения с datetime.now(timezone.utc).
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        return datetime.now(timezone.utc) >= expires
 
     @property
     def is_submitted(self) -> bool:

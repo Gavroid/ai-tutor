@@ -52,6 +52,17 @@ def record_attempt(
     db: Session = Depends(get_db),
     current: user_models.User = Depends(get_current_user),
 ):
+    """Pilot Core Stage 1 — P1.2.1 + P1.2.5.
+
+    P1.2.1: server-owned truth — `is_correct` и `score` вычисляются в
+    `_server_validate_attempt` (см. progress/service.py). Client-supplied
+    `is_correct=True, score=1.0` принимается ТОЛЬКО если она согласована
+    с server-trusted exact match. Иначе — server-trust выигрывает.
+
+    P1.2.5: legacy v1 endpoint остаётся работоспособным для совместимости
+    с фронтом (миграция на /api/v2/exercises/{id}/answer в следующем этапе).
+    Student-410 (как предлагалось ранее) отложен до стабилизации фронта.
+    """
     return service.record_attempt(db, current.id, payload)
 
 

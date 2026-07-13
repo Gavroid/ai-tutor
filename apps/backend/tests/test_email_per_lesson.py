@@ -48,30 +48,35 @@ def db():
 
 
 def test_record_attempt_creates_attempt(db):
-    """record_attempt создаёт запись Attempt."""
+    """record_attempt создаёт запись Attempt.
+
+    Pilot Core Stage 1: в v1 /api/v1/progress/attempts server-trust сверяет
+    client is_correct/score с exact match. Semantic match (как в этом тесте)
+    теперь доступен только через v2 /api/v2/exercises/{id}/answer.
+    """
     s = db()
     try:
         topic = s.query(subj_models.Topic).first()
         user = s.query(__import__("app.users.models", fromlist=["User"]).User).filter_by(email="kid@x.com").first()
 
+        # Тест Pilot Core: при exact match server-trust и client-trust совпадают.
         attempt = record_attempt(
             s,
             user_id=user.id,
             payload=AttemptCreate(
                 topic_id=topic.id,
-                question_text="Что такое дробь?",
-                user_answer="часть от целого",
-                correct_answer="число вида a/b",
+                question_text="Сколько будет 2+2?",
+                user_answer="4",
+                correct_answer="4",
                 is_correct=True,
-                score=0.8,
-                feedback="Хорошо!",
+                score=1.0,
+                feedback="Верно",
             ),
         )
         s.commit()
-
         assert attempt.id is not None
         assert attempt.is_correct is True
-        assert attempt.score == 0.8
+        assert attempt.score == 1.0
     finally:
         s.close()
 

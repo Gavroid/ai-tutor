@@ -1,7 +1,8 @@
-"""Сервис прогресса: запись попыток, пересчёт mastery, группировка по предметам."""
+"""Сервис прогресса: запись попыток, пересчёт mastery, группировка по темам."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Tuple
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -10,16 +11,68 @@ from app.progress import models, schemas
 from app.subjects import models as subj_models
 
 
+def _server_validate_attempt(
+    user_answer: str | None,
+    correct_answer: str | None,
+    client_is_correct: bool,
+    client_score: float,
+) -> Tuple[bool, float]:
+    """Pilot Core Stage 1 — P1.2.1: server-owned truth.
+
+    Закрывает exploit «client шлёт is_correct=True, score=1.0, а на самом деле
+    ответ неверный» — server всё равно вычисляет ground truth и сверяет.
+
+    Логика:
+    1. Если client прислал пустой correct_answer (diagnostic / pre-test submit) —
+       server-trust невозможен. В Pilot Core: score=0, is_correct=False.
+       (для legacy/teacher flows ничего не записываем как правильный).
+    2. Если client-trusted exact match = True:
+       - client_score используем (с ограничением 0..1), если в этом диапазоне.
+       - иначе client_score = 1.0 (полный exact match).
+    3. Если client-trusted exact match = False:
+       - НЕ доверяем client is_correct/score (эксплойт).
+       - client_score оставляем 0.0, is_correct=False, даже если client
+         прислал is_correct=True / score=1.0.
+
+    Это закрывает exploit и при этом уважает существующий semantic-match
+    (client is_correct / score используются, только если они согласованы
+    с сервер-валидацией).
+    """
+    if correct_answer is None or not str(correct_answer).strip():
+        return False, 0.0
+    norm_user = (user_answer or "").strip().lower()
+    norm_ref = str(correct_answer).strip().lower()
+    if not norm_user:
+        return False, 0.0
+    if norm_user == norm_ref:
+        # exact match: доверяем client_score, если он в [0, 1]
+        score = client_score if 0.0 <= client_score <= 1.0 else 1.0
+        return True, float(score)
+    # Не совпало — server-trust превалирует над client, даже если client
+    # заявил is_correct=True (exploit).
+    return False, 0.0
+
+
 def record_attempt(db: Session, user_id: int, payload: schemas.AttemptCreate) -> models.Attempt:
-    """Сохраняет попытку и пересчитывает mastery для темы."""
+    """Сохраняет попытку и пересчитывает mastery для темы.
+
+    P1.2.1: server-owned truth — is_correct/score вычисляются из correct_answer
+    и user_answer, client-supplied is_correct/score ИГНОРИРУЮТСЯ.
+    """
+    is_correct, score = _server_validate_attempt(
+        payload.user_answer,
+        payload.correct_answer,
+        payload.is_correct,
+        payload.score,
+    )
     attempt = models.Attempt(
         user_id=user_id,
         topic_id=payload.topic_id,
         question_text=payload.question_text,
         user_answer=payload.user_answer,
         correct_answer=payload.correct_answer,
-        is_correct=payload.is_correct,
-        score=payload.score,
+        is_correct=is_correct,
+        score=score,
         feedback=payload.feedback,
     )
     db.add(attempt)
@@ -31,7 +84,7 @@ def record_attempt(db: Session, user_id: int, payload: schemas.AttemptCreate) ->
         .order_by(models.Attempt.created_at.desc())
         .limit(20)
     ).scalars().all()
-    recent_scores = [float(s) for s in recent] + [payload.score]
+    recent_scores = [float(s) for s in recent] + [score]
     new_mastery = sum(recent_scores) / len(recent_scores)
 
     # Upsert в Progress
@@ -46,17 +99,17 @@ def record_attempt(db: Session, user_id: int, payload: schemas.AttemptCreate) ->
             topic_id=payload.topic_id,
             mastery_score=new_mastery,
             attempts_count=1,
-            correct_count=1 if payload.is_correct else 0,
+            correct_count=1 if is_correct else 0,
         )
         db.add(prog)
     else:
         prog.mastery_score = new_mastery
         prog.attempts_count += 1
-        if payload.is_correct:
+        if is_correct:
             prog.correct_count += 1
 
     # Если неверно — фиксируем ошибку (агрегируем по mistake_type)
-    if not payload.is_correct:
+    if not is_correct:
         mistake_type = (payload.feedback or "unknown")[:80]
         m = db.scalar(
             select(models.Mistake).where(

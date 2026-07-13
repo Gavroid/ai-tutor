@@ -10,10 +10,13 @@ import SafeMarkdown from "@/components/SafeMarkdown";
 import type { Topic, ChatMsg } from "@/types";
 
 type Exercise = {
+  exercise_id: number; // Pilot Core: opaque server id
   question_text: string;
   options: string[] | null;
   type: string;
-  correct_answer?: string; // скрыт от ученика
+  // Pilot Core: correct_answer НЕ приходит от API до submit. Хранится локально
+  // только для UI, нигде не передаётся в /progress/attempts.
+  correct_answer?: string;
   explanation?: string;
 };
 
@@ -101,7 +104,15 @@ export default function TopicPage() {
           const d = JSON.parse(ls) as SavedDraft;
           if (!cancelled && d && Array.isArray(d.msgs)) {
             setMsgs(d.msgs);
-            setExercise(d.exercise ?? null);
+            // Pilot Core: draft может содержать exercise в legacy-формате
+            // (без opaque exercise_id). Такой draft использовать нельзя —
+            // принудительно очищаем, чтобы user получил новый exercise_id.
+            const ex = d.exercise as Exercise | null | undefined;
+            if (ex && typeof ex.exercise_id === "number") {
+              setExercise(ex);
+            } else {
+              setExercise(null);
+            }
             setUserAnswer(d.userAnswer ?? "");
             setInput(d.input ?? "");
             setCheckResult(d.checkResult ?? null);
@@ -232,13 +243,17 @@ export default function TopicPage() {
     setCheckResult(null);
     setUserAnswer("");
     try {
-      const r = await api.aiGenerate(topicId, topic?.difficulty ?? 2);
+      // Pilot Core Stage 1 — secure flow: server-owned truth, opaque id.
+      const r = await api.v2GenerateExercise({
+        topic_id: topicId,
+        difficulty: topic?.difficulty ?? 2,
+      });
       setExercise({
+        exercise_id: r.exercise_id,
         question_text: r.question_text,
         options: r.options,
         type: r.type,
-        correct_answer: r.correct_answer,
-        explanation: r.explanation,
+        // correct_answer и explanation придут ПОСЛЕ submit (server-trusted).
       });
     } catch {
       alert("Не удалось сгенерировать задание");
@@ -248,23 +263,19 @@ export default function TopicPage() {
   }
 
   async function checkAnswer() {
-    if (!exercise?.correct_answer) return;
+    if (!exercise?.exercise_id) return;
     setBusy(true);
     try {
-      const r = await api.aiCheck(exercise.question_text, exercise.correct_answer, userAnswer);
-      setCheckResult(r);
-      // Записываем попытку в прогресс
-      api
-        .recordAttempt({
-          topic_id: topicId,
-          question_text: exercise.question_text,
-          user_answer: userAnswer,
-          correct_answer: exercise.correct_answer,
-          is_correct: r.is_correct,
-          score: r.score,
-          feedback: r.first_error ?? r.explanation,
-        })
-        .catch(() => {});
+      // Pilot Core: client отправляет только exercise_id + user_answer.
+      // server-trusted is_correct/score/explanation возвращаются сразу.
+      const r = await api.v2SubmitAnswer(exercise.exercise_id, userAnswer);
+      setCheckResult({
+        is_correct: r.is_correct,
+        score: r.score,
+        first_error: null,
+        explanation: r.explanation,
+        hint_level: 1,
+      });
     } catch {
       alert("Не удалось проверить ответ");
     } finally {

@@ -252,6 +252,33 @@ export const api = {
     score: number;
     feedback?: string;
   }) => request("/api/v1/progress/attempts", { method: "POST", body: JSON.stringify(data) }),
+
+  // Pilot Core Stage 1 — server-owned secure exercise flow.
+  // Client НЕ получает correct_answer, отправляет только user_answer и
+  // opaque exercise_id. Возвращаемый score/explanation — server-trusted.
+  v2GenerateExercise: (data: { topic_id: number; difficulty?: number }) =>
+    request<{
+      exercise_id: number;
+      question_text: string;
+      type: string;
+      options: string[] | null;
+      difficulty: number;
+      expires_at: string;
+    }>("/api/v2/exercises/generate", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  v2SubmitAnswer: (exercise_id: number, user_answer: string) =>
+    request<{
+      exercise_id: number;
+      is_correct: boolean;
+      score: number;
+      feedback: string;
+      explanation: string;
+    }>(`/api/v2/exercises/${exercise_id}/answer`, {
+      method: "POST",
+      body: JSON.stringify({ user_answer }),
+    }),
   // Diagnostics
   startDiagnostic: (subject_id: number) =>
     request<{ id: number; status: string }>("/api/v1/diagnostic/start", {
