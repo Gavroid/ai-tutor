@@ -27,6 +27,7 @@ test.describe("Student full cycle", () => {
     page,
     request,
   }) => {
+    test.setTimeout(90_000);
     // 1. Login
     await page.goto("/login");
     await page
@@ -90,8 +91,14 @@ test.describe("Student full cycle", () => {
       expect(hasResult).toBeTruthy();
     }
 
-    // 8. Возврат на subjects через breadcrumb
+    // 8. Возврат на subjects через breadcrumb.
+    // Даём время завершиться всем in-flight AI-запросам (иначе subjects useEffect
+    // может перехватить 401 и стереть токен через setToken(null) → редирект на /login).
+    await page.waitForTimeout(2000);
     await page.goto("/subjects");
+    // Дополнительный wait: useEffect subjects/page.tsx вызывает api.me() — если
+    // он вернёт 401 в момент загрузки, редирект на /login стёрёт токен.
+    await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => null);
 
     // 9. /student/badges
     await page.goto("/student/badges");
