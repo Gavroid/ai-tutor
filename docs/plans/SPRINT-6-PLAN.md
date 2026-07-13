@@ -8,7 +8,7 @@
 > `[ ]` / `[x]` по мере работы. Заменяет/расширяет раздел «Sprint 6+» из
 > `docs/ROADMAP.md`. Формат: блок → задача → подзадачи. Оценки S/M/L.
 >
-> **Правила ведения (из PROMPT-FOR-OTHER-AI.md):**
+> **Правила ведения (из AI-DEEP-AUDIT-PROMPT.md):**
 > 1. Перед задачей — прочитать релевантные файлы.
 > 2. Не ломать 247 backend + 12 E2E (на момент старта); новые тесты на новый код.
 > 3. БД — только новые миграции 0010+ (`batch_alter_table`).
@@ -488,7 +488,7 @@ fallback-заглушек, RAG возвращает top-k чанков с цит
 
 # 🌐 СКВОЗНЫЕ ТРЕБОВАНИЯ (на все спринты 6+)
 
-> Из PROMPT-FOR-OTHER-AI.md / внешнего аудита.
+> Из AI-DEEP-AUDIT-PROMPT.md / внешнего аудита.
 
 ## Безопасность (AppSec)
 
@@ -549,7 +549,8 @@ fallback-заглушек, RAG возвращает top-k чанков с цит
 | `../../CHANGELOG.md`                           | История спринтов (Sprint 6+ записи сюда)                   |
 | `~/.hermes/skills/devops/ai-tutor-deploy/SKILL.md` | Production runbook + pitfalls (обязателен к прочтению при работе с продом) |
 | `../../AI-DEEP-AUDIT-PROMPT.md`                | Глубокий промт для будущих аудитов                        |
-| `../../PROMPT-FOR-OTHER-AI.md`                 | Базовый промт для разработки                              |
+| `../../AI-DEEP-AUDIT-PROMPT.md`                | Глубокий аудит (990 строк)                            |
+| `../../docs/MASTER-HANDOVER-PROMPT.md`          | Полный handover (Pilot Core, ~742 строки)             |
 
 ---
 

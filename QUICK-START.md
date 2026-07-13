@@ -1,6 +1,7 @@
 # 🎯 AI-репетитор 7 класса — краткий обзор
 
-> **Если у тебя мало времени — прочитай только этот файл.** Полная версия: `PROMPT-FOR-OTHER-AI.md`.
+> **Если у тебя мало времени — прочитай только этот файл.** Полная версия: [`docs/MASTER-HANDOVER-PROMPT.md`](./docs/MASTER-HANDOVER-PROMPT.md) (~742 строки, актуальный, Pilot Core Stage 1).
+> Глубокий AI-аудит (отдельный жанр): [`AI-DEEP-AUDIT-PROMPT.md`](./AI-DEEP-AUDIT-PROMPT.md) (990 строк, для сторонних AI-аудиторов).
 
 ## Что это
 
@@ -135,7 +136,7 @@ docker exec deploy-redis-1 redis-cli KEYS "*"
 ## Файлы документации
 
 - `README.md` — общее описание
-- `PROMPT-FOR-OTHER-AI.md` — базовый промт для AI-агента (559 строк)
+| `docs/MASTER-HANDOVER-PROMPT.md` | полный handover для AI-агента |
 - `AI-DEEP-AUDIT-PROMPT.md` — **глубокий промт для аудита** (990 строк, рекомендуется для сторонних AI)
 - `QUICK-START.md` — этот файл (краткая версия)
 - `CHANGELOG.md` — история Sprint 1-5
@@ -162,6 +163,6 @@ docker exec deploy-redis-1 redis-cli KEYS "*"
 ---
 
 **Промты для AI-агентов:**
-- Базовый (разработка): `PROMPT-FOR-OTHER-AI.md` (~643 строки, синхронизирован с Sprint 6-10)
-- Глубокий (аудит): `AI-DEEP-AUDIT-PROMPT.md` (990 строк) — тех. долг, фичи, UX, roadmap
-- **Полный AI-handover (handover-style, июль 2026)**: `docs/MASTER-HANDOVER-PROMPT.md` — самый подробный документ, включает архитектуру, схему БД, развёртывание, известные pitfalls, вопросы к AI-аудитору
+- **Базовый (разработка):** `docs/MASTER-HANDOVER-PROMPT.md` (~742 строки, синхронизирован с Pilot Core Stage 1)
+- **Глубокий (аудит):** `AI-DEEP-AUDIT-PROMPT.md` (990 строк) — тех. долг, фичи, UX, roadmap
+- **Краткий (TL;DR):** `QUICK-START.md` (этот файл, 1 страница)

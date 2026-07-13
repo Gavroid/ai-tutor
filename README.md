@@ -8,7 +8,8 @@
 > **Статус:** ✅ 247/247 backend тестов проходят (+111 в Sprint 1-5). 12/12 Playwright E2E. 8/8 production smoke. 5/5 контейнеров healthy. Развёрнут на 192.168.1.86 (Proxmox LXC) с HTTPS + WebSocket + monitoring + auto-backup + Redis + OAuth2 + RAG + Voice + Prometheus metrics + audit retention.
 
 > **📖 Для AI-агентов:**
-> - [`PROMPT-FOR-OTHER-AI.md`](./PROMPT-FOR-OTHER-AI.md) — базовый промт для разработки (559 строк).
+> - [`AI-DEEP-AUDIT-PROMPT.md`](./AI-DEEP-AUDIT-PROMPT.md) — глубокий промт для AI-агента (990 строк, рекомендуется для сторонних AI).
+> - [`docs/MASTER-HANDOVER-PROMPT.md`](./docs/MASTER-HANDOVER-PROMPT.md) — полный handover (Pilot Core Stage 1, ~742 строки): архитектура, схема БД, развёртывание, pitfalls, запросы к AI-аудитору.
 > - [`AI-DEEP-AUDIT-PROMPT.md`](./AI-DEEP-AUDIT-PROMPT.md) — **глубокий аудит** (990 строк): тех. долг, фичи, UX, roadmap. **Рекомендуется для сторонних AI.**
 > - Краткая версия: [`QUICK-START.md`](./QUICK-START.md).
 

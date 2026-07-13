@@ -1,6 +1,6 @@
 # ROADMAP — AI-репетитор 7 класса
 
-> План развития проекта на основе аудита (`PROMPT-FOR-OTHER-AI.md`).
+> План развития проекта на основе аудита (`AI-DEEP-AUDIT-PROMPT.md`).
 > Файл — рабочий трекер: задачи, подзадачи, чекбоксы прогресса, заметки.
 > Обновляется по мере выполнения.
 
@@ -39,7 +39,7 @@
 | 4 | Технический долг                    | pgvector, multi-worker, rate-limit, XFF   | ❌       |
 | 5 | Наблюдаемость и надёжность          | Prometheus, Sentry, алерты                | ❌       |
 
-> Правила (общие для всех спринтов, из `PROMPT-FOR-OTHER-AI.md`):
+> Правила (общие для всех спринтов, из `AI-DEEP-AUDIT-PROMPT.md`):
 > 1. Перед задачей — прочитать релевантные файлы.
 > 2. Не ломать 136 backend + 12 E2E тестов.
 > 3. БД — только через новые миграции (`0008+`).
@@ -303,7 +303,7 @@
 > Заполняется по мере выполнения спринтов.
 
 ### 2026-07-12
-- План создан в `docs/ROADMAP.md` на основе аудита из `PROMPT-FOR-OTHER-AI.md`
+- План создан в `docs/ROADMAP.md` на основе аудита из `AI-DEEP-AUDIT-PROMPT.md`
 - Baseline зафиксирован: 136/136 backend, 12/12 E2E, 8/8 smoke — все зелёные
 - Приоритет — Спринт 1 (роль Учителя), это блокер
 
@@ -375,7 +375,9 @@
 
 ## 🔗 Связанные документы
 
-- [`PROMPT-FOR-OTHER-AI.md`](../PROMPT-FOR-OTHER-AI.md) — аудит и приоритеты
+- [`AI-DEEP-AUDIT-PROMPT.md`](../AI-DEEP-AUDIT-PROMPT.md) — глубокий аудит и приоритеты
+- [`docs/MASTER-HANDOVER-PROMPT.md`](MASTER-HANDOVER-PROMPT.md) — полный handover для разработчика/AI-агента
+- [`QUICK-START.md`](../QUICK-START.md) — TL;DR на 1 страницу
 - [`README.md`](../README.md) — общий обзор проекта
 - [`QUICK-START.md`](../QUICK-START.md) — быстрый старт
 - [`docs/api.md`](api.md) — API reference

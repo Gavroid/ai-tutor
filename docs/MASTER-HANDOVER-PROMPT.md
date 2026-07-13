@@ -139,7 +139,7 @@ T1D накладывает ограничения:
 /root/workspace/ai-tutor/
 ├── README.md                       503 строк — обзор
 ├── CHANGELOG.md                    368 строк — история Sprint 1-5
-├── PROMPT-FOR-OTHER-AI.md          643 строки — базовый промт (обновлён)
+├── MASTER-HANDOVER-PROMPT.md     ~742 строки — полный handover (Pilot Core Stage 1, актуальный)
 ├── AI-DEEP-AUDIT-PROMPT.md         990 строк — глубокий AI-аудит
 ├── QUICK-START.md                  162 строки — краткая справка
 ├── Makefile                        — стандартные команды
