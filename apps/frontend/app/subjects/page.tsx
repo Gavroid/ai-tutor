@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, getToken, setToken } from "@/lib/api";
+import { api, getToken, setToken, ApiError } from "@/lib/api";
 import type { Subject, User } from "@/types";
 
 type RecItem = {
@@ -42,9 +42,18 @@ export default function HomePage() {
     api
       .me()
       .then(setUser)
-      .catch(() => {
-        setToken(null);
-        router.push("/login");
+      .catch((err: unknown) => {
+        // Sprint 2.6 — стираем токен ТОЛЬКО при 401/403 (реально невалидный).
+        // При 5xx или network-glitch оставляем токен, чтобы пользователь
+        // не вылетал на /login при временных сбоях.
+        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+          setToken(null);
+          router.push("/login");
+        } else {
+          // Не 401 — не трогаем токен. user останется null, страница покажет
+          // "Привет!" без имени (это безопасно).
+          console.warn("api.me() failed (non-auth):", err);
+        }
       });
     api.subjects().then(setSubjects).catch(() => {});
     api.aiPing().then((r) => { setAiOk(r.ok); setAiModel(r.model); }).catch(() => setAiOk(false));
