@@ -415,6 +415,12 @@ export default function TopicPage() {
           className="flex-1 rounded-lg border border-slate-300 px-3 py-2"
           disabled={busy}
         />
+        {/* Sprint 7.2 — кнопка микрофона. T1D: крупная, отмена одним тапом. */}
+        <VoiceMicButton
+          disabled={busy}
+          onTranscript={(text) => setInput((prev) => (prev ? prev + " " : "") + text)}
+          onError={(msg) => alert("Микрофон: " + msg)}
+        />
         <button
           type="submit"
           disabled={busy || !input.trim()}
@@ -424,5 +430,119 @@ export default function TopicPage() {
         </button>
       </form>
     </main>
+  );
+}
+
+/**
+ * Sprint 7.2 — кнопка голосового ввода.
+ * Использует MediaRecorder API в браузере → POST /api/v1/voice/transcribe.
+ *
+ * Особенности для T1D-ученика:
+ * - Крупная кнопка (48px+ tap target)
+ * - Явная индикация записи (красный пульсирующий круг + таймер)
+ * - Отмена одним тапом
+ * - Graceful fallback, если API не настроен
+ */
+function VoiceMicButton({
+  disabled,
+  onTranscript,
+  onError,
+}: {
+  disabled: boolean;
+  onTranscript: (text: string) => void;
+  onError: (msg: string) => void;
+}) {
+  const [recording, setRecording] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<number | null>(null);
+
+  async function start() {
+    if (recording) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      chunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        try {
+          const r = await api.voiceTranscribe(blob);
+          if (r.text?.trim()) onTranscript(r.text.trim());
+          else onError("Не удалось распознать речь");
+        } catch (e: unknown) {
+          onError((e as Error)?.message || "Ошибка распознавания");
+        }
+      };
+      recorder.start();
+      recorderRef.current = recorder;
+      setRecording(true);
+      setSeconds(0);
+      timerRef.current = window.setInterval(() => setSeconds((s) => s + 1), 1000);
+    } catch (e: unknown) {
+      const msg = (e as Error)?.message?.includes("Permission")
+        ? "Нет доступа к микрофону"
+        : "Микрофон недоступен";
+      onError(msg);
+    }
+  }
+
+  function stop() {
+    if (!recording) return;
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== "inactive") recorder.stop();
+    setRecording(false);
+    if (timerRef.current) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }
+
+  // Cleanup on unmount
+  useEffect(
+    () => () => {
+      if (timerRef.current) window.clearInterval(timerRef.current);
+      const r = recorderRef.current;
+      if (r && r.state !== "inactive") {
+        try {
+          r.stop();
+        } catch {
+          /* ignore */
+        }
+      }
+    },
+    [],
+  );
+
+  return (
+    <button
+      type="button"
+      onClick={() => (recording ? stop() : start())}
+      disabled={disabled}
+      aria-label={recording ? "Остановить запись" : "Записать голосовое сообщение"}
+      title={
+        typeof navigator !== "undefined" && !navigator.mediaDevices
+          ? "Микрофон не поддерживается"
+          : recording
+            ? `Идёт запись… ${seconds}с`
+            : "Записать голос"
+      }
+      className={`relative h-11 w-11 shrink-0 rounded-full text-2xl transition ${
+        recording
+          ? "animate-pulse bg-rose-500 text-white shadow-lg shadow-rose-500/40"
+          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+      } disabled:opacity-50`}
+    >
+      {recording ? "⏹" : "🎤"}
+      {recording && (
+        <span className="absolute -right-2 -top-1 rounded bg-rose-700 px-1 text-[10px] font-semibold text-white">
+          {seconds}s
+        </span>
+      )}
+    </button>
   );
 }

@@ -4,6 +4,9 @@
 - OpenAI-compatible ASR endpoint (если настроен WHISPER_API_URL)
 - Локальный Whisper (если есть в системе)
 - Fallback: 503 если ничего не настроено
+
+Sprint 7.2: rate-limit 20 запросов/мин на пользователя через in-memory dict.
+В multi-worker среде можно расширить до Redis (Sprint 10 backlog).
 """
 from __future__ import annotations
 
@@ -11,6 +14,8 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
+from collections import defaultdict, deque
 from pathlib import Path
 
 import httpx
@@ -23,6 +28,25 @@ router = APIRouter(prefix="/api/v1/voice", tags=["voice"])
 
 ALLOWED_AUDIO_EXTS = {".wav", ".mp3", ".ogg", ".m4a", ".webm", ".flac"}
 MAX_AUDIO_BYTES = 25 * 1024 * 1024  # 25 MB
+
+# Sprint 7.2 — rate-limit: 20 calls/min per user (in-memory, single-worker).
+VOICE_RATE_LIMIT_PER_MIN = 20
+_voice_calls: dict[int, deque[float]] = defaultdict(deque)
+
+
+def _check_voice_rate_limit(user_id: int) -> None:
+    """Raise 429 если превышен лимит."""
+    now = time.time()
+    dq = _voice_calls[user_id]
+    # Очищаем окно старше 60 сек
+    while dq and (now - dq[0]) > 60.0:
+        dq.popleft()
+    if len(dq) >= VOICE_RATE_LIMIT_PER_MIN:
+        raise HTTPException(
+            429,
+            f"Voice rate limit exceeded: max {VOICE_RATE_LIMIT_PER_MIN}/min",
+        )
+    dq.append(now)
 
 
 @router.post("/transcribe")
@@ -40,6 +64,9 @@ async def transcribe(
     Returns:
         {"text": "...", "language": "ru", "duration_seconds": N}
     """
+    # Sprint 7.2: rate-limit (защита от абьюза Whisper API и загруза сервера).
+    _check_voice_rate_limit(current.id)
+
     # Validate extension
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_AUDIO_EXTS:

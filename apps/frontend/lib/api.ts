@@ -197,6 +197,32 @@ export const api = {
     }
   },
 
+  // Sprint 7.5 — баджи за усилие (НЕ за streak).
+  studentBadges: () => {
+    const token = getToken();
+    if (!token) return Promise.resolve([]);
+    return request<
+      Array<{
+        slug: string;
+        title: string;
+        description: string;
+        icon: string;
+        awarded_at: string | null;
+        evidence: Record<string, unknown>;
+      }>
+    >("/api/v1/student/badges", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+  studentBadgesEvaluate: () => {
+    const token = getToken();
+    if (!token) return Promise.resolve([]);
+    return request<string[]>("/api/v1/student/badges/evaluate", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
   // Sprint 2.3 — Voice transcription
   voiceTranscribe: async (audioBlob: Blob): Promise<{ text: string }> => {
     const form = new FormData();

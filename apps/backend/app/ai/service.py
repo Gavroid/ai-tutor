@@ -113,10 +113,22 @@ class AIService:
             logger.exception("AI explain failed: %s", e)
             raise
 
-    async def hint(self, question_text: str) -> AIResponse:
+    async def hint(self, question_text: str, level: int = 1) -> AIResponse:
+        """Sprint 7.4: подсказка уровня 1 (наводящий вопрос).
+
+        Для уровней 2/3 используй hint_at_level().
+        """
+        return await self._hint_with_level(question_text, level=1)
+
+    async def hint_at_level(self, question_text: str, level: int) -> AIResponse:
+        """Sprint 7.4: подсказка уровня 1..3 (1=наводящий, 2=подсказка, 3=разбор)."""
+        return await self._hint_with_level(question_text, level=level)
+
+    async def _hint_with_level(self, question_text: str, level: int) -> AIResponse:
+        level = max(1, min(3, level))  # clamp
         req = AIRequest(
             messages=[
-                AIMessage(role="system", content=prompts.hint_system()),
+                AIMessage(role="system", content=prompts.hint_system_at_level(level)),
                 AIMessage(role="user", content=f"Задание: {question_text}"),
             ],
             mode="hint",

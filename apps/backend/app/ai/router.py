@@ -25,6 +25,8 @@ class ExplainIn(BaseModel):
 
 class HintIn(BaseModel):
     question_text: str = Field(min_length=1, max_length=4000)
+    level: int = Field(default=1, ge=1, le=3)
+    """Sprint 7.4: уровень подсказки (1=наводящий вопрос, 2=подсказка к решению, 3=полный разбор)."""
 
 
 class CheckIn(BaseModel):
@@ -101,7 +103,7 @@ async def explain_topic(
 async def hint(payload: HintIn, current: user_models.User = Depends(get_current_user)):
     _enforce_budget(current)
     svc = get_ai_service()
-    resp = await svc.hint(payload.question_text)
+    resp = await svc.hint_at_level(payload.question_text, payload.level)
     return _ai_response(resp.content, resp.model)
 
 

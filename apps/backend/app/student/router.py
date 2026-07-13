@@ -19,6 +19,13 @@ from app.common.deps import User, current_user
 from app.db.session import get_db
 from app.subjects import models as subj_models
 from app.student import models as stu_models
+from app.student.badges import (
+    BADGES,
+    award_badge,
+    collect_stats,
+    evaluate_and_award_badges,
+    seed_badge_definitions,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -204,3 +211,70 @@ def clear_draft(
         db.delete(draft)
         db.commit()
     return None
+
+
+# ---------- badges (Sprint 7.5) ----------
+
+
+class BadgeOut(BaseModel):
+    """Один бадж для UI."""
+
+    slug: str
+    title: str
+    description: str
+    icon: str
+    awarded_at: str | None = None
+    evidence: dict = Field(default_factory=dict)
+
+
+@router.get("/badges", response_model=list[BadgeOut])
+def list_my_badges(
+    db: Session = Depends(get_db),
+    current: User = Depends(current_user),
+):
+    """Список всех каталожных баджей + флаг полученных (Sprint 7.5).
+
+    Sprint 7.5: за усилие (НЕ streak). Возвращает ВСЕ 10 баджей из каталога,
+    с признаком `awarded_at` (None если не получен).
+    """
+    seed_badge_definitions(db)
+    # Полученные баджи
+    rows = db.execute(
+        select(stu_models.UserBadge).where(
+            stu_models.UserBadge.user_id == current.id
+        )
+    ).scalars().all()
+    awarded_map = {r.badge_slug: r for r in rows}
+
+    out: list[BadgeOut] = []
+    for spec in BADGES:
+        row = awarded_map.get(spec.slug)
+        out.append(
+            BadgeOut(
+                slug=spec.slug,
+                title=spec.title,
+                description=spec.description,
+                icon=spec.icon,
+                awarded_at=row.awarded_at.isoformat() if row else None,
+                evidence=json.loads(row.evidence_json) if row else {},
+            )
+        )
+    return out
+
+
+@router.post("/badges/evaluate", response_model=list[str])
+def trigger_badge_evaluation(
+    db: Session = Depends(get_db),
+    current: User = Depends(current_user),
+):
+    """Запустить переоценку баджей на основе текущей статистики (Sprint 7.5).
+
+    Можно вызывать из UI на странице /student/badges, чтобы получить свежие
+    баджы после прохождения темы.
+
+    Returns:
+        Список slug'ов, присуждённых в этом вызове.
+    """
+    seed_badge_definitions(db)
+    stats = collect_stats(db, current.id)
+    return evaluate_and_award_badges(db, current.id, stats)
