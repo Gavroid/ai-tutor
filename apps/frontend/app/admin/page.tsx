@@ -83,8 +83,17 @@ export default function AdminPage() {
     }
   }
 
-  function fmtDetails(d: string | null): string {
+  function fmtDetails(d: string | object | null): string {
     if (!d) return "";
+    if (typeof d === "object") {
+      // JSONB из БД приходит как object (asyncpg + FastAPI сериализует).
+      // Sprint 3.0 fix: handle both string and object.
+      try {
+        return JSON.stringify(d, null, 2);
+      } catch {
+        return String(d);
+      }
+    }
     try {
       const obj = JSON.parse(d);
       return JSON.stringify(obj, null, 2);
