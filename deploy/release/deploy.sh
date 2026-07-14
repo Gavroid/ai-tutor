@@ -85,12 +85,11 @@ POSTGRES_PASSWORD=$(ssh -i "$SSH_KEY" root@"$PROD_HOST" "grep ^POSTGRES_PASSWORD
 ssh -i "$SSH_KEY" root@"$PROD_HOST" "docker exec -u root deploy-backend-1 env APP_SECRET_KEY='$APP_SECRET_KEY' DATABASE_URL='postgresql+psycopg2://tutor:$POSTGRES_PASSWORD@db:5432/tutor' python3 -m alembic upgrade head" 2>&1 | tail -3
 
 # 9) Snapshot image-слой + code для rollback (post-impl review)
-# Сначала retention: оставляем последние 2 release. Без этого
-# /opt/ai-tutor/deploy/release/releases/ + /var/lib/docker разрастаются
-# бесконтрольно (9.8 ГБ на 11 snapshots → диск 100%) и приводят к
-# "No space left on device" (замечено Sprint 3.0).
+# Сначала retention: оставляем последние N-1 release (после создания нового
+# останется ровно N). Без этого /opt/ai-tutor/deploy/release/releases/ +
+# /var/lib/docker разрастаются бесконтрольно (9.8 ГБ на 11 snapshots →
+# диск 100%) и приводят к "No space left on device" (замечено Sprint 3.0).
 RELEASE_RETENTION=${RELEASE_RETENTION:-1}
-ssh -i "$SSH_KEY" root@"$PROD_HOST" "set -eu; cd /opt/ai-tutor/deploy/release/releases/ && ls -t | tail -n +$((RELEASE_RETENTION + 1)) | xargs -r rm -rf {}; echo \"releases после retention ($RELEASE_RETENTION): \"; ls -1 | head -10" 2>&1 | tail -5
 RELEASE_ID="$(date -u +%Y%m%dT%H%M%SZ)-${ACT}"
 SNAPSHOT_DIR="/opt/ai-tutor/deploy/release/releases/$RELEASE_ID"
 log "9) snapshot image+code: $SNAPSHOT_DIR"
@@ -99,8 +98,10 @@ ssh -i "$SSH_KEY" root@"$PROD_HOST" "set -eu; mkdir -p $SNAPSHOT_DIR && cd $COMP
 # Code snapshot (отдельной командой — pipe tar | zstd не работает в heredoc с bash -s)
 ssh -i "$SSH_KEY" root@"$PROD_HOST" "set -eu; cd $RELEASE_DIR; tar --exclude=node_modules --exclude=.next --exclude=.venv --exclude=__pycache__ --exclude=.git --exclude=.hermes --exclude=deploy/backup/_out -cf - apps deploy 2>/dev/null | zstd -3 > $SNAPSHOT_DIR/code.tar.zst; ls -la $SNAPSHOT_DIR/code.tar.zst" 2>&1 | tail -3
 
-# После успешного snapshot — почистить docker layers от старых image snapshots
-# чтобы освободить /var/lib/docker (он тоже растёт при каждом build).
+# После создания — retention (оставляем только N последних)
+ssh -i "$SSH_KEY" root@"$PROD_HOST" "set -eu; cd /opt/ai-tutor/deploy/release/releases/ && ls -t | tail -n +$((RELEASE_RETENTION + 1)) | xargs -r rm -rf {}; echo \"releases после retention ($RELEASE_RETENTION): \"; ls -1 | head -10" 2>&1 | tail -5
+
+# После успешного snapshot — почистить старые docker layers
 ssh -i "$SSH_KEY" root@"$PROD_HOST" "docker image prune -f --filter 'until=24h' 2>&1 | tail -2" 2>&1 | tail -3
 
 log "OK: deploy завершён (prev=$PREV_SHA, release=$RELEASE_ID)"
