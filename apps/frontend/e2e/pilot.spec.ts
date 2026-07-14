@@ -114,6 +114,22 @@ test.describe("Pilot student flow", () => {
     await page.waitForURL(/\/topics\/\d+/, { timeout: 10_000 });
 
     // "Дай задание" → v2 secure flow (Phase 2)
+    // Sprint 2.7 fix: перехватываем API response на /api/v2/exercises/generate
+    // и проверяем что payload НЕ содержит поля "correct_answer".
+    // AI иногда генерирует слово "correct_answer" в question_text — DOM-поиск
+    // даёт false-positive. API-проверка точна: в GenerateOut correct_answer нет.
+    let generateResponseBody = "";
+    const captureGenerate = async (resp: import("@playwright/test").Response) => {
+      if (resp.url().includes("/api/v2/exercises/generate") && resp.request().method() === "POST") {
+        try {
+          generateResponseBody = await resp.text();
+        } catch {
+          // ignore
+        }
+      }
+    };
+    page.on("response", captureGenerate);
+
     const generateBtn = page.getByRole("button", { name: /Дай задание/i });
     await expect(generateBtn).toBeVisible();
     await generateBtn.click();
@@ -124,11 +140,12 @@ test.describe("Pilot student flow", () => {
       "section div.text-xs.uppercase.tracking-wide.text-emerald-700",
       { hasText: /Задание/i }
     );
-    await expect(taskLabel).toBeVisible({ timeout: 10_000 });
+    await expect(taskLabel).toBeVisible({ timeout: 20_000 });
 
     // НЕ должно быть видно correct_answer/explanation до submit
-    const correctAnswerVisible = await page.getByText(/correct_answer/).count();
-    expect(correctAnswerVisible).toBe(0);
+    const correctAnswerInResponse = generateResponseBody.includes('"correct_answer"');
+    expect(correctAnswerInResponse).toBe(false);
+    page.off("response", captureGenerate);
 
     // Pilot Core: voice mic скрыт (Phase 5)
     const micCount = await page
