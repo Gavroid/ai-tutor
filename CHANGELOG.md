@@ -101,6 +101,74 @@
 **Временные изменения на проде (восстановлены):**
 - `RATE_LIMIT_LOGIN_PER_15MIN=1000` для прогона тестов → возврат к 10 после verify
 
+### Sprint 2.5 — реальный offsite backup через smbclient (2026-07-13)
+
+**Сделано:**
+- `deploy/backup/ai-tutor-backup-offsite.sh` полностью переписан (1274 → 8910 байт):
+  - Использует `smbclient` для заливки на SMB `192.168.1.91/Kirill-AI/ai-tutor/offsite/`
+  - `smb_mkdir_p` для создания цепочки папок (smbclient не умеет mkdir -p)
+  - Verify: md5 свежего manifest на source == md5 на SMB
+  - Retention 30 дней на SMB по timestamp из имени файла
+  - Audit log: INSERT в audit_logs (action='backup.offsite') через docker exec psql
+  - Fail-closed: все fail-ветки делают exit 1
+- Установлен `smbclient` на проде (`apt-get install -y smbclient`)
+- Скопированы SMB credentials в `/root/.ai-tutor-secrets/smb.creds` (chmod 600)
+- Скрипт скопирован в `/usr/local/bin/` для cron-пути
+- `deploy/backup/cleanup_smb_root.sh` — утилита для очистки артефактов из корня SMB
+
+**Найденные и исправленные баги:**
+- Первая заливка шла в корень share вместо `ai-tutor/offsite/` (cd в несуществующую папку + put молча работает в корень) → добавлен `smb_mkdir_p`
+- awk использовал `$NF` (год) вместо `$1` (имя файла) → retention и count не работали
+- shell glob `*` раскрывался локально, не на SMB-сервере → переход на `cd dir; ls` без wildcard
+
+**Verify:**
+- 41 файл залит на SMB, hash verified `manifest-20260713T210503Z.md5`
+- 5+ записей `backup.offsite` в audit_logs
+- Fail-closed test (несуществующий credentials) → exit 1
+
+### Sprint 2.6 — UX race fix (2026-07-13)
+
+**Сделано:**
+- `apps/frontend/app/subjects/page.tsx`: токен стирается ТОЛЬКО при 401/403 (реально невалидный).
+  Раньше: любой catch от api.me() стирал токен → редирект на /login. Включая 5xx и network-glitch.
+  Теперь: при других ошибках токен сохраняется, user остаётся null, страница показывает "Привет!" без имени.
+
+### Sprint 2.7 — Pilot API privacy + D-7 audit (2026-07-13)
+
+**Сделано:**
+- `pilot.spec.ts:96`: проверка privacy через API response (перехват POST /api/v2/exercises/generate),
+  а не через DOM (AI иногда генерирует слово "correct_answer" в question_text — false-positive).
+- `taskLabel` timeout увеличен 10s → 20s для AI-генерации.
+
+**D-7 audit:** все 5 Prometheus counter'ов используют только labels `method/path/status/mode/role`,
+без PII (нет user_id, email, topic_name, ip). Sprint 5.1 сделал privacy by design — подтверждено.
+
+**B.3 отменён:** semantic match через AI-judge требует архитектурного решения (v2 secure flow
+делает только exact match намеренно; добавление AI-judge расширяет attack surface).
+
+### Sprint 2.8 — финальная уборка (2026-07-14)
+
+**Сделано:**
+- Установлен `zstd` на проде (был warning `bash: zstd: command not found` в deploy.sh финальном шаге).
+  Теперь deploy создаёт `code.tar.zst` (2.4 ГБ сжатого) и сообщает `[deploy] OK: deploy завершён`.
+- audit_log за 7 дней: 3 исторических `error.5xx` от 2026-07-13 07:26 UTC, новых с момента
+  Sprint 2.2 deploy (27 часов) нет.
+
+### Финальный итог Pilot Core Stage 2 (всё за сессию)
+
+- **12 коммитов** с pre-edit backup на SMB
+- **6 спринтов** (2.1 MVP, 2.2 deploy, 2.4 E2E fix, 2.5 offsite, 2.6 race fix, 2.7 privacy)
+- **pytest 433 passed**, **next build OK**, **smoke 7/7 OK** на проде
+- **25/26 E2E passed** (1 flaky из-за rate-limit race между workers)
+- **Реальный offsite backup** через SMB работает
+- **nginx security headers** на проде (4/4 видны)
+- **Pilot users** на проде: admin/teacher/parent-e2e/kirill/student-e2e/kid-e2e/teacher-ui
+
+**Не сделано** (требует владельца):
+- CI/CD (GitHub remote)
+- TG-алерты (TELEGRAM_BOT_TOKEN)
+- WS multi-worker (архитектурное решение)
+
 ---
 
 ## [Unreleased] — Sprint 6 (2026-07-13) — Надёжность прод-контура (P0)

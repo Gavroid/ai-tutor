@@ -407,3 +407,123 @@
 - C-пункты явно помечены как «требует владельца» с перечислением зависимостей
 - Definition of Done составлен
 - План ожидает ревью владельца: ревью scope, расстановка приоритетов, выбор вариантов (B.2/B.4/C-3)
+
+---
+
+## 📊 ФИНАЛЬНЫЙ ОТЧЁТ PILOT CORE STAGE 2 (2026-07-13 → 2026-07-14)
+
+### Что сделано (12 коммитов, 6 спринтов)
+
+**Pilot Core Stage 2 MVP (Sprint 2.1):**
+- **B.1** `/ready` SQL-leak fix — убран `repr(exc)`, generic body, exception → logger
+- **B.2** Frontend v2 cutover — удалён мёртвый `recordAttempt` helper (hot-path на v2)
+- **B.4** tesseract в Dockerfile — подтверждено
+- **B.5** Admin WS cleanup — подтверждено
+- **D-1** seed CLI safety — подтверждено
+- **D-6** nginx security headers — HSTS + X-CTO + X-Frame-Options + Referrer-Policy
+
+**Sprint 2.2 — Прод-deploy:**
+- Release `20260713T191550Z-b07493a` через `deploy/release/deploy.sh`
+- nginx headers применены через `--force-recreate proxy` (bind-mount требует recreate)
+- Pilot users на проде: admin/kirill были, teacher/parent-e2e/student-e2e/kid-e2e/teacher-ui добавлены через SQL INSERT
+
+**Sprint 2.4 — Flaky E2E fix:**
+- Найдена корневая причина: `test.setTimeout(30_000)` × AI-flow 23-30 сек
+- Созданы 3 недостающих pilot-пользователя
+- Фикс `e2e/student.spec.ts`: `test.setTimeout(90_000)` + waits
+- 25/26 E2E passed (1 flaky — AI-генерирует слово "correct_answer" в question_text)
+
+**Sprint 2.5 — Реальный offsite backup через smbclient:**
+- Полностью переписан `ai-tutor-backup-offsite.sh` (1274 → 8910 байт)
+- Реальный offsite на `192.168.1.91/Kirill-AI/ai-tutor/offsite/`
+- 41 файл залит, hash verified, audit_log записан
+- Retention 30 дней на SMB
+- Fail-closed (exit 1 на любую ошибку)
+- Установлен `smbclient` на проде + credentials в `/root/.ai-tutor-secrets/smb.creds`
+
+**Sprint 2.6 — UX race fix:**
+- `subjects/page.tsx`: токен стирается ТОЛЬКО при 401/403 (раньше — при любом catch от api.me())
+
+**Sprint 2.7 — Pilot API privacy + D-7 audit:**
+- `pilot.spec.ts:96`: проверка privacy через API response (не DOM)
+- **D-7**: Prometheus labels audit — все 5 counter'ов используют только `method/path/status/mode/role`, без PII (privacy by design из Sprint 5.1)
+- **B.3** (semantic match) — отменён: v2 secure flow делает только exact match, добавление AI-judge требует архитектурного решения
+
+**Sprint 2.8 — Финальная уборка:**
+- Установлен `zstd` на проде (был warning `bash: zstd: command not found` в deploy.sh финальном шаге)
+- audit_log за 7 дней: 3 исторических `error.5xx` от 2026-07-13 07:26 UTC, новых с момента деплоя (27 часов) нет
+
+### Verify
+
+| Проверка | Результат |
+|---|---|
+| Backend pytest | **433 passed**, regression: 0 |
+| Frontend `next build` | ✅ OK |
+| `smoke.sh` на проде | ✅ 7/7 OK |
+| Pilot E2E (`e2e/pilot.spec.ts`, --workers=1) | ✅ 4/4 passed за 27.9 сек |
+| Public E2E | ✅ 6/6 passed |
+| Smoke E2E | ✅ 13/13 passed |
+| Parent E2E | ✅ 2/2 passed |
+| Teacher E2E | ✅ 2/3 (1 skipped — kid login в teacher spec) |
+| Student E2E | ✅ 4/4 passed |
+| nginx security headers | ✅ все 4 видны на проде |
+| `/ready` privacy hygiene | ✅ подтверждено в контейнере |
+| `/metrics` (Prometheus) | ✅ OK, без PII в labels |
+| Audit `error.5xx` за 7 дней | 3 исторических, новых 0 |
+| SMB offsite backup | ✅ 41 файл на `ai-tutor/offsite/`, hash verified |
+| RATE_LIMIT_LOGIN_PER_15MIN | 10 (по умолчанию), не забыт |
+
+### Commits (12 за сессию)
+
+```
+b07493a  pilot core stage 2 MVP: B.1 ready-leak fix, B.2 v2 cutover, D.6 security headers
+6d1f33e  docs: Pilot Core Stage 2 — запись деплоя и находок
+35116a2  test: увеличить timeout для Sprint 7.6 E2E (30s → 90s)
+0707d4e  docs: Sprint 2.4 — flaky E2E root cause + fixes
+5dc87b9  feat(backup): реальный offsite backup через smbclient (Sprint 2.5)
+044831c  fix(backup): SMB cd-then-ls pattern
+1f20126  fix(backup): SMB list через промежуточную переменную
+1bb4967  fix(backup): awk $NF → $1
+d44337c  refactor(backup): убрать BACKUP_OFFSITE_REQUIRED
+c075b07  fix(frontend): не стирать токен при non-401 ошибке api.me()
+006e815  test(pilot): проверка privacy через API response
+```
+
+Все коммиты с pre-edit backup на SMB `192.168.1.91/Kirill-AI/ai-tutor/pre-edit/`.
+
+### Изменённые файлы
+
+```
+apps/backend/app/main.py                (+6 строк: import logging + safe /ready)
+apps/frontend/lib/api.ts                (-8 строк: dead recordAttempt + comment)
+deploy/nginx/nginx.conf                 (+5 строк: 4 security headers)
+apps/frontend/app/subjects/page.tsx     (+13: 401/403 only setToken(null))
+deploy/backup/ai-tutor-backup-offsite.sh (переписан: 1274 → 8910 байт)
+deploy/backup/cleanup_smb_root.sh      (новый: утилита очистки SMB)
+apps/frontend/e2e/student.spec.ts      (+8 строк: test.setTimeout + waits)
+apps/frontend/e2e/pilot.spec.ts         (+20 строк: API privacy check)
+CHANGELOG.md                            (+105 строк)
+docs/pilot-core-stage-2-plan.md         (новый, ~22 КБ + журнал)
+```
+
+### Не сделано (зафиксировано)
+
+**Phase C** (всё ещё требует владельческих блокеров):
+- **C-1** CI/CD — нужен GitHub remote
+- **C-2** TG-алерты — нужен TELEGRAM_BOT_TOKEN/CHAT_ID
+- **C-3** WS multi-worker через Redis pub/sub — архитектурное решение
+- **C-4** Backup offsite — **СДЕЛАНО** в Sprint 2.5 (SMB через smbclient)
+
+**Phase E** — UX-косметика по результатам ручного прогона `pilot-scenarios.md` (требует Кирилла).
+
+**B.3** — semantic match через AI-judge — отменён: требует архитектурного решения (расширяет attack surface v2 secure flow).
+
+### Проект готов к тестированию
+
+**`https://192.168.1.86`** — все 4 роли логинятся с паролем `strongpass1`:
+- `admin@example.com`
+- `teacher@example.com`
+- `parent-e2e@example.com`
+- `kirill@example.com` или `student-e2e@example.com`
+
+Все hot-path работают: объяснение темы, secure v2 exercise, автосохранение, баджи, parent dashboard, admin audit log, nginx security headers, **реальный offsite backup через SMB**.
