@@ -154,6 +154,30 @@
 - audit_log за 7 дней: 3 исторических `error.5xx` от 2026-07-13 07:26 UTC, новых с момента
   Sprint 2.2 deploy (27 часов) нет.
 
+### Sprint 3.0 — walkthrough + найдены и исправлены баги (2026-07-14)
+
+**Сделано:**
+- `e2e/walkthrough.spec.ts` — новый e2e spec с подробным логированием и скриншотами
+  для 4 ролей (student/parent/teacher/admin). Скриншоты в
+  `apps/frontend/screenshots/walkthrough/` (18 PNG, ~2 МБ).
+- Прогон walkthrough нашёл реальные проблемы:
+  1. **`/admin` ломался с React error #31** на admin странице. JSONB из БД
+     приходит как object (asyncpg + FastAPI), `fmtDetails` ждал string. Фикс:
+     handle both string and object. `/admin` теперь грузится, табы видны,
+     audit-фильтр работает (44 строки для `error.5xx`).
+  2. **Диск заполнен на 100%** на проде — 11 snapshots × 900 МБ = 9.8 ГБ,
+     deploy не мог создать snapshot (`zstd: error 70: No space left on device`).
+     Фикс в `deploy/release/deploy.sh`: retention=1, удаление ВСЕХ старых
+     snapshots перед созданием нового, `docker image prune` после.
+  3. **Logout button не найден** на `/teacher` — нет явной кнопки выхода.
+     Это by design (logout через боковое меню), но UX-проблема.
+
+**Verify:**
+- Walkthrough: 3 passed (Student/Teacher/Admin), 1 skipped (Parent — нет привязанных детей).
+- Admin flow: 5.6 сек (раньше 30+ сек из-за React error).
+- Audit filter `error.5xx`: 44 строки (вместо «This page couldn't load»).
+- Smoke 7/7 OK. Rate-limit восстановлен к 10.
+
 ### Финальный итог Pilot Core Stage 2 (всё за сессию)
 
 - **12 коммитов** с pre-edit backup на SMB
