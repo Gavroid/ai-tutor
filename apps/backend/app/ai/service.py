@@ -117,7 +117,14 @@ class AIService:
         self, db: Session, user: user_models.User, topic: subj_models.Topic
     ) -> AIResponse:
         subject = topic.section.subject
-        system = prompts.explain_topic_system(subject.name, topic.name, user.student_profile.grade if user.student_profile else 7)
+        # Sprint 3.5.2: RAG — найти релевантные chunk'и из загруженных учебников
+        # и добавить в system prompt как контекст. Без RAG AI отвечает "из головы".
+        rag_context = await self._build_rag_context(db, topic)
+        system = prompts.explain_topic_system(
+            subject.name, topic.name,
+            user.student_profile.grade if user.student_profile else 7,
+            rag_context=rag_context,
+        )
         req = AIRequest(
             messages=[AIMessage(role="system", content=system), AIMessage(role="user", content="Объясни тему.")],
             mode="explain",
@@ -131,6 +138,53 @@ class AIService:
             _record_ai("explain", "error")
             logger.exception("AI explain failed: %s", e)
             raise
+
+    async def _build_rag_context(
+        self, db: Session, topic: subj_models.Topic, top_k: int = 3
+    ) -> str | None:
+        """Sprint 3.5.2: RAG — топ-K chunk'ов из загруженных учебников.
+
+        Returns:
+            Строка для system prompt с chunk'ами или None если RAG пуст.
+            None — это НЕ ошибка, это сигнал "материалов по теме нет".
+
+        Использует hash-based pseudo-embedding (без расходов на embedding API).
+        Sprint 3.5.2 ОГРАНИЧЕНИЕ: app/rag.py::search() — in-memory store.
+        При рестарте backend RAG-база теряется. Для persistent нужен
+        новый search() по rag_chunks в PostgreSQL (TODO: Sprint 3.5.3+).
+        Для семейного MVP это OK (backend не рестартится каждый день).
+        """
+        # Используем app.rag_persist.get_or_compute_embedding (НЕ app.rag.get_embedding):
+        # - rag_persist делает hash-fallback если нет API key / БД-кэш не настроен
+        # - rag.get_embedding всегда пытается вызвать API → упадёт в тестах без ключа
+        # - rag.get_embedding использует _hash_embedding, rag_persist тоже
+        from app.rag_persist import get_or_compute_embedding
+        from app.rag import search
+
+        # Запрос для retrieval: тема + название предмета для точности
+        query = f"{topic.name} {topic.section.subject.name}"
+        try:
+            query_emb = get_or_compute_embedding(query)
+            chunks = search(query_emb, top_k=top_k)
+        except Exception as e:
+            logger.warning("RAG search failed: %s", e)
+            return None
+
+        if not chunks:
+            return None
+
+        # Форматируем chunk'и в читаемый контекст для LLM.
+        # app/rag.py::DocumentChunk: id, material_id, text, embedding, metadata.
+        # material_title и page_number — в metadata dict (если rag_persist их туда кладёт).
+        lines = ["Контекст из загруженных учебников (top-{} chunk'ов):".format(len(chunks))]
+        for i, c in enumerate(chunks, 1):
+            meta = getattr(c, "metadata", {}) or {}
+            mat_title = meta.get("material_title") or f"Материал {getattr(c, 'material_id', '?')}"
+            page = meta.get("page_number")
+            text = (getattr(c, "text", "") or "").strip()[:800]
+            page_str = f", стр. {page}" if page else ""
+            lines.append(f"\n[{i}] {mat_title}{page_str}:\n{text}\n")
+        return "\n".join(lines)
 
     async def hint(self, question_text: str, level: int = 1) -> AIResponse:
         """Sprint 7.4: подсказка уровня 1 (наводящий вопрос).

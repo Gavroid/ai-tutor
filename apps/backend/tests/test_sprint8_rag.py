@@ -1,26 +1,15 @@
 """Sprint 8.3: RAG persistence + embedding cache.
 
-Sprint 3.5.1 — DEAD CODE TEST FILE (но в работе)
-================================================
-RAG (search по учебникам) написан в app/rag_persist.py + app/rag.py,
-миграция 0012 в БД, тесты проходят. НО в hot path не подключён:
-app/ai/service.py::explain_topic() НЕ вызывает rag_search перед LLM.
-
-Sprint 3.5.2 (следующая задача) — подключить RAG к explain_topic.
-
-Сейчас 12 тестов помечены skip, чтобы не давать false sense of "всё работает".
-Когда RAG подключён — раскомментировать pytestmark.
+Sprint 3.5.2: RAG подключён к app/ai/service.py::explain_topic.
+Тесты реактивированы (skip снят). Тесты проверяют:
+- get_or_compute_embedding (с хэш-фоллбэком, без реального API)
+- chunk_hash / text_hash (детерминированные)
+- embedding_to_json / json_to_embedding (round-trip)
+- index + search в in-memory store
 """
 from __future__ import annotations
 
 import os
-
-import pytest
-
-pytestmark = pytest.mark.skip(
-    reason="Sprint 3.5.1: RAG code есть, но не подключён к hot path. "
-           "Sprint 3.5.2 подключит — тогда раскомментировать."
-)
 
 import pytest
 

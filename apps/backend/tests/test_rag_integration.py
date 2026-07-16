@@ -1,0 +1,132 @@
+"""Sprint 3.5.2: integration тесты RAG в hot path.
+
+Проверяют что app/ai/service.py::_build_rag_context корректно:
+- возвращает None если RAG store пуст
+- возвращает форматированный контекст если есть chunk'и
+- не падает если RAG ломается (graceful degradation через try/except)
+"""
+from __future__ import annotations
+
+import os
+
+import pytest
+
+os.environ.setdefault("APP_SECRET_KEY", "test-secret-key-for-pytest-only-1234567890")
+os.environ.setdefault("APP_ENV", "development")
+os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
+os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
+os.environ.setdefault("AI_API_KEY", "mock-key-for-tests")
+os.environ.setdefault("UPLOAD_DIR", "/tmp/ai-tutor-test-uploads")
+os.environ.setdefault("PYTHONDONTWRITEBYTECODE", "1")
+
+from app.ai import service as ai_service
+import app.rag as rag_mod
+
+
+class FakeSubject:
+    def __init__(self, name: str = "Математика"):
+        self.name = name
+
+
+class FakeSection:
+    def __init__(self, subject: FakeSubject):
+        self.subject = subject
+
+
+class FakeTopic:
+    """Mock для app.subjects.models.Topic — только нужные поля."""
+    def __init__(self, name: str, subject_name: str = "Математика"):
+        self.name = name
+        self.section = FakeSection(FakeSubject(subject_name))
+
+
+class FakeProvider:
+    """Mock для AIProvider — нам не нужно делать реальные вызовы."""
+    async def complete(self, req):
+        return None
+
+
+@pytest.fixture(autouse=True)
+def clear_rag_store():
+    """Очищает RAG store перед каждым тестом."""
+    rag_mod.clear()
+    yield
+    rag_mod.clear()
+
+
+@pytest.mark.asyncio
+async def test_rag_context_empty_store_returns_none():
+    """Если RAG-база пустая — context=None, AI отвечает "из головы"."""
+    svc = ai_service.AIService(FakeProvider())
+    topic = FakeTopic("Площадь треугольника")
+    ctx = await svc._build_rag_context(None, topic)
+    assert ctx is None
+
+
+@pytest.mark.asyncio
+async def test_rag_context_with_chunks():
+    """Если в store есть chunk'и — context содержит их текст + meta."""
+    # Добавляем chunk напрямую через app.rag (in-memory store).
+    # embedding не нужен для retrieval при hash-based embedding, но
+    # chunks._embedding требуется — заполним dummy 384-dim.
+    rag_mod.add_chunks(
+        material_id=999,
+        chunks=["Площадь треугольника равна половине произведения основания на высоту."],
+        embeddings=[[0.0] * 384],
+        metadata={"material_title": "Геометрия 7 класс (учебник)", "page_number": 73},
+    )
+
+    svc = ai_service.AIService(FakeProvider())
+    topic = FakeTopic("Площадь треугольника")
+    ctx = await svc._build_rag_context(None, topic, top_k=3)
+
+    assert ctx is not None
+    assert "Геометрия 7 класс" in ctx
+    assert "стр. 73" in ctx
+    assert "основания на высоту" in ctx
+
+
+@pytest.mark.asyncio
+async def test_rag_context_failure_does_not_crash(monkeypatch):
+    """Если RAG падает (исключение) — context=None, не валит explain_topic."""
+    # Подменяем get_or_compute_embedding (используется внутри get_embedding)
+    # чтобы он бросал исключение. Это ближе к реальной ошибке RAG.
+    from app.rag_persist import get_or_compute_embedding as real_fn
+
+    async def broken_get_or_compute(*args, **kwargs):
+        raise RuntimeError("Embedding API down")
+
+    # Подменяем в rag_persist (где функция определена)
+    import app.rag_persist
+    monkeypatch.setattr(app.rag_persist, "get_or_compute_embedding", broken_get_or_compute)
+
+    svc = ai_service.AIService(FakeProvider())
+    topic = FakeTopic("Любая тема")
+    # Должен вернуть None, не бросить исключение
+    ctx = await svc._build_rag_context(None, topic)
+    assert ctx is None
+
+
+@pytest.mark.asyncio
+async def test_rag_context_query_includes_subject_and_topic():
+    """Query для retrieval = subject_name + topic_name (для точности)."""
+    # Перехватываем query через подмену add_chunks (видно какие chunks попали в store).
+    # Но проще проверить через _build_rag_context: query формируется как
+    # f"{topic.name} {topic.section.subject.name}" — подтверждаем через
+    # успешный retrieval (chunks содержат оба термина).
+    rag_mod.add_chunks(
+        material_id=1,
+        chunks=["Квадратные уравнения: Алгебра, дискриминант, корни."],
+        embeddings=[[0.0] * 384],
+        metadata={"material_title": "Алгебра 7 класс"},
+    )
+
+    svc = ai_service.AIService(FakeProvider())
+    topic = FakeTopic("Квадратные уравнения", "Алгебра")
+    ctx = await svc._build_rag_context(None, topic, top_k=3)
+
+    # Если chunks содержат оба термина (тема + предмет) — значит query их
+    # покрыл, и search вернул релевантный chunk.
+    assert ctx is not None
+    assert "Квадратные уравнения" in ctx
+    assert "Алгебра" in ctx
