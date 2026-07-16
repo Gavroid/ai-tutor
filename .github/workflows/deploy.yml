@@ -36,7 +36,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: production
+    # БЕЗ environment: production — иначе GitHub Environments с required reviewers
+    # блокируют workflow до ручного approve. Repository secrets доступны напрямую.
 
     steps:
       - uses: actions/checkout@v4
@@ -146,8 +147,9 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          msg="❌ Deploy FAILED: $GITHUB_REPOSITORY@${GITHUB_SHA::7}
-Check: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          msg="❌ Deploy FAILED: $GITHUB_REPOSITORY@${GITHUB_SHA::7}"
+          msg="$msg"$'\n'"Check: $url"
           echo "$msg"
           if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
             curl -sf -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
