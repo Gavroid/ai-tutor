@@ -83,9 +83,10 @@ jobs:
         working-directory: apps/frontend
         run: npx tsc --noEmit
 
-      - name: Lint
-        working-directory: apps/frontend
-        run: npm run lint
+      # Sprint 3.5: убран `npm run lint` — Next.js 16 удалил `next lint`.
+      # package.json содержит `lint: "next lint"`, но эта команда deprecated.
+      # В репо нет ESLint конфига. Type check покрывает 80% того что делал lint.
+      # Когда добавим ESLint — вернём этот step.
 
       - name: Build
         working-directory: apps/frontend
