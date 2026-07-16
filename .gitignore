@@ -20,3 +20,7 @@ test-results/
 
 # GitHub deploy key (private) — для CI/CD
 .ssh_github_deploy_key
+
+# Sprint 3.5 — local-only files (CI/CD setup helpers)
+.copy-ssh-key-to-github.sh
+.ssh_actions_deploy_key_FOR_GITHUB.txt

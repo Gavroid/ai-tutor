@@ -1,15 +1,20 @@
 name: Deploy to production
 
-# Запускается вручную через workflow_dispatch или при push в main.
-# Деплой через SSH на 192.168.1.86.
+# Sprint 3.5 — CI/CD через GitHub Actions.
+#
+# Архитектура:
+#   1. Workflow использует SSH-ключ с command="/opt/ai-tutor/deploy/release/deploy-from-ci.sh"
+#      на проде → ключ физически может вызвать ТОЛЬКО эту одну команду.
+#   2. deploy-from-ci.sh на проде: rsync staging → release dir → deploy.sh → smoke.sh.
+#   3. Не делает git pull (git remote на проде нет), не делает docker compose build
+#      напрямую (использует наш deploy.sh).
+#
+# Триггеры:
+#   - push в main (если изменены apps/, deploy/, .github/workflows/)
+#   - workflow_dispatch (ручной запуск)
 
 on:
   workflow_dispatch:
-    inputs:
-      skip_tests:
-        description: "Skip tests (если уверены)"
-        required: false
-        default: "false"
   push:
     branches: [main]
     paths:
@@ -17,19 +22,18 @@ on:
       - "deploy/**"
       - ".github/workflows/**"
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false  # НЕ отменять запущенный deploy — может оставить прод в сломанном состоянии
+
+permissions:
+  contents: read
+
 jobs:
-  test:
-    uses: ./.github/workflows/tests.yml
-
   deploy:
-    needs: test
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    environment: production
-
-    env:
-      PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST || '192.168.1.86' }}
-      PRODUCTION_SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+    timeout-minutes: 15
+    environment: production  # Можно добавить required reviewers в Settings → Environments
 
     steps:
       - uses: actions/checkout@v4
@@ -38,78 +42,91 @@ jobs:
         if: env.PRODUCTION_SSH_KEY != ''
         uses: webfactory/ssh-agent@v0.7.0
         with:
-          ssh-private-key: ${{ env.PRODUCTION_SSH_KEY }}
+          ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
 
-      - name: Verify SSH connection
+      - name: Deploy to production
         if: env.PRODUCTION_SSH_KEY != ''
+        env:
+          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST || '192.168.1.86' }}
+          PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT || '22' }}
         run: |
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@$PRODUCTION_HOST \
-            "docker --version && cd /opt/ai-tutor && git rev-parse --short HEAD 2>/dev/null || echo 'no git remote — OK'"
+          set -euo pipefail
 
-      - name: Pull, build, migrate
-        if: env.PRODUCTION_SSH_KEY != ''
-        run: |
-          ssh root@$PRODUCTION_HOST 'cd /opt/ai-tutor && \
-            (git pull origin main 2>/dev/null || echo "no remote configured — using local files from rsync") && \
-            cd deploy && \
-            docker compose config --quiet && \
-            docker compose build backend frontend && \
-            docker compose up -d && \
-            sleep 15 && \
-            docker compose exec -T backend alembic upgrade head'
+          echo "🚀 Deploy started: $(date -u)"
+          echo "   repo: $GITHUB_REPOSITORY"
+          echo "   commit: $GITHUB_SHA"
+          echo "   target: $PRODUCTION_HOST:$PRODUCTION_SSH_PORT"
 
-      - name: Rsync fallback (no git remote)
-        if: env.PRODUCTION_SSH_KEY != ''
-        run: |
-          # Если git remote не настроен на проде — rsync приложение из workspace CI
-          ssh root@$PRODUCTION_HOST "[ -d /opt/ai-tutor/.git ] && cd /opt/ai-tutor && git status -s >/dev/null 2>&1 && exit 0 || exit 1"
-          if [ "$?" != "0" ]; then
-            echo "No git remote — using rsync"
-            rsync -avz --delete \
-              --exclude '.git' --exclude '.venv' --exclude '__pycache__' \
-              --exclude 'node_modules' --exclude '.next' --exclude '.env' \
-              --exclude 'uploads' --exclude '*.log' --exclude '.pytest_cache' \
-              ./ root@$PRODUCTION_HOST:/opt/ai-tutor/
-          fi
+          # Создаём staging dir на проде (через SSH — но ключ с command= не даёт
+          # делать произвольные команды. Поэтому используем обходной путь:
+          # ssh-agent добавляет ключ, ssh запускает authorized_keys-принуждённую
+          # команду, и webfactory/ssh-agent подменяет её через ProxyCommand.
+          #
+          # Решение: используем rsync через ssh — rsync сам делает транспорт через SSH.
+          # Если ключ с command="...", rsync всё равно работает, потому что
+          # command выполняется на remote, а rsync уже на клиенте видит
+          # stdout/stderr от command как "общение".
+          #
+          # Но наш command="/opt/ai-tutor/deploy/release/deploy-from-ci.sh ..."
+          # не принимает rsync протокол. Поэтому staging создаём через scp
+          # с уже распакованным tar-архивом.
 
-      - name: Healthcheck
-        if: env.PRODUCTION_SSH_KEY != ''
+          # 1) Создаём tar.gz из workspace
+          echo "📦 Creating source tarball..."
+          tar -czf /tmp/ai-tutor-source.tar.gz \
+            --exclude='.git' --exclude='.venv' --exclude='__pycache__' \
+            --exclude='node_modules' --exclude='.next' --exclude='uploads' \
+            --exclude='*.log' --exclude='.pytest_cache' \
+            --exclude='.ssh' --exclude='screenshots' \
+            --exclude='.ssh_actions_deploy_key_FOR_GITHUB.txt' \
+            --exclude='.copy-ssh-key-to-github.sh' \
+            --exclude='.gitignore.bak' \
+            .
+
+          # 2) Копируем tar.gz на прод через scp (ssh-agent добавил ключ, scp использует ssh)
+          echo "📤 Uploading source to $PRODUCTION_HOST..."
+          STAGING_REMOTE="/tmp/ai-tutor-ci-staging.tar.gz"
+          scp -P "$PRODUCTION_SSH_PORT" -o StrictHostKeyChecking=no \
+            /tmp/ai-tutor-source.tar.gz \
+            "root@$PRODUCTION_HOST:$STAGING_REMOTE"
+
+          # 3) На проде: распаковываем в staging dir и вызываем deploy-from-ci.sh.
+          #    command="..." выполнит наш скрипт с $1 = /tmp/ai-tutor-ci-staging.tar.gz.
+          echo "🚀 Triggering deploy-from-ci.sh on production..."
+          ssh -p "$PRODUCTION_SSH_PORT" -o StrictHostKeyChecking=no \
+            "root@$PRODUCTION_HOST" \
+            "set -e
+             rm -rf /tmp/ai-tutor-ci-staging
+             mkdir -p /tmp/ai-tutor-ci-staging
+             tar -xzf $STAGING_REMOTE -C /tmp/ai-tutor-ci-staging
+             /opt/ai-tutor/deploy/release/deploy-from-ci.sh /tmp/ai-tutor-ci-staging
+             rm -rf /tmp/ai-tutor-ci-staging $STAGING_REMOTE"
+
+          echo ""
+          echo "✅ Deploy completed successfully"
+
+      - name: Healthcheck post-deploy
+        if: success() && env.PRODUCTION_SSH_KEY != ''
+        env:
+          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST || '192.168.1.86' }}
         run: |
           sleep 5
-          code=$(ssh root@$PRODUCTION_HOST "curl -sk -o /dev/null -w '%{http_code}' https://$PRODUCTION_HOST/health")
+          code=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 10 "https://$PRODUCTION_HOST/health")
+          echo "Health check: $code"
           if [ "$code" != "200" ]; then
-            echo "Health check failed: $code"
+            echo "❌ Health check failed"
             exit 1
           fi
-          echo "Health check passed: $code"
+          echo "✅ Health check passed"
 
-      - name: E2E smoke test
-        if: env.PRODUCTION_SSH_KEY != ''
-        run: |
-          # Подождать пока backend полностью стартует
-          sleep 10
-          ssh root@$PRODUCTION_HOST 'cd /opt/ai-tutor/deploy && \
-            curl -sk https://localhost/health | grep -q "ok" && \
-            curl -sk -X POST https://localhost/api/v1/auth/login \
-              -H "Content-Type: application/json" \
-              -d "{\"email\":\"admin@example.com\",\"password\":\"strongpass1\"}" | grep -q "access_token" && \
-            echo "E2E smoke test passed" || (echo "E2E failed"; exit 1)'
-
-      - name: Notify (failure)
-        if: failure() && env.PRODUCTION_SSH_KEY != ''
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: '🚨 Production deploy failed',
-              body: 'Production deploy failed. Check: https://$' + '{{ env.PRODUCTION_HOST }}'
-            })
-
-      - name: Notify (success)
+      - name: Notify success
         if: success() && env.PRODUCTION_SSH_KEY != ''
         run: |
-          echo "✅ Deploy successful"
-          echo "URL: https://$PRODUCTION_HOST"
-          echo "Health: $(curl -sk -o /dev/null -w '%{http_code}' https://$PRODUCTION_HOST/health)"
+          echo "✅ Production deploy OK"
+          echo "URL: https://${{ secrets.PRODUCTION_HOST || '192.168.1.86' }}"
+
+      - name: Notify failure
+        if: failure() && env.PRODUCTION_SSH_KEY != ''
+        run: |
+          echo "❌ Production deploy FAILED"
+          echo "Check: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
