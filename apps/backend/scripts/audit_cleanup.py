@@ -2,8 +2,8 @@
 """Sprint 4.2 — cron-задача: ежедневная очистка audit_logs.
 
 Запуск:
-  - через cron: 0 3 * * * /opt/ai-tutor/deploy/cron/audit_cleanup.py
-  - вручную:    python3 audit_cleanup.py [--ttl-days 90] [--dry-run]
+  - через cron: 0 3 * * * /etc/cron.d/ai-tutor-audit-cleanup
+  - вручную:    docker exec deploy-backend-1 python3 /app/scripts/audit_cleanup.py [--ttl-days 90] [--dry-run]
 
 Что делает:
   - Подключается к БД через переменные окружения (DATABASE_URL)
@@ -12,8 +12,11 @@
   - Завершается с кодом 0 даже если записей нет
 
 Переменные окружения:
-  DATABASE_URL  — обязательно (например, postgresql://user:pass@host:5432/db)
+  DATABASE_URL  — обязательно (например, postgresql://user:***@host:5432/db)
   AUDIT_TTL_DAYS — опционально (по умолчанию 90)
+
+Sprint 3.2.2: файл перенесён из deploy/cron/ → apps/backend/scripts/
+(теперь Dockerfile его копирует в image, docker exec его находит).
 """
 from __future__ import annotations
 
