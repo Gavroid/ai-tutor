@@ -18,10 +18,11 @@ import hashlib
 import json
 import logging
 import os
+from dataclasses import dataclass
 from typing import Optional
 
 import httpx
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -166,3 +167,98 @@ def _hash_embedding(text: str, dim: int = 384) -> list[float]:
     if norm > 0:
         vec = [v / norm for v in vec]
     return vec
+
+
+# === Sprint 3.5.2: Persistent RAG (search по rag_chunks в PostgreSQL) ===
+
+@dataclass
+class PersistentChunk:
+    """Lightweight DTO для search results — не зависит от in-memory store."""
+    id: str
+    material_id: int
+    text: str
+    embedding: list[float]
+    metadata: dict
+
+
+def add_chunks_persistent(
+    db: Session,
+    material_id: int,
+    chunks: list[str],
+    embeddings: list[list[float]],
+    metadata: dict | None = None,
+) -> list[str]:
+    """Sprint 3.5.2: записать chunk'и в rag_chunks (идемпотентно по hash).
+
+    Returns: список id (строковых, как hash) добавленных chunk'ов.
+    """
+    from app.rag_models import RagChunk  # local import (избежать цикл.импорта)
+
+    meta_json = json.dumps(metadata or {}, ensure_ascii=False)
+    added_ids = []
+    for text, emb in zip(chunks, embeddings):
+        h = chunk_hash(material_id, text)
+        # Идемпотентность: если chunk с таким hash уже есть — пропускаем.
+        existing = db.execute(
+            select(RagChunk).where(RagChunk.hash == h)
+        ).scalar_one_or_none()
+        if existing is not None:
+            added_ids.append(h)
+            continue
+        row = RagChunk(
+            material_id=material_id,
+            hash=h,
+            text=text,
+            embedding_json=embedding_to_json(emb),
+            metadata_json=meta_json,
+        )
+        db.add(row)
+        added_ids.append(h)
+    db.commit()
+    return added_ids
+
+
+def search_persistent(
+    db: Session,
+    query_embedding: list[float],
+    top_k: int = 3,
+    material_id: int | None = None,
+) -> list[PersistentChunk]:
+    """Sprint 3.5.2: persistent search через rag_chunks + cosine similarity.
+
+    Простой in-Python cosine (без pgvector). Достаточно для MVP:
+    384-dim × ~1000 chunks = ~1ms в Python. Если chunks > 10K — мигрировать
+    на pgvector extension (Sprint 3.5.3+ TODO).
+    """
+    from app.rag_models import RagChunk  # local import
+    from app.rag import cosine_similarity
+
+    q = select(RagChunk)
+    if material_id is not None:
+        q = q.where(RagChunk.material_id == material_id)
+    rows = db.execute(q).scalars().all()
+
+    if not rows:
+        return []
+
+    scored: list[tuple[float, PersistentChunk]] = []
+    for row in rows:
+        emb = json_to_embedding(row.embedding_json)
+        if not emb:
+            continue
+        sim = cosine_similarity(query_embedding, emb)
+        scored.append((sim, PersistentChunk(
+            id=row.hash,
+            material_id=row.material_id,
+            text=row.text,
+            embedding=emb,
+            metadata=json.loads(row.metadata_json or "{}"),
+        )))
+    scored.sort(key=lambda x: -x[0])
+    return [c for _, c in scored[:top_k]]
+
+
+def count_persistent(db: Session) -> int:
+    """Sprint 3.5.2: сколько chunk'ов в rag_chunks."""
+    from app.rag_models import RagChunk
+    return db.execute(select(func.count(RagChunk.id))).scalar_one()

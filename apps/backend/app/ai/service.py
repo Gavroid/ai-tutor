@@ -149,23 +149,19 @@ class AIService:
             None — это НЕ ошибка, это сигнал "материалов по теме нет".
 
         Использует hash-based pseudo-embedding (без расходов на embedding API).
-        Sprint 3.5.2 ОГРАНИЧЕНИЕ: app/rag.py::search() — in-memory store.
-        При рестарте backend RAG-база теряется. Для persistent нужен
-        новый search() по rag_chunks в PostgreSQL (TODO: Sprint 3.5.3+).
-        Для семейного MVP это OK (backend не рестартится каждый день).
+        Sprint 3.5.2: persistent search через app.rag_persist.search_persistent
+        (читает из rag_chunks в PostgreSQL). RAG-база переживает рестарт backend.
         """
-        # Используем app.rag_persist.get_or_compute_embedding (НЕ app.rag.get_embedding):
-        # - rag_persist делает hash-fallback если нет API key / БД-кэш не настроен
-        # - rag.get_embedding всегда пытается вызвать API → упадёт в тестах без ключа
-        # - rag.get_embedding использует _hash_embedding, rag_persist тоже
-        from app.rag_persist import get_or_compute_embedding
-        from app.rag import search
+        from app.rag_persist import get_or_compute_embedding, search_persistent
 
-        # Запрос для retrieval: тема + название предмета для точности
         query = f"{topic.name} {topic.section.subject.name}"
         try:
             query_emb = get_or_compute_embedding(query)
-            chunks = search(query_emb, top_k=top_k)
+            # Sprint 3.5.2: persistent search через PostgreSQL rag_chunks.
+            # Используем db сессию через SessionLocal (self-contained).
+            from app.db.session import SessionLocal
+            with SessionLocal() as db:
+                chunks = search_persistent(db, query_emb, top_k=top_k)
         except Exception as e:
             logger.warning("RAG search failed: %s", e)
             return None

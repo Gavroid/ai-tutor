@@ -46,12 +46,39 @@ class FakeProvider:
         return None
 
 
+@pytest.fixture
+def db_session():
+    """Sprint 3.5.2: persistent RAG работает через БД. Тесты используют SQLite."""
+    from app.db.session import Base, engine
+    # Create tables (rag_chunks + все из Base.metadata) на чистой SQLite.
+    Base.metadata.create_all(engine)
+    from app.db.session import SessionLocal
+    session = SessionLocal()
+    yield session
+    session.close()
+    Base.metadata.drop_all(engine)
+
+
 @pytest.fixture(autouse=True)
-def clear_rag_store():
-    """Очищает RAG store перед каждым тестом."""
+def clear_rag_store(db_session):
+    """Очищает in-memory + persistent store перед каждым тестом."""
     rag_mod.clear()
+    try:
+        from app.rag_models import RagChunk
+        from sqlalchemy import delete
+        db_session.execute(delete(RagChunk))
+        db_session.commit()
+    except Exception:
+        db_session.rollback()
     yield
     rag_mod.clear()
+    try:
+        from app.rag_models import RagChunk
+        from sqlalchemy import delete
+        db_session.execute(delete(RagChunk))
+        db_session.commit()
+    except Exception:
+        db_session.rollback()
 
 
 @pytest.mark.asyncio
@@ -64,15 +91,16 @@ async def test_rag_context_empty_store_returns_none():
 
 
 @pytest.mark.asyncio
-async def test_rag_context_with_chunks():
+async def test_rag_context_with_chunks(db_session):
     """Если в store есть chunk'и — context содержит их текст + meta."""
-    # Добавляем chunk напрямую через app.rag (in-memory store).
-    # embedding не нужен для retrieval при hash-based embedding, но
-    # chunks._embedding требуется — заполним dummy 384-dim.
-    rag_mod.add_chunks(
+    # Sprint 3.5.2: пишем в persistent (rag_chunks), не in-memory.
+    from app.rag_persist import add_chunks_persistent, get_or_compute_embedding
+    emb = get_or_compute_embedding("Площадь треугольника 7 класс")
+    add_chunks_persistent(
+        db_session,
         material_id=999,
         chunks=["Площадь треугольника равна половине произведения основания на высоту."],
-        embeddings=[[0.0] * 384],
+        embeddings=[emb],
         metadata={"material_title": "Геометрия 7 класс (учебник)", "page_number": 73},
     )
 
@@ -108,16 +136,15 @@ async def test_rag_context_failure_does_not_crash(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_rag_context_query_includes_subject_and_topic():
+async def test_rag_context_query_includes_subject_and_topic(db_session):
     """Query для retrieval = subject_name + topic_name (для точности)."""
-    # Перехватываем query через подмену add_chunks (видно какие chunks попали в store).
-    # Но проще проверить через _build_rag_context: query формируется как
-    # f"{topic.name} {topic.section.subject.name}" — подтверждаем через
-    # успешный retrieval (chunks содержат оба термина).
-    rag_mod.add_chunks(
+    from app.rag_persist import add_chunks_persistent, get_or_compute_embedding
+    emb = get_or_compute_embedding("Квадратные уравнения Алгебра")
+    add_chunks_persistent(
+        db_session,
         material_id=1,
         chunks=["Квадратные уравнения: Алгебра, дискриминант, корни."],
-        embeddings=[[0.0] * 384],
+        embeddings=[emb],
         metadata={"material_title": "Алгебра 7 класс"},
     )
 
@@ -125,8 +152,6 @@ async def test_rag_context_query_includes_subject_and_topic():
     topic = FakeTopic("Квадратные уравнения", "Алгебра")
     ctx = await svc._build_rag_context(None, topic, top_k=3)
 
-    # Если chunks содержат оба термина (тема + предмет) — значит query их
-    # покрыл, и search вернул релевантный chunk.
     assert ctx is not None
     assert "Квадратные уравнения" in ctx
     assert "Алгебра" in ctx

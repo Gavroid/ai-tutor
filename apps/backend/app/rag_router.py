@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.auth.security import get_current_user
 from app.db.session import get_db
 from app.rag import add_chunks, chunk_text, get_embedding, remove_by_material, search, stats
+from app.rag_persist import add_chunks_persistent, count_persistent, search_persistent
 from app.subjects import models as subj_models
 from app.users.models import User
 
@@ -66,6 +67,13 @@ async def index_document(
         embeddings.append(emb)
 
     chunk_ids = add_chunks(payload.material_id, chunks, embeddings, payload.metadata)
+    # Sprint 3.5.2: дублируем в rag_chunks (persistent). Best-effort:
+    # если БД недоступна — log warn, но endpoint возвращает 200 (in-memory OK).
+    try:
+        add_chunks_persistent(db, payload.material_id, chunks, embeddings, payload.metadata)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("rag_chunks insert failed (continuing): %s", e)
     return IndexResponse(indexed_chunks=len(chunks), chunk_ids=chunk_ids)
 
 
@@ -96,16 +104,39 @@ async def search_endpoint(
 @router.delete("/material/{material_id}")
 def remove_material(
     material_id: int,
+    db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
-    """Удаляет все embeddings материала."""
-    count = remove_by_material(material_id)
-    return {"removed_chunks": count}
+    """Удаляет все embeddings материала (in-memory + persistent)."""
+    in_mem_count = remove_by_material(material_id)
+    # Sprint 3.5.2: persistent тоже удаляем
+    persistent_count = 0
+    try:
+        from app.rag_models import RagChunk
+        from sqlalchemy import delete
+        result = db.execute(delete(RagChunk).where(RagChunk.material_id == material_id))
+        db.commit()
+        persistent_count = result.rowcount
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("rag_chunks delete failed: %s", e)
+        db.rollback()
+    return {
+        "removed_chunks": in_mem_count,
+        "persistent_chunks_removed": persistent_count,
+    }
 
 
 @router.get("/stats")
 def stats_endpoint(
+    db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
-    """Статистика RAG store."""
-    return stats()
+    """Статистика RAG store (in-memory + persistent)."""
+    in_mem = stats()
+    persistent_chunks = 0
+    try:
+        persistent_chunks = count_persistent(db)
+    except Exception:
+        pass
+    return {**in_mem, "persistent_chunks": persistent_chunks}
