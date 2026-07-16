@@ -1,8 +1,24 @@
-"""Sprint 9.1: weekly summary email для родителя."""
+"""Sprint 9.1: weekly summary email для родителя.
+
+Sprint 3.5.1 — DEAD CODE TEST FILE
+==================================
+Weekly summary email: код есть (app/notifications/weekly.py + cron), шаблон
+есть, dry-run пишет в БД. НО SMTP не настроен на проде → email не
+отправляется никому. 8 тестов проходят, но это self-referential.
+
+Реактивировать когда настроишь SMTP (1-2 дня моей работы).
+"""
 from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta, timezone
+
+import pytest
+
+pytestmark = pytest.mark.skip(
+    reason="Sprint 3.5.1: SMTP не настроен, weekly email никуда не уходит. "
+           "Реактивировать когда настроишь SMTP."
+)
 
 import pytest
 

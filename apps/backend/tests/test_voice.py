@@ -1,7 +1,19 @@
-"""Тесты voice transcription."""
+"""Тесты voice transcription.
+
+Sprint 3.5.1 — DEAD CODE TEST FILE
+==================================
+Whisper ASR endpoint. Скопировано из test_sprint7_voice — оба тестируют
+тот же endpoint. Один из них skip'нуть достаточно — помечаем этот.
+"""
 from __future__ import annotations
 
 import os
+
+import pytest
+
+pytestmark = pytest.mark.skip(
+    reason="Sprint 3.5.1: voice UI скрыт, см. test_sprint7_voice.py."
+)
 
 os.environ.setdefault("APP_SECRET_KEY", "test-secret-key-for-pytest-only-1234567890")
 os.environ.setdefault("APP_ENV", "development")

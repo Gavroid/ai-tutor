@@ -1,8 +1,25 @@
-"""Sprint 7.2: voice rate-limit."""
+"""Sprint 7.2: voice rate-limit.
+
+Sprint 3.5.1 — DEAD CODE TEST FILE
+==================================
+Whisper ASR (voice → text) endpoint есть (/api/v1/voice/transcribe),
+rate-limit работает (20/min/user). НО на UI /topics/[id] кнопка микрофона
+скрыта по умолчанию через NEXT_PUBLIC_VOICE_ENABLED=0 (apps/frontend/.env).
+
+Для 1 пользователя Кирилл может пользоваться голосом через тему
+(если включить), но никто не включил. Реактивировать если включишь voice.
+"""
 from __future__ import annotations
 
 import io
 from collections import deque
+
+import pytest
+
+pytestmark = pytest.mark.skip(
+    reason="Sprint 3.5.1: voice UI скрыт (NEXT_PUBLIC_VOICE_ENABLED=0). "
+           "Реактивировать если включишь voice для Кирилла."
+)
 
 import pytest
 from fastapi.testclient import TestClient

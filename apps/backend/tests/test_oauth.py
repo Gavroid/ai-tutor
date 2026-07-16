@@ -1,7 +1,23 @@
-"""Тесты OAuth endpoints (без реальных credentials)."""
+"""Тесты OAuth endpoints (без реальных credentials).
+
+Sprint 3.5.1 — DEAD CODE TEST FILE
+==================================
+Google/Яндекс OAuth2: код есть, mock-тесты есть. НО на проде нет
+GOOGLE_CLIENT_ID / YANDEX_CLIENT_ID. Для 1 пользователя — overkill,
+пароль проще.
+
+Реактивировать если хочешь «войти через Google» для Кирилла.
+"""
 from __future__ import annotations
 
 import os
+
+import pytest
+
+pytestmark = pytest.mark.skip(
+    reason="Sprint 3.5.1: OAuth credentials не настроены, для 1 user "
+           "overkill. Реактивировать если подключишь Google/Яндекс."
+)
 
 os.environ.setdefault("APP_SECRET_KEY", "test-secret-key-for-pytest-only-1234567890")
 os.environ.setdefault("APP_ENV", "development")

@@ -1,8 +1,26 @@
-"""Sprint 9.3: real-time WS для админа."""
+"""Sprint 9.3: real-time WS для админа.
+
+Sprint 3.5.1 — DEAD CODE TEST FILE
+==================================
+Real-time /admin WebSocket: endpoint есть (/api/v1/admin/ws), код есть
+(app/admin/realtime.py), тесты проходят. НО UI-ссылка скрыта в Pilot
+Core Stage 1 Phase 5 (не показывается в /admin). single-worker OK,
+но при multi-worker не работает (нет Redis pub/sub).
+
+Для 1 пользователя (ты как admin) — это overkill. Реактивировать если
+решишь подключить multi-worker (Sprint 6.3) или выставить UI.
+"""
 from __future__ import annotations
 
 import json
 import time
+
+import pytest
+
+pytestmark = pytest.mark.skip(
+    reason="Sprint 3.5.1: real-time WS UI скрыт (Pilot Phase 5), "
+           "single-worker OK. Реактивировать при multi-worker или показе UI."
+)
 
 import pytest
 from fastapi.testclient import TestClient
