@@ -25,6 +25,11 @@ import os
 import sys
 from datetime import datetime, timedelta, timezone
 
+# Sprint 3.2.2: файл перенесён в apps/backend/scripts/. Теперь он
+# лежит в /app/scripts/ (а не в /app/), и `import app` не находит
+# /app/ в sys.path. Добавляем вручную.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Audit log retention cleanup")
