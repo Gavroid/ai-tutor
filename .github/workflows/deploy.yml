@@ -3,11 +3,15 @@ name: Deploy to production
 # Sprint 3.5 — CI/CD через GitHub Actions.
 #
 # Архитектура:
-#   1. Workflow использует SSH-ключ с command="/opt/ai-tutor/deploy/release/deploy-from-ci.sh"
-#      на проде → ключ физически может вызвать ТОЛЬКО эту одну команду.
-#   2. deploy-from-ci.sh на проде: rsync staging → release dir → deploy.sh → smoke.sh.
-#   3. Не делает git pull (git remote на проде нет), не делает docker compose build
-#      напрямую (использует наш deploy.sh).
+#   1. Workflow загружает SSH-ключ через переменную окружения (а не через ssh-agent,
+#      чтобы избежать flaky ED25519 загрузки).
+#   2. tar workspace → scp на прод через ssh -i /tmp/key.
+#   3. SSH-вызов: authorized_keys command='/opt/ai-tutor/deploy/release/deploy-from-ci.sh'
+#      — deploy-from-ci.sh делает rsync staging → release dir → deploy.sh → smoke.sh.
+#
+# Безопасность:
+#   - SSH-ключ с command="..." ограничением — может вызвать ТОЛЬКО deploy-from-ci.sh.
+#   - Даже если приватный ключ утечёт с GitHub Secrets — ущерба не будет (только деплои).
 #
 # Триггеры:
 #   - push в main (если изменены apps/, deploy/, .github/workflows/)
@@ -22,9 +26,8 @@ on:
       - "deploy/**"
       - ".github/workflows/**"
 
-concurrency:
-  group: deploy-production
-  cancel-in-progress: false  # НЕ отменять запущенный deploy — может оставить прод в сломанном состоянии
+# НЕ используем concurrency — пуши в main должны все задеплоиться.
+# (concurrency: cancel-in-progress: true отменял бы старые run'ы).
 
 permissions:
   contents: read
@@ -33,16 +36,30 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: production  # Можно добавить required reviewers в Settings → Environments
+    environment: production
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup SSH key
+      - name: Setup SSH key file
         if: env.PRODUCTION_SSH_KEY != ''
-        uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
+        env:
+          PRODUCTION_SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+        run: |
+          set -euo pipefail
+
+          # Сохраняем приватный ключ в /tmp с правильными правами.
+          # webfactory/ssh-agent был flaky для ED25519 — заменяем на прямую работу с файлом.
+          echo "$PRODUCTION_SSH_KEY" > /tmp/github_deploy_key
+          chmod 600 /tmp/github_deploy_key
+
+          # Sanity check: валидный ли ключ.
+          if ! ssh-keygen -y -f /tmp/github_deploy_key > /tmp/github_deploy_key.pub 2>/dev/null; then
+            echo "❌ PRODUCTION_SSH_KEY невалиден (ssh-keygen не смог распарсить)"
+            echo "Проверь что в GitHub Secret сохранён полный ключ с BEGIN/END"
+            exit 1
+          fi
+          echo "✅ SSH key valid, fingerprint: $(ssh-keygen -l -f /tmp/github_deploy_key | awk '{print $2}')"
 
       - name: Deploy to production
         if: env.PRODUCTION_SSH_KEY != ''
@@ -57,53 +74,40 @@ jobs:
           echo "   commit: $GITHUB_SHA"
           echo "   target: $PRODUCTION_HOST:$PRODUCTION_SSH_PORT"
 
-          # Создаём staging dir на проде (через SSH — но ключ с command= не даёт
-          # делать произвольные команды. Поэтому используем обходной путь:
-          # ssh-agent добавляет ключ, ssh запускает authorized_keys-принуждённую
-          # команду, и webfactory/ssh-agent подменяет её через ProxyCommand.
-          #
-          # Решение: используем rsync через ssh — rsync сам делает транспорт через SSH.
-          # Если ключ с command="...", rsync всё равно работает, потому что
-          # command выполняется на remote, а rsync уже на клиенте видит
-          # stdout/stderr от command как "общение".
-          #
-          # Но наш command="/opt/ai-tutor/deploy/release/deploy-from-ci.sh ..."
-          # не принимает rsync протокол. Поэтому staging создаём через scp
-          # с уже распакованным tar-архивом.
+          SSH_OPTS="-i /tmp/github_deploy_key -p $PRODUCTION_SSH_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
 
-          # 1) Создаём tar.gz из workspace
+          # 1) Tar.gz workspace
           echo "📦 Creating source tarball..."
           tar -czf /tmp/ai-tutor-source.tar.gz \
             --exclude='.git' --exclude='.venv' --exclude='__pycache__' \
             --exclude='node_modules' --exclude='.next' --exclude='uploads' \
             --exclude='*.log' --exclude='.pytest_cache' \
             --exclude='.ssh' --exclude='screenshots' \
-            --exclude='.ssh_actions_deploy_key_FOR_GITHUB.txt' \
             --exclude='.copy-ssh-key-to-github.sh' \
-            --exclude='.gitignore.bak' \
+            --exclude='.ssh_actions_deploy_key_FOR_GITHUB.txt' \
             .
 
-          # 2) Копируем tar.gz на прод через scp (ssh-agent добавил ключ, scp использует ssh)
+          # 2) scp tar.gz на прод
           echo "📤 Uploading source to $PRODUCTION_HOST..."
-          STAGING_REMOTE="/tmp/ai-tutor-ci-staging.tar.gz"
-          scp -P "$PRODUCTION_SSH_PORT" -o StrictHostKeyChecking=no \
-            /tmp/ai-tutor-source.tar.gz \
-            "root@$PRODUCTION_HOST:$STAGING_REMOTE"
+          scp $SSH_OPTS /tmp/ai-tutor-source.tar.gz "root@$PRODUCTION_HOST:/tmp/ai-tutor-ci-staging.tar.gz"
 
-          # 3) На проде: распаковываем в staging dir и вызываем deploy-from-ci.sh.
-          #    command="..." выполнит наш скрипт с $1 = /tmp/ai-tutor-ci-staging.tar.gz.
+          # 3) ssh на прод → authorized_keys command= автоматически запускает deploy-from-ci.sh
+          #    с аргументом /tmp/ai-tutor-ci-staging (распакованный).
           echo "🚀 Triggering deploy-from-ci.sh on production..."
-          ssh -p "$PRODUCTION_SSH_PORT" -o StrictHostKeyChecking=no \
-            "root@$PRODUCTION_HOST" \
-            "set -e
-             rm -rf /tmp/ai-tutor-ci-staging
-             mkdir -p /tmp/ai-tutor-ci-staging
-             tar -xzf $STAGING_REMOTE -C /tmp/ai-tutor-ci-staging
-             /opt/ai-tutor/deploy/release/deploy-from-ci.sh /tmp/ai-tutor-ci-staging
-             rm -rf /tmp/ai-tutor-ci-staging $STAGING_REMOTE"
+          ssh $SSH_OPTS "root@$PRODUCTION_HOST" "set -e
+            rm -rf /tmp/ai-tutor-ci-staging
+            mkdir -p /tmp/ai-tutor-ci-staging
+            tar -xzf /tmp/ai-tutor-ci-staging.tar.gz -C /tmp/ai-tutor-ci-staging
+            /opt/ai-tutor/deploy/release/deploy-from-ci.sh /tmp/ai-tutor-ci-staging
+            rm -rf /tmp/ai-tutor-ci-staging /tmp/ai-tutor-ci-staging.tar.gz"
 
           echo ""
           echo "✅ Deploy completed successfully"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f /tmp/github_deploy_key /tmp/github_deploy_key.pub /tmp/ai-tutor-source.tar.gz
 
       - name: Healthcheck post-deploy
         if: success() && env.PRODUCTION_SSH_KEY != ''
@@ -121,12 +125,34 @@ jobs:
 
       - name: Notify success
         if: success() && env.PRODUCTION_SSH_KEY != ''
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST || '192.168.1.86' }}
         run: |
-          echo "✅ Production deploy OK"
-          echo "URL: https://${{ secrets.PRODUCTION_HOST || '192.168.1.86' }}"
+          msg="✅ Deploy OK: $GITHUB_REPOSITORY@${GITHUB_SHA::7} → https://$PRODUCTION_HOST"
+          echo "$msg"
+          if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+            curl -sf -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${TELEGRAM_CHAT_ID}" \
+              -d "text=$msg" \
+              -d "parse_mode=Markdown" \
+              -o /dev/null || echo "(telegram notify failed but deploy OK)"
+          fi
 
       - name: Notify failure
         if: failure() && env.PRODUCTION_SSH_KEY != ''
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          echo "❌ Production deploy FAILED"
-          echo "Check: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          msg="❌ Deploy FAILED: $GITHUB_REPOSITORY@${GITHUB_SHA::7}
+Check: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          echo "$msg"
+          if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+            curl -sf -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${TELEGRAM_CHAT_ID}" \
+              -d "text=$msg" \
+              -d "parse_mode=Markdown" \
+              -o /dev/null || echo "(telegram notify failed)"
+          fi
