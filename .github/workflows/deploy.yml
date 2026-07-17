@@ -49,15 +49,22 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Сохраняем приватный ключ в /tmp с правильными правами.
-          # webfactory/ssh-agent был flaky для ED25519 — заменяем на прямую работу с файлом.
-          echo "$PRODUCTION_SSH_KEY" > /tmp/github_deploy_key
+          # Очищаем ключ от возможного мусора (CRLF из web UI GitHub, trailing spaces).
+          # Часто при копировании через web UI добавляются \r или лишние переносы.
+          CLEAN_KEY=$(printf '%s' "$PRODUCTION_SSH_KEY" | tr -d '\r' | sed 's/[[:space:]]*$//')
+
+          echo "$CLEAN_KEY" > /tmp/github_deploy_key
           chmod 600 /tmp/github_deploy_key
 
           # Sanity check: валидный ли ключ.
-          if ! ssh-keygen -y -f /tmp/github_deploy_key > /tmp/github_deploy_key.pub 2>/dev/null; then
+          if ! ssh-keygen -y -f /tmp/github_deploy_key > /tmp/github_deploy_key.pub 2>/tmp/keygen_err; then
             echo "❌ PRODUCTION_SSH_KEY невалиден (ssh-keygen не смог распарсить)"
-            echo "Проверь что в GitHub Secret сохранён полный ключ с BEGIN/END"
+            echo "--- ssh-keygen stderr ---"
+            cat /tmp/keygen_err
+            echo "--- Длина ключа: ${#CLEAN_KEY} ---"
+            echo "--- Первые 80 символов: ${CLEAN_KEY:0:80} ---"
+            echo "--- Последние 80 символов: ${CLEAN_KEY: -80} ---"
+            echo "--- Проверь что в Secret сохранён полный приватный ключ (с BEGIN/END), а не публичный"
             exit 1
           fi
           echo "✅ SSH key valid, fingerprint: $(ssh-keygen -l -f /tmp/github_deploy_key | awk '{print $2}')"
