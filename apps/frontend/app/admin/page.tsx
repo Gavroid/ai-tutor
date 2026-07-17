@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, getToken } from "@/lib/api";
+import Header from "@/components/Header";
+import type { User } from "@/types";
 
 type AuditEntry = {
   id: number;
@@ -40,9 +42,13 @@ export default function AdminPage() {
   const [until, setUntil] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Sprint 5.1: user state для Header (logout button).
+  const [current, setCurrent] = useState<User | null>(null);
 
   useEffect(() => {
     if (!getToken()) return;
+    // Sprint 5.1: загружаем текущего юзера для Header.
+    api.me().then(setCurrent).catch(() => {});
     refresh(tab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
@@ -115,12 +121,12 @@ export default function AdminPage() {
 
   return (
     <main className="mx-auto max-w-6xl p-6">
-      <header className="border-b border-slate-200 pb-3">
-        <Link href="/subjects" className="text-sm text-sky-600 hover:underline">
-          ← На главную
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold">Админ-панель</h1>
-      </header>
+      {/* Sprint 5.1: общий Header с logout button */}
+      <Header
+        user={current}
+        backHref="/subjects"
+        title="Админ-панель"
+      />
 
       <nav className="mt-4 flex gap-2">
         <Tab active={tab === "audit"} onClick={() => setTab("audit")}>

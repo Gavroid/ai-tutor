@@ -291,7 +291,7 @@ export default function TopicPage() {
   }
 
   return (
-    <main className="mx-auto flex h-screen max-w-3xl flex-col p-4">
+    <main className="mx-auto flex h-screen max-w-3xl flex-col p-3 sm:p-4">
       <header className="border-b border-slate-200 pb-3">
         <Link href="/subjects" className="text-sm text-sky-600 hover:underline">
           ← Все предметы
@@ -299,7 +299,7 @@ export default function TopicPage() {
         <h1 className="mt-1 text-xl font-bold">{topic?.name || "Тема"}</h1>
       </header>
 
-      <section className="mt-4 flex gap-2">
+      <section className="mt-4 flex flex-wrap gap-2">
         <button
           onClick={explain}
           disabled={busy}
