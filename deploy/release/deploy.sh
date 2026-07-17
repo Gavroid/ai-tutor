@@ -70,18 +70,35 @@ log "  prev=$PREV_SHA"
 # 4) tar-pipe
 log "4) tar-pipe code"
 cd "$PROJECT_ROOT"
-tar -cf - --exclude=node_modules --exclude=.next --exclude=.venv --exclude=__pycache__ \
-  --exclude=.git --exclude=.hermes --exclude=deploy/backup/_out \
-  --exclude='*.pyc' \
-  apps/backend/app apps/backend/alembic/versions apps/backend/tests apps/backend/scripts \
-  apps/frontend/app apps/frontend/lib apps/frontend/components \
-  deploy/release deploy/backup/backup.sh deploy/backup/test-restore.sh \
-  deploy/backup/ai-tutor-backup-offsite.sh \
-  deploy/cron \
-  deploy/docker-compose.yml deploy/nginx/nginx.conf \
-  deploy/monitoring deploy/smtp \
-  docs/security.md docs/pilot-baseline.md docs/deployment.md .env.example 2>/dev/null | \
-  run_on_prod "tar -xf - -C $RELEASE_DIR/"
+if [ "$LOCAL_DEPLOY" = "true" ]; then
+  # Self-hosted runner: pipe напрямую в local tar, без обёртки bash -c.
+  tar -cf - --exclude=node_modules --exclude=.next --exclude=.venv --exclude=__pycache__ \
+    --exclude=.git --exclude=.hermes --exclude=deploy/backup/_out \
+    --exclude='*.pyc' \
+    apps/backend/app apps/backend/alembic/versions apps/backend/tests apps/backend/scripts \
+    apps/frontend/app apps/frontend/lib apps/frontend/components \
+    deploy/release deploy/backup/backup.sh deploy/backup/test-restore.sh \
+    deploy/backup/ai-tutor-backup-offsite.sh \
+    deploy/cron \
+    deploy/docker-compose.yml deploy/nginx/nginx.conf \
+    deploy/monitoring deploy/smtp \
+    docs/security.md docs/pilot-baseline.md docs/deployment.md .env.example 2>/dev/null | \
+    tar -xf - -C "$RELEASE_DIR/"
+else
+  # Remote: tar | ssh root@PROD "tar -xf -"
+  tar -cf - --exclude=node_modules --exclude=.next --exclude=.venv --exclude=__pycache__ \
+    --exclude=.git --exclude=.hermes --exclude=deploy/backup/_out \
+    --exclude='*.pyc' \
+    apps/backend/app apps/backend/alembic/versions apps/backend/tests apps/backend/scripts \
+    apps/frontend/app apps/frontend/lib apps/frontend/components \
+    deploy/release deploy/backup/backup.sh deploy/backup/test-restore.sh \
+    deploy/backup/ai-tutor-backup-offsite.sh \
+    deploy/cron \
+    deploy/docker-compose.yml deploy/nginx/nginx.conf \
+    deploy/monitoring deploy/smtp \
+    docs/security.md docs/pilot-baseline.md docs/deployment.md .env.example 2>/dev/null | \
+    run_on_prod "tar -xf - -C $RELEASE_DIR/"
+fi
 
 # 5) build
 log "5) docker compose build"
