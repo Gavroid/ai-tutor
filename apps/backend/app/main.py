@@ -201,8 +201,24 @@ def create_app() -> FastAPI:
             max_calls = _ai_settings.rate_limit_ai_per_minute
 
             # Sprint 3.6.3: kill switch — emergency stop AI для user.
-            # Если user_id в ai_kill_switch_user_ids → мгновенный 503.
-            if uid in _ai_settings.ai_kill_switch_user_id_set:
+            # Persistent через Redis (multi-worker safe).
+            # Fallback на env если Redis недоступен.
+            kill_switch_ids: set[int] = set()
+            try:
+                redis_client = _get_redis()
+                if redis_client is not None:
+                    raw = await redis_client.get("ai:kill_switch")
+                    # Sprint 3.6.3: _get_redis() использует decode_responses=True,
+                    # так что raw — это str, не bytes.
+                    if raw:
+                        if isinstance(raw, bytes):
+                            raw = raw.decode()
+                        kill_switch_ids = {int(x) for x in raw if x.isdigit()}
+            except Exception:
+                # Fallback на env (для boot или Redis unavailable)
+                kill_switch_ids = _ai_settings.ai_kill_switch_user_id_set
+
+            if uid in kill_switch_ids:
                 from fastapi.responses import JSONResponse
                 return JSONResponse(
                     status_code=503,

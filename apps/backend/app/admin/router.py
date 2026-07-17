@@ -217,26 +217,60 @@ def purge_audit_log(
     return {"ok": True, "deleted_count": deleted, "ttl_days": ttl_days}
 
 
-# === Sprint 3.6.3: AI kill switch ===
+# === Sprint 3.6.3: AI kill switch (persistent через Redis) ===
+
+async def _read_kill_switch(redis) -> set[int]:
+    """Читает kill switch из Redis (key='ai:kill_switch')."""
+    try:
+        raw = await redis.get("ai:kill_switch")
+        if not raw:
+            return set()
+        return {int(x) for x in raw.decode() if x.isdigit()}
+    except Exception:
+        return set()
+
+
+async def _write_kill_switch(redis, ids: set[int]) -> None:
+    """Пишет kill switch в Redis."""
+    try:
+        await redis.set("ai:kill_switch", "".join(str(x) for x in sorted(ids)))
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("kill_switch write failed: %s", e)
+
+
+async def _get_redis_for_admin():
+    """Получить Redis instance (используем тот же что в rate_limit)."""
+    try:
+        import redis.asyncio as aioredis
+        url = __import__("os").environ.get("REDIS_URL", "redis://redis:6379/0")
+        return aioredis.from_url(url, decode_responses=False)
+    except Exception:
+        return None
+
 
 @router.get("/ai-kill-switch")
-def get_ai_kill_switch(
+async def get_ai_kill_switch(
     current: User = Depends(require_admin()),
 ):
     """Возвращает список user_id для которых AI отключён.
 
     Sprint 3.6.3: emergency stop AI для user (ребёнок в AI-loop).
+    Persistent через Redis — работает в multi-worker uvicorn.
     """
-    from app.config import get_settings
-    s = get_settings()
+    redis = await _get_redis_for_admin()
+    if redis is None:
+        return {"user_ids": [], "raw": "", "error": "redis_unavailable"}
+    user_ids = await _read_kill_switch(redis)
+    await redis.aclose()
     return {
-        "user_ids": sorted(s.ai_kill_switch_user_id_set),
-        "raw": s.ai_kill_switch_user_ids,
+        "user_ids": sorted(user_ids),
+        "raw": ",".join(str(x) for x in sorted(user_ids)),
     }
 
 
 @router.post("/ai-kill-switch/{user_id}")
-def add_ai_kill_switch(
+async def add_ai_kill_switch(
     user_id: int,
     db: Session = Depends(get_db),
     current: User = Depends(require_admin()),
@@ -244,31 +278,31 @@ def add_ai_kill_switch(
     """Добавляет user_id в AI kill switch. После этого AI endpoints
     для этого user возвращают 503 (даже если rate-limit не превышен).
 
-    Sprint 3.6.3: emergency stop AI для user.
+    Sprint 3.6.3: persistent через Redis — multi-worker safe.
     """
-    from app.config import get_settings
-    s = get_settings()
-    current_ids = s.ai_kill_switch_user_id_set
+    redis = await _get_redis_for_admin()
+    if redis is None:
+        return {"ok": False, "error": "redis_unavailable"}
+    current_ids = await _read_kill_switch(redis)
     if user_id in current_ids:
+        await redis.aclose()
         return {"ok": True, "user_id": user_id, "already_killed": True}
-    new_ids = sorted(current_ids | {user_id})
-    s.ai_kill_switch_user_ids = ",".join(str(x) for x in new_ids)
-    # NOTE: pydantic-settings Settings с @lru_cache возвращает singleton;
-    # in-memory update работает до перезапуска backend.
-    # Для persistent — нужно записать в .env файл (TODO Sprint 3.7+).
+    new_ids = current_ids | {user_id}
+    await _write_kill_switch(redis, new_ids)
+    await redis.aclose()
     service.record(
         db,
         user=current,
         action="ai.kill_switch.add",
         entity="users",
-        details={"user_id": user_id, "all_killed": new_ids},
+        details={"user_id": user_id, "all_killed": sorted(new_ids)},
     )
     db.commit()
-    return {"ok": True, "user_id": user_id, "all_killed": new_ids}
+    return {"ok": True, "user_id": user_id, "all_killed": sorted(new_ids)}
 
 
 @router.delete("/ai-kill-switch/{user_id}")
-def remove_ai_kill_switch(
+async def remove_ai_kill_switch(
     user_id: int,
     db: Session = Depends(get_db),
     current: User = Depends(require_admin()),
@@ -277,19 +311,22 @@ def remove_ai_kill_switch(
 
     Sprint 3.6.3: восстановление после emergency stop.
     """
-    from app.config import get_settings
-    s = get_settings()
-    current_ids = s.ai_kill_switch_user_id_set
+    redis = await _get_redis_for_admin()
+    if redis is None:
+        return {"ok": False, "error": "redis_unavailable"}
+    current_ids = await _read_kill_switch(redis)
     if user_id not in current_ids:
+        await redis.aclose()
         return {"ok": True, "user_id": user_id, "not_killed": True}
-    new_ids = sorted(current_ids - {user_id})
-    s.ai_kill_switch_user_ids = ",".join(str(x) for x in new_ids)
+    new_ids = current_ids - {user_id}
+    await _write_kill_switch(redis, new_ids)
+    await redis.aclose()
     service.record(
         db,
         user=current,
         action="ai.kill_switch.remove",
         entity="users",
-        details={"user_id": user_id, "all_killed": new_ids},
+        details={"user_id": user_id, "all_killed": sorted(new_ids)},
     )
     db.commit()
-    return {"ok": True, "user_id": user_id, "all_killed": new_ids}
+    return {"ok": True, "user_id": user_id, "all_killed": sorted(new_ids)}

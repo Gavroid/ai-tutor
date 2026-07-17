@@ -51,11 +51,9 @@ class Settings(BaseSettings):
     rate_limit_register_per_hour: int = 5
     rate_limit_login_per_15min: int = 10
 
-    # Sprint 3.6.3: kill switch для AI. user_id через запятую — для этих
-    # пользователей AI endpoints возвращают 503 (даже если rate-limit не превышен).
-    # Emergency use case: ребёнок попал в AI-loop, родитель нажал кнопку в /admin
-    # → admin endpoint добавляет user_id в этот список → AI перестаёт работать.
-    # Пустая строка = kill switch выключен (default).
+    # Sprint 3.6.3: kill switch для AI — persistent через Redis (shared между
+    # worker'ами uvicorn). Admin endpoint пишет в Redis key 'ai:kill_switch',
+    # middleware читает на каждом запросе. Fallback на env (для boot).
     ai_kill_switch_user_ids: str = ""
 
     @property
