@@ -215,3 +215,81 @@ def purge_audit_log(
     )
     db.commit()
     return {"ok": True, "deleted_count": deleted, "ttl_days": ttl_days}
+
+
+# === Sprint 3.6.3: AI kill switch ===
+
+@router.get("/ai-kill-switch")
+def get_ai_kill_switch(
+    current: User = Depends(require_admin()),
+):
+    """Возвращает список user_id для которых AI отключён.
+
+    Sprint 3.6.3: emergency stop AI для user (ребёнок в AI-loop).
+    """
+    from app.config import get_settings
+    s = get_settings()
+    return {
+        "user_ids": sorted(s.ai_kill_switch_user_id_set),
+        "raw": s.ai_kill_switch_user_ids,
+    }
+
+
+@router.post("/ai-kill-switch/{user_id}")
+def add_ai_kill_switch(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_admin()),
+):
+    """Добавляет user_id в AI kill switch. После этого AI endpoints
+    для этого user возвращают 503 (даже если rate-limit не превышен).
+
+    Sprint 3.6.3: emergency stop AI для user.
+    """
+    from app.config import get_settings
+    s = get_settings()
+    current_ids = s.ai_kill_switch_user_id_set
+    if user_id in current_ids:
+        return {"ok": True, "user_id": user_id, "already_killed": True}
+    new_ids = sorted(current_ids | {user_id})
+    s.ai_kill_switch_user_ids = ",".join(str(x) for x in new_ids)
+    # NOTE: pydantic-settings Settings с @lru_cache возвращает singleton;
+    # in-memory update работает до перезапуска backend.
+    # Для persistent — нужно записать в .env файл (TODO Sprint 3.7+).
+    service.record(
+        db,
+        user=current,
+        action="ai.kill_switch.add",
+        entity="users",
+        details={"user_id": user_id, "all_killed": new_ids},
+    )
+    db.commit()
+    return {"ok": True, "user_id": user_id, "all_killed": new_ids}
+
+
+@router.delete("/ai-kill-switch/{user_id}")
+def remove_ai_kill_switch(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_admin()),
+):
+    """Убирает user_id из AI kill switch. AI снова работает.
+
+    Sprint 3.6.3: восстановление после emergency stop.
+    """
+    from app.config import get_settings
+    s = get_settings()
+    current_ids = s.ai_kill_switch_user_id_set
+    if user_id not in current_ids:
+        return {"ok": True, "user_id": user_id, "not_killed": True}
+    new_ids = sorted(current_ids - {user_id})
+    s.ai_kill_switch_user_ids = ",".join(str(x) for x in new_ids)
+    service.record(
+        db,
+        user=current,
+        action="ai.kill_switch.remove",
+        entity="users",
+        details={"user_id": user_id, "all_killed": new_ids},
+    )
+    db.commit()
+    return {"ok": True, "user_id": user_id, "all_killed": new_ids}

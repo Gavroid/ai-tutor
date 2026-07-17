@@ -197,7 +197,19 @@ def create_app() -> FastAPI:
             now = _time.time()
             window = 60.0
             from app.config import get_settings
-            max_calls = get_settings().rate_limit_ai_per_minute
+            _ai_settings = get_settings()  # Sprint 3.6.3: local var, не теньет outer settings
+            max_calls = _ai_settings.rate_limit_ai_per_minute
+
+            # Sprint 3.6.3: kill switch — emergency stop AI для user.
+            # Если user_id в ai_kill_switch_user_ids → мгновенный 503.
+            if uid in _ai_settings.ai_kill_switch_user_id_set:
+                from fastapi.responses import JSONResponse
+                return JSONResponse(
+                    status_code=503,
+                    content={
+                        "detail": "AI временно недоступен для этого аккаунта. Свяжитесь с родителем или администратором."
+                    },
+                )
 
             # Пробуем Redis, fallback на in-memory
             redis = _get_redis()

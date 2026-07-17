@@ -454,6 +454,23 @@ export const api = {
       { method: "POST" }
     ),
 
+  // Sprint 3.6.3: AI Kill Switch
+  adminGetAiKillSwitch: () =>
+    request<{ user_ids: number[]; raw: string }>(
+      `/api/v1/admin/ai-kill-switch`,
+      { method: "GET" }
+    ),
+  adminAddAiKillSwitch: (user_id: number) =>
+    request<{ ok: boolean; user_id: number; all_killed?: number[]; already_killed?: boolean }>(
+      `/api/v1/admin/ai-kill-switch/${user_id}`,
+      { method: "POST" }
+    ),
+  adminRemoveAiKillSwitch: (user_id: number) =>
+    request<{ ok: boolean; user_id: number; all_killed?: number[]; not_killed?: boolean }>(
+      `/api/v1/admin/ai-kill-switch/${user_id}`,
+      { method: "DELETE" }
+    ),
+
   // Teacher (Sprint 1.2-1.3)
   teacherListMaterials: (params: { status?: string; topic_id?: number; limit?: number; offset?: number } = {}) => {
     const search = new URLSearchParams();

@@ -360,6 +360,69 @@ function ToolsTab() {
           </button>
         </div>
       </div>
+
+      {/* Sprint 3.6.3: AI Kill Switch — emergency stop AI для user */}
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-red-900">🚨 AI Kill Switch</h3>
+        <p className="mt-1 text-sm text-red-700">
+          Экстренно отключает AI для пользователя. Используй если ребёнок попал в AI-loop
+          или AI выдаёт нежелательный контент. После отключения AI endpoints возвращают 503.
+        </p>
+
+        <div className="mt-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              id="kill-switch-user-id"
+              type="number"
+              min="1"
+              placeholder="user_id (например, 4 для Кирилла)"
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+              style={{ width: 220 }}
+            />
+            <button
+              onClick={async () => {
+                const inp = document.getElementById("kill-switch-user-id") as HTMLInputElement;
+                const uid = Number(inp.value);
+                if (!uid || uid < 1) {
+                  alert("Введи валидный user_id");
+                  return;
+                }
+                setBusy(true);
+                try {
+                  await api.adminAddAiKillSwitch(uid);
+                  alert(`AI kill switch ON для user_id=${uid}`);
+                  inp.value = "";
+                } catch (e) {
+                  alert("Ошибка: " + (e instanceof Error ? e.message : e));
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              disabled={busy}
+              className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              Kill AI
+            </button>
+            <button
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  const r = await api.adminGetAiKillSwitch();
+                  alert(`Kill switch ON для: ${JSON.stringify(r.user_ids)}`);
+                } catch (e) {
+                  alert("Ошибка: " + (e instanceof Error ? e.message : e));
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              disabled={busy}
+              className="rounded-md bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+            >
+              Показать список
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

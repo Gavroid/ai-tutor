@@ -51,6 +51,20 @@ class Settings(BaseSettings):
     rate_limit_register_per_hour: int = 5
     rate_limit_login_per_15min: int = 10
 
+    # Sprint 3.6.3: kill switch для AI. user_id через запятую — для этих
+    # пользователей AI endpoints возвращают 503 (даже если rate-limit не превышен).
+    # Emergency use case: ребёнок попал в AI-loop, родитель нажал кнопку в /admin
+    # → admin endpoint добавляет user_id в этот список → AI перестаёт работать.
+    # Пустая строка = kill switch выключен (default).
+    ai_kill_switch_user_ids: str = ""
+
+    @property
+    def ai_kill_switch_user_id_set(self) -> set[int]:
+        """Парсит строку ai_kill_switch_user_ids → set[int]."""
+        if not self.ai_kill_switch_user_ids:
+            return set()
+        return {int(x.strip()) for x in self.ai_kill_switch_user_ids.split(",") if x.strip().isdigit()}
+
     # Sprint 4.3: доверенные прокси (CIDR-список для X-Forwarded-For).
     # По умолчанию — приватные сети. Если пусто, XFF игнорируется.
     trusted_proxies: str = "127.0.0.1/32,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
