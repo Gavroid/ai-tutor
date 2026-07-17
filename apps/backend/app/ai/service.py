@@ -119,7 +119,8 @@ class AIService:
         subject = topic.section.subject
         # Sprint 3.5.2: RAG — найти релевантные chunk'и из загруженных учебников
         # и добавить в system prompt как контекст. Без RAG AI отвечает "из головы".
-        rag_context = await self._build_rag_context(db, topic)
+        # Sprint 4.1.3: возвращает (context_str, sources) — sources для UI.
+        rag_context, sources = await self._build_rag_context(db, topic)
         system = prompts.explain_topic_system(
             subject.name, topic.name,
             user.student_profile.grade if user.student_profile else 7,
@@ -133,6 +134,8 @@ class AIService:
         try:
             resp = await self.provider.complete(req)
             _record_ai("explain", "ok", resp=resp)
+            # Sprint 4.1.3: добавляем sources в response для UI индикатора "📖 Источник"
+            resp.sources = sources
             return resp
         except Exception as e:
             _record_ai("explain", "error")
@@ -141,12 +144,14 @@ class AIService:
 
     async def _build_rag_context(
         self, db: Session, topic: subj_models.Topic, top_k: int = 3
-    ) -> str | None:
-        """Sprint 3.5.2: RAG — топ-K chunk'ов из загруженных учебников.
+    ) -> tuple[str | None, list[dict]]:
+        """Sprint 3.5.2 + 4.1.3: RAG — топ-K chunk'ов из загруженных учебников.
 
         Returns:
-            Строка для system prompt с chunk'ами или None если RAG пуст.
-            None — это НЕ ошибка, это сигнал "материалов по теме нет".
+            (context_str, sources_list) — текст для system prompt + список источников
+            для UI (Sprint 4.1.3 — индикатор "📖 Источник").
+            context_str = None если RAG пуст (не ошибка, сигнал "материалов по теме нет").
+            sources_list = [{"material_title", "page_number", "chunk_id"}, ...]
 
         Использует hash-based pseudo-embedding (без расходов на embedding API).
         Sprint 3.5.2: persistent search через app.rag_persist.search_persistent
@@ -164,15 +169,16 @@ class AIService:
                 chunks = search_persistent(db, query_emb, top_k=top_k)
         except Exception as e:
             logger.warning("RAG search failed: %s", e)
-            return None
+            return None, []
 
         if not chunks:
-            return None
+            return None, []
 
-        # Форматируем chunk'и в читаемый контекст для LLM.
+        # Форматируем chunk'и в читаемый контекст для LLM + собираем sources.
         # app/rag.py::DocumentChunk: id, material_id, text, embedding, metadata.
-        # material_title и page_number — в metadata dict (если rag_persist их туда кладёт).
+        # material_title и page_number — в metadata dict.
         lines = ["Контекст из загруженных учебников (top-{} chunk'ов):".format(len(chunks))]
+        sources: list[dict] = []
         for i, c in enumerate(chunks, 1):
             meta = getattr(c, "metadata", {}) or {}
             mat_title = meta.get("material_title") or f"Материал {getattr(c, 'material_id', '?')}"
@@ -180,7 +186,14 @@ class AIService:
             text = (getattr(c, "text", "") or "").strip()[:800]
             page_str = f", стр. {page}" if page else ""
             lines.append(f"\n[{i}] {mat_title}{page_str}:\n{text}\n")
-        return "\n".join(lines)
+            # Sprint 4.1.3: собираем source для UI
+            sources.append({
+                "chunk_id": getattr(c, "id", None),
+                "material_id": getattr(c, "material_id", None),
+                "material_title": mat_title,
+                "page_number": page,
+            })
+        return "\n".join(lines), sources
 
     async def hint(self, question_text: str, level: int = 1) -> AIResponse:
         """Sprint 7.4: подсказка уровня 1 (наводящий вопрос).

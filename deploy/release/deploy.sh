@@ -83,7 +83,7 @@ if [ "$LOCAL_DEPLOY" = "true" ]; then
     --exclude=.git --exclude=.hermes --exclude=deploy/backup/_out \
     --exclude='*.pyc' \
     apps/backend/app apps/backend/alembic/versions apps/backend/tests apps/backend/scripts \
-    apps/frontend/app apps/frontend/lib apps/frontend/components \
+    apps/frontend/app apps/frontend/lib apps/frontend/components apps/frontend/types \
     deploy/release deploy/backup/backup.sh deploy/backup/test-restore.sh \
     deploy/backup/ai-tutor-backup-offsite.sh \
     deploy/docker-compose.yml deploy/nginx/nginx.conf \
@@ -113,7 +113,7 @@ else
     --exclude=.git --exclude=.hermes --exclude=deploy/backup/_out \
     --exclude='*.pyc' \
     apps/backend/app apps/backend/alembic/versions apps/backend/tests apps/backend/scripts \
-    apps/frontend/app apps/frontend/lib apps/frontend/components \
+    apps/frontend/app apps/frontend/lib apps/frontend/components apps/frontend/types \
     deploy/release deploy/backup/backup.sh deploy/backup/test-restore.sh \
     deploy/backup/ai-tutor-backup-offsite.sh \
     deploy/docker-compose.yml deploy/nginx/nginx.conf \

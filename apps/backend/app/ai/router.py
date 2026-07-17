@@ -81,12 +81,21 @@ class QuizOut(BaseModel):
     questions: list[QuestionOut]
 
 
-def _ai_response(content: str, model: str | None = None) -> dict[str, Any]:
-    """AI-ответ в формате {content, content_html, model}."""
+def _ai_response(
+    content: str,
+    model: str | None = None,
+    sources: list[dict] | None = None,
+) -> dict[str, Any]:
+    """AI-ответ в формате {content, content_html, model, sources}.
+
+    Sprint 4.1.3: sources — список RAG-источников [{material_title, page_number, ...}]
+    для UI индикатора "📖 Источник".
+    """
     return {
         "content": content,
         "content_html": render_markdown(content),
         "model": model,
+        "sources": sources or [],
     }
 
 
@@ -114,7 +123,8 @@ async def explain_topic(
         raise HTTPException(404, "Topic not found")
     svc = get_ai_service()
     resp = await svc.explain_topic(db, current, topic)
-    return _ai_response(resp.content, resp.model)
+    # Sprint 4.1.3: sources для UI индикатора "📖 Источник"
+    return _ai_response(resp.content, resp.model, sources=resp.sources)
 
 
 @router.post("/hint")

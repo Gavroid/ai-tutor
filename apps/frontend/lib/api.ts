@@ -64,11 +64,19 @@ export const api = {
   // AI
   aiPing: () => request<{ ok: boolean; model: string | null }>("/api/v1/ai/ping"),
   // Sprint 7.1 — AI-ответы теперь с content_html (server-rendered sanitized Markdown).
+  // Sprint 4.1.3: sources для UI индикатора "📖 Источник".
   aiExplain: (topic_id: number) =>
-    request<{ content: string; content_html: string; model: string }>(
-      "/api/v1/ai/explain",
-      { method: "POST", body: JSON.stringify({ topic_id }) }
-    ),
+    request<{
+      content: string;
+      content_html: string;
+      model: string;
+      sources: Array<{
+        chunk_id?: number | null;
+        material_id?: number | null;
+        material_title: string;
+        page_number?: number | null;
+      }>;
+    }>("/api/v1/ai/explain", { method: "POST", body: JSON.stringify({ topic_id }) }),
   aiChat: (history: ChatMsg[], topic_id?: number) =>
     request<{ content: string; content_html: string; model: string }>(
       "/api/v1/ai/chat",

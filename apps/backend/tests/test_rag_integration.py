@@ -86,8 +86,10 @@ async def test_rag_context_empty_store_returns_none():
     """Если RAG-база пустая — context=None, AI отвечает "из головы"."""
     svc = ai_service.AIService(FakeProvider())
     topic = FakeTopic("Площадь треугольника")
-    ctx = await svc._build_rag_context(None, topic)
+    # Sprint 4.1.3: _build_rag_context возвращает (context_str, sources)
+    ctx, sources = await svc._build_rag_context(None, topic)
     assert ctx is None
+    assert sources == []
 
 
 @pytest.mark.asyncio
@@ -106,12 +108,17 @@ async def test_rag_context_with_chunks(db_session):
 
     svc = ai_service.AIService(FakeProvider())
     topic = FakeTopic("Площадь треугольника")
-    ctx = await svc._build_rag_context(None, topic, top_k=3)
+    # Sprint 4.1.3: _build_rag_context возвращает (context_str, sources)
+    ctx, sources = await svc._build_rag_context(None, topic, top_k=3)
 
     assert ctx is not None
     assert "Геометрия 7 класс" in ctx
     assert "стр. 73" in ctx
     assert "основания на высоту" in ctx
+    # sources тоже заполнены
+    assert len(sources) >= 1
+    assert sources[0]["material_title"] == "Геометрия 7 класс (учебник)"
+    assert sources[0]["page_number"] == 73
 
 
 @pytest.mark.asyncio
@@ -124,15 +131,24 @@ async def test_rag_context_failure_does_not_crash(monkeypatch):
     async def broken_get_or_compute(*args, **kwargs):
         raise RuntimeError("Embedding API down")
 
-    # Подменяем в rag_persist (где функция определена)
+    # Подменяем в rag_persist (где функция определена).
+    # Sprint 4.1.3: _build_rag_context делает local `from app.rag_persist import ...`,
+    # поэтому нужно подменить в обоих местах — иначе local import "затенит" подмену.
     import app.rag_persist
     monkeypatch.setattr(app.rag_persist, "get_or_compute_embedding", broken_get_or_compute)
+    # Также подменяем в sys.modules['app.ai.service'] (где _build_rag_context делает
+    # свой local import). Но проще подменить в обоих через setattr после local import —
+    # это требует monkeypatching через test runner. Используем side_effect чтобы бросать
+    # исключение сразу:
+    monkeypatch.setattr("app.ai.service.get_or_compute_embedding", broken_get_or_compute, raising=False)
 
     svc = ai_service.AIService(FakeProvider())
     topic = FakeTopic("Любая тема")
     # Должен вернуть None, не бросить исключение
-    ctx = await svc._build_rag_context(None, topic)
+    # Sprint 4.1.3: _build_rag_context возвращает (context_str, sources)
+    ctx, sources = await svc._build_rag_context(None, topic)
     assert ctx is None
+    assert sources == []
 
 
 @pytest.mark.asyncio
@@ -150,7 +166,8 @@ async def test_rag_context_query_includes_subject_and_topic(db_session):
 
     svc = ai_service.AIService(FakeProvider())
     topic = FakeTopic("Квадратные уравнения", "Алгебра")
-    ctx = await svc._build_rag_context(None, topic, top_k=3)
+    # Sprint 4.1.3: _build_rag_context возвращает (context_str, sources)
+    ctx, sources = await svc._build_rag_context(None, topic, top_k=3)
 
     assert ctx is not None
     assert "Квадратные уравнения" in ctx

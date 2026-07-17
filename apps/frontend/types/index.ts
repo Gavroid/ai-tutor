@@ -101,4 +101,11 @@ export type Topic = {
 export type ChatMsg = {
   role: "user" | "assistant";
   content: string;
+  // Sprint 4.1.3: RAG-источники для UI индикатора "📖 Источник".
+  sources?: Array<{
+    chunk_id?: number | null;
+    material_id?: number | null;
+    material_title: string;
+    page_number?: number | null;
+  }>;
 };

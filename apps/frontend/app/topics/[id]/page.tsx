@@ -228,7 +228,10 @@ export default function TopicPage() {
     setBusy(true);
     try {
       const r = await api.aiExplain(topicId);
-      setMsgs((m) => [...m, { role: "assistant", content: r.content }]);
+      setMsgs((m) => [
+        ...m,
+        { role: "assistant", content: r.content, sources: r.sources },
+      ]);
     } catch {
       setMsgs((m) => [...m, { role: "assistant", content: "[ошибка] Не удалось получить объяснение." }]);
     } finally {
@@ -382,10 +385,26 @@ export default function TopicPage() {
               // Sprint 7.1: AI-сообщения рендерим Markdown → безопасный HTML.
               // streaming=true только для последнего ассистентского сообщения, которое
               // ещё не подтверждено `done` — даёт typewriter-эффект.
-              <SafeMarkdown
-                text={m.content}
-                streaming={i === msgs.length - 1 && busy && m.role === "assistant"}
-              />
+              <>
+                <SafeMarkdown
+                  text={m.content}
+                  streaming={i === msgs.length - 1 && busy && m.role === "assistant"}
+                />
+                {/* Sprint 4.1.3: индикатор источника RAG (📖 Источник) */}
+                {m.sources && m.sources.length > 0 && (
+                  <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs">
+                    <div className="mb-1 font-semibold text-amber-800">📖 Источник:</div>
+                    <ul className="space-y-1">
+                      {m.sources.map((s, idx) => (
+                        <li key={idx} className="text-amber-900">
+                          {s.material_title}
+                          {s.page_number != null && `, стр. ${s.page_number}`}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
             )}
           </div>
         ))}
