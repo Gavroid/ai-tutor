@@ -45,16 +45,30 @@ jobs:
         env:
           PRODUCTION_SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
         run: |
-          echo "SSH key длина: ${#PRODUCTION_SSH_KEY}"
-          echo "Первые 50 символов: ${PRODUCTION_SSH_KEY:0:50}"
-          echo "Последние 50 символов: ${PRODUCTION_SSH_KEY: -50}"
+          echo "=== Диагностика SSH key ==="
+          echo "Длина: ${#PRODUCTION_SSH_KEY}"
+          echo "Первые 100 символов: '${PRODUCTION_SSH_KEY:0:100}'"
+          echo "Последние 100 символов: '${PRODUCTION_SSH_KEY: -100}'"
+          echo "Начинается с BEGIN? $(echo "$PRODUCTION_SSH_KEY" | head -1)"
+          echo "Заканчивается на END? $(echo "$PRODUCTION_SSH_KEY" | tail -1)"
+          echo "Количество строк: $(echo "$PRODUCTION_SSH_KEY" | wc -l)"
+          echo "Содержит \\r (CRLF)? $(echo "$PRODUCTION_SSH_KEY" | grep -c $'\r' || echo 0)"
+
+          echo ""
+          echo "=== Попытка распарсить ==="
           echo "$PRODUCTION_SSH_KEY" > /tmp/test_key
           chmod 600 /tmp/test_key
+
           if ssh-keygen -y -f /tmp/test_key > /tmp/test_key.pub 2>&1; then
             echo "✅ SSH key валидный"
             ssh-keygen -l -f /tmp/test_key
           else
             echo "❌ SSH key НЕ валидный:"
-            cat /tmp/test_key.pub
+            echo "--- stderr ssh-keygen ---"
+            ssh-keygen -y -f /tmp/test_key 2>&1 || true
+            echo "--- содержимое /tmp/test_key (head) ---"
+            head -3 /tmp/test_key
+            echo "--- hex dump первых 100 байт ---"
+            head -c 100 /tmp/test_key | od -c | head -5
             exit 1
           fi
