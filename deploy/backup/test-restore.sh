@@ -1,18 +1,29 @@
 #!/bin/bash
+# Sprint 3.6.1: test-restore теперь принимает BACKUP как аргумент $1.
+# Если не передан — fallback к старой логике (ищем в /var/backups/ai-tutor/).
 set -e
 cd /opt/ai-tutor/deploy
 
 # Бэкап, который тестируем
-BACKUP=$(ls -1t /var/backups/ai-tutor/db-*.sql.gz | head -1)
+if [ -n "${1:-}" ] && [ -f "$1" ]; then
+  BACKUP="$1"
+else
+  BACKUP=$(ls -1t /var/backups/ai-tutor/db-*.sql.gz 2>/dev/null | head -1)
+fi
+if [ -z "$BACKUP" ]; then
+  echo "ERROR: backup не найден (передай путь как \$1 или положи в /var/backups/ai-tutor/)"
+  exit 1
+fi
 echo "=== Тестирую restore: $BACKUP ==="
 
 # Проверяем md5 manifest если есть
 echo "--- MD5 verification ---"
+BACKUP_DIR="$(dirname "$BACKUP")"
 MANIFEST="${BACKUP%.sql.gz}.md5"
 # Если manifest называется manifest-TIMESTAMP.md5 — найдём по timestamp
 if [ ! -f "$MANIFEST" ]; then
     TS=$(basename "$BACKUP" | sed 's/db-//;s/\.sql\.gz//')
-    MANIFEST="/var/backups/ai-tutor/manifest-$TS.md5"
+    MANIFEST="$BACKUP_DIR/manifest-$TS.md5"
 fi
 if [ -f "$MANIFEST" ]; then
     if md5sum -c "$MANIFEST" 2>&1 | grep -q "OK"; then
