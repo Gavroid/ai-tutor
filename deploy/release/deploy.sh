@@ -22,6 +22,12 @@ LOCAL_DEPLOY=false
 if [ "$(hostname)" = "Kirill-AI" ] || [ -f /opt/actions-runner/.runner ]; then
   LOCAL_DEPLOY=true
   log "LOCAL DEPLOY mode (no ssh) — runner или hostname = prod"
+  # В local mode .env находится в /etc/ai-tutor/.env (НЕ /opt/ai-tutor/.env).
+  # Создаём symlink чтобы backup.sh, alembic и т.д. нашли его.
+  if [ ! -f "$RELEASE_DIR/.env" ] && [ -f /etc/ai-tutor/.env ]; then
+    ln -sf /etc/ai-tutor/.env "$RELEASE_DIR/.env"
+    log "  Создал symlink: $RELEASE_DIR/.env → /etc/ai-tutor/.env"
+  fi
 fi
 PROD_HOST="${PROD_HOST:-192.168.1.86}"
 RELEASE_DIR="/opt/ai-tutor"
