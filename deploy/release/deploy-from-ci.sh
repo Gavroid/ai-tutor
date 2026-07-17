@@ -22,6 +22,7 @@ log "CI-DEPLOY: rsync $STAGING → $RELEASE_DIR ..."
 # Исключаем то что не должно попасть в release dir И что не должно быть удалено
 # через --delete. ВАЖНО: .env (на проде он в /opt/ai-tutor/.env) — НЕ удалять,
 # иначе backend упадёт с ValidationError.
+# Sprint 4 fix: ssl/certs (SSL сертификаты nginx) — persistent на хосте, не удалять.
 rsync -a --delete \
   --exclude=/deploy/release/releases \
   --exclude=/deploy/release/snapshots \
@@ -29,6 +30,7 @@ rsync -a --delete \
   --exclude=node_modules --exclude=uploads --exclude=.git \
   --exclude=.pytest_cache --exclude=.ssh --exclude=*.log \
   --exclude=/.env \
+  --exclude=/deploy/ssl/certs \
   "$STAGING/" "$RELEASE_DIR/"
 
 log "CI-DEPLOY: запускаю deploy.sh ..."

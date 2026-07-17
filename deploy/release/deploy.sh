@@ -81,13 +81,14 @@ if [ "$LOCAL_DEPLOY" = "true" ]; then
   set +e
   tar -cf /tmp/deploy-src.tar --exclude=node_modules --exclude=.next --exclude=.venv --exclude=__pycache__ \
     --exclude=.git --exclude=.hermes --exclude=deploy/backup/_out \
+    --exclude=deploy/ssl/certs \
     --exclude='*.pyc' \
     apps/backend/app apps/backend/alembic/versions apps/backend/tests apps/backend/scripts \
     apps/frontend/app apps/frontend/lib apps/frontend/components apps/frontend/types \
     deploy/release deploy/backup/backup.sh deploy/backup/test-restore.sh \
     deploy/backup/ai-tutor-backup-offsite.sh \
     deploy/docker-compose.yml deploy/nginx/nginx.conf \
-    deploy/monitoring deploy/smtp \
+    deploy/monitoring deploy/smtp deploy/ssl/generate-self-signed.sh deploy/ssl/LETS-ENCRYPT.md \
     docs/security.md docs/pilot-baseline.md docs/deployment.md .env.example 2>/dev/null
   TAR_C_RC=$?
   set -e

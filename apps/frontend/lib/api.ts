@@ -287,6 +287,8 @@ export const api = {
       score: number;
       feedback: string;
       explanation: string;
+      // Sprint 4.3.1: error_type для context-aware hints.
+      error_type?: string | null;
     }>(`/api/v2/exercises/${exercise_id}/answer`, {
       method: "POST",
       body: JSON.stringify({ user_answer }),
