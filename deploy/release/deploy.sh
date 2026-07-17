@@ -86,7 +86,6 @@ if [ "$LOCAL_DEPLOY" = "true" ]; then
     apps/frontend/app apps/frontend/lib apps/frontend/components \
     deploy/release deploy/backup/backup.sh deploy/backup/test-restore.sh \
     deploy/backup/ai-tutor-backup-offsite.sh \
-    deploy/cron \
     deploy/docker-compose.yml deploy/nginx/nginx.conf \
     deploy/monitoring deploy/smtp \
     docs/security.md docs/pilot-baseline.md docs/deployment.md .env.example 2>/dev/null
@@ -117,7 +116,6 @@ else
     apps/frontend/app apps/frontend/lib apps/frontend/components \
     deploy/release deploy/backup/backup.sh deploy/backup/test-restore.sh \
     deploy/backup/ai-tutor-backup-offsite.sh \
-    deploy/cron \
     deploy/docker-compose.yml deploy/nginx/nginx.conf \
     deploy/monitoring deploy/smtp \
     docs/security.md docs/pilot-baseline.md docs/deployment.md .env.example 2>/dev/null | \
