@@ -16,6 +16,10 @@ log() { printf '\033[1;34m[deploy]\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31m[deploy FAIL]\033[0m %s\n' "$*"; exit 1; }
 
 SSH_KEY="${SSH_KEY:-/root/.ssh/id_ed25519_kirill_ai}"
+PROD_HOST="${PROD_HOST:-192.168.1.86}"
+RELEASE_DIR="/opt/ai-tutor"
+COMPOSE_DIR="$RELEASE_DIR/deploy"
+
 # Sprint 3.5.3: если deploy.sh запускается с самого прода (self-hosted runner),
 # не нужен ssh — выполнение локальное. Детект по hostname или runner.
 LOCAL_DEPLOY=false
@@ -29,9 +33,6 @@ if [ "$(hostname)" = "Kirill-AI" ] || [ -f /opt/actions-runner/.runner ]; then
     log "  Создал symlink: $RELEASE_DIR/.env → /etc/ai-tutor/.env"
   fi
 fi
-PROD_HOST="${PROD_HOST:-192.168.1.86}"
-RELEASE_DIR="/opt/ai-tutor"
-COMPOSE_DIR="$RELEASE_DIR/deploy"
 
 # Sprint 3.5.3: helper для запуска команды на проде.
 # Если LOCAL_DEPLOY=true (self-hosted runner) — выполняем локально.
