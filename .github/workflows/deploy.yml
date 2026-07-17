@@ -34,7 +34,7 @@ permissions:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, prod]
     timeout-minutes: 15
     # БЕЗ environment: production — иначе GitHub Environments с required reviewers
     # блокируют workflow до ручного approve. Repository secrets доступны напрямую.
