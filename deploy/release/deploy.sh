@@ -73,6 +73,7 @@ cd "$PROJECT_ROOT"
 log "  PROJECT_ROOT=$PROJECT_ROOT, RELEASE_DIR=$RELEASE_DIR"
 if [ "$LOCAL_DEPLOY" = "true" ]; then
   log "  creating tarball..."
+  # tar | tar без verbose (иначе head/tail ломают pipe в set -euo pipefail)
   tar -cf - --exclude=node_modules --exclude=.next --exclude=.venv --exclude=__pycache__ \
     --exclude=.git --exclude=.hermes --exclude=deploy/backup/_out \
     --exclude='*.pyc' \
@@ -84,8 +85,12 @@ if [ "$LOCAL_DEPLOY" = "true" ]; then
     deploy/docker-compose.yml deploy/nginx/nginx.conf \
     deploy/monitoring deploy/smtp \
     docs/security.md docs/pilot-baseline.md docs/deployment.md .env.example 2>/dev/null | \
-    tar -xvf - -C "$RELEASE_DIR/" 2>&1 | head -3
-  log "  tar-pipe complete"
+    tar -xf - -C "$RELEASE_DIR/"
+  TAR_PIPE_STATUS=${PIPESTATUS[0]}
+  log "  tar-pipe complete (source tar exit=$TAR_PIPE_STATUS)"
+  if [ "$TAR_PIPE_STATUS" -ne 0 ]; then
+    fail "tar-pipe source failed with exit $TAR_PIPE_STATUS"
+  fi
 else
   tar -cf - --exclude=node_modules --exclude=.next --exclude=.venv --exclude=__pycache__ \
     --exclude=.git --exclude=.hermes --exclude=deploy/backup/_out \
