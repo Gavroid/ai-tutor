@@ -39,3 +39,4 @@ log "CI-DEPLOY: готово."
 # Sprint 3.5.3 — testing deploy trigger via deploy-from-ci.sh
 # Sprint 3.5.3 — testing deploy trigger
 # Sprint 3.5.3 — self-hosted runner active, trigger deploy
+# Fri Jul 17 10:47:54 UTC 2026 — root runner
