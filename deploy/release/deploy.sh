@@ -75,9 +75,10 @@ log "4) tar-pipe code (local=$LOCAL_DEPLOY)"
 cd "$PROJECT_ROOT"
 log "  PROJECT_ROOT=$PROJECT_ROOT, RELEASE_DIR=$RELEASE_DIR"
 if [ "$LOCAL_DEPLOY" = "true" ]; then
-  log "  creating tarball в /tmp/deploy-src.tar.gz..."
-  # Сохраняем tar в файл (избегаем pipe deadlock при медленной записи).
-  tar -czf /tmp/deploy-src.tar.gz --exclude=node_modules --exclude=.next --exclude=.venv --exclude=__pycache__ \
+  log "  creating tarball в /tmp/deploy-src.tar..."
+  # Сохраняем tar в файл (без --delete в rsync на extract, см. deploy-from-ci.sh).
+  # Без -z gzip (быстрее, tar.gz требует CPU на медленном LXC).
+  tar -cf /tmp/deploy-src.tar --exclude=node_modules --exclude=.next --exclude=.venv --exclude=__pycache__ \
     --exclude=.git --exclude=.hermes --exclude=deploy/backup/_out \
     --exclude='*.pyc' \
     apps/backend/app apps/backend/alembic/versions apps/backend/tests apps/backend/scripts \
@@ -88,18 +89,18 @@ if [ "$LOCAL_DEPLOY" = "true" ]; then
     deploy/docker-compose.yml deploy/nginx/nginx.conf \
     deploy/monitoring deploy/smtp \
     docs/security.md docs/pilot-baseline.md docs/deployment.md .env.example 2>/dev/null
-  TAR_CZ_RC=$?
-  if [ "$TAR_CZ_RC" -ne 0 ]; then
-    fail "tar -czf failed with exit $TAR_CZ_RC"
+  TAR_C_RC=$?
+  if [ "$TAR_C_RC" -ne 0 ]; then
+    fail "tar -cf failed with exit $TAR_C_RC"
   fi
-  TAR_SIZE=$(stat -c %s /tmp/deploy-src.tar.gz 2>/dev/null || echo "?")
+  TAR_SIZE=$(stat -c %s /tmp/deploy-src.tar 2>/dev/null || echo "?")
   log "  tarball size: $TAR_SIZE bytes"
   log "  extracting tarball в $RELEASE_DIR..."
-  tar -xzf /tmp/deploy-src.tar.gz -C "$RELEASE_DIR/"
-  TAR_XZ_RC=$?
-  rm -f /tmp/deploy-src.tar.gz
-  if [ "$TAR_XZ_RC" -ne 0 ]; then
-    fail "tar -xzf failed with exit $TAR_XZ_RC"
+  tar -xf /tmp/deploy-src.tar -C "$RELEASE_DIR/"
+  TAR_X_RC=$?
+  rm -f /tmp/deploy-src.tar
+  if [ "$TAR_X_RC" -ne 0 ]; then
+    fail "tar -xf failed with exit $TAR_X_RC"
   fi
   log "  tar-pipe complete"
 else
