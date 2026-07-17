@@ -36,3 +36,4 @@ bash /opt/ai-tutor/deploy/release/smoke.sh 2>&1 | tee /var/log/ai-tutor-ci-smoke
 
 log "CI-DEPLOY: готово."
 # Sprint 3.5.3 — testing CI/CD deploy
+# Sprint 3.5.3 — testing deploy trigger via deploy-from-ci.sh
