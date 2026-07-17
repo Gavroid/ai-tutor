@@ -29,6 +29,9 @@ class CheckResult:
     explanation: str
     hint_level: int
     next_difficulty: int
+    # Sprint 4.3.1: тип ошибки для context-aware hints.
+    # ARITHMETIC/CONCEPTUAL/LOGIC/CARELESS или None если ответ правильный.
+    error_type: str | None = None
 
 
 @dataclass
@@ -202,15 +205,19 @@ class AIService:
         """
         return await self._hint_with_level(question_text, level=1)
 
-    async def hint_at_level(self, question_text: str, level: int) -> AIResponse:
-        """Sprint 7.4: подсказка уровня 1..3 (1=наводящий, 2=подсказка, 3=разбор)."""
-        return await self._hint_with_level(question_text, level=level)
+    async def hint_at_level(self, question_text: str, level: int, error_type: str | None = None) -> AIResponse:
+        """Sprint 7.4 + 4.3.2: подсказка уровня 1..3 с учётом типа ошибки.
 
-    async def _hint_with_level(self, question_text: str, level: int) -> AIResponse:
+        error_type (опционально): ARITHMETIC/CONCEPTUAL/LOGIC/CARELESS от judge.
+        Если указан — промпт адаптируется под тип ошибки.
+        """
+        return await self._hint_with_level(question_text, level=level, error_type=error_type)
+
+    async def _hint_with_level(self, question_text: str, level: int, error_type: str | None = None) -> AIResponse:
         level = max(1, min(3, level))  # clamp
         req = AIRequest(
             messages=[
-                AIMessage(role="system", content=prompts.hint_system_at_level(level)),
+                AIMessage(role="system", content=prompts.hint_system_at_level(level, error_type=error_type)),
                 AIMessage(role="user", content=f"Задание: {question_text}"),
             ],
             mode="hint",
@@ -266,6 +273,9 @@ class AIService:
                         explanation=str(resp.structured.get("explanation", "")),
                         hint_level=int(resp.structured.get("hint_level", 1)),
                         next_difficulty=int(resp.structured.get("next_difficulty", 1)),
+                        # Sprint 4.3.1: error_type для context-aware hints.
+                        # Валидируем чтобы не принимать мусор от LLM.
+                        error_type=resp.structured.get("error_type") if resp.structured.get("error_type") in ("ARITHMETIC", "CONCEPTUAL", "LOGIC", "CARELESS") else None,
                     )
                     _record_ai("check", "ok", resp=resp, parse_status="ok")
                     return result

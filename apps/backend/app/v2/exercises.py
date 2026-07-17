@@ -59,6 +59,8 @@ class AnswerOut(BaseModel):
     score: float
     feedback: str
     explanation: str
+    # Sprint 4.3.1: error_type для context-aware hints (опциональный).
+    error_type: str | None = None
 
 
 @router.post("/generate", response_model=GenerateOut)

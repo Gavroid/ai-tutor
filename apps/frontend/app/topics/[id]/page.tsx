@@ -57,6 +57,8 @@ export default function TopicPage() {
     first_error: string | null;
     explanation: string;
     hint_level: number;
+    // Sprint 4.3.1: error_type от judge, передаётся в hint для context-aware подсказок.
+    error_type?: string | null;
   }>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const chat = useChatStream(getToken());
@@ -278,6 +280,8 @@ export default function TopicPage() {
         first_error: null,
         explanation: r.explanation,
         hint_level: 1,
+        // Sprint 4.3.1: error_type для context-aware hints.
+        error_type: r.error_type ?? null,
       });
     } catch {
       alert("Не удалось проверить ответ");

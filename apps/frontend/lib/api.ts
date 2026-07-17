@@ -102,10 +102,18 @@ export const api = {
       explanation: string;
       hint_level: number;
       next_difficulty: number;
+      // Sprint 4.3.1: error_type для context-aware hints (ARITHMETIC/CONCEPTUAL/LOGIC/CARELESS).
+      error_type?: string | null;
     }>("/api/v1/ai/check-answer", {
       method: "POST",
       body: JSON.stringify({ question_text, correct_answer, user_answer }),
     }),
+  // Sprint 4.3.2: hint теперь принимает error_type для context-aware подсказок.
+  aiHint: (question_text: string, level: number, error_type?: string | null) =>
+    request<{ content: string; content_html: string; model: string }>(
+      "/api/v1/ai/hint",
+      { method: "POST", body: JSON.stringify({ question_text, level, error_type: error_type ?? null }) }
+    ),
   // Progress
   myProgress: () => request<{ topic_id: number; mastery_score: number; attempts_count: number; correct_count: number }[]>("/api/v1/progress"),
   myMistakes: () => request<{ id: number; topic_id: number; mistake_type: string; description: string; count: number }[]>("/api/v1/progress/mistakes"),

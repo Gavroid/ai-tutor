@@ -72,7 +72,7 @@ def hint_system() -> str:
     return hint_system_at_level(1)
 
 
-def hint_system_at_level(level: int = 1) -> str:
+def hint_system_at_level(level: int = 1, error_type: str | None = None) -> str:
     """Sprint 7.4 — 3 уровня подсказок.
 
     Уровень 1: наводящий вопрос (минимальная помощь).
@@ -80,10 +80,28 @@ def hint_system_at_level(level: int = 1) -> str:
     Уровень 3: полный разбор / объяснение.
 
     Ученик НЕ получает ответ напрямую — только намёк, чтобы сам додумал.
+
+    Sprint 4.3.2: error_type (опционально) делает подсказку context-aware:
+    - ARITHMETIC: фокус на перепроверке вычислений
+    - CONCEPTUAL: фокус на определении/формуле
+    - LOGIC: фокус на выборе правильного подхода
+    - CARELESS: фокус на внимательности (без переобъяснения)
     """
+    # Sprint 4.3.2: context-aware префикс по типу ошибки.
+    error_prefix = ""
+    if error_type == "ARITHMETIC":
+        error_prefix = "\n\n⚠️ Контекст: ошибка арифметическая. Ученик вероятно знает алгоритм, но ошибся в вычислениях. Подсказка должна помочь ПЕРЕПРОВЕРИТЬ вычисления, не объяснять концепцию заново."
+    elif error_type == "CONCEPTUAL":
+        error_prefix = "\n\n⚠️ Контекст: ученик не понимает концепцию. Подсказка должна НАПОМНИТЬ ключевое определение или свойство, не давать ответ напрямую."
+    elif error_type == "LOGIC":
+        error_prefix = "\n\n⚠️ Контекст: ошибка в выборе подхода. Подсказка должна намекнуть на ПРАВИЛЬНЫЙ АЛГОРИТМ или формулу, не объяснять всё заново."
+    elif error_type == "CARELESS":
+        error_prefix = "\n\n⚠️ Контекст: ученик вероятно знает как решить, но ошибся по невнимательности. Подсказка должна быть КОРОТКОЙ (проверь ещё раз) — не давать полный разбор, это фрустрирует."
+
     if level == 1:
         return (
             BASE_SYSTEM
+            + error_prefix
             + "\n\nРЕЖИМ: ПОДСКАЗКА (уровень 1 из 3). Задай ученику один наводящий вопрос, "
             + "который поможет ему самому найти решение. Не давай ответа. "
             + "Пример: 'Что произойдёт, если...?', 'На что похожа эта задача?', "
@@ -92,6 +110,7 @@ def hint_system_at_level(level: int = 1) -> str:
     if level == 2:
         return (
             BASE_SYSTEM
+            + error_prefix
             + "\n\nРЕЖИМ: ПОДСКАЗКА (уровень 2 из 3). Дай подсказку к решению — "
             + "ключевой шаг или формулу, НЕ давай финальный ответ. "
             + "Пример: 'Тебе понадобится формула ...', 'Сначала найди ...'"
@@ -99,12 +118,13 @@ def hint_system_at_level(level: int = 1) -> str:
     if level == 3:
         return (
             BASE_SYSTEM
+            + error_prefix
             + "\n\nРЕЖИМ: РАЗБОР (уровень 3 из 3). Покажи пошаговое решение с пояснением. "
             + "Ученик всё ещё должен сам записать ответ, но логика решения должна быть "
             + "полностью раскрыта."
         )
     # fallback на уровень 1
-    return hint_system_at_level(1)
+    return hint_system_at_level(1, error_type=error_type)
 
 
 def check_answer_system(question_text: str, correct_answer: str, user_answer: str) -> str:
@@ -117,7 +137,15 @@ def check_answer_system(question_text: str, correct_answer: str, user_answer: st
         + "\n\nВерни СТРОГО JSON без markdown-блоков и пояснений вокруг:"
         + ' {"is_correct": bool, "score": float от 0 до 1, '
         + ' "first_error": string|null, "explanation": string, '
-        + ' "hint_level": int от 1 до 3, "next_difficulty": int от 1 до 5}.'
+        + ' "hint_level": int от 1 до 3, "next_difficulty": int от 1 до 5, '
+        # Sprint 4.3.1: AI классифицирует тип ошибки для context-aware hints.
+        + ' "error_type": "ARITHMETIC"|"CONCEPTUAL"|"LOGIC"|"CARELESS"|null}.'
+        + "\n\nТип ошибки:"
+        + "\n- ARITHMETIC: арифметическая ошибка в вычислениях (например 2+2=5)"
+        + "\n- CONCEPTUAL: не понимает концепцию (например не знает что такое процент)"
+        + "\n- LOGIC: логическая ошибка (применил не ту формулу или алгоритм)"
+        + "\n- CARELESS: опечатка / невнимательность (правильный ход мысли, но ошибся в записи)"
+        + "\n- null: если ответ правильный или невозможно классифицировать"
     )
 
 

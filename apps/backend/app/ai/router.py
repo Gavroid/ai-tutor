@@ -27,6 +27,10 @@ class HintIn(BaseModel):
     question_text: str = Field(min_length=1, max_length=4000)
     level: int = Field(default=1, ge=1, le=3)
     """Sprint 7.4: уровень подсказки (1=наводящий вопрос, 2=подсказка к решению, 3=полный разбор)."""
+    # Sprint 4.3.2: optional error_type для context-aware hints.
+    # Если указан, hint промпт будет адаптирован под тип ошибки.
+    error_type: str | None = Field(default=None)
+    """Sprint 4.3.2: тип ошибки от judge (ARITHMETIC/CONCEPTUAL/LOGIC/CARELESS)."""
 
 
 class CheckIn(BaseModel):
@@ -52,6 +56,8 @@ class CheckOut(BaseModel):
     explanation: str
     hint_level: int
     next_difficulty: int
+    # Sprint 4.3.1: error_type для context-aware hints.
+    error_type: str | None = None
 
 
 class GeneratedOut(BaseModel):
@@ -131,7 +137,8 @@ async def explain_topic(
 async def hint(payload: HintIn, current: user_models.User = Depends(get_current_user)):
     _enforce_budget(current)
     svc = get_ai_service()
-    resp = await svc.hint_at_level(payload.question_text, payload.level)
+    # Sprint 4.3.2: передаём error_type в service для context-aware промпта.
+    resp = await svc.hint_at_level(payload.question_text, payload.level, error_type=payload.error_type)
     return _ai_response(resp.content, resp.model)
 
 
@@ -150,6 +157,8 @@ async def check_answer(
         explanation=res.explanation,
         hint_level=res.hint_level,
         next_difficulty=res.next_difficulty,
+        # Sprint 4.3.1: error_type для context-aware hints.
+        error_type=res.error_type,
     )
 
 
@@ -264,3 +273,111 @@ async def admin_top_budget_users(
         uid, email, role = row
         result.append({"user_id": uid, "email": email, "role": role, "usage": get_usage(uid)})
     return result
+
+
+# === Sprint 4.3.3: A/B testing метрики для context-aware hints ===
+
+class HintMetricIn(BaseModel):
+    topic_id: int
+    error_type: str | None = None
+    hint_level: int
+    attempt_id: int | None = None
+    time_to_solve_ms: int | None = None
+    retry_count: int = 0
+    hint_text: str | None = None
+    success: bool = False
+
+
+@router.post("/hint-metrics")
+def record_hint_metric(
+    payload: HintMetricIn,
+    db: Session = Depends(get_db),
+    current: user_models.User = Depends(get_current_user),
+):
+    """Sprint 4.3.3: записывает метрику использования hint в БД.
+
+    Поля:
+    - error_type (от judge): ARITHMETIC/CONCEPTUAL/LOGIC/CARELESS
+    - hint_level (1-3): какой уровень подсказки показал
+    - time_to_solve_ms: сколько миллисекунд ученик потратил после подсказки
+    - retry_count: сколько раз попытался после подсказки
+    - success: решил или нет
+
+    Использование: SELECT error_type, hint_level, COUNT(*) FILTER (WHERE success) ...
+    """
+    try:
+        from sqlalchemy import text as sa_text
+
+        db.execute(
+            sa_text(
+                "INSERT INTO hint_metrics (user_id, topic_id, error_type, hint_level, "
+                "attempt_id, time_to_solve_ms, retry_count, hint_text, success) "
+                "VALUES (:user_id, :topic_id, :error_type, :hint_level, "
+                ":attempt_id, :time_to_solve_ms, :retry_count, :hint_text, :success)"
+            ),
+            {
+                "user_id": current.id,
+                "topic_id": payload.topic_id,
+                "error_type": payload.error_type,
+                "hint_level": payload.hint_level,
+                "attempt_id": payload.attempt_id,
+                "time_to_solve_ms": payload.time_to_solve_ms,
+                "retry_count": payload.retry_count,
+                "hint_text": payload.hint_text[:500] if payload.hint_text else None,
+                "success": payload.success,
+            },
+        )
+        db.commit()
+        return {"ok": True}
+    except Exception as e:
+        db.rollback()
+        import logging
+
+        logging.getLogger(__name__).warning("hint_metrics insert failed: %s", e)
+        # Не падаем — это аналитика, не критично.
+        return {"ok": False, "error": str(e)[:100]}
+
+
+@router.get("/hint-metrics/summary")
+def hint_metrics_summary(
+    topic_id: int | None = None,
+    db: Session = Depends(get_db),
+    current: user_models.User = Depends(get_current_user),
+):
+    """Sprint 4.3.3: агрегированные метрики для admin/teacher.
+
+    Возвращает success_rate и avg_retry_count по (error_type, hint_level).
+    """
+    from sqlalchemy import text as sa_text
+
+    where = ""
+    params: dict = {}
+    if topic_id is not None:
+        where = "WHERE topic_id = :topic_id"
+        params["topic_id"] = topic_id
+
+    rows = db.execute(
+        sa_text(
+            f"SELECT error_type, hint_level, COUNT(*) AS total, "
+            f"COUNT(*) FILTER (WHERE success) AS succeeded, "
+            f"AVG(time_to_solve_ms) FILTER (WHERE time_to_solve_ms IS NOT NULL) AS avg_time, "
+            f"AVG(retry_count) AS avg_retries "
+            f"FROM hint_metrics {where} "
+            f"GROUP BY error_type, hint_level "
+            f"ORDER BY error_type, hint_level"
+        ),
+        params,
+    ).fetchall()
+
+    return [
+        {
+            "error_type": r[0],
+            "hint_level": r[1],
+            "total": r[2],
+            "succeeded": r[3],
+            "success_rate": (r[3] / r[2]) if r[2] else 0.0,
+            "avg_time_ms": int(r[4]) if r[4] else None,
+            "avg_retries": float(r[5]) if r[5] else 0.0,
+        }
+        for r in rows
+    ]
