@@ -72,9 +72,9 @@ log "4) tar-pipe code (local=$LOCAL_DEPLOY)"
 cd "$PROJECT_ROOT"
 log "  PROJECT_ROOT=$PROJECT_ROOT, RELEASE_DIR=$RELEASE_DIR"
 if [ "$LOCAL_DEPLOY" = "true" ]; then
-  log "  creating tarball..."
-  # tar | tar без verbose (иначе head/tail ломают pipe в set -euo pipefail)
-  tar -cf - --exclude=node_modules --exclude=.next --exclude=.venv --exclude=__pycache__ \
+  log "  creating tarball в /tmp/deploy-src.tar.gz..."
+  # Сохраняем tar в файл (избегаем pipe deadlock при медленной записи).
+  tar -czf /tmp/deploy-src.tar.gz --exclude=node_modules --exclude=.next --exclude=.venv --exclude=__pycache__ \
     --exclude=.git --exclude=.hermes --exclude=deploy/backup/_out \
     --exclude='*.pyc' \
     apps/backend/app apps/backend/alembic/versions apps/backend/tests apps/backend/scripts \
@@ -84,13 +84,12 @@ if [ "$LOCAL_DEPLOY" = "true" ]; then
     deploy/cron \
     deploy/docker-compose.yml deploy/nginx/nginx.conf \
     deploy/monitoring deploy/smtp \
-    docs/security.md docs/pilot-baseline.md docs/deployment.md .env.example 2>/dev/null | \
-    tar -xf - -C "$RELEASE_DIR/"
-  TAR_PIPE_STATUS=${PIPESTATUS[0]}
-  log "  tar-pipe complete (source tar exit=$TAR_PIPE_STATUS)"
-  if [ "$TAR_PIPE_STATUS" -ne 0 ]; then
-    fail "tar-pipe source failed with exit $TAR_PIPE_STATUS"
-  fi
+    docs/security.md docs/pilot-baseline.md docs/deployment.md .env.example 2>/dev/null
+  log "  tarball size: $(ls -la /tmp/deploy-src.tar.gz | awk '{print $5}') bytes"
+  log "  extracting tarball в $RELEASE_DIR..."
+  tar -xzf /tmp/deploy-src.tar.gz -C "$RELEASE_DIR/"
+  rm -f /tmp/deploy-src.tar.gz
+  log "  tar-pipe complete"
 else
   tar -cf - --exclude=node_modules --exclude=.next --exclude=.venv --exclude=__pycache__ \
     --exclude=.git --exclude=.hermes --exclude=deploy/backup/_out \
