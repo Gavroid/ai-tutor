@@ -16,20 +16,39 @@ TARGET_SHA="${TARGET_SHA:-}"
 log() { printf '\033[1;34m[preflight]\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31m[preflight FAIL]\033[0m %s\n' "$*"; exit 1; }
 
+# Sprint 3.5.3: поддержка LOCAL_DEPLOY (self-hosted runner).
+# Детект: hostname=Kirill-AI или есть runner config.
+LOCAL_DEPLOY=false
+if [ "$(hostname)" = "Kirill-AI" ] || [ -f /opt/actions-runner/.runner ]; then
+  LOCAL_DEPLOY=true
+fi
+
+run_on_prod() {
+  if [ "$LOCAL_DEPLOY" = "true" ]; then
+    bash -c "$1"
+  else
+    ssh -i "$SSH_KEY" root@"$PROD_HOST" "$1"
+  fi
+}
+
 log "Проверка ssh-доступа к ${PROD_HOST}..."
-ssh -o BatchMode=yes -o ConnectTimeout=5 -i "$SSH_KEY" root@"$PROD_HOST" 'echo ok' >/dev/null \
-  || fail "ssh failed"
+if [ "$LOCAL_DEPLOY" = "true" ]; then
+  log "  (LOCAL_DEPLOY: пропускаем ssh-check)"
+else
+  ssh -o BatchMode=yes -o ConnectTimeout=5 -i "$SSH_KEY" root@"$PROD_HOST" 'echo ok' >/dev/null \
+    || fail "ssh failed"
+fi
 
 log "Проверка /health на production..."
-HEALTH=$(ssh -i "$SSH_KEY" root@"$PROD_HOST" 'curl -sk -o /dev/null -w "%{http_code}" https://localhost/health')
+HEALTH=$(run_on_prod 'curl -sk -o /dev/null -w "%{http_code}" https://localhost/health')
 [ "$HEALTH" = "200" ] || fail "production /health=$HEALTH (ожидаем 200)"
 
 log "Проверка /ready на production..."
-READY=$(ssh -i "$SSH_KEY" root@"$PROD_HOST" 'curl -sk -o /dev/null -w "%{http_code}" https://localhost/ready')
+READY=$(run_on_prod 'curl -sk -o /dev/null -w "%{http_code}" https://localhost/ready')
 [ "$READY" = "200" ] || fail "production /ready=$READY (ожидаем 200)"
 
 log "Проверка /api/v2/health на production..."
-V2=$(ssh -i "$SSH_KEY" root@"$PROD_HOST" 'curl -sk -o /dev/null -w "%{http_code}" https://localhost/api/v2/health')
+V2=$(run_on_prod 'curl -sk -o /dev/null -w "%{http_code}" https://localhost/api/v2/health')
 [ "$V2" = "200" ] || fail "production /api/v2/health=$V2 (ожидаем 200)"
 
 if [ -n "$TARGET_SHA" ]; then
