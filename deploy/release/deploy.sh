@@ -26,11 +26,14 @@ LOCAL_DEPLOY=false
 if [ "$(hostname)" = "Kirill-AI" ] || [ -f /opt/actions-runner/.runner ]; then
   LOCAL_DEPLOY=true
   log "LOCAL DEPLOY mode (no ssh) — runner или hostname = prod"
-  # В local mode .env находится в /etc/ai-tutor/.env (НЕ /opt/ai-tutor/.env).
-  # Создаём symlink чтобы backup.sh, alembic и т.д. нашли его.
+  # Sprint 3.5.3: в local mode .env может быть НЕТ в $RELEASE_DIR (на проде он в /etc/ai-tutor).
+  # Не перезаписываем существующий .env! Только создаём если его нет.
   if [ ! -f "$RELEASE_DIR/.env" ] && [ -f /etc/ai-tutor/.env ]; then
+    log "  Создаю symlink: $RELEASE_DIR/.env → /etc/ai-tutor/.env"
     ln -sf /etc/ai-tutor/.env "$RELEASE_DIR/.env"
-    log "  Создал symlink: $RELEASE_DIR/.env → /etc/ai-tutor/.env"
+  elif [ -f /etc/ai-tutor/.env ] && [ ! -L "$RELEASE_DIR/.env" ]; then
+    # Если .env существует, но НЕ symlink — оставляем (этот файл богаче чем /etc/ai-tutor/.env)
+    log "  $RELEASE_DIR/.env существует обычным файлом — оставляю"
   fi
 fi
 
