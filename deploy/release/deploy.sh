@@ -78,6 +78,7 @@ if [ "$LOCAL_DEPLOY" = "true" ]; then
   log "  creating tarball в /tmp/deploy-src.tar..."
   # Сохраняем tar в файл (без --delete в rsync на extract, см. deploy-from-ci.sh).
   # Без -z gzip (быстрее, tar.gz требует CPU на медленном LXC).
+  set +e
   tar -cf /tmp/deploy-src.tar --exclude=node_modules --exclude=.next --exclude=.venv --exclude=__pycache__ \
     --exclude=.git --exclude=.hermes --exclude=deploy/backup/_out \
     --exclude='*.pyc' \
@@ -90,14 +91,19 @@ if [ "$LOCAL_DEPLOY" = "true" ]; then
     deploy/monitoring deploy/smtp \
     docs/security.md docs/pilot-baseline.md docs/deployment.md .env.example 2>/dev/null
   TAR_C_RC=$?
+  set -e
+  log "  tar -cf exit=$TAR_C_RC"
   if [ "$TAR_C_RC" -ne 0 ]; then
     fail "tar -cf failed with exit $TAR_C_RC"
   fi
   TAR_SIZE=$(stat -c %s /tmp/deploy-src.tar 2>/dev/null || echo "?")
   log "  tarball size: $TAR_SIZE bytes"
   log "  extracting tarball в $RELEASE_DIR..."
+  set +e
   tar -xf /tmp/deploy-src.tar -C "$RELEASE_DIR/"
   TAR_X_RC=$?
+  set -e
+  log "  tar -xf exit=$TAR_X_RC"
   rm -f /tmp/deploy-src.tar
   if [ "$TAR_X_RC" -ne 0 ]; then
     fail "tar -xf failed with exit $TAR_X_RC"
