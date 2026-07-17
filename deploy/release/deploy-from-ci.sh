@@ -19,13 +19,16 @@ fi
 
 log "CI-DEPLOY: rsync $STAGING → $RELEASE_DIR ..."
 # Используем rsync уже установленный (есть на проде из deploy.sh).
-# Исключаем то что не должно попадать в release dir.
+# Исключаем то что не должно попасть в release dir И что не должно быть удалено
+# через --delete. ВАЖНО: .env (на проде он в /opt/ai-tutor/.env) — НЕ удалять,
+# иначе backend упадёт с ValidationError.
 rsync -a --delete \
   --exclude=/deploy/release/releases \
   --exclude=/deploy/release/snapshots \
   --exclude=/.venv --exclude=__pycache__ --exclude=.next \
   --exclude=node_modules --exclude=uploads --exclude=.git \
   --exclude=.pytest_cache --exclude=.ssh --exclude=*.log \
+  --exclude=/.env \
   "$STAGING/" "$RELEASE_DIR/"
 
 log "CI-DEPLOY: запускаю deploy.sh ..."
