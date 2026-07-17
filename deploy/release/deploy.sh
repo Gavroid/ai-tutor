@@ -85,10 +85,19 @@ if [ "$LOCAL_DEPLOY" = "true" ]; then
     deploy/docker-compose.yml deploy/nginx/nginx.conf \
     deploy/monitoring deploy/smtp \
     docs/security.md docs/pilot-baseline.md docs/deployment.md .env.example 2>/dev/null
-  log "  tarball size: $(ls -la /tmp/deploy-src.tar.gz | awk '{print $5}') bytes"
+  TAR_CZ_RC=$?
+  if [ "$TAR_CZ_RC" -ne 0 ]; then
+    fail "tar -czf failed with exit $TAR_CZ_RC"
+  fi
+  TAR_SIZE=$(stat -c %s /tmp/deploy-src.tar.gz 2>/dev/null || echo "?")
+  log "  tarball size: $TAR_SIZE bytes"
   log "  extracting tarball в $RELEASE_DIR..."
   tar -xzf /tmp/deploy-src.tar.gz -C "$RELEASE_DIR/"
+  TAR_XZ_RC=$?
   rm -f /tmp/deploy-src.tar.gz
+  if [ "$TAR_XZ_RC" -ne 0 ]; then
+    fail "tar -xzf failed with exit $TAR_XZ_RC"
+  fi
   log "  tar-pipe complete"
 else
   tar -cf - --exclude=node_modules --exclude=.next --exclude=.venv --exclude=__pycache__ \
