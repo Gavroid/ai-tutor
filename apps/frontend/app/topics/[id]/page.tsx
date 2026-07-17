@@ -359,6 +359,22 @@ export default function TopicPage() {
               </div>
               {checkResult.first_error && <div className="mt-1">Шаг ошибки: {checkResult.first_error}</div>}
               <div className="mt-1">{checkResult.explanation}</div>
+              {/* Sprint 4.2.3: показываем правильный ответ если score < 0.6 */}
+              {!checkResult.is_correct && checkResult.score < 0.6 && exercise && (
+                <details className="mt-2 rounded-md bg-white/70 p-2">
+                  <summary className="cursor-pointer text-xs font-semibold text-rose-900">
+                    📖 Покажи правильный ответ
+                  </summary>
+                  <div className="mt-2 text-sm">
+                    <div>
+                      <strong>Твой ответ:</strong> {userAnswer || "(пусто)"}
+                    </div>
+                    <div className="mt-1">
+                      <strong>Правильный:</strong> {exercise.correct_answer || "(недоступен)"}
+                    </div>
+                  </div>
+                </details>
+              )}
             </div>
           )}
         </section>
