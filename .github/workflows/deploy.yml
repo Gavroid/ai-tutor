@@ -1,20 +1,14 @@
 name: Deploy to production
 
-# Sprint 3.5 — CI/CD через GitHub Actions.
+# Sprint 3.5.3 — CI/CD через self-hosted runner.
 #
-# Архитектура:
-#   1. Workflow загружает SSH-ключ через переменную окружения (а не через ssh-agent,
-#      чтобы избежать flaky ED25519 загрузки).
-#   2. tar workspace → scp на прод через ssh -i /tmp/key.
-#   3. SSH-вызов: authorized_keys command='/opt/ai-tutor/deploy/release/deploy-from-ci.sh'
-#      — deploy-from-ci.sh делает rsync staging → release dir → deploy.sh → smoke.sh.
-#
-# Безопасность:
-#   - SSH-ключ с command="..." ограничением — может вызвать ТОЛЬКО deploy-from-ci.sh.
-#   - Даже если приватный ключ утечёт с GitHub Secrets — ущерба не будет (только деплои).
+# Архитектура (упрощена):
+#   1. Self-hosted runner на проде (Kirill-AI 192.168.1.86).
+#   2. Runner подключается по ssh к localhost с приватным ключом из PRODUCTION_SSH_KEY.
+#   3. rsync staging → release dir → deploy.sh → smoke.sh.
 #
 # Триггеры:
-#   - push в main (если изменены apps/, deploy/, .github/workflows/)
+#   - push в main (apps/, deploy/, .github/workflows/)
 #   - workflow_dispatch (ручной запуск)
 
 on:
@@ -26,119 +20,72 @@ on:
       - "deploy/**"
       - ".github/workflows/**"
 
-# НЕ используем concurrency — пуши в main должны все задеплоиться.
-# (concurrency: cancel-in-progress: true отменял бы старые run'ы).
-
 permissions:
   contents: read
 
 jobs:
   deploy:
     runs-on: [self-hosted, linux, x64, prod]
-    timeout-minutes: 15
-    # БЕЗ environment: production — иначе GitHub Environments с required reviewers
-    # блокируют workflow до ручного approve. Repository secrets доступны напрямую.
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup SSH key file
-        if: env.PRODUCTION_SSH_KEY != ''
-        env:
-          PRODUCTION_SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+      - name: Show commit info
         run: |
-          set -euo pipefail
-
-          # Очищаем ключ от возможного мусора (CRLF из web UI GitHub, trailing spaces).
-          # Часто при копировании через web UI добавляются \r или лишние переносы.
-          CLEAN_KEY=$(printf '%s' "$PRODUCTION_SSH_KEY" | tr -d '\r' | sed 's/[[:space:]]*$//')
-
-          echo "$CLEAN_KEY" > /tmp/github_deploy_key
-          chmod 600 /tmp/github_deploy_key
-
-          # Sanity check: валидный ли ключ.
-          if ! ssh-keygen -y -f /tmp/github_deploy_key > /tmp/github_deploy_key.pub 2>/tmp/keygen_err; then
-            echo "❌ PRODUCTION_SSH_KEY невалиден (ssh-keygen не смог распарсить)"
-            echo "--- ssh-keygen stderr ---"
-            cat /tmp/keygen_err
-            echo "--- Длина ключа: ${#CLEAN_KEY} ---"
-            echo "--- Первые 80 символов: ${CLEAN_KEY:0:80} ---"
-            echo "--- Последние 80 символов: ${CLEAN_KEY: -80} ---"
-            echo "--- Проверь что в Secret сохранён полный приватный ключ (с BEGIN/END), а не публичный"
-            exit 1
-          fi
-          echo "✅ SSH key valid, fingerprint: $(ssh-keygen -l -f /tmp/github_deploy_key | awk '{print $2}')"
-
-      - name: Deploy to production
-        if: env.PRODUCTION_SSH_KEY != ''
-        env:
-          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST || '192.168.1.86' }}
-          PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT || '22' }}
-        run: |
-          set -euo pipefail
-
           echo "🚀 Deploy started: $(date -u)"
           echo "   repo: $GITHUB_REPOSITORY"
           echo "   commit: $GITHUB_SHA"
-          echo "   target: $PRODUCTION_HOST:$PRODUCTION_SSH_PORT"
+          echo "   runner: $(hostname)"
 
-          SSH_OPTS="-i /tmp/github_deploy_key -p $PRODUCTION_SSH_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
-
-          # 1) Tar.gz workspace
-          echo "📦 Creating source tarball..."
-          tar -czf /tmp/ai-tutor-source.tar.gz \
+      - name: Stage source to /tmp
+        run: |
+          mkdir -p /tmp/ai-tutor-ci-staging
+          rsync -a --delete \
             --exclude='.git' --exclude='.venv' --exclude='__pycache__' \
             --exclude='node_modules' --exclude='.next' --exclude='uploads' \
             --exclude='*.log' --exclude='.pytest_cache' \
             --exclude='.ssh' --exclude='screenshots' \
             --exclude='.copy-ssh-key-to-github.sh' \
             --exclude='.ssh_actions_deploy_key_FOR_GITHUB.txt' \
-            .
+            --exclude='.update-github-ssh-secret.sh' \
+            --exclude='docs/DEPLOY-LOG.md' \
+            ./ /tmp/ai-tutor-ci-staging/
+          echo "✅ Staged to /tmp/ai-tutor-ci-staging"
+          ls /tmp/ai-tutor-ci-staging/ | head -10
 
-          # 2) scp tar.gz на прод
-          echo "📤 Uploading source to $PRODUCTION_HOST..."
-          scp $SSH_OPTS /tmp/ai-tutor-source.tar.gz "root@$PRODUCTION_HOST:/tmp/ai-tutor-ci-staging.tar.gz"
-
-          # 3) ssh на прод → authorized_keys command= автоматически запускает deploy-from-ci.sh
-          #    с аргументом /tmp/ai-tutor-ci-staging (распакованный).
-          echo "🚀 Triggering deploy-from-ci.sh on production..."
-          ssh $SSH_OPTS "root@$PRODUCTION_HOST" "set -e
-            rm -rf /tmp/ai-tutor-ci-staging
-            mkdir -p /tmp/ai-tutor-ci-staging
-            tar -xzf /tmp/ai-tutor-ci-staging.tar.gz -C /tmp/ai-tutor-ci-staging
-            /opt/ai-tutor/deploy/release/deploy-from-ci.sh /tmp/ai-tutor-ci-staging
-            rm -rf /tmp/ai-tutor-ci-staging /tmp/ai-tutor-ci-staging.tar.gz"
-
+      - name: Run deploy-from-ci.sh
+        run: |
+          bash /tmp/ai-tutor-ci-staging/deploy/release/deploy-from-ci.sh /tmp/ai-tutor-ci-staging 2>&1 | tee /var/log/ai-tutor-ci-deploy.log
           echo ""
-          echo "✅ Deploy completed successfully"
+          echo "✅ deploy-from-ci.sh finished"
+
+      - name: Verify deploy
+        if: always()
+        run: |
+          if [ -f /opt/ai-tutor/deploy/release/releases/*/release-id ]; then
+            echo "Current release:"
+            cat /opt/ai-tutor/deploy/release/releases/*/release-id
+          fi
+          echo "Backend uptime:"
+          curl -sk --max-time 5 https://localhost/health 2>&1 | head -1
+          echo ""
+          echo "CI-deploy log tail:"
+          tail -20 /var/log/ai-tutor-ci-deploy.log 2>&1 | tail -10
 
       - name: Cleanup
         if: always()
         run: |
-          rm -f /tmp/github_deploy_key /tmp/github_deploy_key.pub /tmp/ai-tutor-source.tar.gz
-
-      - name: Healthcheck post-deploy
-        if: success() && env.PRODUCTION_SSH_KEY != ''
-        env:
-          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST || '192.168.1.86' }}
-        run: |
-          sleep 5
-          code=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 10 "https://$PRODUCTION_HOST/health")
-          echo "Health check: $code"
-          if [ "$code" != "200" ]; then
-            echo "❌ Health check failed"
-            exit 1
-          fi
-          echo "✅ Health check passed"
+          rm -rf /tmp/ai-tutor-ci-staging
+          echo "Cleanup done"
 
       - name: Notify success
-        if: success() && env.PRODUCTION_SSH_KEY != ''
+        if: success()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST || '192.168.1.86' }}
         run: |
-          msg="✅ Deploy OK: $GITHUB_REPOSITORY@${GITHUB_SHA::7} → https://$PRODUCTION_HOST"
+          msg="✅ Deploy OK: $GITHUB_REPOSITORY@${GITHUB_SHA::7} → https://192.168.1.86"
           echo "$msg"
           if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
             curl -sf -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
@@ -149,7 +96,7 @@ jobs:
           fi
 
       - name: Notify failure
-        if: failure() && env.PRODUCTION_SSH_KEY != ''
+        if: failure()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -164,4 +111,4 @@ jobs:
               -d "text=$msg" \
               -d "parse_mode=Markdown" \
               -o /dev/null || echo "(telegram notify failed)"
-          fi# Fri Jul 17 10:37:47 UTC 2026
+          fi
