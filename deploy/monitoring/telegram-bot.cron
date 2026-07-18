@@ -1,0 +1,2 @@
+# Sprint 6.1 — supervisor для Telegram bot (перезапуск если упал).
+*/5 * * * * root /opt/ai-tutor/deploy/monitoring/telegram-bot.sh
