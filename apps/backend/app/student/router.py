@@ -278,3 +278,85 @@ def trigger_badge_evaluation(
     seed_badge_definitions(db)
     stats = collect_stats(db, current.id)
     return evaluate_and_award_badges(db, current.id, stats)
+
+
+# === Sprint 8.1: streak для самого ученика ===
+# T1D-friendly: longest_streak растёт всегда (поощрение), current_streak
+# обнуляется при пропуске дня (без штрафа — это просто индикатор).
+# Никаких "сгоревших серий" — для T1D-ученика это было бы фрустрирующим.
+
+
+class StreakOut(BaseModel):
+    current_streak_days: int
+    longest_streak_days: int
+    total_active_days: int
+    last_active_date: str | None  # YYYY-MM-DD
+    # T1D-friendly: "сообщение поддержки" — позитивная формулировка.
+    encouragement: str
+
+
+_ENCOURAGEMENTS = [
+    "🔥 Отлично! Ты на серии!",
+    "✨ Замечательная работа!",
+    "💪 Так держать!",
+    "🌟 Каждый день — это шаг вперёд!",
+    "📚 Ты становишься умнее с каждым днём!",
+    None,  # без поздравления
+]
+
+
+@router.get("/streak", response_model=StreakOut)
+def my_streak(
+    db: Session = Depends(get_db),
+    current: User = Depends(current_user),
+):
+    """Sprint 8.1: текущая серия активности ученика.
+
+    Активность = attempts с created_at за этот день (любой is_correct).
+
+    T1D-friendly:
+    - longest_streak = max за всё время, растёт
+    - current_streak = сколько дней подряд до сегодня включительно
+    - Если сегодня не было активности, current=0 (но НЕ штраф)
+    - total_active_days = общее количество дней с активностью
+
+    Пропуск дня НЕ наказывается. Можно вернуться в любой момент.
+    """
+    from datetime import date as _date, datetime, timedelta, timezone
+
+    from app.parents.service import _compute_streak
+    from app.progress import models as prog_models
+
+    user_id = current.id  # alias чтобы не путать с imported current
+    today = datetime.now(timezone.utc).date()
+    # Находим все уникальные даты активности
+    attempts = db.execute(
+        select(prog_models.Attempt).where(prog_models.Attempt.user_id == user_id)
+    ).scalars().all()
+
+    active_dates: set[str] = set()
+    for a in attempts:
+        if a.created_at:
+            d = a.created_at.date() if isinstance(a.created_at, datetime) else a.created_at
+            active_dates.add(d.isoformat())
+
+    current_streak, longest, total = _compute_streak(active_dates, today.isoformat())
+
+    # Последний день активности (для UI)
+    last_active = max(active_dates) if active_dates else None
+
+    # Encouragement: случайное поздравление (только если current > 0)
+    if current_streak > 0:
+        import random
+
+        msg = random.choice([e for e in _ENCOURAGEMENTS if e])
+    else:
+        msg = "Каждый день — новая возможность! 🌱"
+
+    return StreakOut(
+        current_streak_days=current_streak,
+        longest_streak_days=longest,
+        total_active_days=total,
+        last_active_date=last_active,
+        encouragement=msg,
+    )

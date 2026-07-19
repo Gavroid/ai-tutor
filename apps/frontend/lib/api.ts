@@ -238,6 +238,20 @@ export const api = {
       headers: { Authorization: `Bearer ${token}` },
     });
   },
+  // Sprint 8.1: streak для ученика.
+  studentStreak: () => {
+    const token = getToken();
+    if (!token) return Promise.resolve(null);
+    return request<{
+      current_streak_days: number;
+      longest_streak_days: number;
+      total_active_days: number;
+      last_active_date: string | null;
+      encouragement: string;
+    }>("/api/v1/student/streak", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
 
   // Sprint 2.3 — Voice transcription
   voiceTranscribe: async (audioBlob: Blob): Promise<{ text: string }> => {

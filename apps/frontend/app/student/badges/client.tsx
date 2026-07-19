@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, getToken } from "@/lib/api";
+import StreakCard from "@/components/StreakCard";
 
 type BadgeOut = {
   slug: string;
@@ -16,6 +17,13 @@ type BadgeOut = {
 export default function StudentBadgesClient() {
   const router = useRouter();
   const [badges, setBadges] = useState<BadgeOut[] | null>(null);
+  const [streak, setStreak] = useState<{
+    current_streak_days: number;
+    longest_streak_days: number;
+    total_active_days: number;
+    last_active_date: string | null;
+    encouragement: string;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [newlyAwarded, setNewlyAwarded] = useState<string[]>([]);
 
@@ -25,6 +33,8 @@ export default function StudentBadgesClient() {
       return;
     }
     refresh();
+    // Sprint 8.1: parallel load streak
+    api.studentStreak().then(setStreak).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -59,6 +69,13 @@ export default function StudentBadgesClient() {
 
   return (
     <div>
+      {/* Sprint 8.1: streak card (T1D-friendly) */}
+      {streak && (
+        <div className="mt-4">
+          <StreakCard streak={streak} />
+        </div>
+      )}
+
       <button
         onClick={evaluate}
         disabled={busy}
