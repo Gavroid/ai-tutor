@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, getToken } from "@/lib/api";
 import StreakCard from "@/components/StreakCard";
+import NextTopicCard from "@/components/NextTopicCard";
 
 type BadgeOut = {
   slug: string;
@@ -24,6 +25,16 @@ export default function StudentBadgesClient() {
     last_active_date: string | null;
     encouragement: string;
   } | null>(null);
+  // Sprint 8.2: рекомендация следующей темы.
+  const [nextTopic, setNextTopic] = useState<{
+    topic_id: number | null;
+    topic_name: string | null;
+    subject_id: number | null;
+    subject_name: string | null;
+    reason: "weak_topic" | "next_in_curriculum" | "all_mastered";
+    mastery_score: number | null;
+    encouragement: string;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [newlyAwarded, setNewlyAwarded] = useState<string[]>([]);
 
@@ -35,6 +46,8 @@ export default function StudentBadgesClient() {
     refresh();
     // Sprint 8.1: parallel load streak
     api.studentStreak().then(setStreak).catch(() => {});
+    // Sprint 8.2: parallel load next topic
+    api.recommendNext().then(setNextTopic).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -73,6 +86,18 @@ export default function StudentBadgesClient() {
       {streak && (
         <div className="mt-4">
           <StreakCard streak={streak} />
+        </div>
+      )}
+
+      {/* Sprint 8.2: рекомендация следующей темы (adaptive curriculum) */}
+      {nextTopic && (
+        <div className="mt-4">
+          <NextTopicCard
+            next={nextTopic}
+            onRefresh={() => {
+              api.recommendNext().then(setNextTopic).catch(() => {});
+            }}
+          />
         </div>
       )}
 
