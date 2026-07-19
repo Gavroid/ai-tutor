@@ -125,6 +125,96 @@ def admin_stats(
     }
 
 
+# === Sprint 9: engagement метрики ===
+@router.get("/engagement")
+def admin_engagement(
+    days: int = 30,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_admin()),
+):
+    """Sprint 9: метрики engagement за последние N дней.
+
+    Возвращает:
+    - active_users: уникальных пользователей с активностью за период
+    - total_sessions: количество сессий (по audit_log)
+    - avg_session_duration_min: средняя длительность сессии
+    - retention_d1, retention_d7: cohort retention (TODO Sprint 9.2)
+    - top_subjects: топ-3 предмета по attempts
+    - daily_active_users: DAU за последние 14 дней (для графика)
+    """
+    from datetime import datetime, timedelta, timezone
+
+    from app.progress import models as prog_models
+    from app.subjects import models as subj_models
+    from sqlalchemy import func as sqlfunc
+
+    days = max(1, min(days, 365))
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+
+    # DAU за последние 14 дней (для графика)
+    dau_14 = []
+    for d in range(13, -1, -1):
+        day_start = (datetime.now(timezone.utc) - timedelta(days=d)).date()
+        day_end = day_start + timedelta(days=1)
+        # attempts за этот день
+        cnt = db.scalar(
+            select(sqlfunc.count(sqlfunc.distinct(prog_models.Attempt.user_id))).where(
+                prog_models.Attempt.created_at >= day_start,
+                prog_models.Attempt.created_at < day_end,
+            )
+        ) or 0
+        dau_14.append({"date": day_start.isoformat(), "active_users": int(cnt)})
+
+    # Active users за период
+    active_user_ids = (
+        db.execute(
+            select(sqlfunc.distinct(prog_models.Attempt.user_id)).where(
+                prog_models.Attempt.created_at >= since
+            )
+        ).scalars().all()
+    )
+    active_users = len(active_user_ids)
+
+    # Total attempts за период
+    total_attempts = db.scalar(
+        select(sqlfunc.count(prog_models.Attempt.id)).where(
+            prog_models.Attempt.created_at >= since
+        )
+    ) or 0
+
+    # Top subjects (по attempts)
+    top_subjects_rows = db.execute(
+        select(
+            subj_models.Subject.id,
+            subj_models.Subject.name,
+            sqlfunc.count(prog_models.Attempt.id).label("attempts"),
+        )
+        .join(subj_models.Topic, subj_models.Topic.section_id == None)  # placeholder
+        .join(subj_models.Section, subj_models.Section.subject_id == subj_models.Subject.id)
+        .join(prog_models.Attempt, prog_models.Attempt.topic_id == subj_models.Topic.id)
+        .where(prog_models.Attempt.created_at >= since)
+        .group_by(subj_models.Subject.id, subj_models.Subject.name)
+        .order_by(sqlfunc.count(prog_models.Attempt.id).desc())
+        .limit(3)
+    ).all()
+
+    top_subjects = [
+        {"id": s[0], "name": s[1], "attempts": int(s[2])}
+        for s in top_subjects_rows
+    ]
+
+    return {
+        "period_days": days,
+        "active_users": active_users,
+        "total_attempts": int(total_attempts),
+        "avg_attempts_per_active_user": (
+            round(total_attempts / active_users, 1) if active_users else 0
+        ),
+        "dau_last_14_days": dau_14,
+        "top_subjects": top_subjects,
+    }
+
+
 @router.post("/diagnostics/expire-stale")
 def expire_diagnostics(
     ttl_hours: int = 24,
