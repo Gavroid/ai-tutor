@@ -182,24 +182,27 @@ def admin_engagement(
         )
     ) or 0
 
-    # Top subjects (по attempts)
+    # Top subjects (по количеству уникальных учеников с progress по теме этого предмета).
+    # Простой подсчёт через progress → topic → section → subject.
     top_subjects_rows = db.execute(
         select(
             subj_models.Subject.id,
             subj_models.Subject.name,
-            sqlfunc.count(prog_models.Attempt.id).label("attempts"),
+            sqlfunc.count(sqlfunc.distinct(prog_models.Progress.user_id)).label(
+                "students"
+            ),
         )
-        .join(subj_models.Topic, subj_models.Topic.section_id == None)  # placeholder
-        .join(subj_models.Section, subj_models.Section.subject_id == subj_models.Subject.id)
-        .join(prog_models.Attempt, prog_models.Attempt.topic_id == subj_models.Topic.id)
-        .where(prog_models.Attempt.created_at >= since)
+        .select_from(prog_models.Progress)
+        .join(subj_models.Topic, prog_models.Progress.topic_id == subj_models.Topic.id)
+        .join(subj_models.Section, subj_models.Topic.section_id == subj_models.Section.id)
+        .join(subj_models.Subject, subj_models.Section.subject_id == subj_models.Subject.id)
         .group_by(subj_models.Subject.id, subj_models.Subject.name)
-        .order_by(sqlfunc.count(prog_models.Attempt.id).desc())
+        .order_by(sqlfunc.count(sqlfunc.distinct(prog_models.Progress.user_id)).desc())
         .limit(3)
     ).all()
 
     top_subjects = [
-        {"id": s[0], "name": s[1], "attempts": int(s[2])}
+        {"id": s[0], "name": s[1], "students": int(s[2])}
         for s in top_subjects_rows
     ]
 
