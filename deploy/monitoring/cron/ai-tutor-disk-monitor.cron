@@ -1,0 +1,2 @@
+# Sprint 3.6.2 — disk usage monitor (каждый час).
+0 * * * * root bash /opt/ai-tutor/deploy/monitoring/disk-monitor.sh >> /var/log/ai-tutor-cron.log 2>&1

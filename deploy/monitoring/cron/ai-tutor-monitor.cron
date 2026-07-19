@@ -1,0 +1,8 @@
+# Sprint 3.5 — мониторинг healthcheck + error-rate.
+# Sprint 6 fix: source /opt/ai-tutor/.env
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HOME=/root
+
+*/5 * * * * root bash -c "set -a; source /opt/ai-tutor/.env; set +a; /opt/ai-tutor/deploy/monitoring/healthcheck.sh" >> /var/log/ai-tutor-monitor.log 2>&1
+*/5 * * * * root bash -c "set -a; source /opt/ai-tutor/.env; set +a; /opt/ai-tutor/deploy/monitoring/error-rate.sh" >> /var/log/ai-tutor-monitor.log 2>&1

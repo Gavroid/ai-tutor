@@ -1,0 +1,7 @@
+# Sprint 3.2.2 — очистка audit_logs старше 90 дней (TTL).
+# Sprint 6 fix: source /opt/ai-tutor/.env (НЕ /etc/ai-tutor/.env — нет на проде)
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HOME=/root
+
+0 3 * * * root bash -c "set -a; source /opt/ai-tutor/.env; set +a; docker exec deploy-backend-1 python3 /app/scripts/audit_cleanup.py" >> /var/log/ai-tutor-audit-cleanup.log 2>&1

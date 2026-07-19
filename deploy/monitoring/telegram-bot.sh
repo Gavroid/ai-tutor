@@ -1,26 +1,28 @@
 #!/bin/bash
-# Sprint 6.1 — запуск Telegram bot в фоне.
-#
-# Этот скрипт проверяет что бот работает и перезапускает если нет.
+# Sprint 6.1 — supervisor для Telegram bot.
 # Запускать через cron каждые 5 минут.
+# Проверяет живой ли бот в контейнере (НЕ на хосте, потому что
+# процесс живёт в namespace контейнера).
 
 set -uo pipefail
 
+# Загружаем env из /opt/ai-tutor/.env (НЕ /etc/ai-tutor/.env — нет на проде).
+set -a
+source /opt/ai-tutor/.env
+set +a
+
 LOG=/var/log/ai-tutor-telegram-bot.log
-BOT_PID_FILE=/var/run/ai-tutor-telegram-bot.pid
 CONTAINER="deploy-backend-1"
 
-# Если уже запущен — выходим
-if [ -f "$BOT_PID_FILE" ]; then
-    PID=$(cat "$BOT_PID_FILE")
-    if ps -p "$PID" > /dev/null 2>&1; then
-        # Уже работает
-        exit 0
-    fi
-    rm -f "$BOT_PID_FILE"
+# Проверяем что бот жив в контейнере.
+ALIVE=$(docker exec "$CONTAINER" bash -c 'for pid in $(ls /proc/); do cmdline=$(cat /proc/$pid/cmdline 2>/dev/null); if [ -n "$cmdline" ] && echo "$cmdline" | grep -q app.bot.telegram_bot; then echo $pid; break; fi; done' 2>/dev/null)
+
+if [ -n "$ALIVE" ]; then
+    # Бот уже работает — выходим
+    exit 0
 fi
 
-# Запускаем бот внутри контейнера в фоне
-docker exec -u root -d "$CONTAINER" bash -c "nohup python3 -m app.bot.telegram_bot > /var/log/ai-tutor-telegram-bot.log 2>&1 & echo \$!" > "$BOT_PID_FILE"
-
-echo "[$(date -u +%FT%TZ)] telegram bot started (pid=$(cat $BOT_PID_FILE))" >> "$LOG"
+# Бот не найден в контейнере — запускаем
+echo "[$(date -u +%FT%TZ)] telegram bot not running, starting..." >> "$LOG"
+docker exec -u root -e TELEGRAM_BOT_TOKEN="$TELEGRAM_BOT_TOKEN" -e REDIS_URL="$REDIS_URL" "$CONTAINER" bash -c 'nohup python3 -m app.bot.telegram_bot > /tmp/ai-tutor-telegram-bot.log 2>&1 &'
+echo "[$(date -u +%FT%TZ)] telegram bot started" >> "$LOG"

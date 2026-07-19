@@ -1,0 +1,7 @@
+# Sprint 3.0 — ежедневный полный бэкап PostgreSQL + uploads.
+# Ежедневно 03:00 UTC. Источник env: /opt/ai-tutor/.env.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HOME=/root
+
+0 3 * * * root bash -c "set -a; source /opt/ai-tutor/.env; set +a; /opt/ai-tutor/deploy/backup/backup.sh" >> /var/log/ai-tutor-backup.log 2>&1
