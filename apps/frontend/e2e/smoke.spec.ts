@@ -12,12 +12,12 @@ import { test, expect } from "@playwright/test";
 
 const TEST_USER = {
   email: "kirill@example.com",
-  password: "strongpass1",
+  password: "Kirill2026!",
 };
 
 const ADMIN_USER = {
   email: "admin@example.com",
-  password: "strongpass1",
+  password: "Kirill2026!",
 };
 
 test.describe("Public pages", () => {

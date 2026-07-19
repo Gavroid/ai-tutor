@@ -40,6 +40,8 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [actionFilter, setActionFilter] = useState<string>("");
+  // Sprint 10.4: filter по entity
+  const [entityFilter, setEntityFilter] = useState<string>("");
   const [since, setSince] = useState<string>("");
   const [until, setUntil] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +85,8 @@ export default function AdminPage() {
         const data = await api.adminAuditLog({
           limit: 200,
           action: actionFilter || undefined,
+          // Sprint 10.4: filter по entity
+          entity: entityFilter || undefined,
           since: since || undefined,
           until: until || undefined,
         });
@@ -173,12 +177,20 @@ export default function AdminPage() {
         {busy && <div className="text-sm text-slate-500">Загрузка…</div>}
 
         {tab === "audit" && !busy && (
-          <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:grid-cols-4">
+          <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:grid-cols-5">
             <input
               type="text"
               placeholder="Действие (action)"
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
+              className="rounded border border-slate-300 px-2 py-1 text-sm"
+            />
+            {/* Sprint 10.4: filter по entity */}
+            <input
+              type="text"
+              placeholder="Entity (users/exercises/ai...)"
+              value={entityFilter}
+              onChange={(e) => setEntityFilter(e.target.value)}
               className="rounded border border-slate-300 px-2 py-1 text-sm"
             />
             <input

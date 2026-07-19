@@ -19,7 +19,7 @@ import { test, expect } from "@playwright/test";
 
 const STUDENT = {
   email: "student-e2e@example.com",
-  password: "strongpass1",
+  password: "Kirill2026!",
 };
 
 test.describe("Student full cycle", () => {

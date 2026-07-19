@@ -13,12 +13,12 @@ import { test, expect } from "@playwright/test";
 
 const PARENT_USER = {
   email: "parent-e2e@example.com",
-  password: "strongpass1",
+  password: "Kirill2026!",
 };
 
 const KID_USER = {
   email: "kid-e2e@example.com",
-  password: "strongpass1",
+  password: "Kirill2026!",
 };
 
 test.describe("Parent dashboard", () => {

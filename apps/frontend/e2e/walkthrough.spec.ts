@@ -18,10 +18,10 @@ import * as path from "path";
 
 const PILOT = {
   baseURL: process.env.BASE_URL || "https://192.168.1.86",
-  admin: { email: "admin@example.com", password: "strongpass1" },
-  teacher: { email: "teacher@example.com", password: "strongpass1" },
-  parent: { email: "parent-e2e@example.com", password: "strongpass1" },
-  student: { email: "kirill@example.com", password: "strongpass1" },
+  admin: { email: "admin@example.com", password: "Kirill2026!" },
+  teacher: { email: "teacher@example.com", password: "Kirill2026!" },
+  parent: { email: "parent-e2e@example.com", password: "Kirill2026!" },
+  student: { email: "kirill@example.com", password: "Kirill2026!" },
 } as const;
 
 const SCREENSHOT_DIR = "screenshots/walkthrough";

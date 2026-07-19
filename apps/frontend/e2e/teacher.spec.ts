@@ -13,12 +13,12 @@ import { test, expect } from "@playwright/test";
 
 const TEACHER_USER = {
   email: "teacher-ui@example.com",
-  password: "strongpass1",
+  password: "Kirill2026!",
 };
 
 const KID_USER = {
   email: "kirill@example.com",
-  password: "strongpass1",
+  password: "Kirill2026!",
 };
 
 test.describe("Teacher UI", () => {

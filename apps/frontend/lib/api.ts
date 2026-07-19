@@ -458,13 +458,16 @@ export const api = {
         created_at: string;
       }>
     >("/api/v1/admin/users"),
-  adminAuditLog: (params: { user_id?: number; action?: string; since?: string; until?: string; limit?: number } = {}) => {
+  adminAuditLog: (params: { user_id?: number; action?: string; entity?: string; since?: string; until?: string; limit?: number; offset?: number } = {}) => {
     const search = new URLSearchParams();
     if (params.user_id !== undefined) search.set("user_id", String(params.user_id));
     if (params.action) search.set("action", params.action);
+    // Sprint 10.4: filter по entity (audit.entity)
+    if (params.entity) search.set("entity", params.entity);
     if (params.since) search.set("since", params.since);
     if (params.until) search.set("until", params.until);
     if (params.limit) search.set("limit", String(params.limit));
+    if (params.offset !== undefined) search.set("offset", String(params.offset));
     const qs = search.toString();
     return request<
       Array<{
@@ -478,6 +481,19 @@ export const api = {
         created_at: string;
       }>
     >(`/api/v1/admin/audit-log${qs ? "?" + qs : ""}`);
+  },
+  // Sprint 10.4: total count для pagination в audit log UI
+  adminAuditLogCount: (params: { user_id?: number; action?: string; entity?: string; since?: string; until?: string } = {}) => {
+    const search = new URLSearchParams();
+    if (params.user_id !== undefined) search.set("user_id", String(params.user_id));
+    if (params.action) search.set("action", params.action);
+    if (params.entity) search.set("entity", params.entity);
+    if (params.since) search.set("since", params.since);
+    if (params.until) search.set("until", params.until);
+    const qs = search.toString();
+    return request<{ total: number }>(
+      `/api/v1/admin/audit-log/count${qs ? "?" + qs : ""}`,
+    );
   },
   adminDeactivateUser: (user_id: number) =>
     request<{ ok: boolean }>(`/api/v1/admin/users/${user_id}/deactivate`, { method: "POST" }),

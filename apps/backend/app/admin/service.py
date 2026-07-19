@@ -63,17 +63,24 @@ def list_logs(
     db: Session,
     user_id: int | None = None,
     action: str | None = None,
+    entity: str | None = None,
     since: object | None = None,  # datetime | None
     until: object | None = None,  # datetime | None
     limit: int = 100,
     offset: int = 0,
 ) -> list[models.AuditLog]:
-    """Список событий для админа с фильтром по дате."""
+    """Список событий для админа с фильтром по дате.
+
+    Sprint 10.4: добавлен фильтр по entity (audit.entity — например, "users",
+    "exercises"). Фильтруются все параметры AND-логикой.
+    """
     q = select(models.AuditLog).order_by(models.AuditLog.created_at.desc()).limit(limit).offset(offset)
     if user_id is not None:
         q = q.where(models.AuditLog.user_id == user_id)
     if action is not None:
         q = q.where(models.AuditLog.action == action)
+    if entity is not None:
+        q = q.where(models.AuditLog.entity == entity)
     if since is not None:
         # Нормализуем — БД может вернуть naive datetime
         since_v = since
@@ -90,6 +97,43 @@ def list_logs(
             until_v = until_v.replace(tzinfo=timezone.utc)
         q = q.where(models.AuditLog.created_at <= until_v)
     return db.scalars(q).all()
+
+
+def count_logs(
+    db: Session,
+    user_id: int | None = None,
+    action: str | None = None,
+    entity: str | None = None,
+    since: object | None = None,
+    until: object | None = None,
+) -> int:
+    """Sprint 10.4: total count для пагинации в audit log UI.
+
+    Принимает те же фильтры что и list_logs (без limit/offset),
+    возвращает количество подходящих записей.
+    """
+    from sqlalchemy import func as sqlfunc
+
+    q = select(sqlfunc.count(models.AuditLog.id))
+    if user_id is not None:
+        q = q.where(models.AuditLog.user_id == user_id)
+    if action is not None:
+        q = q.where(models.AuditLog.action == action)
+    if entity is not None:
+        q = q.where(models.AuditLog.entity == entity)
+    if since is not None:
+        since_v = since
+        if since_v.tzinfo is None:
+            from datetime import timezone
+            since_v = since_v.replace(tzinfo=timezone.utc)
+        q = q.where(models.AuditLog.created_at >= since_v)
+    if until is not None:
+        until_v = until
+        if until_v.tzinfo is None:
+            from datetime import timezone
+            until_v = until_v.replace(tzinfo=timezone.utc)
+        q = q.where(models.AuditLog.created_at <= until_v)
+    return db.scalar(q) or 0
 
 
 # === Sprint 4.2: Audit log retention ===

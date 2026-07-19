@@ -24,6 +24,7 @@ router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 def list_audit(
     user_id: int | None = None,
     action: str | None = None,
+    entity: str | None = None,
     since: str | None = None,
     until: str | None = None,
     limit: int = 100,
@@ -31,7 +32,9 @@ def list_audit(
     db: Session = Depends(get_db),
     current: User = Depends(require_admin()),
 ):
-    """Audit log (только для admin). Поддерживает фильтры: action, user_id, since, until."""
+    """Audit log (только для admin). Поддерживает фильтры:
+    action, user_id, entity, since, until.
+    """
     since_dt = None
     until_dt = None
     if since:
@@ -46,8 +49,49 @@ def list_audit(
             raise HTTPException(400, f"Некорректный until: {until}")
 
     return service.list_logs(
-        db, user_id, action, since_dt, until_dt, min(limit, 500), max(offset, 0)
+        db,
+        user_id=user_id,
+        action=action,
+        entity=entity,
+        since=since_dt,
+        until=until_dt,
+        limit=min(limit, 500),
+        offset=max(offset, 0),
     )
+
+
+# === Sprint 10.4: total count для пагинации в audit log ===
+@router.get("/audit-log/count")
+def audit_log_count(
+    user_id: int | None = None,
+    action: str | None = None,
+    entity: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_admin()),
+):
+    """Sprint 10.4: количество audit_log записей с теми же фильтрами что в audit-log.
+
+    Используется админом для отображения пагинации.
+    """
+    since_dt = None
+    until_dt = None
+    if since:
+        try:
+            since_dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
+        except ValueError:
+            raise HTTPException(400, f"Некорректный since: {since}")
+    if until:
+        try:
+            until_dt = datetime.fromisoformat(until.replace("Z", "+00:00"))
+        except ValueError:
+            raise HTTPException(400, f"Некорректный until: {until}")
+
+    total = service.count_logs(
+        db, user_id, action, entity, since_dt, until_dt
+    )
+    return {"total": int(total)}
 
 
 @router.get("/users")
