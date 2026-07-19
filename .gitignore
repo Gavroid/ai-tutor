@@ -18,6 +18,10 @@ test-results/
 # Hermes internal artifacts (plans, reviews) — not for git
 .hermes/
 
+# Playwright screenshots (auto-generated, 100+ files per run)
+apps/frontend/screenshots/
+apps/frontend/tsconfig.tsbuildinfo
+
 # GitHub deploy key (private) — для CI/CD
 .ssh_github_deploy_key
 

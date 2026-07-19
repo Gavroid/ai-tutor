@@ -5,6 +5,25 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, setToken, ApiError } from "@/lib/api";
 
+// Sprint 11.1: per-role landing page.
+// parent → /parents (linked children dashboard)
+// teacher → /teacher (materials + generate tools)
+// admin → /admin (audit + users)
+// student → /subjects (default).
+async function landingForRole(role: string): Promise<string> {
+  switch (role) {
+    case "parent":
+      return "/parents";
+    case "teacher":
+      return "/teacher";
+    case "admin":
+      return "/admin";
+    case "student":
+    default:
+      return "/subjects";
+  }
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -14,9 +33,20 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.localStorage.getItem("ai-tutor-token")) {
-      router.push("/subjects");
+      // Sprint 11.1: если уже залогинен — сразу на нужную страницу (через /me).
+      const stored = window.localStorage.getItem("ai-tutor-me");
+      const role = stored ? (safeParse(stored)?.role ?? "student") : "student";
+      landingForRole(role).then((p) => router.push(p));
     }
   }, [router]);
+
+  function safeParse(raw: string): { role?: string } | null {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,7 +55,16 @@ export default function LoginPage() {
     try {
       const pair = await api.login({ email, password });
       setToken(pair.access_token);
-      router.push("/subjects");
+      // Sprint 11.1: запросить /me для определения роли и редиректа.
+      let role = "student";
+      try {
+        const me = await api.me();
+        role = me.role;
+        window.localStorage.setItem("ai-tutor-me", JSON.stringify(me));
+      } catch {
+        // если /me не успел — fallback на student
+      }
+      router.push(await landingForRole(role));
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) setError("Неверный email или пароль");
       else setError("Не удалось войти. Проверьте соединение с сервером.");

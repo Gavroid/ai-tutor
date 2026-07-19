@@ -11,6 +11,12 @@ body {
   height: 100%;
   margin: 0;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Sprint 11.5: Увеличенный базовый font-size для T1D-friendly UX.
+     17px (вместо дефолтного 16px) делает текст читабельнее во время
+     гипо/гипер эпизодов (глаза фокусируются хуже). line-height 1.55 для
+     комфортного чтения длинных AI-ответов. WCAG AAA контраст не теряется. */
+  font-size: 17px;
+  line-height: 1.55;
 }
 
 /* Sprint 5.3: dark mode базовые стили. Сейчас используется class-based darkMode
@@ -24,4 +30,50 @@ html.dark {
 html.dark body {
   background-color: rgb(15 23 42); /* slate-900 */
   color: rgb(226 232 240); /* slate-200 */
+}
+
+/* Sprint 11.2 — keyboard navigation accessibility.
+   WCAG 2.1 SC 2.4.7 (Focus Visible): focus indicator должен быть ясно видимым.
+   - 3px solid ring (WCAG non-text contrast 3:1 minimum).
+   - Контрастный outline-offset 2px чтобы не сливался с border. */
+*:focus-visible {
+  outline: 3px solid rgb(2 132 199) !important; /* sky-600 — контраст 4.5+ на светлом */
+  outline-offset: 2px !important;
+  border-radius: 4px;
+}
+html.dark *:focus-visible {
+  outline-color: rgb(125 211 252) !important; /* sky-300 для контраста на тёмном */
+}
+
+/* Sprint 11.2 — skip-link для screen-reader / keyboard users.
+   Появляется только при фокусе (визуально скрыт, но доступен клавиатуре). */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  padding: 8px 16px;
+  background: rgb(2 132 199);
+  color: white;
+  font-weight: 600;
+  z-index: 100;
+  border-radius: 0 0 4px 0;
+  text-decoration: none;
+  transition: top 0.2s;
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 0;
+}
+
+/* Sprint 11.5 — prefers-reduced-motion: уважаем настройки пользователя.
+   Для детей с T1D (Кирилл) это важно — снижает напряжение глаз при гипо/гипер. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

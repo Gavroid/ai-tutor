@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, getToken } from "@/lib/api";
+import EmptyState from "@/components/EmptyState";
 
 type LinkedStudent = {
   student_id: number;
@@ -117,7 +118,15 @@ export default function ParentsPage() {
       <section className="mt-6">
         <h2 className="text-lg font-semibold">Привязанные дети</h2>
         {children.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">Пока никого нет. Создайте код выше.</p>
+          // Sprint 11.3: EmptyState для UX (вместо серой строки текста).
+          <div className="mt-3">
+            <EmptyState
+              icon="👨‍👩‍👧"
+              title="Пока никого нет"
+              description="Создайте код-приглашение выше и попросите ребёнка ввести его в его личном кабинете в разделе «Привязка родителя»."
+              variant="neutral"
+            />
+          </div>
         ) : (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {children.map((c) => (
@@ -160,7 +169,15 @@ export default function ParentsPage() {
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <h3 className="text-base font-semibold">Слабые темы</h3>
             {overview.weak_topics.length === 0 ? (
-              <p className="mt-2 text-sm text-slate-500">Нет слабых тем — отлично!</p>
+              // Sprint 11.3: positive empty state (всё хорошо).
+              <div className="mt-3">
+                <EmptyState
+                  icon="🎉"
+                  title="Нет слабых тем — отлично!"
+                  description="Ребёнок отлично справляется со всеми темами."
+                  variant="positive"
+                />
+              </div>
             ) : (
               <ul className="mt-2 space-y-1 text-sm">
                 {overview.weak_topics.map((w) => (
@@ -180,7 +197,15 @@ export default function ParentsPage() {
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <h3 className="text-base font-semibold">Активность (последние дни)</h3>
             {overview.daily_activity.length === 0 ? (
-              <p className="mt-2 text-sm text-slate-500">Ребёнок ещё не начинал заниматься.</p>
+              // Sprint 11.3: EmptyState для родителя.
+              <div className="mt-3">
+                <EmptyState
+                  icon="🌱"
+                  title="Ребёнок ещё не начинал заниматься"
+                  description="Как только ребёнок сделает первое задание, здесь появится график активности."
+                  variant="neutral"
+                />
+              </div>
             ) : (
               <div className="mt-3 flex items-end gap-1">
                 {overview.daily_activity.map((d) => {

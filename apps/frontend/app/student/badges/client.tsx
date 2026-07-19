@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { api, getToken } from "@/lib/api";
 import StreakCard from "@/components/StreakCard";
 import NextTopicCard from "@/components/NextTopicCard";
+import Skeleton from "@/components/Skeleton";
 
 type BadgeOut = {
   slug: string;
@@ -74,7 +75,28 @@ export default function StudentBadgesClient() {
   }
 
   if (badges === null) {
-    return <p className="mt-4 text-sm text-slate-500">Загрузка…</p>;
+    // Sprint 11.4: skeleton вместо "Загрузка..." чтобы избежать
+    // визуальных скачков layout и показать что идёт работа.
+    return (
+      <div data-testid="badges-skeleton" className="space-y-4">
+        <div className="rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <Skeleton width="w-48" height="h-6" />
+          <Skeleton className="mt-3" width="w-72" height="h-4" />
+        </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+            >
+              <Skeleton width="w-12" height="h-12" className="rounded-full" />
+              <Skeleton className="mt-3" width="w-full" />
+              <Skeleton className="mt-2" width="w-3/4" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   const earned = badges.filter((b) => b.awarded_at);
