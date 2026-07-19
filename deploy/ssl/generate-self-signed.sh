@@ -33,6 +33,9 @@ chmod 644 "$CERT_DIR/fullchain.pem"
 echo "OK. Сертификаты:"
 ls -la "$CERT_DIR"
 echo
+echo "Для клиентов без предупреждения браузера — установи CA на устройствах:"
+echo "  bash $SCRIPT_DIR/install-ca-on-client.sh $CERT_DIR/fullchain.pem"
+echo
 echo "Подключи HTTPS в docker-compose (раскомментируй volume):"
 echo "  ./ssl/certs:/etc/nginx/certs:ro"
 echo

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, getToken } from "@/lib/api";
 import Header from "@/components/Header";
+import AddStudentModal from "@/components/AddStudentModal";
 import type { User } from "@/types";
 
 type AuditEntry = {
@@ -44,6 +45,8 @@ export default function AdminPage() {
   const [busy, setBusy] = useState(false);
   // Sprint 5.1: user state для Header (logout button).
   const [current, setCurrent] = useState<User | null>(null);
+  // Sprint 7.1: state для модалки создания ученика.
+  const [showAddStudent, setShowAddStudent] = useState(false);
 
   useEffect(() => {
     if (!getToken()) return;
@@ -231,7 +234,18 @@ export default function AdminPage() {
         )}
 
         {tab === "users" && !busy && (
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="space-y-3">
+            {/* Sprint 7.1: кнопка добавления ученика */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowAddStudent(true)}
+                data-testid="add-student-button"
+                className="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-500"
+              >
+                + Создать ученика
+              </button>
+            </div>
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                 <tr>
@@ -284,6 +298,16 @@ export default function AdminPage() {
               </tbody>
             </table>
           </div>
+          </div>
+        )}
+
+        {showAddStudent && (
+          <AddStudentModal
+            onClose={() => setShowAddStudent(false)}
+            onCreated={() => {
+              refresh("users");
+            }}
+          />
         )}
 
         {tab === "stats" && !busy && stats && (
