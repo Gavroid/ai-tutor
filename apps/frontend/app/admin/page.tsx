@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api, getToken } from "@/lib/api";
 import Header from "@/components/Header";
 import AddStudentModal from "@/components/AddStudentModal";
+import EngagementCard from "@/components/EngagementCard";
 import type { User } from "@/types";
 
 type AuditEntry = {
@@ -47,14 +48,32 @@ export default function AdminPage() {
   const [current, setCurrent] = useState<User | null>(null);
   // Sprint 7.1: state для модалки создания ученика.
   const [showAddStudent, setShowAddStudent] = useState(false);
+  // Sprint 9: engagement data.
+  const [engagement, setEngagement] = useState<{
+    period_days: number;
+    active_users: number;
+    total_attempts: number;
+    avg_attempts_per_active_user: number;
+    dau_last_14_days: Array<{ date: string; active_users: number }>;
+    top_subjects: Array<{ id: number; name: string; students: number }>;
+  } | null>(null);
 
   useEffect(() => {
     if (!getToken()) return;
     // Sprint 5.1: загружаем текущего юзера для Header.
     api.me().then(setCurrent).catch(() => {});
     refresh(tab);
+    // Sprint 9: load engagement (admin only).
+    if (current?.role === "admin") {
+      fetch("/api/v1/admin/engagement?days=30", {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => setEngagement(d))
+        .catch(() => {});
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
+  }, [tab, current?.role]);
 
   async function refresh(which: typeof tab) {
     setBusy(true);
@@ -311,13 +330,17 @@ export default function AdminPage() {
         )}
 
         {tab === "stats" && !busy && stats && (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-            <Stat label="Всего пользователей" value={stats.total_users} />
-            <Stat label="Активных" value={stats.active_users} />
-            <Stat label="Учеников" value={stats.by_role.student} />
-            <Stat label="Родителей" value={stats.by_role.parent} />
-            <Stat label="Учителей" value={stats.by_role.teacher} />
-            <Stat label="Админов" value={stats.by_role.admin} />
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              <Stat label="Всего пользователей" value={stats.total_users} />
+              <Stat label="Активных" value={stats.active_users} />
+              <Stat label="Учеников" value={stats.by_role.student} />
+              <Stat label="Родителей" value={stats.by_role.parent} />
+              <Stat label="Учителей" value={stats.by_role.teacher} />
+              <Stat label="Админов" value={stats.by_role.admin} />
+            </div>
+            {/* Sprint 9: engagement metrics */}
+            {engagement && <EngagementCard data={engagement} />}
           </div>
         )}
 
