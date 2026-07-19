@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, getToken, setToken, ApiError } from "@/lib/api";
 import type { Subject, User } from "@/types";
+import EmptyState from "@/components/EmptyState";
 
 type RecItem = {
   topic_id: number;
@@ -32,6 +33,8 @@ export default function HomePage() {
       days_overdue: number;
     }>
   >([]);
+  // Sprint 13: состояние поиска (case-insensitive contains).
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const token = getToken();
@@ -186,22 +189,81 @@ export default function HomePage() {
         </section>
       )}
 
-      <section className="mt-6">
-        <h2 className="text-lg font-semibold">Предметы</h2>
-        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-          {subjects.map((s) => (
-            <Link
-              key={s.id}
-              href={`/subjects/${s.id}`}
-              className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-300 hover:shadow-md"
-            >
-              <div className="text-3xl">{s.icon || "📘"}</div>
-              <div className="mt-2 font-semibold">{s.name}</div>
-              {s.description && <div className="mt-1 line-clamp-2 text-xs text-slate-500">{s.description}</div>}
-            </Link>
-          ))}
-        </div>
-      </section>
+      {/* Sprint 13: quick search filter для предметов.
+          - Без IFFE: filteredSubjects = subjects.filter(...) inline.
+          - Пустое состояние если ничего не найдено. */}
+      {(() => {
+        const q = searchQuery.trim().toLowerCase();
+        const filtered = q
+          ? subjects.filter(
+              (s) =>
+                s.name.toLowerCase().includes(q) ||
+                s.description?.toLowerCase().includes(q),
+            )
+          : subjects;
+        return (
+          filtered.length > 0 && (
+            <section className="mt-6">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-lg font-semibold">Предметы</h2>
+                <span className="text-xs text-slate-500">
+                  {q
+                    ? `${filtered.length} из ${subjects.length} найдено`
+                    : `${subjects.length} предмета`}
+                </span>
+              </div>
+
+              {/* Sprint 13: quick search filter.
+                  Большой плюс для детей — позволяет быстро найти предмет.
+                  Input имеет label для screen-reader, placeholder объясняет. */}
+              <div className="mt-3">
+                <label htmlFor="subject-search" className="sr-only">
+                  Поиск предмета
+                </label>
+                <input
+                  id="subject-search"
+                  type="search"
+                  inputMode="search"
+                  placeholder="🔍 Поиск предмета (математика, русский...)"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                />
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+                {filtered.map((s: Subject) => (
+                  <Link
+                    key={s.id}
+                    href={`/subjects/${s.id}`}
+                    className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                  >
+                    <div className="text-3xl" aria-hidden="true">
+                      {s.icon || "📘"}
+                    </div>
+                    <div className="mt-2 font-semibold">{s.name}</div>
+                    {s.description && (
+                      <div className="mt-1 line-clamp-2 text-xs text-slate-500">
+                        {s.description}
+                      </div>
+                    )}
+                  </Link>
+                ))}
+              </div>
+
+              {/* Sprint 13: пустое состояние когда ничего не найдено */}
+              {q && filtered.length === 0 && (
+                <EmptyState
+                  icon="🔍"
+                  title={`Ничего не найдено по «${searchQuery}»`}
+                  description="Попробуй другой запрос, например: матем, русск, физика"
+                  variant="neutral"
+                />
+              )}
+            </section>
+          )
+        );
+      })()}
     </main>
   );
 }

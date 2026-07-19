@@ -9,8 +9,6 @@
  */
 import { test, expect } from "@playwright/test";
 
-test.use({ ignoreHTTPSErrors: true, baseURL: "https://192.168.1.86" });
-
 const PAGES = [
   { name: "login", url: "/login", login: false },
   { name: "subjects", url: "/subjects", login: "student" },

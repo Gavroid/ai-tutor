@@ -24,8 +24,6 @@ const PILOT = {
   student: { email: "kirill@example.com", password: "Kirill2026!" },
 } as const;
 
-test.use({ ignoreHTTPSErrors: true, baseURL: PILOT.baseURL });
-
 async function login(page: Page, who: { email: string; password: string }): Promise<void> {
   await page.goto("/login");
   await page.locator("input[type='email']").first().fill(who.email);

@@ -26,7 +26,9 @@ const PILOT = {
 
 const SCREENSHOT_DIR = "screenshots/walkthrough";
 
-test.use({ ignoreHTTPSErrors: true, baseURL: PILOT.baseURL });
+test.beforeEach(async ({ page }) => {
+  // Walkthrough сам управляет navigation.
+});
 
 test.beforeAll(() => {
   fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });

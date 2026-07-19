@@ -1,12 +1,5 @@
 /**
- * Sprint 11.1 — мобильный UX audit.
- *
- * Проверяет:
- * - viewport-rendering на iPhone SE (375), iPhone 12 (390), Android (412)
- * - горизонтальный overflow (UI вылезает за viewport — плохо)
- * - touch targets >= 36px (минимальный для комфортного пальца)
- *
- * Без describe() — иначе не сработает с двумя файлами на test().
+ * Sprint 11.1 - mobile UX audit.
  */
 import { test, expect } from "@playwright/test";
 
@@ -23,8 +16,6 @@ const PAGES = [
   { name: "badges", url: "/student/badges", login: "student" },
   { name: "parents", url: "/parents", login: "parent" },
 ];
-
-test.use({ ignoreHTTPSErrors: true, baseURL: "https://192.168.1.86" });
 
 for (const t of TARGETS) {
   for (const p of PAGES) {
@@ -43,24 +34,17 @@ for (const t of TARGETS) {
 
       await page.goto(p.url);
       await page.waitForLoadState("networkidle", { timeout: 15_000 });
-      // Sprint 12: небольшой settle для layout-shift после navigation.
       await page.waitForTimeout(300);
 
       const overflow = await page.locator("body").evaluate((el) => ({
         scrollWidth: el.scrollWidth,
         clientWidth: el.clientWidth,
       }));
-      // 3px tolerance — micro-rounding может вызвать 1-2px overflow.
       const hasOverflow = overflow.scrollWidth > overflow.clientWidth + 3;
-
-      await page.screenshot({
-        path: `screenshots/mobile/${t.width}x${t.height}-${p.name}.png`,
-        fullPage: true,
-      });
 
       expect(
         hasOverflow,
-        `horizontal overflow on ${t.width}x${t.height} ${p.name}`,
+        `overflow on ${t.width}x${t.height} ${p.name}`,
       ).toBe(false);
     });
   }

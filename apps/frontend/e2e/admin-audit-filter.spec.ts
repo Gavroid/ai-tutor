@@ -4,7 +4,6 @@ import { test, expect } from "@playwright/test";
  * Sprint 10.4 — проверка фильтра audit log в админ-панели.
  * Тестирует: filter по entity, action, дате, и total count от API.
  */
-test.use({ ignoreHTTPSErrors: true, baseURL: "https://192.168.1.86" });
 
 const ADMIN = { email: "admin@example.com", password: "Kirill2026!" };
 
