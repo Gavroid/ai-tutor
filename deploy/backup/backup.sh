@@ -26,7 +26,17 @@ DOCKER_COMPOSE_DIR="$SCRIPT_DIR/.."
 DOCKER_PG_SERVICE="db"
 USE_DOCKER="false"
 if command -v docker >/dev/null 2>&1 && [ -f "$DOCKER_COMPOSE_DIR/docker-compose.yml" ]; then
-    if docker compose -f "$DOCKER_COMPOSE_DIR/docker-compose.yml" ps "$DOCKER_PG_SERVICE" 2>/dev/null | grep -q "running\|healthy\|starting"; then
+    # Sprint 9.2 audit fix: явный детект через docker inspect (более robust)
+    if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^deploy-${DOCKER_PG_SERVICE}-1$"; then
+        USE_DOCKER="true"
+    fi
+fi
+
+# Sprint 9.2 audit fix: если pg_dump не доступен на хосте — fallback на docker exec
+# даже если предыдущий детект не сработал (например cron с другим PATH).
+if [ "$USE_DOCKER" = "false" ] && ! command -v pg_dump >/dev/null 2>&1; then
+    if command -v docker >/dev/null 2>&1 && docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^deploy-${DOCKER_PG_SERVICE}-1$"; then
+        echo "[$(date -Iseconds)] pg_dump не найден, fallback на docker exec"
         USE_DOCKER="true"
     fi
 fi
