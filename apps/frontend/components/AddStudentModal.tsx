@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { api } from "@/lib/api";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 interface AddStudentModalProps {
   /** Sprint 7.1: вызывается после успешного создания. */
@@ -25,6 +26,11 @@ export default function AddStudentModal({ onCreated, onClose }: AddStudentModalP
   const [password, setPassword] = useState(autoGeneratePassword());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Sprint 14: focus-trap (Tab зацикливает внутри, Escape закрывает).
+  const dialogRef = useFocusTrap({
+    active: true,
+    onEscape: onClose,
+  });
 
   function autoGeneratePassword(): string {
     // Простой безопасный пароль: 12 chars с uppercase, lowercase, цифрами.
@@ -62,16 +68,22 @@ export default function AddStudentModal({ onCreated, onClose }: AddStudentModalP
   }
 
   return (
+    // Sprint 14: keyboard-trap (Escape close, Tab циклит), role=dialog, aria-modal=true.
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={onClose}
       data-testid="add-student-modal"
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-student-title"
+        tabIndex={-1}
+        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-xl font-bold text-slate-900">Создать ученика</h2>
+        <h2 id="add-student-title" className="text-xl font-bold text-slate-900">Создать ученика</h2>
         <p className="mt-1 text-sm text-slate-600">
           Новый ученик автоматически привязывается к общему curriculum 7 класса (или другому, см.
           ниже).
