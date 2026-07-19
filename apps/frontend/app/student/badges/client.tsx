@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api, getToken } from "@/lib/api";
+import { api, getToken, ApiError } from "@/lib/api";
 import StreakCard from "@/components/StreakCard";
 import NextTopicCard from "@/components/NextTopicCard";
 import Skeleton from "@/components/Skeleton";
+import ErrorState from "@/components/ErrorState";
 
 type BadgeOut = {
   slug: string;
@@ -19,6 +20,9 @@ type BadgeOut = {
 export default function StudentBadgesClient() {
   const router = useRouter();
   const [badges, setBadges] = useState<BadgeOut[] | null>(null);
+  // Sprint 12: error state отдельно от loading. Если network/server
+  // упало — показываем ErrorState вместо infinite skeleton.
+  const [badgesError, setBadgesError] = useState<string | null>(null);
   const [streak, setStreak] = useState<{
     current_streak_days: number;
     longest_streak_days: number;
@@ -54,9 +58,18 @@ export default function StudentBadgesClient() {
 
   async function refresh() {
     setBusy(true);
+    setBadgesError(null);
     try {
       const b = await api.studentBadges();
       setBadges(b);
+    } catch (err) {
+      // Sprint 12: вместо «Загрузка вечно» — фиксируем ошибку и
+      // показываем ErrorState с retry.
+      setBadgesError(
+        err instanceof ApiError
+          ? `HTTP ${err.status}: ${err.message}`
+          : String(err),
+      );
     } finally {
       setBusy(false);
     }
@@ -75,6 +88,16 @@ export default function StudentBadgesClient() {
   }
 
   if (badges === null) {
+    // Sprint 12: error имеет приоритет над skeleton.
+    if (badgesError) {
+      return (
+        <ErrorState
+          variant="generic"
+          error={badgesError}
+          onRetry={() => refresh()}
+        />
+      );
+    }
     // Sprint 11.4: skeleton вместо "Загрузка..." чтобы избежать
     // визуальных скачков layout и показать что идёт работа.
     return (

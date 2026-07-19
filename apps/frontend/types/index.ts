@@ -108,4 +108,7 @@ export type ChatMsg = {
     material_title: string;
     page_number?: number | null;
   }>;
+  // Sprint 12: error info если AI вызов упал.
+  // UI показывает вкладку «Подробности» с error-сообщением.
+  error?: string;
 };

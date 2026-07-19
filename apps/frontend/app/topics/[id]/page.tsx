@@ -3,11 +3,28 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, getToken } from "@/lib/api";
+import { api, getToken, ApiError } from "@/lib/api";
 import { useChatStream } from "@/lib/ws-chat";
 import { renderMarkdown } from "@/lib/markdown";
 import SafeMarkdown from "@/components/SafeMarkdown";
 import type { Topic, ChatMsg } from "@/types";
+
+// Sprint 12: helper для извлечения error-сообщения.
+// ApiError содержит status + message. Generic Error — только message.
+// Иначе — fallback «Неизвестная ошибка».
+function extractErrorMessage(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.status === 503 || err.status === 504) {
+      return `AI временно недоступен (HTTP ${err.status}). Попробуй позже.`;
+    }
+    if (err.status === 429) {
+      return "Слишком много запросов. Подожди минуту и попробуй снова.";
+    }
+    return err.message;
+  }
+  if (err instanceof Error) return err.message;
+  return "Неизвестная ошибка";
+}
 
 type Exercise = {
   exercise_id: number; // Pilot Core: opaque server id
@@ -234,8 +251,17 @@ export default function TopicPage() {
         ...m,
         { role: "assistant", content: r.content, sources: r.sources },
       ]);
-    } catch {
-      setMsgs((m) => [...m, { role: "assistant", content: "[ошибка] Не удалось получить объяснение." }]);
+    } catch (err) {
+      // Sprint 12: T1D-friendly error UI (вместо текстовой inline-ошибки).
+      setMsgs((m) => [
+        ...m,
+        {
+          role: "assistant",
+          content:
+            "🤖 AI временно недоступен. Попробуй ещё раз через несколько секунд.",
+          error: extractErrorMessage(err),
+        },
+      ]);
     } finally {
       setBusy(false);
     }

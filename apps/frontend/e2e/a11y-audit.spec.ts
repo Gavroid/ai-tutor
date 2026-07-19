@@ -1,136 +1,89 @@
-import { test, expect } from "@playwright/test";
-
 /**
- * Sprint 11.2 — accessibility audit.
- * Проверяет:
- * - focus-visible CSS стили на интерактивных элементах (focus ring)
- * - aria-label / aria-labelledby для icon-only buttons
- * - skip-links для скрин-ридеров
- * - tab order (логичная последовательность)
+ * Sprint 11.2 — accessibility audit (WCAG 2.1).
+ *
+ * Проверяет на 4 key pages:
+ * - form inputs имеют associated labels (для screen reader)
+ * - icon-only buttons имеют aria-label
+ * - есть focusable elements (keyboard nav работает)
+ * - нет console errors
  */
+import { test, expect } from "@playwright/test";
 
 test.use({ ignoreHTTPSErrors: true, baseURL: "https://192.168.1.86" });
 
 const PAGES = [
   { name: "login", url: "/login", login: false },
   { name: "subjects", url: "/subjects", login: "student" },
-  { name: "topic detail", url: "/topics/31", login: "student" },
-  { name: "admin audit", url: "/admin", login: "admin" },
+  { name: "topic", url: "/topics/31", login: "student" },
+  { name: "admin_audit", url: "/admin", login: "admin" },
 ];
 
-const ISSUES: { page: string; url: string; problem: string }[] = [];
+for (const p of PAGES) {
+  test(`a11y_${p.name}`, async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
 
-test.describe("Accessibility audit", () => {
-  test.use({ ignoreHTTPSErrors: true });
-
-  for (const p of PAGES) {
-    test(`${p.name}: focus + aria + tab order`, async ({ page }) => {
-      if (p.login) {
-        const email =
-          p.login === "admin" ? "admin@example.com" : "kirill@example.com";
-        await page.goto("/login");
-        await page.fill('input[type="email"]', email);
-        await page.fill('input[type="password"]', "Kirill2026!");
-        await page.click('button[type="submit"]');
-        await page.waitForLoadState("networkidle", { timeout: 15_000 });
-      }
-
-      await page.goto(p.url);
+    if (p.login) {
+      const email =
+        p.login === "admin" ? "admin@example.com" : "kirill@example.com";
+      await page.goto("/login");
+      await page.fill('input[type="email"]', email);
+      await page.fill('input[type="password"]', "Kirill2026!");
+      await page.click('button[type="submit"]');
       await page.waitForLoadState("networkidle", { timeout: 15_000 });
-
-      // 1) Все icon-only buttons имеют aria-label или текст
-      const iconsWithoutLabel = await page.evaluate(() => {
-        const out: { tag: string; text: string }[] = [];
-        document.querySelectorAll('button, a').forEach((el) => {
-          const rect = el.getBoundingClientRect();
-          if (rect.width === 0) return;
-          const hasLabel =
-            el.hasAttribute("aria-label") ||
-            el.hasAttribute("aria-labelledby") ||
-            (el.textContent || "").trim().length > 0 ||
-            el.querySelector("img[alt]") !== null;
-          const looksLikeIcon =
-            rect.width < 60 &&
-            (el.textContent || "").trim().length === 0;
-          if (looksLikeIcon && !hasLabel) {
-            out.push({ tag: el.tagName, text: el.outerHTML.slice(0, 100) });
-          }
-        });
-        return out;
-      });
-      if (iconsWithoutLabel.length > 0) {
-        ISSUES.push({
-          page: p.name,
-          url: p.url,
-          problem: `icon-only buttons without label: ${iconsWithoutLabel.length}`,
-        });
-      }
-
-      // 2) Form inputs имеют labels
-      const inputsWithoutLabel = await page.evaluate(() => {
-        const out: { type: string }[] = [];
-        document.querySelectorAll("input, textarea, select").forEach((el) => {
-          const tag = el as HTMLInputElement;
-          if (tag.type === "hidden" || tag.type === "submit") return;
-          const id = el.id;
-          const hasLabel =
-            (id && document.querySelector(`label[for="${id}"]`) !== null) ||
-            el.closest("label") !== null ||
-            el.hasAttribute("aria-label") ||
-            el.hasAttribute("aria-labelledby") ||
-            el.hasAttribute("placeholder");
-          if (!hasLabel) out.push({ type: (el as HTMLInputElement).type || el.tagName });
-        });
-        return out;
-      });
-      if (inputsWithoutLabel.length > 0) {
-        ISSUES.push({
-          page: p.name,
-          url: p.url,
-          problem: `inputs without label: ${inputsWithoutLabel.length}`,
-        });
-      }
-
-      // 3) Tab order — последовательный фокус видим.
-      //    Click first input, check что фокус сместился.
-      const tabbables = await page.evaluate(() => {
-        return Array.from(
-          document.querySelectorAll(
-            'input, button, a[href], select, textarea, [tabindex]:not([tabindex="-1"])',
-          ),
-        ).slice(0, 10);
-      });
-      if (tabbables.length === 0) {
-        ISSUES.push({
-          page: p.name,
-          url: p.url,
-          problem: "no focusable elements",
-        });
-      }
-
-      // 4) Console errors (отсутствие alt на img)
-      const errors: string[] = [];
-      page.on("pageerror", (e) => errors.push(e.message));
-      await page.waitForTimeout(500);
-      if (errors.length > 0) {
-        ISSUES.push({
-          page: p.name,
-          url: p.url,
-          problem: `console errors: ${errors.join("; ")}`,
-        });
-      }
-    });
-  }
-
-  test.afterAll(() => {
-    // Report issues в summary
-    if (ISSUES.length > 0) {
-      console.log(`\n=== a11y audit issues: ${ISSUES.length} ===`);
-      ISSUES.forEach((i) =>
-        console.log(`  - [${i.page}] ${i.problem}`),
-      );
-    } else {
-      console.log("\n✅ a11y audit: no issues detected");
     }
+
+    await page.goto(p.url);
+    await page.waitForLoadState("networkidle", { timeout: 15_000 });
+
+    // 1) Inputs without associated label — accessibility violation.
+    const inputsNoLabel = await page.evaluate(() => {
+      const out: { type: string }[] = [];
+      const inputs = document.querySelectorAll("input, textarea, select");
+      for (const el of Array.from(inputs)) {
+        const tag = el as HTMLInputElement;
+        if (tag.type === "hidden" || tag.type === "submit") continue;
+        const id = tag.id;
+        const hasLabel =
+          (id && document.querySelector(`label[for="${id}"]`) !== null) ||
+          tag.closest("label") !== null ||
+          tag.hasAttribute("aria-label") ||
+          tag.hasAttribute("aria-labelledby") ||
+          tag.hasAttribute("placeholder");
+        if (!hasLabel) out.push({ type: tag.type || tag.tagName });
+      }
+      return out;
+    });
+
+    // 2) Icon-only buttons without label.
+    const iconsNoLabel = await page.evaluate(() => {
+      const out: { tag: string }[] = [];
+      const els = document.querySelectorAll("button, a[href]");
+      for (const el of Array.from(els)) {
+        const tag = el as HTMLElement;
+        const rect = tag.getBoundingClientRect();
+        if (rect.width === 0) continue;
+        const hasLabel =
+          tag.hasAttribute("aria-label") ||
+          tag.hasAttribute("aria-labelledby") ||
+          (tag.textContent || "").trim().length > 0;
+        const looksLikeIcon =
+          rect.width < 60 && (tag.textContent || "").trim().length === 0;
+        if (looksLikeIcon && !hasLabel) out.push({ tag: tag.tagName });
+      }
+      return out;
+    });
+
+    // 3) Tab order — есть focusable elements.
+    const tabbables = await page.evaluate(() => {
+      return document.querySelectorAll(
+        'input, button, a[href], select, textarea, [tabindex]:not([tabindex="-1"])',
+      ).length;
+    });
+
+    expect(inputsNoLabel.length, `${p.name} inputs without label`).toBe(0);
+    expect(iconsNoLabel.length, `${p.name} icon-only without label`).toBe(0);
+    expect(tabbables, `${p.name} tabbable count`).toBeGreaterThan(0);
+    expect(errors.length, `${p.name} console errors`).toBe(0);
   });
-});
+}
