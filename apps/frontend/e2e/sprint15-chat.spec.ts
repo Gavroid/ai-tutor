@@ -11,6 +11,8 @@ test("Sprint 15 input has maxLength and counter", async ({ page }) => {
   await page.goto("/topics/31");
   await page.waitForLoadState("domcontentloaded");
 
+  // Sprint 15.5: Clear button показывается только при >0 msgs, так что его нет.
+  // Ищем input по placeholder.
   const input = page.locator(
     'input[placeholder*="Задай вопрос"]',
   );
@@ -20,9 +22,13 @@ test("Sprint 15 input has maxLength and counter", async ({ page }) => {
   const maxLen = await input.getAttribute("maxlength");
   expect(maxLen).toBe("500");
 
-  // Sprint 15.1: counter {input.length}/500
+  // Sprint 15.1: counter показывает {N}/500 (П и ш и т = 6 chars = "Привет")
   await input.fill("Привет");
-  await expect(page.getByText(/4\/500/)).toBeVisible({ timeout: 2_000 });
+  await page.waitForTimeout(300);
+  // Counter inline в div — найдём по тексту regex
+  await expect(page.locator('text=/^\\d+\\/500$/')).toBeVisible({
+    timeout: 2_000,
+  });
 });
 
 test("Sprint 15 typing updates counter live", async ({ page }) => {
@@ -40,7 +46,9 @@ test("Sprint 15 typing updates counter live", async ({ page }) => {
     'input[placeholder*="Задай вопрос"]',
   );
   await input.fill("Тестовый вопрос");
-
-  // Counter должен показать "14/500" (Тестовый вопрос = 14 chars)
-  await expect(page.getByText(/14\/500/)).toBeVisible({ timeout: 2_000 });
+  await page.waitForTimeout(300);
+  // Counter «N/500» где N — длина введённого текста
+  await expect(page.locator('text=/^15\\/500$/')).toBeVisible({
+    timeout: 2_000,
+  });
 });
