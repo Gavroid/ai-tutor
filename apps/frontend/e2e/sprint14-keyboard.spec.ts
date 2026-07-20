@@ -30,16 +30,21 @@ test("Sprint 14 AddStudentModal traps focus and Escape closes", async ({
   await page.fill('input[type="email"]', "admin@example.com");
   await page.fill('input[type="password"]', "Kirill2026!");
   await page.click('button[type="submit"]');
-  await page.waitForURL(/admin/);
-  await page.waitForLoadState("networkidle");
-
-  // Sprint 7.1: открыть AddStudentModal — найти кнопку «Создать ученика».
-  const addBtn = page
-    .getByRole("button", { name: /создать ученика|новый ученик|\+/i })
-    .first();
-  if ((await addBtn.count()) === 0) {
-    test.skip(true, "AddStudent button not found");
+  // Sprint 11.1: после login admin → /admin. Но URL matching дефолт waitForLoadState
+  // 'load' иногда не срабатывает — используем функцию.
+  await page.waitForURL((url) => !url.pathname.startsWith("/login"), {
+    timeout: 15_000,
+  });
+  if (!page.url().includes("/admin")) {
+    await page.goto("/admin");
   }
+  await page.waitForLoadState("domcontentloaded");
+
+  // Sprint 7.1: data-testid="add-student-button" используется в admin page.
+  const addBtn = page.locator('[data-testid="add-student-button"]');
+  await expect(addBtn, "AddStudent button should be visible").toBeVisible({
+    timeout: 5_000,
+  });
   await addBtn.click();
 
   // Sprint 14: модалка должна иметь role=dialog + aria-modal=true.
@@ -58,13 +63,16 @@ test("Sprint 14 AddStudentModal Tab cycles within modal", async ({
   await page.fill('input[type="email"]', "admin@example.com");
   await page.fill('input[type="password"]', "Kirill2026!");
   await page.click('button[type="submit"]');
-  await page.waitForURL(/admin/);
-  await page.waitForLoadState("networkidle");
+  await page.waitForURL((url) => !url.pathname.startsWith("/login"), {
+    timeout: 15_000,
+  });
+  if (!page.url().includes("/admin")) {
+    await page.goto("/admin");
+  }
+  await page.waitForLoadState("domcontentloaded");
 
-  const addBtn = page
-    .getByRole("button", { name: /создать ученика|новый ученик|\+/i })
-    .first();
-  if ((await addBtn.count()) === 0) test.skip();
+  const addBtn = page.locator('[data-testid="add-student-button"]');
+  await expect(addBtn).toBeVisible({ timeout: 5_000 });
   await addBtn.click();
 
   const dialog = page.locator('[role="dialog"][aria-modal="true"]');

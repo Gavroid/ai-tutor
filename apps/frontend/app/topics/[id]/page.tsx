@@ -26,6 +26,29 @@ function extractErrorMessage(err: unknown): string {
   return "Неизвестная ошибка";
 }
 
+// Sprint 15.4: copyToClipboard — для кнопки «Копировать» в chat.
+// В современных браузерах navigator.clipboard.writeText есть всегда.
+// Fallback для старых: textarea + execCommand.
+async function copyToClipboard(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // Fallback для неподдерживаемых браузеров / insecure context.
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "absolute";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+    } finally {
+      document.body.removeChild(ta);
+    }
+  }
+}
+
 type Exercise = {
   exercise_id: number; // Pilot Core: opaque server id
   question_text: string;
@@ -64,6 +87,8 @@ export default function TopicPage() {
 
   const [topic, setTopic] = useState<Topic | null>(null);
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
+  // Sprint 15.5: подтверждение очистки чата (чтобы ребёнок случайно не потерял).
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [exercise, setExercise] = useState<Exercise | null>(null);
@@ -340,6 +365,42 @@ export default function TopicPage() {
         >
           Дай задание
         </button>
+
+        {/* Sprint 15.5: кнопка Clear chat (с confirm для safety).
+            T1D-friendly: показываем вторичную кнопку сначала — очистить чат,
+            не send. Confirm dialog перед очисткой. */}
+        {msgs.length > 0 && !showClearConfirm && (
+          <button
+            type="button"
+            onClick={() => setShowClearConfirm(true)}
+            aria-label="Очистить чат"
+            className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+          >
+            🧹 Очистить
+          </button>
+        )}
+        {showClearConfirm && (
+          <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5">
+            <span className="text-xs text-amber-800">Удалить всю историю?</span>
+            <button
+              type="button"
+              onClick={() => {
+                setMsgs([]);
+                setShowClearConfirm(false);
+              }}
+              className="rounded bg-amber-600 px-2 py-0.5 text-xs font-semibold text-white hover:bg-amber-700"
+            >
+              Да, удалить
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowClearConfirm(false)}
+              className="rounded bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700 hover:bg-slate-300"
+            >
+              Отмена
+            </button>
+          </div>
+        )}
       </section>
 
       {exercise && (
@@ -450,6 +511,22 @@ export default function TopicPage() {
                     </ul>
                   </div>
                 )}
+                {/* Sprint 15.4: кнопка copy для последнего assistant msg.
+                    Не показываем во время streaming чтобы не копировать черновик.
+                    T1D-friendly: крупная (44px) для слабой моторики. */}
+                {i === msgs.length - 1 &&
+                  m.role === "assistant" &&
+                  !busy &&
+                  m.content && (
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(m.content)}
+                      aria-label="Копировать ответ"
+                      className="mt-1 inline-flex items-center gap-1 rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                    >
+                      📋 Копировать
+                    </button>
+                  )}
               </>
             )}
           </div>
@@ -483,29 +560,51 @@ export default function TopicPage() {
           e.preventDefault();
           send();
         }}
-        className="mt-3 flex gap-2"
+        className="mt-3 flex flex-col gap-1"
       >
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Задай вопрос репетитору…"
-          className="flex-1 rounded-lg border border-slate-300 px-3 py-2"
-          disabled={busy}
-        />
-        {voiceEnabled && (
-          <VoiceMicButton
+        <div className="flex gap-2">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            // Sprint 15.1: Enter отправляет, Shift+Enter новая строка.
+            // Для plain input Enter просто submit формы — это OK.
+            placeholder="Задай вопрос репетитору…"
+            maxLength={500}
+            aria-describedby="input-hint"
+            className="flex-1 rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
             disabled={busy}
-            onTranscript={(text) => setInput((prev) => (prev ? prev + " " : "") + text)}
-            onError={(msg) => alert("Микрофон: " + msg)}
           />
-        )}
-        <button
-          type="submit"
-          disabled={busy || !input.trim()}
-          className="rounded-lg bg-sky-600 px-4 py-2 font-semibold text-white hover:bg-sky-500 disabled:opacity-50"
+          {voiceEnabled && (
+            <VoiceMicButton
+              disabled={busy}
+              onTranscript={(text) => setInput((prev) => (prev ? prev + " " : "") + text)}
+              onError={(msg) => alert("Микрофон: " + msg)}
+            />
+          )}
+          <button
+            type="submit"
+            disabled={busy || !input.trim()}
+            className="rounded-lg bg-sky-600 px-4 py-2 font-semibold text-white hover:bg-sky-500 disabled:opacity-50"
+          >
+            {/* Sprint 15.1: визуальный feedback для disabled состояния */}
+            {busy ? "⏳" : "Отправить"}
+          </button>
+        </div>
+        {/* Sprint 15.1: counter для длины input — помогает детям контролировать.
+            Большинство сообщений должны быть короткими вопросами. */}
+        <div
+          id="input-hint"
+          className="flex items-center justify-between text-xs text-slate-500"
         >
-          Отправить
-        </button>
+          <span>Enter — отправить, Shift+Enter — новая строка</span>
+          <span
+            className={
+              input.length > 400 ? "font-bold text-amber-600" : ""
+            }
+          >
+            {input.length}/500
+          </span>
+        </div>
       </form>
     </main>
   );
