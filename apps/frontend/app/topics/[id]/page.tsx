@@ -488,7 +488,7 @@ export default function TopicPage() {
         </section>
       )}
 
-      <SessionTimer thresholdMinutes={20} />
+      <SessionTimer />
 
       <section ref={scrollRef} className="mt-4 flex-1 space-y-3 overflow-y-auto rounded-xl bg-slate-50 p-4">
         {msgs.length === 0 && (
