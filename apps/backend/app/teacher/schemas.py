@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-SourceType = Literal["text", "file", "topic"]
+SourceType = Literal["text", "file", "topic", "pdf"]
 MaterialStatus = Literal["draft", "ai_generated", "teacher_approved", "published"]
 Difficulty = Literal["easy", "medium", "hard"]
 
