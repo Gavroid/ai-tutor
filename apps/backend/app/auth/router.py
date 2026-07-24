@@ -38,6 +38,30 @@ def login(
     db: Session = Depends(get_db),
 ) -> schemas.TokenPair:
     user = service.authenticate(db, payload.email, payload.password)
+    # Sprint 32: если parent с 2FA enabled — двухшаговый flow.
+    from app.users import twofa
+
+    if user.role.value == "parent" and twofa.has_2fa_enabled(user.id):
+        # Step 1: password верный, но нужен TOTP.
+        # Возвращаем "intermediate token" с коротким TTL (5 мин).
+        from app.auth.security import _create_token
+        from datetime import timedelta
+
+        intermediate = _create_token(
+            subject=str(user.id),
+            role=user.role.value,
+            ttl=timedelta(minutes=5),
+            token_type="access_pending_2fa",
+        )
+        # НЕ ставим основные cookies (пользователь ещё не аутентифицирован).
+        # Возвращаем intermediate token в body.
+        return schemas.TokenPair(
+            access_token=intermediate,
+            refresh_token="",  # нет refresh до полной аутентификации
+            token_type="bearer",
+            expires_in=300,
+        )
+
     tokens = service.issue_tokens(user)
     # Sprint 10.1: дублируем токены в httpOnly cookies (для будущего перехода фронта).
     # Сейчас фронт использует Authorization header из tokens.access_token — продолжает работать.
@@ -58,6 +82,17 @@ class RefreshRequest(BaseModel):
     Если в body — Pydantic валидирует min_length=10 (защита от мусора).
     Если в cookie — валидация на этапе decode_token.
     """
+
+
+class Login2FARequest(BaseModel):
+    """Sprint 32: step 2 — TOTP код после ввода password.
+
+    Принимает:
+    - access_token: intermediate token из /auth/login step 1
+    - code: 6-значный TOTP или 12-char backup code
+    """
+    access_token: str = Field(min_length=10)
+    code: str = Field(min_length=6, max_length=12)
 
 
 @router.post("/refresh", response_model=schemas.TokenPair)
@@ -100,6 +135,73 @@ def refresh(
 
     tokens = service.issue_tokens(user)
     set_auth_cookies(response, access_token=tokens.access_token, refresh_token=tokens.refresh_token)
+    return tokens
+
+
+@router.post("/login-2fa", response_model=schemas.TokenPair)
+def login_2fa(
+    payload: Login2FARequest,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> schemas.TokenPair:
+    """Sprint 32: step 2 — verify TOTP code и выдать полноценные токены.
+
+    Принимает intermediate token из /auth/login (step 1) и TOTP/backup code.
+    Если код верный → возвращает обычные access + refresh, ставит cookies.
+
+    Sprint 32 NOTE: intermediate token живёт 5 минут. После — нужно
+    заново пройти step 1 (password).
+    """
+    from fastapi import HTTPException
+
+    from app.auth.security import decode_token, set_auth_cookies
+    from app.users import twofa
+
+    try:
+        claim = decode_token(payload.access_token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid intermediate token")
+
+    if claim.get("type") != "access_pending_2fa":
+        raise HTTPException(
+            status_code=401,
+            detail="Not a 2FA-pending token. Please login with password first.",
+        )
+
+    user_id = int(claim.get("sub", 0))
+    user = db.get(User, user_id)
+    if user is None or not user.is_active or user.role.value != "parent":
+        raise HTTPException(status_code=401, detail="User invalid")
+
+    # Проверяем TOTP/backup code
+    if not twofa.authenticate_2fa(user_id, payload.code.strip()):
+        audit_service.record(
+            db,
+            user=user,
+            action="2fa.fail",
+            entity="user",
+            entity_id=str(user.id),
+            details={"reason": "invalid_code"},
+        )
+        raise HTTPException(status_code=401, detail="Invalid 2FA code")
+
+    # 2FA passed — выдаём полноценные токены.
+    tokens = service.issue_tokens(user)
+    set_auth_cookies(
+        response,
+        access_token=tokens.access_token,
+        refresh_token=tokens.refresh_token,
+    )
+
+    audit_service.record(
+        db,
+        user=user,
+        action="2fa.success",
+        entity="user",
+        entity_id=str(user.id),
+        details={"method": "totp"},
+    )
+
     return tokens
 
 

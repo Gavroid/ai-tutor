@@ -46,3 +46,5 @@ markdown-it-py==3.0.0
 
 # WebSockets client (Sprint 9.3 — admin WS smoke; уже нужен фронтом на prod-tools)
 websockets==13.1
+# 2FA TOTP (Sprint 32 — Parent 2FA)
+pyotp==2.9.0

@@ -1,16 +1,19 @@
 """Роутер родительского кабинета.
 
 Sprint 1.1: все endpoints защищены require_parent()/require_student().
+Sprint 32: 2FA TOTP endpoints для parent.
 """
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.admin import service as audit_service
 from app.common.deps import User, require_parent, require_student
 from app.db.session import get_db
 from app.parents import schemas, service
+from app.users import twofa
 
 router = APIRouter(prefix="/api/v1/parents", tags=["parents"])
 
@@ -166,6 +169,159 @@ small {{ color: #888; }}
 
 # Эндпоинт для РЕБЁНКА — привязать себя к родителю
 student_router = APIRouter(prefix="/api/v1/students", tags=["students"])
+
+# === Sprint 32: 2FA TOTP endpoints ===
+
+class TwoFAEnableOut(BaseModel):
+    """Sprint 32: ответ при enable 2FA."""
+    secret: str
+    provisioning_uri: str
+    backup_codes: list[str]
+
+
+class TwoFAVerifyIn(BaseModel):
+    """Sprint 32: TOTP код или backup code для подтверждения."""
+    code: str = Field(min_length=6, max_length=12)
+
+
+class TwoFAStatusOut(BaseModel):
+    """Sprint 32: статус 2FA для parent."""
+    enabled: bool
+    last_used_at: str | None = None
+    backup_codes_remaining: int = 0
+
+
+@router.post("/2fa/enable", response_model=TwoFAEnableOut)
+def enable_2fa(
+    db: Session = Depends(get_db),
+    current: User = Depends(require_parent()),
+):
+    """Sprint 32: enable 2FA TOTP для parent.
+
+    Возвращает:
+    - secret (base32, для ручного ввода в Google Authenticator)
+    - provisioning_uri (otpauth:// для QR-code)
+    - backup_codes (8 одноразовых кодов, показываются ОДИН раз!)
+
+    Sprint 32 NOTE: secret и codes возвращаются только при enable.
+    Пере-enable требует disable сначала.
+    """
+    try:
+        result = twofa.enable_2fa(current.id, current.email)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+    audit_service.record(
+        db,
+        user=current,
+        action="2fa.enable",
+        entity="user",
+        entity_id=str(current.id),
+        details={"method": "totp"},
+    )
+
+    return TwoFAEnableOut(**result)
+
+
+@router.post("/2fa/disable", status_code=204)
+def disable_2fa(
+    db: Session = Depends(get_db),
+    current: User = Depends(require_parent()),
+):
+    """Sprint 32: disable 2FA.
+
+    Sprint 32 NOTE: требует fresh password для подтверждения (TODO Sprint 33+).
+    Сейчас требует только authenticated parent.
+    """
+    if not twofa.has_2fa_enabled(current.id):
+        raise HTTPException(400, "2FA не включена")
+
+    twofa.disable_2fa(current.id)
+
+    audit_service.record(
+        db,
+        user=current,
+        action="2fa.disable",
+        entity="user",
+        entity_id=str(current.id),
+        details={"method": "self"},
+    )
+
+
+@router.get("/2fa/status", response_model=TwoFAStatusOut)
+def get_2fa_status(
+    db: Session = Depends(get_db),
+    current: User = Depends(require_parent()),
+):
+    """Sprint 32: статус 2FA (enabled, last_used_at, backup_codes_remaining)."""
+    from app.db.session import engine as _engine
+    from sqlalchemy import text
+
+    if not twofa.has_2fa_enabled(current.id):
+        return TwoFAStatusOut(enabled=False)
+
+    with _engine.connect() as conn:
+        row = conn.execute(
+            text(
+                "SELECT last_used_at, backup_codes_json "
+                "FROM parent_2fa WHERE parent_id = :pid"
+            ),
+            {"pid": current.id},
+        ).fetchone()
+
+    import json as _json
+    backup_codes = _json.loads(row[1]) if row else []
+    last_used = row[0].isoformat() if row and row[0] else None
+
+    return TwoFAStatusOut(
+        enabled=True,
+        last_used_at=last_used,
+        backup_codes_remaining=len(backup_codes),
+    )
+
+
+@router.post("/2fa/verify", response_model=schemas.ChildDashboard)
+def verify_2fa(
+    payload: TwoFAVerifyIn,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_parent()),
+):
+    """Sprint 32: standalone verify (для UI проверки введённого кода).
+
+    Используется при enable: после QR-code сканирования родитель вводит
+    6-значный TOTP и проверяет что Authenticator работает.
+    """
+    import json as _json
+    from app.db.session import engine as _engine
+    from sqlalchemy import text
+
+    if not twofa.has_2fa_enabled(current.id):
+        raise HTTPException(400, "2FA не включена")
+
+    # Расшифровать secret
+    with _engine.connect() as conn:
+        encrypted = conn.execute(
+            text("SELECT secret_encrypted FROM parent_2fa WHERE parent_id = :pid"),
+            {"pid": current.id},
+        ).scalar()
+
+    if encrypted is None:
+        raise HTTPException(400, "2FA секрет не найден")
+
+    secret = twofa.decrypt_secret(encrypted)
+    code = payload.code.strip()
+
+    valid = False
+    if len(code) == 6 and code.isdigit():
+        valid = twofa.verify_totp(secret, code)
+    else:
+        # Backup code (12 hex chars)
+        valid = twofa.verify_backup_code(current.id, code)
+
+    if not valid:
+        raise HTTPException(401, "Неверный код")
+
+    return {"ok": True, "message": "Код верный"}
 
 
 @student_router.post("/link-parent")

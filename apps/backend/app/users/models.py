@@ -107,3 +107,29 @@ class ParentStudentLink(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class Parent2FA(Base):
+    """Sprint 32 P3 — TOTP 2FA для роли parent.
+
+    Хранит:
+    - secret_encrypted: Fernet-encrypted TOTP base32 secret.
+    - backup_codes_json: JSON list of bcrypt-хэшей (8 одноразовых кодов).
+    - enabled_at / last_used_at для аудита.
+
+    Sprint 32 NOTE: при потере пароля → admin reset требует disable 2FA вручную.
+    """
+
+    __tablename__ = "parent_2fa"
+
+    parent_id: Mapped[int] = mapped_column(
+        BigIntPK, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    secret_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
+    backup_codes_json: Mapped[str] = mapped_column(Text, nullable=False)
+    enabled_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    last_used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
