@@ -67,10 +67,7 @@ export default function ParentDashboardPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.push("/login");
-      return;
-    }
+    // Sprint 27: cookie auth.
     if (!studentId) return;
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,7 +82,7 @@ export default function ParentDashboardPage() {
     } catch (e: any) {
       const status = e?.status;
       if (status === 401) {
-        setToken(null);
+        // Sprint 27: setToken removed
         router.push("/login");
         return;
       }

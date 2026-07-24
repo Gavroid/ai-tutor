@@ -127,10 +127,7 @@ export default function TopicPage() {
   const voiceEnabled = process.env.NEXT_PUBLIC_VOICE_ENABLED === "1";
 
   useEffect(() => {
-    if (!getToken()) {
-      router.push("/login");
-      return;
-    }
+    // Sprint 27: cookie auth.
     if (!topicId || Number.isNaN(topicId)) return;
     api.topic(topicId).then(setTopic).catch(() => router.push("/subjects"));
   }, [topicId, router]);

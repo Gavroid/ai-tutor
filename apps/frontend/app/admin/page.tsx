@@ -61,7 +61,7 @@ export default function AdminPage() {
   } | null>(null);
 
   useEffect(() => {
-    if (!getToken()) return;
+    // Sprint 27: cookie auth.
     // Sprint 5.1: загружаем текущего юзера для Header.
     api.me().then(setCurrent).catch(() => {});
     refresh(tab);

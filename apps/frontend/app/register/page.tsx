@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, setToken, ApiError } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -20,8 +20,8 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await api.register({ email, password, display_name: displayName, role: "student", grade });
-      const pair = await api.login({ email, password });
-      setToken(pair.access_token);
+      // Sprint 27: cookie ставится через /login Set-Cookie header.
+      await api.login({ email, password });
       router.push("/subjects");
     } catch (err) {
       if (err instanceof ApiError) {

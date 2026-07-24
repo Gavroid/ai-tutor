@@ -33,10 +33,7 @@ export default function ParentsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.push("/login");
-      return;
-    }
+    // Sprint 27: cookie auth.
     refresh();
   }, [router]);
 

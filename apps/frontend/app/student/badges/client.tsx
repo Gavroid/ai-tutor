@@ -44,10 +44,7 @@ export default function StudentBadgesClient() {
   const [newlyAwarded, setNewlyAwarded] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.push("/login");
-      return;
-    }
+    // Sprint 27: cookie auth.
     refresh();
     // Sprint 8.1: parallel load streak
     api.studentStreak().then(setStreak).catch(() => {});

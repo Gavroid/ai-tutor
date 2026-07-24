@@ -2,12 +2,15 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getToken } from "@/lib/api";
+import { api } from "@/lib/api";
 
 export default function RootPage() {
   const router = useRouter();
   useEffect(() => {
-    router.push(getToken() ? "/subjects" : "/login");
+    // Sprint 27: проверяем cookie через /me (async). Если 401 → /login.
+    api.isAuthenticated().then((ok) => {
+      router.push(ok ? "/subjects" : "/login");
+    });
   }, [router]);
   return (
     <main className="flex min-h-screen items-center justify-center">

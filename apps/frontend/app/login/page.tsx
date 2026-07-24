@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, setToken, ApiError } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 
 // Sprint 11.1: per-role landing page.
 // parent → /parents (linked children dashboard)
@@ -53,8 +53,9 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const pair = await api.login({ email, password });
-      setToken(pair.access_token);
+      // Sprint 27: cookie ставится автоматически через Set-Cookie header.
+      // НЕ сохраняем access_token в localStorage (XSS-safe).
+      await api.login({ email, password });
       // Sprint 11.1: запросить /me для определения роли и редиректа.
       let role = "student";
       try {

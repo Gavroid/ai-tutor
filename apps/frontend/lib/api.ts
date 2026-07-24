@@ -2,17 +2,16 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
-const TOKEN_KEY = "ai-tutor-token";
-
+// Sprint 27: cookie-based auth. Эти helpers deprecated.
+// - getToken(): всегда возвращает non-null (cookie управляется браузером).
+//   Реальная проверка — через api.isAuthenticated() (async).
+// - setToken(): no-op. Cookies ставятся backend через Set-Cookie.
 export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(TOKEN_KEY);
+  return "cookie";  // Cookie присутствует если залогинен.
 }
 
-export function setToken(token: string | null): void {
-  if (typeof window === "undefined") return;
-  if (token) window.localStorage.setItem(TOKEN_KEY, token);
-  else window.localStorage.removeItem(TOKEN_KEY);
+export function setToken(_token: string | null): void {
+  // Deprecated: cookies управляются backend.
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -20,9 +19,13 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     "Content-Type": "application/json",
     ...(init.headers as Record<string, string>),
   };
-  const token = getToken();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  const r = await fetch(`${API_URL}${path}`, { ...init, headers });
+  // Sprint 27: cookie отправляется автоматически (same-origin).
+  // credentials: "include" нужен для cross-origin (CORS).
+  const r = await fetch(`${API_URL}${path}`, {
+    ...init,
+    headers,
+    credentials: "include",
+  });
   if (!r.ok) {
     const text = await r.text();
     let body: any = text;
@@ -55,6 +58,18 @@ export const api = {
   login: (data: { email: string; password: string }) =>
     request<TokenPair>("/api/v1/auth/login", { method: "POST", body: JSON.stringify(data) }),
   me: () => request<User>("/api/v1/auth/me"),
+  // Sprint 27: logout — очищает httpOnly cookies на backend.
+  logout: () => request<void>("/api/v1/auth/logout", { method: "POST" }),
+  // Sprint 27: isAuthenticated — проверяет валидность cookie через /me.
+  // 200 → authenticated, 401 → нет cookie / expired.
+  isAuthenticated: async (): Promise<boolean> => {
+    try {
+      await request<User>("/api/v1/auth/me");
+      return true;
+    } catch {
+      return false;
+    }
+  },
 
   // Subjects & topics
   subjects: () => request<Subject[]>("/api/v1/subjects"),
@@ -212,22 +227,14 @@ export const api = {
       { method: "PUT", body: JSON.stringify({ payload }) }
     ),
   topicDraftClear: async (topicId: number) => {
-    const token = getToken();
-    const headers: Record<string, string> = {};
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-    const r = await fetch(`${API_URL}/api/v1/student/topics/${topicId}/draft`, {
+    // Sprint 27: cookie-based auth. credentials: "include" через request().
+    return request(`/api/v1/student/topics/${topicId}/draft`, {
       method: "DELETE",
-      headers,
     });
-    if (!r.ok && r.status !== 204 && r.status !== 404) {
-      throw new Error(`HTTP ${r.status}`);
-    }
   },
 
   // Sprint 7.5 — баджи за усилие (НЕ за streak).
   studentBadges: () => {
-    const token = getToken();
-    if (!token) return Promise.resolve([]);
     return request<
       Array<{
         slug: string;
@@ -237,44 +244,33 @@ export const api = {
         awarded_at: string | null;
         evidence: Record<string, unknown>;
       }>
-    >("/api/v1/student/badges", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    >("/api/v1/student/badges");
   },
   studentBadgesEvaluate: () => {
-    const token = getToken();
-    if (!token) return Promise.resolve([]);
     return request<string[]>("/api/v1/student/badges/evaluate", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
     });
   },
   // Sprint 8.1: streak для ученика.
   studentStreak: () => {
-    const token = getToken();
-    if (!token) return Promise.resolve(null);
     return request<{
       current_streak_days: number;
       longest_streak_days: number;
       total_active_days: number;
       last_active_date: string | null;
       encouragement: string;
-    }>("/api/v1/student/streak", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    }>("/api/v1/student/streak");
   },
 
   // Sprint 2.3 — Voice transcription
   voiceTranscribe: async (audioBlob: Blob): Promise<{ text: string }> => {
+    // Sprint 27: cookie-based auth. credentials: "include" — отправляет cookie.
     const form = new FormData();
     form.append("file", audioBlob, "recording.webm");
-    const token = getToken();
-    const headers: Record<string, string> = {};
-    if (token) headers["Authorization"] = `Bearer ${token}`;
     const r = await fetch(`${API_URL}/api/v1/voice/transcribe`, {
       method: "POST",
       body: form,
-      headers,
+      credentials: "include",
     });
     if (!r.ok) {
       const text = await r.text();
@@ -435,10 +431,13 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ token, new_password }),
     }),
-  refreshToken: (refresh_token: string) =>
+  // Sprint 27: refresh — больше не нужен аргумент. Cookie `ai_tutor_refresh`
+  // отправляется автоматически через credentials: "include".
+  // Backend поддерживает оба пути (cookie priority, body fallback).
+  refreshToken: () =>
     request<{ access_token: string; refresh_token: string; token_type: string; expires_in: number }>(
       "/api/v1/auth/refresh",
-      { method: "POST", body: JSON.stringify({ refresh_token }) }
+      { method: "POST" }
     ),
   // Admin
   adminStats: () =>
@@ -554,15 +553,13 @@ export const api = {
       body: JSON.stringify(data),
     }),
   teacherUploadSource: async (file: File): Promise<{ file_path: string; size: number; filename: string }> => {
+    // Sprint 27: cookie-based auth.
     const form = new FormData();
     form.append("file", file);
-    const token = getToken();
-    const headers: Record<string, string> = {};
-    if (token) headers["Authorization"] = `Bearer ${token}`;
     const r = await fetch(`${API_URL}/api/v1/teacher/materials/upload-source`, {
       method: "POST",
       body: form,
-      headers,
+      credentials: "include",
     });
     if (!r.ok) {
       const text = await r.text();

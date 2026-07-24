@@ -58,9 +58,13 @@ const DEFAULT_CONFIG: Required<WSConfig> = {
   connectionTimeout: 15000,
 };
 
-/** Открыть WS с auto-reconnect. Возвращает cancel function. */
+/** Открыть WS с auto-reconnect. Возвращает cancel function.
+ *
+ * Sprint 27: аргумент `token` опциональный. Cookie отправляется автоматически.
+ * Для обратной совместимости принимаем `token` но не используем.
+ */
 export function streamChat(
-  token: string,
+  _token: string | null,  // Deprecated в Sprint 27
   history: ChatMsg[],
   topicId: number | undefined,
   cb: StreamCallbacks,

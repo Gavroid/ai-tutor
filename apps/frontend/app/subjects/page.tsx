@@ -50,7 +50,7 @@ export default function HomePage() {
         // При 5xx или network-glitch оставляем токен, чтобы пользователь
         // не вылетал на /login при временных сбоях.
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
-          setToken(null);
+          // Sprint 27: setToken removed
           router.push("/login");
         } else {
           // Не 401 — не трогаем токен. user останется null, страница покажет
@@ -65,7 +65,7 @@ export default function HomePage() {
   }, [router]);
 
   function logout() {
-    setToken(null);
+    // Sprint 27: setToken removed
     router.push("/login");
   }
 

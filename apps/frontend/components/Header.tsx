@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getToken, setToken } from "@/lib/api";
+import { api } from "@/lib/api";
 import type { User } from "@/types";
 
 interface HeaderProps {
@@ -15,13 +15,18 @@ interface HeaderProps {
 
 /**
  * Sprint 5.1 — общий Header с logout button.
- * Используется в /admin, /teacher, /topics/[id] и т.д.
+ * Sprint 27 — logout вызывает /auth/logout (backend очищает cookies).
  */
 export default function Header({ user, backHref, title }: HeaderProps) {
   const router = useRouter();
 
-  function logout() {
-    setToken(null);
+  async function logout() {
+    // Sprint 27: cookie очищается на backend через /auth/logout.
+    try {
+      await api.logout();
+    } catch {
+      // ignore — перенаправляем в /login в любом случае.
+    }
     router.push("/login");
   }
 

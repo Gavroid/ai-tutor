@@ -14,12 +14,8 @@ export default function TeacherMaterialsListPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.push("/login");
-      return;
-    }
+    // Sprint 27: cookie-based auth. /me 401 → /login.
     api.me().then(setUser).catch(() => {
-      setToken(null);
       router.push("/login");
     });
   }, [router]);

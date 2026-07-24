@@ -22,10 +22,7 @@ export default function AdminRealtimePage() {
   const [snap, setSnap] = useState<AdminSnapshot | null>(null);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.push("/login");
-      return;
-    }
+    // Sprint 27: cookie auth.
     const conn = new AdminWSConnection(getToken, setState);
     conn.start();
     return () => conn.close();

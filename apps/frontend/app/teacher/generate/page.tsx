@@ -27,12 +27,8 @@ export default function TeacherGeneratePage() {
   const [result, setResult] = useState<MaterialDraftOut | null>(null);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.push("/login");
-      return;
-    }
+    // Sprint 27: cookie-based auth. /me 401 → /login.
     api.me().then(setUser).catch(() => {
-      setToken(null);
       router.push("/login");
     });
   }, [router]);

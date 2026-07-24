@@ -17,10 +17,7 @@ export default function SubjectPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.push("/login");
-      return;
-    }
+    // Sprint 27: cookie auth.
     if (!subjectId || Number.isNaN(subjectId)) return;
 
     (async () => {

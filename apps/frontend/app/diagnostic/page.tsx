@@ -38,9 +38,8 @@ export default function DiagnosticPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!getToken()) router.push("/login");
-    else api.subjects().then(setSubjects).catch(() => {});
-  }, [router]);
+    api.subjects().then(setSubjects).catch(() => {});
+  }, []);
 
   async function start(subjectId: number) {
     setBusy(true);
