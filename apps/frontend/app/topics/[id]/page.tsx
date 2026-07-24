@@ -7,6 +7,9 @@ import { api, getToken, ApiError } from "@/lib/api";
 import { useChatStream } from "@/lib/ws-chat";
 import { renderMarkdown } from "@/lib/markdown";
 import SafeMarkdown from "@/components/SafeMarkdown";
+import PauseButton from "@/components/PauseButton";
+import SessionTimer from "@/components/SessionTimer";
+import { playCompletionCue } from "@/lib/audio-cue";
 import type { Topic, ChatMsg } from "@/types";
 
 // Sprint 12: helper для извлечения error-сообщения.
@@ -91,6 +94,23 @@ export default function TopicPage() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Sprint 23: audio cue когда AI завершил ответ (новое ассистентское сообщение).
+  // Использует Web Audio API, opt-in (T1D-friendly: дети с гипо/гипер могут
+  // не смотреть на экран постоянно, звук помогает услышать завершение).
+  const prevMsgsCountRef = useRef(0);
+  useEffect(() => {
+    // Срабатывает только когда добавляется НОВОЕ assistant-сообщение.
+    const last = msgs[msgs.length - 1];
+    if (
+      msgs.length > prevMsgsCountRef.current &&
+      last &&
+      last.role === "assistant"
+    ) {
+      playCompletionCue();
+    }
+    prevMsgsCountRef.current = msgs.length;
+  }, [msgs]);
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [userAnswer, setUserAnswer] = useState("");
   const [checkResult, setCheckResult] = useState<null | {
@@ -471,6 +491,8 @@ export default function TopicPage() {
         </section>
       )}
 
+      <SessionTimer thresholdMinutes={20} />
+
       <section ref={scrollRef} className="mt-4 flex-1 space-y-3 overflow-y-auto rounded-xl bg-slate-50 p-4">
         {msgs.length === 0 && (
           <p className="text-sm text-slate-500">
@@ -604,6 +626,18 @@ export default function TopicPage() {
           >
             {input.length}/500
           </span>
+        </div>
+
+        {/* Sprint 23: T1D-friendly кнопка паузы. 48px tap target,
+            4 причины, streak сохраняется. */}
+        <div className="mt-2 flex justify-end">
+          <PauseButton
+            onPause={(reason) => {
+              // T1D-friendly: логируем причину для родительского dashboard.
+              // Без отправки glucose data.
+              console.info("Sprint 23: T1D pause", { reason });
+            }}
+          />
         </div>
       </form>
     </main>
