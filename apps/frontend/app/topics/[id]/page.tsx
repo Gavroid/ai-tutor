@@ -10,6 +10,7 @@ import SafeMarkdown from "@/components/SafeMarkdown";
 import PauseButton from "@/components/PauseButton";
 import SessionTimer from "@/components/SessionTimer";
 import CGMStatus from "@/components/CGMStatus";
+import RecoveryBadge from "@/components/RecoveryBadge";
 import { playCompletionCue } from "@/lib/audio-cue";
 import type { Topic, ChatMsg } from "@/types";
 
@@ -96,6 +97,14 @@ export default function TopicPage() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // Sprint 42: T1D recovery mode (timing-based, opt-in через backend).
+  // Если недавно была hypo/hyper пауза → recovery_mode=true → badge показывается.
+  const [recommendNext, setRecommendNext] = useState<{
+    recovery_mode: boolean;
+    recovery_reason: string | null;
+    minutes_since_pause: number | null;
+  } | null>(null);
+
   // Sprint 23: audio cue когда AI завершил ответ (новое ассистентское сообщение).
   // Использует Web Audio API, opt-in (T1D-friendly: дети с гипо/гипер могут
   // не смотреть на экран постоянно, звук помогает услышать завершение).
@@ -132,6 +141,26 @@ export default function TopicPage() {
     if (!topicId || Number.isNaN(topicId)) return;
     api.topic(topicId).then(setTopic).catch(() => router.push("/subjects"));
   }, [topicId, router]);
+
+  // Sprint 42: T1D recovery mode — fetch recommend-next для RecoveryBadge.
+  // Показывается только если recovery_mode=true (т.е. была недавняя hypo/hyper).
+  // Luna Pro safety: timing-based, НЕ glucose data.
+  useEffect(() => {
+    if (!topicId || Number.isNaN(topicId)) return;
+    api
+      .recommendNext()
+      .then((data) => {
+        setRecommendNext({
+          recovery_mode: data.recovery_mode,
+          recovery_reason: data.recovery_reason,
+          minutes_since_pause: data.minutes_since_pause,
+        });
+      })
+      .catch(() => {
+        // Sprint 42: silent failure (не критично для UX)
+        setRecommendNext(null);
+      });
+  }, [topicId]);
 
   // Sprint 7.3 — восстановление черновика урока (критично при T1D).
   // Приоритет: серверный черновик (свежее) > localStorage.
@@ -493,6 +522,9 @@ export default function TopicPage() {
 
       {/* Sprint 40: CGM badge (T1D-friendly, opt-in). */}
       <CGMStatus />
+
+      {/* Sprint 42: Recovery badge (T1D-friendly timing-based). */}
+      <RecoveryBadge recovery={recommendNext} />
 
       <section ref={scrollRef} className="mt-4 flex-1 space-y-3 overflow-y-auto rounded-xl bg-slate-50 p-4">
         {msgs.length === 0 && (

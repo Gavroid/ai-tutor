@@ -146,6 +146,10 @@ export const api = {
       reason: "weak_topic" | "next_in_curriculum" | "all_mastered";
       mastery_score: number | null;
       encouragement: string;
+      // Sprint 42: T1D recovery mode.
+      recovery_mode: boolean;
+      recovery_reason: string | null;
+      minutes_since_pause: number | null;
     }>("/api/v1/progress/recommend-next"),
 
   // Sprint 2.2 — Spaced Repetition
