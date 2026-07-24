@@ -8,8 +8,9 @@ from __future__ import annotations
 import asyncio
 import os
 from datetime import datetime, timezone
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -27,8 +28,10 @@ def list_audit(
     entity: str | None = None,
     since: str | None = None,
     until: str | None = None,
-    limit: int = 100,
-    offset: int = 0,
+    # Sprint 16.0 P0-8: явные bounds (Query validators) для предотвращения DoS.
+    # Раньше был silent clamp (min(limit, 500)), теперь 422 на невалидные.
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    offset: Annotated[int, Query(ge=0, le=1_000_000)] = 0,
     db: Session = Depends(get_db),
     current: User = Depends(require_admin()),
 ):
@@ -55,8 +58,8 @@ def list_audit(
         entity=entity,
         since=since_dt,
         until=until_dt,
-        limit=min(limit, 500),
-        offset=max(offset, 0),
+        limit=limit,
+        offset=offset,
     )
 
 
@@ -172,7 +175,8 @@ def admin_stats(
 # === Sprint 9: engagement метрики ===
 @router.get("/engagement")
 def admin_engagement(
-    days: int = 30,
+    # Sprint 16.0 P0-8: явные bounds вместо silent clamp.
+    days: Annotated[int, Query(ge=1, le=365)] = 30,
     db: Session = Depends(get_db),
     current: User = Depends(require_admin()),
 ):
@@ -192,7 +196,6 @@ def admin_engagement(
     from app.subjects import models as subj_models
     from sqlalchemy import func as sqlfunc
 
-    days = max(1, min(days, 365))
     since = datetime.now(timezone.utc) - timedelta(days=days)
 
     # DAU за последние 14 дней (для графика)

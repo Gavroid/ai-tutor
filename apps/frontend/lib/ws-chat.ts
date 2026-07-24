@@ -66,11 +66,18 @@ export function streamChat(
   cb: StreamCallbacks,
   config: WSConfig = {}
 ): () => void {
+  // Sprint 16.1 P1-2: backend (app/ai/websocket.py) уже принимает cookie
+  // `access_token` (Sprint 10.1 установил cookies в /login). Фронт больше
+  // НЕ передаёт токен в query — это security: JWT в URL попадал в nginx
+  // access logs и browser history.
+  //
+  // Cookie приходит автоматически (same-origin через Next.js rewrites).
   const cfg = { ...DEFAULT_CONFIG, ...config };
 
-  // ws://host/ws/ai/chat?token=... — заменяем https/http на ws/wss
+  // ws://host/ws/ai/chat — cookie отправляется автоматически.
+  // Без ?token= в URL → нет утечки в логи.
   const wsBase = API_URL.replace(/^https/, "wss").replace(/^http/, "ws");
-  const url = `${wsBase}/ws/ai/chat?token=${encodeURIComponent(token)}`;
+  const url = `${wsBase}/ws/ai/chat`;
 
   let ws: WebSocket | null = null;
   let attempt = 0;

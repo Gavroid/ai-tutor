@@ -24,13 +24,24 @@ async def ai_chat_stream(websocket: WebSocket):
     """Стриминг ответов AI по WebSocket.
 
     Протокол:
-    - Клиент подключается с токеном: `ws://host/ws/ai/chat?token=<jwt>`
+    - Клиент подключается с токеном:
+        Preferred: cookie `access_token` (httponly, set by /login, /refresh).
+        Fallback (deprecated): ?token=<jwt> в query string.
     - Клиент шлёт JSON: {"history": [...], "topic_id": 1}
     - Сервер стримит куски текста: {"type": "chunk", "content": "..."}
     - В конце: {"type": "done", "model": "MiniMax-M3"}
     - При ошибке: {"type": "error", "message": "..."}
+
+    Sprint 16.0 P0-3 (security): JWT в query string попадает в nginx access
+    logs, browser history, exception traces. Сейчас принимаем и cookie, и
+    query — для обратной совместимости. Полный отказ от ?token= планируется
+    в Sprint 16.1 P1-2 (cookie-based auth migration).
     """
-    token = websocket.query_params.get("token")
+    # Sprint 16.0 P0-3: предпочитаем cookie, fallback на query string.
+    token = (
+        websocket.cookies.get("access_token")
+        or websocket.query_params.get("token")
+    )
     if not token:
         await websocket.close(code=1008, reason="Missing token")
         return
@@ -44,6 +55,17 @@ async def ai_chat_stream(websocket: WebSocket):
     user_id = int(payload.get("sub", 0))
     if not user_id:
         await websocket.close(code=1008, reason="Invalid token payload")
+        return
+
+    # Sprint 16.1 P1-3: AI budget guard на WS уровне.
+    # Без проверки user мог открыть WS и бомбить AI запросами напрямую.
+    try:
+        from app.ai.budget import BudgetExceeded, check_and_increment
+
+        check_and_increment(user_id)
+    except BudgetExceeded as e:
+        logger.warning("WS budget exceeded user_id=%s: %s/%s", user_id, e.used, e.limit)
+        await websocket.close(code=1008, reason=f"AI budget exceeded: {e.limit_kind}")
         return
 
     await websocket.accept()

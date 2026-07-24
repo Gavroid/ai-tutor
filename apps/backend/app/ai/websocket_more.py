@@ -2,6 +2,10 @@
 
 Стримит chunks ответа AI через WebSocket. Аналог /ws/ai/chat,
 но для explain/hint/generate (которые историю не используют).
+
+Sprint 16.0 P0-3 (security): JWT в query string попадает в nginx access
+logs, browser history, exception traces. Теперь принимаем и cookie
+`access_token`, и query `?token=` (для обратной совместимости).
 """
 from __future__ import annotations
 
@@ -26,7 +30,11 @@ async def ai_explain_stream(websocket: WebSocket):
     Клиент: {"topic_id": 1}
     Сервер: {"type": "chunk", "content": "..."} → {"type": "done", "model": "..."}
     """
-    token = websocket.query_params.get("token")
+    # Sprint 16.0 P0-3: предпочитаем cookie, fallback на query.
+    token = (
+        websocket.cookies.get("access_token")
+        or websocket.query_params.get("token")
+    )
     if not token:
         await websocket.close(code=1008, reason="Missing token")
         return

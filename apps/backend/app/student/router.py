@@ -16,6 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.common.deps import User, current_user
+from app.config import get_settings
 from app.db.session import get_db
 from app.subjects import models as subj_models
 from app.student import models as stu_models
@@ -323,12 +324,16 @@ def my_streak(
     Пропуск дня НЕ наказывается. Можно вернуться в любой момент.
     """
     from datetime import date as _date, datetime, timedelta, timezone
+    from zoneinfo import ZoneInfo
 
     from app.parents.service import _compute_streak
     from app.progress import models as prog_models
 
     user_id = current.id  # alias чтобы не путать с imported current
-    today = datetime.now(timezone.utc).date()
+    # Sprint 16.1 P1-10: timezone-aware date — Кирилл в Москве (UTC+3),
+    # сервер в UTC. Активность в 23:30 MSK должна засчитываться "сегодня".
+    student_tz = ZoneInfo(get_settings().student_timezone or "Europe/Moscow")
+    today = datetime.now(student_tz).date()
     # Находим все уникальные даты активности
     attempts = db.execute(
         select(prog_models.Attempt).where(prog_models.Attempt.user_id == user_id)

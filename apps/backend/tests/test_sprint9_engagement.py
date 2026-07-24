@@ -238,8 +238,8 @@ def test_engagement_dau_response_shape(client):
         dt.strptime(d["date"], "%Y-%m-%d")
 
 
-def test_engagement_days_parameter_clamping(client):
-    """Sprint 9: days параметр clamped к 1..365."""
+def test_engagement_days_parameter_validation(client):
+    """Sprint 16.0 P0-8: days < 1 или > 365 возвращает 422 (Query validator)."""
     s = SessionLocal()
     try:
         _create_user(s, "admin@example.com", "admin")
@@ -247,17 +247,32 @@ def test_engagement_days_parameter_clamping(client):
         s.close()
 
     token = _login(client, "admin@example.com")
-    # days=0 → должен clamp к 1
+
+    # days=0 → 422 (ge=1)
     r = client.get(
         "/api/v1/admin/engagement?days=0",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 422
+
+    # days=999 → 422 (le=365)
+    r = client.get(
+        "/api/v1/admin/engagement?days=999",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 422
+
+    # days=1 (на границе) → 200
+    r = client.get(
+        "/api/v1/admin/engagement?days=1",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert r.status_code == 200
     assert r.json()["period_days"] == 1
 
-    # days=999 → должен clamp к 365
+    # days=365 (на границе) → 200
     r = client.get(
-        "/api/v1/admin/engagement?days=999",
+        "/api/v1/admin/engagement?days=365",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert r.status_code == 200

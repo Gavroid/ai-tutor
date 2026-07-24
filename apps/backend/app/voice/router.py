@@ -2,40 +2,48 @@
 
 Принимает audio blob (webm от MediaRecorder), возвращает распознанный текст.
 
-MVP: без реального Whisper. Возвращает placeholder "распознавание не настроено".
-В будущем (Sprint 6.2+): подключить OpenAI Whisper API или MiniMax ASR.
+MVP: без реального Whisper. Возвращает 503 когда ASR не настроен.
+Когда `OPENAI_API_KEY` (или `WHISPER_API_KEY`) в env — реальный Whisper.
 
-Whisper API (когда будет настроен):
-- Whisper API: POST https://api.openai.com/v1/audio/transcriptions
+Whisper API (когда настроен):
+- POST https://api.openai.com/v1/audio/transcriptions
   multipart/form-data: file=@audio.webm, model=whisper-1, language=ru
 - Минимальный cost: $0.006 / minute
 - Альтернатива: MiniMax ASR / Yandex SpeechKit / Google Speech
 
-Текущая реализация — заглушка для тестирования UI.
-Когда ключ API будет добавлен в env (OPENAI_API_KEY или WHISPER_API_KEY),
-этот endpoint начнёт делать реальные запросы.
+Sprint 16.1 P1-5: async httpx + правильные HTTP коды:
+- 503 если ключ не задан (asr_not_configured)
+- 504 если timeout (asr_timeout)
+- 502 если provider вернул 5xx (asr_unavailable)
+- 502 если 401/403 (asr_configuration_error)
+- 200 если успех
 
 Безопасность:
 - audio_file ограничен 25 МБ (как в других endpoints)
 - Поддерживаются форматы: webm, mp3, wav, ogg
-- rate limit через декоратор @ai_budget (Sprint 9.4) если ASR стоит денег
+- rate limit через /api/v1/ai/* middleware
 """
 from __future__ import annotations
 
 import logging
 import os
 
+import httpx
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.auth.security import get_current_user
+from app.config import get_settings
 
 router = APIRouter(prefix="/api/v1/voice", tags=["voice"])
 logger = logging.getLogger(__name__)
 
 MAX_AUDIO_SIZE_BYTES = 25 * 1024 * 1024  # 25 МБ
 
-WHISPER_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-WHISPER_API_URL = "https://api.openai.com/v1/audio/transcriptions"
+# Sprint 16.1 P1-5: читаем ключ из settings (не os.environ при импорте модуля).
+# Позволяет override в тестах и reload без рестарта процесса.
+WHISPER_API_URL = os.environ.get(
+    "WHISPER_API_URL", "https://api.openai.com/v1/audio/transcriptions"
+)
 
 
 @router.post("/transcribe")
@@ -45,17 +53,14 @@ async def transcribe(
 ):
     """Sprint 6.2 MVP: транскрибирует аудио в текст.
 
-    MVP: возвращает заглушку. Реальная интеграция с Whisper/MiniMax ASR —
-    Sprint 6.2+ когда будет OPENAI_API_KEY или WHISPER_API_KEY.
-
-    UI компонент VoiceMicButton отправляет сюда audio/webm blob.
+    Sprint 16.1 P1-5: async httpx + правильные HTTP коды + structured errors.
     """
-    # Лимит размера
+    # Sprint 16.1 P1-5: лимит размера файла
     content = await file.read()
     if len(content) > MAX_AUDIO_SIZE_BYTES:
         raise HTTPException(
-            413,
-            f"Файл слишком большой (макс {MAX_AUDIO_SIZE_BYTES // (1024 * 1024)} МБ)",
+            status_code=413,
+            detail=f"Файл слишком большой (макс. {MAX_AUDIO_SIZE_BYTES // (1024 * 1024)} МБ)",
         )
 
     logger.info(
@@ -65,30 +70,66 @@ async def transcribe(
         len(content),
     )
 
-    # === MVP: реальный Whisper когда API key есть ===
-    if WHISPER_API_KEY:
-        try:
-            import httpx
+    # Sprint 16.1 P1-5: ключ берём из Settings (всё через env).
+    settings = get_settings()
+    whisper_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("WHISPER_API_KEY", "")
 
-            files = {"file": (file.filename or "audio.webm", content, file.content_type)}
-            data = {"model": "whisper-1", "language": "ru"}
-            headers = {"Authorization": f"Bearer {WHISPER_API_KEY}"}
-            r = httpx.post(
+    if not whisper_key:
+        # Sprint 16.1 P1-5: 503 + structured error code вместо заглушки "успех".
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "asr_not_configured",
+                "message": "Распознавание голоса пока не настроено (OPENAI_API_KEY отсутствует)",
+            },
+        )
+
+    # Sprint 16.1 P1-5: async HTTP client + правильные HTTP коды.
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
                 WHISPER_API_URL,
-                files=files,
-                data=data,
-                headers=headers,
-                timeout=30.0,
+                files={
+                    "file": (file.filename or "audio.webm", content, file.content_type),
+                },
+                data={"model": "whisper-1", "language": "ru"},
+                headers={"Authorization": f"Bearer {whisper_key}"},
             )
-            if r.status_code == 200:
-                return {"text": r.json().get("text", "")}
-            else:
-                logger.warning("Whisper API failed: %s %s", r.status_code, r.text[:200])
-        except Exception as e:
-            logger.warning("Whisper API error: %s", e)
+    except httpx.TimeoutException:
+        logger.warning("Whisper API timeout user_id=%s", current.id)
+        raise HTTPException(
+            status_code=504,
+            detail={"code": "asr_timeout", "message": "Распознавание заняло слишком много времени"},
+        )
+    except httpx.HTTPError as e:
+        logger.warning("Whisper API HTTP error user_id=%s: %s", current.id, e)
+        raise HTTPException(
+            status_code=502,
+            detail={"code": "asr_unavailable", "message": "Сервис распознавания недоступен"},
+        )
 
-    # === Заглушка: возвращаем понятный текст для проверки UI flow ===
-    return {
-        "text": "[распознавание голоса ещё не настроено — добавьте OPENAI_API_KEY в .env]",
-        "warning": "asr_not_configured",
-    }
+    # Sprint 16.1 P1-5: различаем 401/403/5xx.
+    if response.status_code in (401, 403):
+        logger.error(
+            "Whisper API rejected credentials: %s %s",
+            response.status_code,
+            response.text[:200],
+        )
+        raise HTTPException(
+            status_code=502,
+            detail={"code": "asr_configuration_error", "message": "Проблема с ключом ASR"},
+        )
+
+    if response.status_code != 200:
+        logger.warning(
+            "Whisper API failed user_id=%s: %s %s",
+            current.id,
+            response.status_code,
+            response.text[:200],
+        )
+        raise HTTPException(
+            status_code=502,
+            detail={"code": "asr_unavailable", "message": "Сервис распознавания вернул ошибку"},
+        )
+
+    return {"text": response.json().get("text", "")}

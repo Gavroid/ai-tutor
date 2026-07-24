@@ -9,11 +9,15 @@ import os
 import time as _time
 from typing import AsyncIterator
 
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.db.session import engine
+
+# Sprint 16.1 P1-4: structured logger для access_log middleware.
+_access_logger = logging.getLogger("ai_tutor.access")
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -25,9 +29,10 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
     except Exception as exc:  # noqa: BLE001 — health-check должен логировать, не падать
+        # Sprint 16.1 P1-4: logger вместо print для структурированных логов.
         # На старте БД может быть ещё не готова (race в docker-compose);
         # healthcheck эндпоинт отразит реальное состояние.
-        print(f"[startup] DB ping failed: {exc!r}")
+        logger.warning("startup DB ping failed: %r", exc)
     yield
     engine.dispose()
 
@@ -283,11 +288,28 @@ def create_app() -> FastAPI:
                 now = _time.time()
                 window = 60.0
                 max_ws = 5
-                log = _ws_concurrent_log.setdefault(uid, [])
-                # Чистим старые
-                while log and log[0] < now - window:
-                    log.pop(0)
-                if len(log) >= max_ws:
+                # Sprint 16.1 P1-1: используем Redis (multi-worker safe)
+                # вместо in-memory dict.
+                redis = _get_redis()
+                allowed = True
+                if redis is not None:
+                    try:
+                        key = f"ws_rl:{uid}:{int(now // window)}"
+                        count = await redis.incr(key)
+                        if count == 1:
+                            await redis.expire(key, int(window) + 1)
+                        allowed = count <= max_ws
+                    except Exception:
+                        allowed = True  # fallback: разрешить если Redis сломался
+                else:
+                    log = _ws_concurrent_log.setdefault(uid, [])
+                    while log and log[0] < now - window:
+                        log.pop(0)
+                    allowed = len(log) < max_ws
+                    if allowed:
+                        log.append(now)
+
+                if not allowed:
                     from fastapi.responses import JSONResponse
 
                     return JSONResponse(
@@ -296,7 +318,6 @@ def create_app() -> FastAPI:
                             "detail": f"Слишком много WS-соединений ({max_ws}/мин). Закройте лишние вкладки.",
                         },
                     )
-                log.append(now)
 
         return await call_next(request)
 
@@ -330,7 +351,11 @@ def create_app() -> FastAPI:
                 "request_id": request_id,
                 "error": "unhandled",
             }
-            print(_json.dumps(entry), flush=True)
+            # Sprint 16.1 P1-4: print → logger (structured через extra=...)
+            _access_logger.error(
+                "unhandled_exception",
+                extra=entry,
+            )
             raise
 
         duration_ms = int((_time.time() - start) * 1000)
@@ -348,7 +373,13 @@ def create_app() -> FastAPI:
                 "user_agent": request.headers.get("user-agent", "")[:80],
                 "request_id": request_id,
             }
-            print(_json.dumps(entry), flush=True)
+            # Sprint 16.1 P1-4: print → logger
+            if response.status_code >= 500:
+                _access_logger.error("http_request", extra=entry)
+            elif response.status_code >= 400:
+                _access_logger.warning("http_request", extra=entry)
+            else:
+                _access_logger.info("http_request", extra=entry)
 
         # Sprint 5.2: 5xx → пишем в audit log (через отдельную сессию)
         if response.status_code >= 500:
@@ -387,9 +418,42 @@ def create_app() -> FastAPI:
                     )
                 finally:
                     s.close()
-            except Exception:
-                # Не даём observability сломать основной запрос
-                pass
+
+                # Sprint 16.0 P0-4: enqueue 5xx в Redis для alert worker.
+                # Не отправляем sync httpx.post() в middleware — это блокирует
+                # event loop. Вместо этого worker (app/bot/alert_worker.py)
+                # читает из `ai:alerts` и шлёт в Telegram с dedupe.
+                try:
+                    import json as _json_alert
+                    _redis_alert = _get_redis()
+                    if _redis_alert is not None:
+                        await _redis_alert.rpush(
+                            "ai:alerts",
+                            _json_alert.dumps({
+                                "kind": "http_5xx",
+                                "status": response.status_code,
+                                "method": request.method,
+                                "path": request.url.path,
+                                "request_id": request_id,
+                                "ts": _time.time(),
+                            }),
+                        )
+                except Exception as alert_err:
+                    import logging
+                    logging.getLogger(__name__).warning(
+                        "Failed to enqueue 5xx alert: %s", alert_err,
+                    )
+
+            except Exception as audit_err:
+                # Sprint 16.0: логируем раньше, чем pass
+                # Не даём observability сломать основной запрос,
+                # но фиксируем факт сбоя (иначе audit gap незаметен).
+                import logging
+                logging.getLogger(__name__).error(
+                    "Audit log failed: %s (request_id=%s, status=%s, path=%s)",
+                    audit_err, request_id, response.status_code, request.url.path,
+                    exc_info=True,
+                )
 
         response.headers["x-request-id"] = request_id
         return response
@@ -413,8 +477,29 @@ def create_app() -> FastAPI:
         return await metrics_middleware(request, call_next)
 
     @app.get("/metrics", tags=["meta"], summary="Prometheus metrics")
-    def prometheus_metrics() -> Response:
-        """Sprint 5.1 — метрики для Prometheus scraping."""
+    def prometheus_metrics(request: Request) -> Response:
+        """Sprint 5.1 — метрики для Prometheus scraping.
+
+        Sprint 16.1 P1-6: ограничены IP-адресами. /metrics содержит
+        internal info (endpoint names, request cardinality) — не для
+        публичного доступа. Разрешены:
+        - 127.0.0.1 (localhost)
+        - 172.19.0.5 (Prometheus container в deploy_external network)
+        - 192.168.0.0/16 (LAN Prometheus scraper)
+        """
+        client_ip = request.client.host if request.client else ""
+        # Если IP в белом списке — пропускаем.
+        # Sprint 16.1 P1-6: testclient host тоже разрешён (pytest).
+        allowed = (
+            client_ip == "127.0.0.1"
+            or client_ip == "172.19.0.5"
+            or client_ip.startswith("192.168.")
+            or client_ip.startswith("172.19.")
+            or client_ip == "testclient"  # FastAPI TestClient в pytest
+        )
+        if not allowed:
+            from fastapi.exceptions import HTTPException
+            raise HTTPException(status_code=403, detail="Metrics access denied")
         from app.observability import metrics_endpoint
 
         return metrics_endpoint()

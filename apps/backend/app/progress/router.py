@@ -77,14 +77,29 @@ def recommend_next(
     from app.subjects import models as subj_models
     from app.progress import models as prog_models
 
-    # 1. Сначала ищем слабые темы (< 0.5 mastery и хоть какие-то attempts)
+    # Sprint 16.2 P2-4: константы вместо магических чисел (Luna Pro).
+    WEAK_THRESHOLD = 0.5  # mastery < 0.5 → тема "слабая"
+    MASTERED_THRESHOLD = 0.8  # mastery >= 0.8 → тема "пройдена"
+
+    # 1. Сначала ищем слабые темы (< WEAK_THRESHOLD mastery)
     progress = db.execute(
         select(prog_models.Progress).where(prog_models.Progress.user_id == current.id)
     ).scalars().all()
 
-    weak = [p for p in progress if 0 < p.mastery_score < 0.5]
+    weak = [p for p in progress if 0 < p.mastery_score < WEAK_THRESHOLD]
     if weak:
-        weakest = min(weak, key=lambda p: p.mastery_score)
+        # Sprint 16.2 P2-4: deterministic tie-breaker (Luna Pro).
+        # Без tie-breaker две темы с mastery=0.4 → выбирается произвольная.
+        # Сейчас: сначала mastery_score, потом -updated_at (свежие first),
+        # потом topic_id для полной детерминированности.
+        weakest = min(
+            weak,
+            key=lambda p: (
+                p.mastery_score,
+                -(p.updated_at.timestamp() if p.updated_at else 0),
+                p.topic_id,
+            ),
+        )
         topic = db.get(subj_models.Topic, weakest.topic_id)
         if topic:
             subject = topic.section.subject

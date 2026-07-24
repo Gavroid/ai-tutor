@@ -208,7 +208,7 @@ def test_audit_pagination_limit_offset(client):
 
 
 def test_audit_limit_max_500(client):
-    """Sprint 10.4: limit > 500 автоматически clamped к 500."""
+    """Sprint 16.0 P0-8: limit > 500 теперь возвращает 422, не silent clamp."""
     s = SessionLocal()
     try:
         admin_id = _create_admin(s)
@@ -217,9 +217,16 @@ def test_audit_limit_max_500(client):
         s.close()
 
     token = _login_admin(client)
-    # limit=99999 — должно стать 500 без ошибки
+    # limit=99999 — должно быть 422 (Query validator: le=500)
     r = client.get(
         "/api/v1/admin/audit-log?limit=99999",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 422
+
+    # limit=500 (на границе) — должно быть 200
+    r = client.get(
+        "/api/v1/admin/audit-log?limit=500",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert r.status_code == 200
