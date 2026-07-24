@@ -56,6 +56,11 @@ class NextTopicOut(BaseModel):
     reason: str  # "weak_topic" | "next_in_curriculum" | "all_mastered"
     mastery_score: float | None  # текущий mastery (для слабых тем)
     encouragement: str
+    # Sprint 42: T1D recovery mode (если недавно была hypo/hyper пауза).
+    # Backend рекомендует более лёгкий контент.
+    recovery_mode: bool = False
+    recovery_reason: str | None = None  # "recent_hypo" | "recent_hyper" | None
+    minutes_since_pause: int | None = None
 
 
 _NEXT_TOPIC_ENCOURAGEMENTS = [
@@ -80,6 +85,40 @@ def recommend_next(
     # Sprint 16.2 P2-4: константы вместо магических чисел (Luna Pro).
     WEAK_THRESHOLD = 0.5  # mastery < 0.5 → тема "слабая"
     MASTERED_THRESHOLD = 0.8  # mastery >= 0.8 → тема "пройдена"
+
+    # Sprint 42: T1D recovery mode check.
+    # Если недавно была hypo/hyper пауза (last 30 мин), рекомендуем easy content.
+    # Luna Pro safety: ТОЛЬКО timing-based, НЕ glucose data.
+    RECOVERY_WINDOW_MINUTES = 30
+    recovery_mode = False
+    recovery_reason: str | None = None
+    minutes_since_pause: int | None = None
+
+    from app.sessions.models import SessionPause
+    from datetime import datetime, timezone, timedelta
+
+    recent_pause = (
+        db.query(SessionPause)
+        .filter(
+            SessionPause.user_id == current.id,
+            SessionPause.reason.in_(["hypo", "hyper"]),
+        )
+        .order_by(SessionPause.started_at.desc())
+        .first()
+    )
+
+    if recent_pause and recent_pause.started_at:
+        now = datetime.now(timezone.utc)
+        if recent_pause.started_at.tzinfo is None:
+            # Sprint 42: SQLite возвращает naive datetime — нормализуем.
+            recent_pause_dt = recent_pause.started_at.replace(tzinfo=timezone.utc)
+        else:
+            recent_pause_dt = recent_pause.started_at
+        minutes_ago = int((now - recent_pause_dt).total_seconds() / 60)
+        if minutes_ago < RECOVERY_WINDOW_MINUTES:
+            recovery_mode = True
+            recovery_reason = f"recent_{recent_pause.reason}"
+            minutes_since_pause = minutes_ago
 
     # 1. Сначала ищем слабые темы (< WEAK_THRESHOLD mastery)
     progress = db.execute(
@@ -111,6 +150,9 @@ def recommend_next(
                 reason="weak_topic",
                 mastery_score=weakest.mastery_score,
                 encouragement=f"Повтори эту тему — всего {weakest.mastery_score * 100:.0f}% освоения. С фокусом обязательно получится! 💪",
+                recovery_mode=recovery_mode,
+                recovery_reason=recovery_reason,
+                minutes_since_pause=minutes_since_pause,
             )
 
     # 2. Ищем тему, которая ещё не пройдена (mastery < 0.5 или нет attempts)
@@ -135,6 +177,9 @@ def recommend_next(
                 reason="next_in_curriculum",
                 mastery_score=None,
                 encouragement=random.choice(_NEXT_TOPIC_ENCOURAGEMENTS),
+                recovery_mode=recovery_mode,
+                recovery_reason=recovery_reason,
+                minutes_since_pause=minutes_since_pause,
             )
 
     # 3. Всё mastered!
@@ -146,6 +191,9 @@ def recommend_next(
         reason="all_mastered",
         mastery_score=None,
         encouragement="🎉 Невероятно! Ты освоил(а) все доступные темы. Давай обсудим с родителем или учителем что изучать дальше!",
+        recovery_mode=recovery_mode,
+        recovery_reason=recovery_reason,
+        minutes_since_pause=minutes_since_pause,
     )
 
 
