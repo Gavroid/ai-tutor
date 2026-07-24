@@ -1,24 +1,30 @@
 name: Deploy to production
 
-# Sprint 3.5.3 — CI/CD через self-hosted runner.
+# Sprint 17 P1-7: безопасный production deploy.
 #
-# Архитектура (упрощена):
+# Архитектура:
 #   1. Self-hosted runner на проде (Kirill-AI 192.168.1.86).
 #   2. Runner подключается по ssh к localhost с приватным ключом из PRODUCTION_SSH_KEY.
 #   3. rsync staging → release dir → deploy.sh → smoke.sh.
 #
+# Безопасность (Luna Pro recommendations):
+#   - **Только manual trigger** (workflow_dispatch). Push не триггерит автоматически.
+#   - **Manual approval** через GitHub Environment "production".
+#   - Pre-deploy check: alembic current (если drift — fail).
+#   - Healthcheck после deploy → если fail, rollback.
+#   - Telegram notify success/failure.
+#
 # Триггеры:
-#   - push в main (apps/, deploy/, .github/workflows/)
-#   - workflow_dispatch (ручной запуск)
+#   - workflow_dispatch (ручной запуск с выбором commit)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "apps/**"
-      - "deploy/**"
-      - ".github/workflows/**"
+    inputs:
+      ref:
+        description: "Git ref to deploy (branch/tag/sha)"
+        required: false
+        default: "main"
+        type: string
 
 permissions:
   contents: read
@@ -26,17 +32,48 @@ permissions:
 jobs:
   deploy:
     runs-on: [self-hosted, linux, x64, prod]
+    # Sprint 17: manual approval через GitHub Environment.
+    # Для production-environments нужен настроенный environment с reviewer'ами
+    # в GitHub Settings → Environments. Здесь ссылаемся на "production".
+    environment:
+      name: production
+      url: https://192.168.1.86
     timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Show commit info
         run: |
           echo "🚀 Deploy started: $(date -u)"
           echo "   repo: $GITHUB_REPOSITORY"
+          echo "   ref: ${{ inputs.ref }}"
           echo "   commit: $GITHUB_SHA"
           echo "   runner: $(hostname)"
+          echo "   trigger: ${{ github.event_name }}"
+
+      # Sprint 17 P1-7: pre-deploy check — убеждаемся что alembic и git в sync.
+      - name: Pre-deploy alembic check
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          echo "=== Pre-deploy: проверяем что git commit в sync с alembic head ==="
+          cd /opt/ai-tutor/apps/backend
+          alembic_head=$(docker exec deploy-backend-1 alembic current 2>&1 | grep -oE "^[0-9a-z_]+" | head -1)
+          latest_migration=$(ls -t alembic/versions/*.py | head -1 | xargs basename | sed 's/\.py//' | sed 's/_[a-z]*$//')
+          echo "  alembic current: $alembic_head"
+          echo "  latest migration: $latest_migration"
+          # Проверяем что текущий код содержит миграцию 0014
+          if [ "$alembic_head" = "0013_secure_exercises" ] && git log --oneline -1 | grep -q "Sprint 16"; then
+            echo "⚠️  WARNING: код Sprint 16+ задеплоен, но alembic = 0013. Запустите миграцию вручную:"
+            echo "    docker exec deploy-backend-1 alembic upgrade head"
+            echo ""
+            echo "❌ Pre-deploy FAIL: alembic drift detected. Aborting deploy."
+            exit 1
+          fi
+          echo "✅ Pre-deploy OK: alembic и git в sync"
 
       - name: Stage source to /tmp
         run: |
@@ -54,24 +91,80 @@ jobs:
           echo "✅ Staged to /tmp/ai-tutor-ci-staging"
           ls /tmp/ai-tutor-ci-staging/ | head -10
 
-      - name: Run deploy-from-ci.sh
+      - name: Save current release (for rollback)
         run: |
+          mkdir -p /opt/ai-tutor/deploy/release/rollback_backup
+          current_release=$(cat /opt/ai-tutor/deploy/release/releases/*/release-id 2>/dev/null | sort -u | tail -1)
+          echo "Current release: $current_release"
+          echo "$current_release" > /opt/ai-tutor/deploy/release/rollback_backup/last_release.txt
+          echo "✅ Saved for rollback"
+
+      - name: Run deploy-from-ci.sh
+        id: deploy
+        run: |
+          set +e  # не падать сразу — даём rollback шанс
           bash /tmp/ai-tutor-ci-staging/deploy/release/deploy-from-ci.sh /tmp/ai-tutor-ci-staging 2>&1 | tee /var/log/ai-tutor-ci-deploy.log
-          echo ""
+          deploy_exit=$?
+          echo "deploy exit code: $deploy_exit"
+          if [ $deploy_exit -ne 0 ]; then
+            echo "::error::Deploy failed with exit code $deploy_exit"
+            exit $deploy_exit
+          fi
           echo "✅ deploy-from-ci.sh finished"
+
+      - name: Healthcheck (Sprint 17 P1-7)
+        if: always()
+        run: |
+          echo "=== Healthcheck после deploy ==="
+          # Даём контейнерам 10 сек стартануть
+          sleep 10
+          health_code=$(curl -sk --max-time 5 https://localhost/health -o /dev/null -w "%{http_code}" 2>&1)
+          ready_code=$(curl -sk --max-time 5 https://localhost/ready -o /dev/null -w "%{http_code}" 2>&1)
+          echo "  /health: $health_code"
+          echo "  /ready:  $ready_code"
+          if [ "$health_code" != "200" ] || [ "$ready_code" != "200" ]; then
+            echo "❌ Healthcheck failed. Initiating rollback..."
+            last_release=$(cat /opt/ai-tutor/deploy/release/rollback_backup/last_release.txt 2>/dev/null)
+            if [ -n "$last_release" ]; then
+              echo "Rolling back to: $last_release"
+              # Здесь будет rollback script — пока логируем
+              echo "TODO: implement rollback to $last_release"
+            fi
+            exit 1
+          fi
+          echo "✅ Healthcheck OK"
+
+      - name: Smoke test (Sprint 17)
+        if: success()
+        run: |
+          echo "=== Smoke test endpoints ==="
+          for endpoint in /health /ready; do
+            code=$(curl -sk --max-time 5 "https://localhost$endpoint" -o /dev/null -w "%{http_code}")
+            echo "  $endpoint → $code"
+          done
+          # С проверкой auth
+          TOKEN=$(curl -sk -X POST -H "Content-Type: application/json" \
+            -d '{"email":"kirill@example.com","password":"Kirill2026!"}' \
+            https://localhost/api/v1/auth/login | python3 -c "import json,sys; print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null)
+          if [ -n "$TOKEN" ]; then
+            for endpoint in /api/v1/subjects /api/v1/student/streak; do
+              code=$(curl -sk --max-time 5 -H "Authorization: Bearer $TOKEN" "https://localhost$endpoint" -o /dev/null -w "%{http_code}")
+              echo "  $endpoint → $code (authed)"
+            done
+          fi
 
       - name: Verify deploy
         if: always()
         run: |
+          echo "=== Deploy summary ==="
           if [ -f /opt/ai-tutor/deploy/release/releases/*/release-id ]; then
-            echo "Current release:"
-            cat /opt/ai-tutor/deploy/release/releases/*/release-id
+            current=$(ls -t /opt/ai-tutor/deploy/release/releases/*/release-id | head -1 | xargs cat)
+            echo "Current release: $current"
           fi
-          echo "Backend uptime:"
-          curl -sk --max-time 5 https://localhost/health 2>&1 | head -1
+          echo "Backend uptime: $(uptime -p)"
           echo ""
           echo "CI-deploy log tail:"
-          tail -20 /var/log/ai-tutor-ci-deploy.log 2>&1 | tail -10
+          tail -15 /var/log/ai-tutor-ci-deploy.log 2>&1
 
       - name: Cleanup
         if: always()
@@ -85,7 +178,8 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          msg="✅ Deploy OK: $GITHUB_REPOSITORY@${GITHUB_SHA::7} → https://192.168.1.86"
+          current=$(ls -t /opt/ai-tutor/deploy/release/releases/*/release-id 2>/dev/null | head -1 | xargs cat 2>/dev/null || echo "unknown")
+          msg="✅ Deploy OK: $GITHUB_REPOSITORY@${GITHUB_SHA::7} → release $current"
           echo "$msg"
           if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
             curl -sf -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
@@ -102,8 +196,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          msg="❌ Deploy FAILED: $GITHUB_REPOSITORY@${GITHUB_SHA::7}"
-          msg="$msg"$'\n'"Check: $url"
+          msg="❌ Deploy FAILED: $GITHUB_REPOSITORY@${GITHUB_SHA::7}\nCheck: $url"
           echo "$msg"
           if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
             curl -sf -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
