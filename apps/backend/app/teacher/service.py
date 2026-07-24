@@ -508,12 +508,14 @@ def list_materials_for_teacher(
     topic_id: int | None = None,
     limit: int = 50,
     offset: int = 0,
+    search: str | None = None,  # Sprint 35
 ) -> list[subj_models.LearningMaterial]:
     """Список материалов для учителя.
 
     Admin видит все; teacher — только свои (по generated_by).
+    Sprint 35: добавлен search по title (ILIKE).
     """
-    from sqlalchemy import select
+    from sqlalchemy import func, select  # noqa: F401
 
     q = select(subj_models.LearningMaterial).order_by(
         subj_models.LearningMaterial.id.desc()
@@ -524,6 +526,22 @@ def list_materials_for_teacher(
         q = q.where(subj_models.LearningMaterial.status == status_filter)
     if topic_id:
         q = q.where(subj_models.LearningMaterial.topic_id == topic_id)
+    if search:
+        # Sprint 35: case-insensitive поиск по title.
+        # На production (PostgreSQL) ILIKE работает нативно для unicode.
+        # На SQLite (тесты) ILIKE не поддерживается, но lower() для ASCII.
+        # Чтобы работали ОБА: используем case_sensitive через pattern.
+        # Sprint 35 fix: явно lowercase, но pattern matching через SQLite
+        # LIKE всё равно регистрозависимый для не-ASCII.
+        # Решение: case_sensitive comparison для ASCII, unicode возвращаем напрямую.
+        pattern = f"%{search}%"
+        # Для SQLite (тесты) LIKE без lower() — case-sensitive (не работает для cyrillic).
+        # Реально на проде (PostgreSQL) — через ILIKE.
+        # В тестах используем нечувствительный поиск через .contains() — но
+        # SQLAlchemy .contains() не работает на PostgreSQL с non-ASCII.
+        # Sprint 35 compromise: search работает через ilike() для production,
+        # но в тестах (SQLite) тесты используют только ASCII строки.
+        q = q.where(subj_models.LearningMaterial.title.ilike(pattern))
     q = q.limit(min(limit, 200)).offset(max(offset, 0))
     return list(db.scalars(q).all())
 
@@ -534,7 +552,7 @@ def list_published_for_student(
     limit: int = 50,
 ) -> list[subj_models.LearningMaterial]:
     """Только опубликованные материалы — для ученика."""
-    from sqlalchemy import select
+    from sqlalchemy import func, select  # noqa: F401
 
     q = select(subj_models.LearningMaterial).where(
         subj_models.LearningMaterial.status == "published"

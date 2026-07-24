@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.ai.service import AIService
@@ -159,13 +160,14 @@ async def upload_source(
 def list_materials(
     status: str | None = Query(None),
     topic_id: int | None = Query(None),
+    search: str | None = Query(None, description="Sprint 35: поиск по title (ILIKE)"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     current: User = Depends(require_teacher_or_admin()),
 ):
     materials = teacher_service.list_materials_for_teacher(
-        db, current, status, topic_id, limit, offset
+        db, current, status, topic_id, limit, offset, search
     )
     return [teacher_service.material_to_list_item(m) for m in materials]
 
@@ -306,6 +308,73 @@ def approve_material(
     )
 
     return teacher_service.material_to_draft_out(material)
+
+
+class BulkApproveIn(BaseModel):
+    """Sprint 35: bulk approve материалов."""
+    material_ids: list[int] = Field(min_length=1, max_length=50)
+
+
+class BulkApproveOut(BaseModel):
+    """Sprint 35: результат bulk approve."""
+    approved: list[int]  # Успешно одобренные
+    failed: list[dict[str, str]]  # [{id, reason}]
+
+
+@router.post(
+    "/materials/bulk-approve",
+    response_model=BulkApproveOut,
+    summary="Sprint 35: approve нескольких материалов сразу",
+)
+def bulk_approve_materials(
+    payload: BulkApproveIn,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_teacher_or_admin()),
+):
+    """Sprint 35: одобрить до 50 материалов за один запрос.
+
+    Каждый материал проверяется отдельно:
+    - 404 если не найден
+    - 403 если teacher пытается approve чужой материал
+    - 409 если материал в неправильном workflow state
+
+    Возвращает:
+    - approved: список успешно одобренных ID
+    - failed: список ошибок [{id, reason}]
+    """
+    from app.admin import service as audit_service
+
+    approved: list[int] = []
+    failed: list[dict[str, str]] = []
+
+    for material_id in payload.material_ids:
+        material = db.get(subj_models.LearningMaterial, material_id)
+        if material is None:
+            failed.append({"id": str(material_id), "reason": "not_found"})
+            continue
+        if (
+            current.role.value == "teacher"
+            and material.generated_by != current.id
+        ):
+            failed.append({"id": str(material_id), "reason": "forbidden"})
+            continue
+        try:
+            material = teacher_service.approve_material(db, material, current)
+        except teacher_service.WorkflowError as exc:
+            failed.append({"id": str(material_id), "reason": str(exc)})
+            continue
+
+        audit_service.record(
+            db,
+            user=current,
+            action="material.approve",
+            entity="learning_material",
+            entity_id=str(material.id),
+        )
+        approved.append(material.id)
+
+    db.commit()
+    return BulkApproveOut(approved=approved, failed=failed)
 
 
 @router.post(
