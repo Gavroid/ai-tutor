@@ -74,6 +74,7 @@ def create_app() -> FastAPI:
             {"name": "sessions", "description": "Sprint 34. T1D-friendly session pauses (break/hypo/hyper/other). Streak НЕ ломается."},
             {"name": "ai", "description": "Sprint 25. Генерация ответов AI, check-answer, hint-metrics, budget/usage."},
             {"name": "voice", "description": "Sprint 16.1. Whisper ASR endpoint (async, proper HTTP codes)."},
+            {"name": "cgm", "description": "Sprint 40. Nightscout CGM opt-in прокси (HTTPS-only, SSRF protection, БЕЗ сохранения glucose в БД)."},
             {"name": "progress", "description": "Sprint 8.2 + 16.2. Streak, recommend-next (T1D-friendly), progress tracking."},
             {"name": "admin", "description": "Sprint 9.2 + 10.4. Stats, audit-log (с entity filter), kill switch."},
             {"name": "meta", "description": "Healthchecks, version."},
@@ -546,6 +547,7 @@ def create_app() -> FastAPI:
     from app.subjects.router import topics_router
     from app.ai.router import router as ai_router
     from app.sessions.router import router as sessions_router  # Sprint 34
+    from app.cgm.router import router as cgm_router  # Sprint 40: Nightscout proxy
     from app.progress.router import router as progress_router
     from app.diagnostics.router import router as diagnostic_router
     from app.parents.router import router as parents_router
@@ -566,6 +568,7 @@ def create_app() -> FastAPI:
     app.include_router(topics_router)
     app.include_router(ai_router)
     app.include_router(sessions_router)  # Sprint 34
+    app.include_router(cgm_router)  # Sprint 40
     app.include_router(progress_router)
     app.include_router(diagnostic_router)
     app.include_router(parents_router)

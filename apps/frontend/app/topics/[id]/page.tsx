@@ -9,6 +9,7 @@ import { renderMarkdown } from "@/lib/markdown";
 import SafeMarkdown from "@/components/SafeMarkdown";
 import PauseButton from "@/components/PauseButton";
 import SessionTimer from "@/components/SessionTimer";
+import CGMStatus from "@/components/CGMStatus";
 import { playCompletionCue } from "@/lib/audio-cue";
 import type { Topic, ChatMsg } from "@/types";
 
@@ -489,6 +490,9 @@ export default function TopicPage() {
       )}
 
       <SessionTimer />
+
+      {/* Sprint 40: CGM badge (T1D-friendly, opt-in). */}
+      <CGMStatus />
 
       <section ref={scrollRef} className="mt-4 flex-1 space-y-3 overflow-y-auto rounded-xl bg-slate-50 p-4">
         {msgs.length === 0 && (
