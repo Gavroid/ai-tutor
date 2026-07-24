@@ -128,7 +128,7 @@ async def generate_exercise(
 
 
 @router.post("/{exercise_id}/answer", response_model=AnswerOut)
-def submit_answer(
+async def submit_answer(
     exercise_id: int,
     payload: AnswerIn,
     db: Session = Depends(get_db),
@@ -163,10 +163,12 @@ def submit_answer(
     norm_user = (payload.user_answer or "").strip()
     norm_ref = (inst.correct_answer or "").strip()
 
-    # Sprint 19 P2-2: используем диспатчер checkers если задан checker_type.
-    # Fallback на exact match для обратной совместимости со старыми записями.
+    # Sprint 19 P2-2 + Sprint 25: используем диспатчер checkers.
+    # - numeric/keyword/exact — sync
+    # - semantic — async через AIService.check_answer
+    # Fallback на exact match для обратной совместимости.
     if inst.checker_type and inst.checker_type != "exact":
-        from app.practice.checkers import check_answer
+        from app.practice.checkers import check_answer, check_answer_async
         import json as _json
 
         keywords_list: list[str] = []
@@ -176,13 +178,21 @@ def submit_answer(
             except (ValueError, TypeError):
                 keywords_list = []
 
-        check_result = check_answer(
-            user_answer=norm_user,
-            reference_solution=norm_ref,
-            checker_type=inst.checker_type,
-            keywords=keywords_list,
-            question_text=inst.question_text,
-        )
+        if inst.checker_type == "semantic":
+            # Sprint 25: async semantic через AI judge.
+            check_result = await check_answer_async(
+                user_answer=norm_user,
+                reference_solution=norm_ref,
+                question_text=inst.question_text,
+            )
+        else:
+            check_result = check_answer(
+                user_answer=norm_user,
+                reference_solution=norm_ref,
+                checker_type=inst.checker_type,
+                keywords=keywords_list,
+                question_text=inst.question_text,
+            )
         is_correct = bool(check_result["correct"])
         score = float(check_result["score"])
         feedback = (

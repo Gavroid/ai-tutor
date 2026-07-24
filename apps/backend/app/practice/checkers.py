@@ -20,8 +20,11 @@ Sprint 8.2: эталонные решения уже есть в PracticeTask.re
 """
 from __future__ import annotations
 
+import logging
 import re
 from typing import Literal
+
+logger = logging.getLogger(__name__)
 
 CheckerType = Literal["numeric", "keyword", "semantic", "exact"]
 
@@ -202,3 +205,65 @@ def check_answer(
         "checker": ct,
         "details": {"reason": f"unknown checker_type: {ct}"},
     }
+
+
+async def check_answer_async(
+    user_answer: str,
+    reference_solution: str,
+    question_text: str = "",
+) -> dict:
+    """Sprint 25: async semantic checker через AIService.check_answer.
+
+    Используется когда sync check_answer возвращает "semantic requires async".
+    Возвращает тот же dict формат, что check_answer, но с реальным AI judge.
+
+    Args:
+        user_answer: что ученик ввёл.
+        reference_solution: эталон (correct_answer).
+        question_text: контекст для AI judge.
+
+    Returns:
+        dict с ключами correct, score, checker="semantic", details.
+    """
+    from app.ai.service import get_ai_service  # late import (avoid circular)
+
+    user = (user_answer or "").strip()
+    ref = (reference_solution or "").strip()
+
+    if not user:
+        return {
+            "correct": False,
+            "score": 0.0,
+            "checker": "semantic",
+            "details": {"reason": "empty answer"},
+        }
+
+    try:
+        svc = get_ai_service()
+        result = await svc.check_answer(
+            question_text=question_text or "Вопрос не указан",
+            correct_answer=ref,
+            user_answer=user,
+        )
+        return {
+            "correct": bool(result.is_correct),
+            "score": float(result.score),
+            "checker": "semantic",
+            "details": {
+                "explanation": result.explanation,
+                "first_error": result.first_error,
+                "error_type": getattr(result, "error_type", None),
+            },
+        }
+    except Exception as e:
+        # При ошибке AI (timeout, rate limit) — fallback на keyword.
+        logger.exception("Semantic checker AI failed: %s", e)
+        return {
+            "correct": False,
+            "score": 0.0,
+            "checker": "semantic",
+            "details": {
+                "reason": f"AI judge failed: {e!s}",
+                "fallback": "consider keyword checker",
+            },
+        }
