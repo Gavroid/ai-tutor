@@ -54,9 +54,30 @@ def create_app() -> FastAPI:
         title=settings.app_name,
         version="0.1.0-mvp",
         description=(
-            "AI-репетитор для школьной программы 7 класса. "
-            "Каркас MVP — healthcheck, OpenAPI, CORS."
+            "AI-репетитор для школьной программы 7 класса (MVP). "
+            "T1D-friendly: PauseButton, SessionTimer 3-tier (20/40/60 мин), "
+            "audio cue, streak timezone (Europe/Moscow). "
+            "Parent 2FA TOTP (8 backup codes). Cookie-based auth (httpOnly). "
+            "Multi-worker uvicorn. Telegram alerts при 5xx. "
+            "Документация автоматически генерируется из OpenAPI schema.\n\n"
+            "**Quick links:**\n"
+            "- `/openapi.json` — JSON schema (machine-readable)\n"
+            "- `/docs` — Swagger UI (try endpoints)\n"
+            "- `/health` — liveness probe (без auth)\n"
+            "- `/ready` — readiness probe (БД ping)\n"
         ),
+        openapi_tags=[
+            {"name": "auth", "description": "Sprint 10.1 + 27. Регистрация, login, refresh, logout, /me. httpOnly cookies."},
+            {"name": "teacher", "description": "Sprint 35. Генерация, список (с search), bulk approve материалов. Только teacher/admin."},
+            {"name": "parent", "description": "Sprint 32. Приглашения, дашборд ребёнка, 2FA TOTP endpoints."},
+            {"name": "students", "description": "Профиль ученика, привязка к parent."},
+            {"name": "sessions", "description": "Sprint 34. T1D-friendly session pauses (break/hypo/hyper/other). Streak НЕ ломается."},
+            {"name": "ai", "description": "Sprint 25. Генерация ответов AI, check-answer, hint-metrics, budget/usage."},
+            {"name": "voice", "description": "Sprint 16.1. Whisper ASR endpoint (async, proper HTTP codes)."},
+            {"name": "progress", "description": "Sprint 8.2 + 16.2. Streak, recommend-next (T1D-friendly), progress tracking."},
+            {"name": "admin", "description": "Sprint 9.2 + 10.4. Stats, audit-log (с entity filter), kill switch."},
+            {"name": "meta", "description": "Healthchecks, version."},
+        ],
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",
