@@ -548,6 +548,8 @@ def create_app() -> FastAPI:
     from app.ai.router import router as ai_router
     from app.sessions.router import router as sessions_router  # Sprint 34
     from app.cgm.router import router as cgm_router  # Sprint 40: Nightscout proxy
+    from app.invites.router import router as invites_admin_router  # Sprint 44
+    from app.invites.public_router import router as invites_public_router  # Sprint 44
     from app.progress.router import router as progress_router
     from app.diagnostics.router import router as diagnostic_router
     from app.parents.router import router as parents_router
@@ -569,6 +571,8 @@ def create_app() -> FastAPI:
     app.include_router(ai_router)
     app.include_router(sessions_router)  # Sprint 34
     app.include_router(cgm_router)  # Sprint 40
+    app.include_router(invites_admin_router)  # Sprint 44
+    app.include_router(invites_public_router)  # Sprint 44
     app.include_router(progress_router)
     app.include_router(diagnostic_router)
     app.include_router(parents_router)

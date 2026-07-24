@@ -26,6 +26,7 @@ from app.auth import password_reset_models as _password_reset_models  # noqa: F4
 from app import rag_models as _rag_models  # noqa: F401, E402  # Sprint 3.5.2: RagChunk для persistent RAG
 from app.sessions import models as _sessions_models  # noqa: F401, E402  # Sprint 34: SessionPause
 from app.cgm import models as _cgm_models  # noqa: F401, E402  # Sprint 40: CGMConfig
+from app.invites import models as _invites_models  # noqa: F401, E402  # Sprint 44: Invite
 
 import pytest  # noqa: E402
 

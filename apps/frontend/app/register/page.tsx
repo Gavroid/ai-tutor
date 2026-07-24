@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Sprint 44: optional invite code из URL.
+  const inviteCode = searchParams.get("code");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -19,7 +22,15 @@ export default function RegisterPage() {
     setError(null);
     setLoading(true);
     try {
-      await api.register({ email, password, display_name: displayName, role: "student", grade });
+      await api.register({
+        email,
+        password,
+        display_name: displayName,
+        role: "student",
+        grade,
+        // Sprint 44: pass invite code if present.
+        ...(inviteCode ? { invite_code: inviteCode } : {}),
+      });
       // Sprint 27: cookie ставится через /login Set-Cookie header.
       await api.login({ email, password });
       router.push("/subjects");
@@ -48,6 +59,17 @@ export default function RegisterPage() {
       <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
         <h1 className="text-2xl font-bold">Регистрация</h1>
         <p className="mt-1 text-sm text-slate-600">Создай аккаунт и начни заниматься</p>
+
+        {/* Sprint 44: invite code banner */}
+        {inviteCode && (
+          <div
+            className="mt-4 rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800"
+            data-testid="invite-banner"
+          >
+            <strong>Приглашение:</strong> ты регистрируешься по приглашению.
+          </div>
+        )}
+
         <form className="mt-6 space-y-4" onSubmit={onSubmit}>
           <Field label="Имя или псевдоним" value={displayName} onChange={setDisplayName} required />
           <Field label="Email" type="email" value={email} onChange={setEmail} required />

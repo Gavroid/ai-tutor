@@ -1,7 +1,7 @@
 """Роутер авторизации и профиля."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
@@ -19,14 +19,49 @@ def register(
     payload: schemas.UserCreate,
     db: Session = Depends(get_db),
 ):
+    # Sprint 44: validate invite_code if provided.
+    if payload.invite_code:
+        from app.invites.models import Invite
+        from datetime import datetime as _dt
+
+        invite = db.get(Invite, payload.invite_code)
+        if invite is None:
+            raise HTTPException(400, "Invalid invite code")
+        if invite.expires_at and invite.expires_at <= _dt.utcnow():
+            raise HTTPException(400, "Invite code expired")
+        if invite.uses_count >= invite.max_uses:
+            raise HTTPException(400, "Invite code already used")
+        # Sprint 44: if invite specifies role, OVERRIDE payload role.
+        # (для teacher invites, иначе register endpoint блокирует teacher).
+        payload_dict = payload.model_dump()
+        payload_dict["role"] = invite.role
+        payload = schemas.UserCreate(**payload_dict)
+
     user = service.register_user(db, payload)
+
+    # Sprint 44: redeem invite (mark as used).
+    if payload.invite_code:
+        from app.invites.models import Invite as _Invite
+        from datetime import datetime as _dt
+        invite = db.get(_Invite, payload.invite_code)
+        if invite is not None:
+            invite.uses_count += 1
+            if invite.uses_count >= invite.max_uses:
+                invite.used_by = user.id
+                invite.used_at = _dt.utcnow()
+            db.commit()
+
     audit_service.record(
         db,
         user=user,
         action="user.register",
         entity="user",
         entity_id=str(user.id),
-        details={"email": user.email, "role": user.role.value},
+        details={
+            "email": user.email,
+            "role": user.role.value,
+            "invite_code": payload.invite_code,
+        },
     )
     return user
 

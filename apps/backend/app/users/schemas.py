@@ -48,6 +48,8 @@ class UserCreate(BaseModel):
     role: Role = Role.STUDENT
     # Только для student:
     grade: int | None = Field(default=None, ge=1, le=11)
+    # Sprint 44: optional invite code (от admin/teacher).
+    invite_code: str | None = Field(default=None, min_length=4, max_length=32)
 
 
 class UserLogin(BaseModel):
