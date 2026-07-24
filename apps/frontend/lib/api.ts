@@ -439,6 +439,23 @@ export const api = {
       "/api/v1/auth/refresh",
       { method: "POST" }
     ),
+  // Sprint 34: Session pause tracking (T1D safety).
+  // Записывает pause events для parent dashboard / streak analysis.
+  // НЕ интерпретирует glucose data, НЕ отправляет в Telegram автоматически.
+  sessionsPause: (reason: "break" | "hypo" | "hyper" | "other", topicId?: number) =>
+    request<{ id: number; started_at: string; reason: string }>(
+      "/api/v1/sessions/pause",
+      {
+        method: "POST",
+        body: JSON.stringify({ reason, topic_id: topicId }),
+      }
+    ),
+  sessionsResume: () =>
+    request<{ paused_seconds: number; reason: string }>(
+      "/api/v1/sessions/resume",
+      { method: "POST" }
+    ),
+
   // Admin
   adminStats: () =>
     request<{

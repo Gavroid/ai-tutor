@@ -24,6 +24,7 @@ from app.admin import models as _admin_models  # noqa: F401, E402
 from app.notifications import models as _notifications_models  # noqa: F401, E402
 from app.auth import password_reset_models as _password_reset_models  # noqa: F401, E402
 from app import rag_models as _rag_models  # noqa: F401, E402  # Sprint 3.5.2: RagChunk для persistent RAG
+from app.sessions import models as _sessions_models  # noqa: F401, E402  # Sprint 34: SessionPause
 
 import pytest  # noqa: E402
 

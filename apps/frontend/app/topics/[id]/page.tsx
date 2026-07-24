@@ -630,9 +630,11 @@ export default function TopicPage() {
         <div className="mt-2 flex justify-end">
           <PauseButton
             onPause={(reason) => {
-              // T1D-friendly: логируем причину для родительского dashboard.
-              // Без отправки glucose data.
-              console.info("Sprint 23: T1D pause", { reason });
+              // Sprint 34: записываем pause в БД (для parent dashboard).
+              // T1D-friendly: НЕ интерпретируем reason, НЕ шлём в Telegram.
+              api.sessionsPause(reason, Number(topicId)).catch((e) => {
+                console.error("Pause logging failed:", e);
+              });
             }}
           />
         </div>
