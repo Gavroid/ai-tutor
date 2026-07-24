@@ -67,6 +67,16 @@ class GeneratedExerciseInstance(Base):
     submission_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
     submission_score: Mapped[float | None] = mapped_column(nullable=True)
 
+    # Sprint 19 P2-2: checker configuration для диспатчера.
+    # checker_type: "numeric" | "keyword" | "exact" | "semantic".
+    # reference_solution: полный эталон (для semantic).
+    # required_keywords: JSON list для keyword-чекера.
+    checker_type: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="keyword", server_default="keyword"
+    )
+    reference_solution: Mapped[str | None] = mapped_column(Text, nullable=True)
+    required_keywords: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     __table_args__ = (
         Index("ix_gei_owner_created", "owner_id", "created_at"),
     )

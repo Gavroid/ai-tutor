@@ -96,6 +96,16 @@ async def generate_exercise(
 
         options_json = json.dumps(gen.options, ensure_ascii=False)
 
+    # Sprint 19 P2-2: автоопределение checker_type по типу упражнения.
+    # numeric → numeric checker
+    # exact → exact match (default)
+    # иначе → keyword
+    inferred_checker = "keyword"
+    if gen.type == "numeric":
+        inferred_checker = "numeric"
+    elif gen.type in ("text", "short"):
+        inferred_checker = "exact"
+
     inst = GeneratedExerciseInstance(
         owner_id=current.id,
         topic_id=topic.id,
@@ -108,6 +118,8 @@ async def generate_exercise(
         model=getattr(get_ai_service().provider, "model_name", None)
         or getattr(get_ai_service().provider, "model", "mock"),
         prompt_version="pilot-1",
+        checker_type=inferred_checker,
+        reference_solution=gen.correct_answer,
     )
     db.add(inst)
     db.commit()
@@ -148,10 +160,40 @@ def submit_answer(
             explanation=inst.explanation,
         )
 
-    norm_user = (payload.user_answer or "").strip().lower()
-    norm_ref = (inst.correct_answer or "").strip().lower()
-    is_correct = bool(norm_user) and norm_user == norm_ref
-    score = 1.0 if is_correct else 0.0
+    norm_user = (payload.user_answer or "").strip()
+    norm_ref = (inst.correct_answer or "").strip()
+
+    # Sprint 19 P2-2: используем диспатчер checkers если задан checker_type.
+    # Fallback на exact match для обратной совместимости со старыми записями.
+    if inst.checker_type and inst.checker_type != "exact":
+        from app.practice.checkers import check_answer
+        import json as _json
+
+        keywords_list: list[str] = []
+        if inst.required_keywords:
+            try:
+                keywords_list = _json.loads(inst.required_keywords)
+            except (ValueError, TypeError):
+                keywords_list = []
+
+        check_result = check_answer(
+            user_answer=norm_user,
+            reference_solution=norm_ref,
+            checker_type=inst.checker_type,
+            keywords=keywords_list,
+            question_text=inst.question_text,
+        )
+        is_correct = bool(check_result["correct"])
+        score = float(check_result["score"])
+        feedback = (
+            f"[{check_result['checker']}] "
+            + ("Верно!" if is_correct else "Есть ошибка")
+        )
+    else:
+        # Fallback: exact match (default behavior).
+        is_correct = bool(norm_user) and norm_user.lower() == norm_ref.lower()
+        score = 1.0 if is_correct else 0.0
+        feedback = "Верно!" if is_correct else "Есть ошибка"
 
     inst.submitted_at = datetime.now(timezone.utc)
     inst.submission_answer = payload.user_answer
@@ -206,7 +248,6 @@ def submit_answer(
     db.commit()
     db.refresh(attempt)
 
-    feedback = "Верно!" if is_correct else "Есть ошибка"
     return AnswerOut(
         exercise_id=inst.id,
         is_correct=is_correct,

@@ -1,28 +1,19 @@
 """Sprint 8.2: чекеры для автопроверки практических задач.
 
-Sprint 3.5.1 — DEAD CODE TEST FILE
-================================
-В Pilot Core Stage 1 (P1.2.3) v2 secure flow заменил app.practice.checkers на
-прямой exact match в app/v2/exercises.py::submit_answer. Чекеры (numeric/
-keyword/semantic/exact) НЕ вызываются в hot path.
+Sprint 19 P2-2: РАСКОММЕНТИРОВАНО. Checkers интегрированы в
+v2/exercises.py::submit_answer через dispatcher. Тесты снова активны.
 
-Семантический match (semantic) был задекларирован в Sprint 8.2 но никогда
-не подключён в v2 (расширяет attack surface, требует архитектурного решения).
+3 стратегии:
+- numeric — ответ сравнивается с эталоном как число (с допуском).
+- keyword — в ответе должны присутствовать ключевые слова (case-insensitive, min-match-score).
+- exact — точное совпадение с нормализацией (для "да/нет").
+- semantic — для неоднозначных случаев: AI-judge (TODO, async).
 
-Эти 32 теста — страховка на случай если RAG/semantic checkers будут
-подключены в будущем. Сейчас они замедляют pytest без value.
-
-После Sprint 3.5.2 (RAG) — часть тестов может быть реактивирована.
+Использование:
+    from app.practice.checkers import check_answer
+    result = check_answer(...)
 """
 from __future__ import annotations
-
-import pytest
-
-pytestmark = pytest.mark.skip(
-    reason="Sprint 3.5.1: dead code — v2 flow делает exact match напрямую, "
-           "app.practice.checkers не вызывается в hot path. "
-           "Реактивировать если semantic checkers будут подключены в v2."
-)
 
 from app.practice.checkers import (
     NUMERIC_ABS_TOLERANCE,
