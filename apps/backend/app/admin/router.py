@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.admin import schemas, service
+from app.admin import models, schemas, service
 from app.common.deps import Role, User, require_admin
 from app.db.session import get_db
 
@@ -331,6 +331,93 @@ def test_notification(
         "smtp_configured": bool(os.environ.get("SMTP_URL", "").strip()),
         "record_id": rec.id,
     }
+
+
+# === Sprint 45: Audit log hash chain verification ===
+
+@router.get("/audit-log/verify")
+def verify_audit_log_chain(
+    limit: int = Query(1000, ge=1, le=10000),
+    db: Session = Depends(get_db),
+    current: User = Depends(require_admin()),
+):
+    """Sprint 45: проверить hash chain integrity (tamper detection)."""
+    result = service.verify_chain(db, limit=limit)
+    return result
+
+
+@router.get("/audit-log/export")
+def export_audit_log(
+    fmt: str = Query("json", pattern="^(json|csv)$"),
+    since: str | None = Query(None, description="ISO datetime"),
+    until: str | None = Query(None, description="ISO datetime"),
+    db: Session = Depends(get_db),
+    current: User = Depends(require_admin()),
+):
+    """Sprint 45: export audit log (для compliance)."""
+    from datetime import datetime
+    from sqlalchemy import select
+    import csv
+    import io
+
+    q = select(models.AuditLog)
+    if since:
+        from datetime import timezone
+        since_dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
+        if since_dt.tzinfo is None:
+            since_dt = since_dt.replace(tzinfo=timezone.utc)
+        q = q.where(models.AuditLog.created_at >= since_dt)
+    if until:
+        from datetime import timezone
+        until_dt = datetime.fromisoformat(until.replace("Z", "+00:00"))
+        if until_dt.tzinfo is None:
+            until_dt = until_dt.replace(tzinfo=timezone.utc)
+        q = q.where(models.AuditLog.created_at <= until_dt)
+    q = q.order_by(models.AuditLog.id.asc()).limit(10000)
+    rows = db.execute(q).scalars().all()
+
+    # Log the export action
+    service.record(
+        db,
+        user=current,
+        action="audit.export",
+        entity="audit_logs",
+        details={"format": fmt, "rows": len(rows)},
+    )
+    db.commit()
+
+    if fmt == "json":
+        return [
+            {
+                "id": r.id,
+                "user_id": r.user_id,
+                "action": r.action,
+                "entity": r.entity,
+                "entity_id": r.entity_id,
+                "details": r.details,
+                "ip_address": r.ip_address,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "previous_hash": r.previous_hash,
+                "record_hash": r.record_hash,
+            }
+            for r in rows
+        ]
+    # CSV format
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "id", "user_id", "action", "entity", "entity_id",
+        "details", "ip_address", "created_at",
+        "previous_hash", "record_hash",
+    ])
+    for r in rows:
+        writer.writerow([
+            r.id, r.user_id or "", r.action, r.entity or "",
+            r.entity_id or "", r.details or "", r.ip_address or "",
+            r.created_at.isoformat() if r.created_at else "",
+            r.previous_hash or "", r.record_hash or "",
+        ])
+    return {"filename": f"audit_log_{fmt}.csv", "content": output.getvalue()}
 
 
 # === Sprint 4.2: Audit log retention ===
