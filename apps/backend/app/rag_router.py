@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.auth.security import get_current_user
 from app.db.session import get_db
 from app.rag import add_chunks, chunk_text, get_embedding, remove_by_material, search, stats
-from app.rag_persist import add_chunks_persistent, count_persistent, search_persistent
+from app.rag_persist import add_chunks_persistent, count_persistent, search_bm25_persistent, search_persistent
 from app.subjects import models as subj_models
 from app.users.models import User
 
@@ -94,6 +94,42 @@ async def search_endpoint(
                 material_id=c.material_id,
                 text=c.text,
                 score=0.0,  # score не возвращается напрямую (для простоты)
+                metadata=c.metadata,
+            )
+            for c in results
+        ],
+    )
+
+
+@router.post("/search/bm25", response_model=SearchResponse)
+def search_bm25_endpoint(
+    payload: SearchRequest,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
+    """Sprint 57: BM25 keyword search (без embeddings).
+
+    Альтернатива /search (cosine similarity) для keyword queries.
+    Не требует real embeddings — работает на 4GB RAM.
+
+    Преимущества:
+    - Быстрее (~1ms vs 50ms)
+    - Не зависит от AI API
+    - Лучше для keyword queries (specific terms)
+
+    Returns top_k PersistentChunk с metadata.
+    """
+    results = search_bm25_persistent(
+        db, payload.query, top_k=payload.top_k, material_id=payload.material_id
+    )
+    return SearchResponse(
+        query=payload.query,
+        hits=[
+            SearchHit(
+                chunk_id=c.id,
+                material_id=c.material_id,
+                text=c.text,
+                score=0.0,
                 metadata=c.metadata,
             )
             for c in results

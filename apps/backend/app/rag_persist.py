@@ -258,6 +258,70 @@ def search_persistent(
     return [c for _, c in scored[:top_k]]
 
 
+def search_bm25_persistent(
+    db: Session,
+    query: str,
+    top_k: int = 3,
+    material_id: int | None = None,
+) -> list[PersistentChunk]:
+    """Sprint 57: BM25 keyword search через rag_chunks.
+
+    Альтернатива search_persistent (cosine) — лучше для keyword queries,
+    не требует embeddings. Используется когда:
+    - embeddings недоступны (4GB RAM)
+    - запрос keyword-based (не semantic)
+
+    Returns: top_k PersistentChunk sorted by BM25 score.
+    """
+    from app.rag_models import RagChunk
+    from app.rag_bm25 import bm25_search
+
+    q = select(RagChunk)
+    if material_id is not None:
+        q = q.where(RagChunk.material_id == material_id)
+    rows = db.execute(q).scalars().all()
+
+    if not rows:
+        return []
+
+    # Convert to dict format для bm25_search.
+    chunk_dicts = []
+    for row in rows:
+        meta = json.loads(row.metadata_json or "{}")
+        chunk_dicts.append({
+            "id": row.hash,
+            "material_id": row.material_id,
+            "text": row.text,
+            "material_title": meta.get("material_title", ""),
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+            "metadata": meta,
+            "_row": row,  # for PersistentChunk construction
+        })
+
+    # BM25 search.
+    top_chunks = bm25_search(
+        query=query,
+        chunks=chunk_dicts,
+        top_k=top_k,
+        title_boost_factor=1.5,
+        recency_enabled=True,
+    )
+
+    # Convert back to PersistentChunk.
+    result: list[PersistentChunk] = []
+    for chunk_dict in top_chunks:
+        row = chunk_dict["_row"]
+        emb = json_to_embedding(row.embedding_json)
+        result.append(PersistentChunk(
+            id=row.hash,
+            material_id=row.material_id,
+            text=row.text,
+            embedding=emb,
+            metadata=chunk_dict["metadata"],
+        ))
+    return result
+
+
 def count_persistent(db: Session) -> int:
     """Sprint 3.5.2: сколько chunk'ов в rag_chunks."""
     from app.rag_models import RagChunk
