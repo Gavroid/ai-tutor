@@ -99,14 +99,15 @@ def audit_log_count(
 
 @router.get("/users")
 def list_users(
-    limit: int = 100,
-    offset: int = 0,
+    # Sprint 67: явные bounds (Query validators) для предотвращения DoS.
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     current: User = Depends(require_admin()),
 ):
     """Список пользователей (только для admin)."""
     rows = db.scalars(
-        select(User).order_by(User.id).limit(min(limit, 500)).offset(max(offset, 0))
+        select(User).order_by(User.id).limit(limit).offset(offset)
     ).all()
     return [
         {

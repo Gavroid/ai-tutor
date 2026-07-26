@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from app.common.deps import User, get_current_user
@@ -116,13 +116,12 @@ def resume_pause(
 
 @router.get("/pauses/recent", response_model=list[PauseOut])
 def list_recent_pauses(
-    limit: int = 20,
+    # Sprint 67: явные bounds (Query validators) для предотвращения DoS.
+    limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
     """Sprint 34: последние pauses (для parent dashboard)."""
-    if limit < 1 or limit > 100:
-        raise HTTPException(400, "limit must be 1..100")
 
     from app.sessions.models import SessionPause
 
