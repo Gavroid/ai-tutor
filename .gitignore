@@ -29,3 +29,7 @@ apps/frontend/tsconfig.tsbuildinfo
 .copy-ssh-key-to-github.sh
 .ssh_actions_deploy_key_FOR_GITHUB.txt
 .update-github-ssh-secret.sh
+
+# User/analysis files (Sprint 66+ planning docs)
+/NEXT-SESSION-PROMPT.md
+/docs/AUDIT-*.md
