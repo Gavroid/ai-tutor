@@ -24,26 +24,23 @@ async def ai_chat_stream(websocket: WebSocket):
     """Стриминг ответов AI по WebSocket.
 
     Протокол:
-    - Клиент подключается с токеном:
-        Preferred: cookie `access_token` (httponly, set by /login, /refresh).
-        Fallback (deprecated): ?token=<jwt> в query string.
+    - Клиент подключается с cookie `access_token` (httponly, set by /login, /refresh).
+    - Sprint 66: query string ?token= больше НЕ поддерживается (security fix).
     - Клиент шлёт JSON: {"history": [...], "topic_id": 1}
     - Сервер стримит куски текста: {"type": "chunk", "content": "..."}
     - В конце: {"type": "done", "model": "MiniMax-M3"}
     - При ошибке: {"type": "error", "message": "..."}
 
     Sprint 16.0 P0-3 (security): JWT в query string попадает в nginx access
-    logs, browser history, exception traces. Сейчас принимаем и cookie, и
-    query — для обратной совместимости. Полный отказ от ?token= планируется
-    в Sprint 16.1 P1-2 (cookie-based auth migration).
+    logs, browser history, exception traces. Sprint 16.1 P1-2 мигрировал
+    frontend на cookie-based auth, и Sprint 66 убирает query string
+    fallback полностью — только cookie `access_token`.
     """
-    # Sprint 16.0 P0-3: предпочитаем cookie, fallback на query string.
-    token = (
-        websocket.cookies.get("access_token")
-        or websocket.query_params.get("token")
-    )
+    # Sprint 66: только cookie auth (Sprint 16.1 P1-2 migration).
+    # Query string fallback УБРАН (security: nginx access logs, browser history).
+    token = websocket.cookies.get("access_token")
     if not token:
-        await websocket.close(code=1008, reason="Missing token")
+        await websocket.close(code=1008, reason="Missing token (cookie required)")
         return
 
     try:

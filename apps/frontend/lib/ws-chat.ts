@@ -2,7 +2,9 @@
 
 /**
  * WebSocket-клиент для AI-чата с авто-reconnect.
- * Подключается к /ws/ai/chat?token=<jwt>, стримит chunks ответа AI.
+ * Подключается к /ws/ai/chat с cookie auth (Sprint 16.1 P1-2).
+ * Cookie отправляется автоматически (same-origin через Next.js rewrites).
+ * Sprint 66: query string ?token= больше НЕ используется.
  * Поддерживает:
  *   - exponential backoff reconnect при разрыве
  *   - timeout для подвисших соединений

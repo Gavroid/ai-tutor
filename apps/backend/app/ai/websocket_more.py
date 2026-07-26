@@ -30,13 +30,11 @@ async def ai_explain_stream(websocket: WebSocket):
     Клиент: {"topic_id": 1}
     Сервер: {"type": "chunk", "content": "..."} → {"type": "done", "model": "..."}
     """
-    # Sprint 16.0 P0-3: предпочитаем cookie, fallback на query.
-    token = (
-        websocket.cookies.get("access_token")
-        or websocket.query_params.get("token")
-    )
+    # Sprint 66: только cookie auth (Sprint 16.1 P1-2 migration).
+    # Query string fallback УБРАН (security: nginx access logs).
+    token = websocket.cookies.get("access_token")
     if not token:
-        await websocket.close(code=1008, reason="Missing token")
+        await websocket.close(code=1008, reason="Missing token (cookie required)")
         return
     try:
         payload = decode_token(token)
@@ -117,9 +115,11 @@ async def ai_generate_stream(websocket: WebSocket):
     Клиент: {"topic_id": 1, "difficulty": 3}
     Сервер: {"type": "chunk", "content": "..."} → {"type": "done", "exercise": {...}}
     """
-    token = websocket.query_params.get("token")
+    # Sprint 66: только cookie auth (Sprint 16.1 P1-2 migration).
+    # Query string fallback УБРАН (security: nginx access logs).
+    token = websocket.cookies.get("access_token")
     if not token:
-        await websocket.close(code=1008, reason="Missing token")
+        await websocket.close(code=1008, reason="Missing token (cookie required)")
         return
     try:
         payload = decode_token(token)

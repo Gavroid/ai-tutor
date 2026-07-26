@@ -1,4 +1,9 @@
-"""Тесты WebSocket для AI-чата (Этап UX)."""
+"""Тесты WebSocket для AI-чата (Этап UX).
+
+Sprint 66: все тесты используют cookie auth (не query string).
+Sprint 16.1 P1-2 ввёл cookie-based auth для WS, Sprint 66 удалил
+query string fallback полностью.
+"""
 from __future__ import annotations
 
 import os
@@ -20,7 +25,6 @@ from app.main import app
 from app.subjects.scripts_seed_runner import seed_for_tests
 from app.users import service as user_service
 from app.users.schemas import UserCreate
-from app.users.models import Role
 
 
 @pytest.fixture()
@@ -59,6 +63,7 @@ def setup():
 
 
 def _token() -> str:
+    """Sprint 66: get JWT для cookie auth."""
     s = SessionLocal()
     try:
         from app.users import models as user_models
@@ -66,25 +71,48 @@ def _token() -> str:
         u = s.scalar(
             __import__("sqlalchemy").select(user_models.User).where(user_models.User.email == "ws@example.com")
         )
-        return create_access_token(u).access_token if hasattr(create_access_token(u), "access_token") else create_access_token(u)[0]
+        result = create_access_token(u)
+        return result.access_token if hasattr(result, "access_token") else result[0]
     finally:
         s.close()
 
 
+@pytest.fixture
+def client_with_cookie():
+    """TestClient with login cookie set."""
+    client = TestClient(app)
+    token = _token()
+    # Устанавливаем cookie через .cookies
+    client.cookies.set("access_token", token)
+    return client
+
+
 def test_websocket_rejects_missing_token(setup):
+    """Sprint 66: без cookie (и без query) → WS close."""
     client = TestClient(app)
     with pytest.raises(Exception):
         with client.websocket_connect("/ws/ai/chat") as ws:
             pass
 
 
-def test_websocket_chat_streams_chunks(setup):
+def test_websocket_rejects_query_string_token(setup):
+    """Sprint 66: query string ?token= → REJECTED (security fix)."""
     client = TestClient(app)
     token = _token()
-    with client.websocket_connect(f"/ws/ai/chat?token={token}") as ws:
+    with pytest.raises(Exception):
+        # Sprint 66: ?token= больше не работает — нужно cookie
+        with client.websocket_connect(f"/ws/ai/chat?token={token}") as ws:
+            pass
+
+
+def test_websocket_chat_streams_chunks(setup):
+    """Sprint 66: WS chat через cookie auth."""
+    client = TestClient(app)
+    token = _token()
+    client.cookies.set("access_token", token)
+    with client.websocket_connect("/ws/ai/chat") as ws:
         ws.send_text(json.dumps({"history": [{"role": "user", "content": "Привет"}], "topic_id": None}))
         chunks = []
-        # Читаем chunks, пока не придёт "done"
         while True:
             msg = ws.receive_json()
             if msg["type"] == "chunk":
@@ -93,15 +121,14 @@ def test_websocket_chat_streams_chunks(setup):
                 break
             elif msg["type"] == "error":
                 pytest.fail(f"WS error: {msg['message']}")
-        # Mock-ответ из test_ai.py должен быть стримен по частям
         assert "".join(chunks), "No chunks received"
         assert len(chunks) >= 1
 
 
 def test_websocket_explain_streams(setup):
+    """Sprint 66: WS explain через cookie auth."""
     client = TestClient(app)
     token = _token()
-    # Находим тему
     s = SessionLocal()
     try:
         from app.subjects import models as subj_models
@@ -113,7 +140,8 @@ def test_websocket_explain_streams(setup):
     finally:
         s.close()
 
-    with client.websocket_connect(f"/ws/ai/explain?token={token}") as ws:
+    client.cookies.set("access_token", token)
+    with client.websocket_connect("/ws/ai/explain") as ws:
         ws.send_text(json.dumps({"topic_id": tid}))
         chunks = []
         while True:
@@ -126,6 +154,7 @@ def test_websocket_explain_streams(setup):
 
 
 def test_websocket_generate_streams(setup):
+    """Sprint 66: WS generate через cookie auth."""
     client = TestClient(app)
     token = _token()
     s = SessionLocal()
@@ -139,7 +168,8 @@ def test_websocket_generate_streams(setup):
     finally:
         s.close()
 
-    with client.websocket_connect(f"/ws/ai/generate?token={token}") as ws:
+    client.cookies.set("access_token", token)
+    with client.websocket_connect("/ws/ai/generate") as ws:
         ws.send_text(json.dumps({"topic_id": tid, "difficulty": 2}))
         msg = ws.receive_json()
         assert msg["type"] == "done"
@@ -150,7 +180,9 @@ def test_websocket_generate_streams(setup):
 
 
 def test_websocket_rejects_bad_token(setup):
+    """Sprint 66: bad cookie token → WS close."""
     client = TestClient(app)
+    client.cookies.set("access_token", "invalid_token_garbage")
     with pytest.raises(Exception):
-        with client.websocket_connect("/ws/ai/chat?token=invalid") as ws:
+        with client.websocket_connect("/ws/ai/chat") as ws:
             pass

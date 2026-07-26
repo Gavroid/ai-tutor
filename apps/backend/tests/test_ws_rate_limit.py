@@ -66,12 +66,14 @@ def test_ws_chat_under_limit(client):
     token = _login(client)
     # Открываем 4 чат-соединения (всё ещё работает — лимит 5/мин)
     for i in range(4):
-        with client.websocket_connect(f"/ws/ai/chat?token={token}") as ws:
+        client.cookies.set("access_token", token)
+        with client.websocket_connect("/ws/ai/chat") as ws:
             ws.send_text('{"history": [{"role": "user", "content": "hi"}]}')
             ws.receive_json()  # chunk
             ws.receive_json()  # done
     # 5-е — ещё ок
-    with client.websocket_connect(f"/ws/ai/chat?token={token}") as ws:
+    client.cookies.set("access_token", token)
+    with client.websocket_connect("/ws/ai/chat") as ws:
         ws.send_text('{"history": []}')
         ws.receive_json()
 
@@ -79,7 +81,8 @@ def test_ws_chat_under_limit(client):
 def test_ws_explain_under_limit(client):
     """WS /ws/ai/explain — лимит общий для всех /ws/ai/*."""
     token = _login(client)
-    with client.websocket_connect(f"/ws/ai/explain?token={token}&topic_id=1") as ws:
+    client.cookies.set("access_token", token)
+    with client.websocket_connect("/ws/ai/explain") as ws:
         ws.send_text('{"topic_id": 1}')
         ws.receive_json()
 
@@ -91,7 +94,8 @@ def test_ws_generate_under_limit(client):
     # Главное что лимит middleware не блокирует.
     import json
 
-    with client.websocket_connect(f"/ws/ai/generate?token={token}") as ws:
+    client.cookies.set("access_token", token)
+    with client.websocket_connect("/ws/ai/generate") as ws:
         ws.send_text(json.dumps({"topic_id": 99999, "difficulty": 2}))
         msg = ws.receive_json()
         # Должен быть либо "done" либо "error" — но не WebSocketDisconnect
@@ -132,8 +136,9 @@ def test_ws_log_isolated_per_test(client):
     _ws_concurrent_log[1] = [999999999]
     # Conftest autouse должен очистить — тест пройдёт без блокировки
     token = _login(client)
+    client.cookies.set("access_token", token)
     r = client.get(
-        f"/ws/ai/chat?token={token}",
+        "/ws/ai/chat",
         headers={"Upgrade": "websocket", "Connection": "Upgrade"},
     )
     assert r.status_code != 429  # не должно быть заблокировано
