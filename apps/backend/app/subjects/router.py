@@ -32,23 +32,16 @@ def list_subjects(active_only: bool = True, db: Session = Depends(get_db)):
     cache_key = f"subjects:list:active={active_only}"
     cached = cache_get(cache_key)
     if cached is not None:
-        return cached
+        return cached  # list of Pydantic-compatible dicts
 
     q = select(models.Subject).order_by(models.Subject.recommended_grade, models.Subject.name)
     if active_only:
         q = q.where(models.Subject.is_active.is_(True))
     results = db.scalars(q).all()
 
-    # Cache as list of dicts (Pydantic serialization)
+    # Cache as Pydantic dicts (полная схема через model_dump)
     results_dicts = [
-        {
-            "id": s.id,
-            "code": s.code,
-            "name": s.name,
-            "description": getattr(s, "description", None),
-            "recommended_grade": s.recommended_grade,
-            "is_active": s.is_active,
-        }
+        schemas.SubjectOut.model_validate(s).model_dump()
         for s in results
     ]
     cache_set(cache_key, results_dicts, ttl=SUBJECTS_TTL)
@@ -84,18 +77,8 @@ def list_subject_topics(subject_id: int, db: Session = Depends(get_db)):
         .order_by(models.Section.order_index, models.Topic.order_index)
     ).scalars().all()
 
-    # Cache
-    rows_dicts = [
-        {
-            "id": t.id,
-            "section_id": t.section_id,
-            "name": t.name,
-            "description": getattr(t, "description", None),
-            "order_index": t.order_index,
-            "difficulty": getattr(t, "difficulty", None),
-        }
-        for t in rows
-    ]
+    # Cache as Pydantic dicts (полная схема)
+    rows_dicts = [schemas.TopicOut.model_validate(t).model_dump() for t in rows]
     cache_set(cache_key, rows_dicts, ttl=TOPICS_TTL)
     return rows
 
@@ -130,17 +113,8 @@ def topic_materials(topic_id: int, db: Session = Depends(get_db)):
         .order_by(models.LearningMaterial.id)
     ).all()
 
-    rows_dicts = [
-        {
-            "id": m.id,
-            "topic_id": m.topic_id,
-            "title": m.title,
-            "content": getattr(m, "content", None),
-            "source_type": getattr(m, "source_type", None),
-            "status": getattr(m, "status", None),
-        }
-        for m in rows
-    ]
+    # Cache as Pydantic dicts
+    rows_dicts = [schemas.MaterialOut.model_validate(m).model_dump() for m in rows]
     cache_set(cache_key, rows_dicts, ttl=MATERIALS_TTL)
     return rows
 
