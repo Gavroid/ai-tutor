@@ -13,6 +13,11 @@ os.environ.setdefault("APP_ENV", "development")
 os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
 os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
 
+# Sprint 64: disable OpenTelemetry ДЛЯ PRODUCTION (чтобы ConsoleSpanExporter
+# не падал на "I/O operation on closed file" при app shutdown).
+# НО tests которым нужен OTel (Sprint 62) могут unset этот флаг.
+os.environ.setdefault("OTEL_SDK_DISABLED", "true")
+
 # Импортируем ВСЕ модели, чтобы Base.metadata.create_all включал их в SQLite-in-memory.
 # Каждый тест начинает с drop_all + create_all на чистой in-memory БД.
 from app.db.session import Base  # noqa: E402

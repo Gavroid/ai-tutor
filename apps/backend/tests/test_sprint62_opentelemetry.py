@@ -2,6 +2,11 @@
 from __future__ import annotations
 
 import os
+
+# Sprint 64: tests которым нужен real OTel — unset OTEL_SDK_DISABLED
+# (conftest ставит его чтобы ConsoleSpanExporter не падал в других тестах)
+os.environ["OTEL_SDK_DISABLED"] = "false"
+
 from unittest.mock import patch
 
 import pytest
@@ -77,9 +82,12 @@ def test_sqlalchemy_instrumentor_available():
 
 def test_span_context_manager():
     """Sprint 62: создание span через context manager."""
-    from app.observability_otel import get_tracer
+    from opentelemetry.sdk.trace import TracerProvider
 
-    tracer = get_tracer("test")
+    # Sprint 64: используем direct provider (set_tracer_provider не работает
+    # если OTEL_SDK_DISABLED=true → SDK отключает провайдер)
+    provider = TracerProvider()
+    tracer = provider.get_tracer("test")
     with tracer.start_as_current_span("test_operation") as span:
         # Span имеет trace_id и span_id
         ctx = span.get_span_context()
@@ -89,9 +97,10 @@ def test_span_context_manager():
 
 def test_nested_spans():
     """Sprint 62: nested spans share trace_id."""
-    from app.observability_otel import get_tracer
+    from opentelemetry.sdk.trace import TracerProvider
 
-    tracer = get_tracer("test")
+    provider = TracerProvider()
+    tracer = provider.get_tracer("test")
     with tracer.start_as_current_span("parent") as parent_span:
         parent_trace_id = parent_span.get_span_context().trace_id
 
@@ -103,9 +112,10 @@ def test_nested_spans():
 
 def test_span_with_attributes():
     """Sprint 62: span с attributes (для production debugging)."""
-    from app.observability_otel import get_tracer
+    from opentelemetry.sdk.trace import TracerProvider
 
-    tracer = get_tracer("test")
+    provider = TracerProvider()
+    tracer = provider.get_tracer("test")
     with tracer.start_as_current_span("db_query") as span:
         span.set_attribute("db.system", "postgresql")
         span.set_attribute("db.statement", "SELECT * FROM users")
