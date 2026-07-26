@@ -358,6 +358,9 @@ def my_streak(
     else:
         msg = "Каждый день — новая возможность! 🌱"
 
+    # Sprint 49: update parent metrics для Grafana dashboard.
+    _update_streak_metrics(user_id, current_streak, longest)
+
     return StreakOut(
         current_streak_days=current_streak,
         longest_streak_days=longest,
@@ -365,3 +368,12 @@ def my_streak(
         last_active_date=last_active,
         encouragement=msg,
     )
+
+
+# Sprint 49: hook для parent metrics.
+# Используем отдельную функцию чтобы не ломать stream.
+def _update_streak_metrics(user_id: int, current: int, longest: int) -> None:
+    """Sprint 49: обновить streak gauges в Prometheus."""
+    from app.parent_metrics import set_streak_metrics
+
+    set_streak_metrics(user_id=user_id, current=current, longest=longest)

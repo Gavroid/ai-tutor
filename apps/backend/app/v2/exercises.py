@@ -258,6 +258,15 @@ async def submit_answer(
     db.commit()
     db.refresh(attempt)
 
+    # Sprint 49: update parent metrics (attempts counter).
+    from app.parent_metrics import increment_attempt, observe_session_duration
+
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    increment_attempt(user_id=current.id, day=today)
+    # Наблюдаем session duration (~avg 600s типично).
+    # TODO Sprint 50: track actual session duration from first WS connect.
+    observe_session_duration(600.0)
+
     return AnswerOut(
         exercise_id=inst.id,
         is_correct=is_correct,

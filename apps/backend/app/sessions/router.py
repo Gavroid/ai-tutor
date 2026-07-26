@@ -67,6 +67,11 @@ def create_pause(
     db.commit()
     db.refresh(pause)
 
+    # Sprint 49: update parent metrics (T1D pauses counter).
+    from app.parent_metrics import increment_pause
+
+    increment_pause(user_id=current.id, reason=payload.reason)
+
     return PauseOut(
         id=pause.id,
         started_at=pause.started_at.isoformat() if pause.started_at else "",
