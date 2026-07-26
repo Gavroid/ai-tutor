@@ -94,6 +94,11 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Sprint 62: OpenTelemetry tracing (опционально, env-управляемо).
+    from app.observability_otel import setup_telemetry
+    from app.db.session import engine as db_engine
+    setup_telemetry(app=app, engine=db_engine)
+
     # Healthcheck — НЕ авторизуется, не трогает БД.
     @app.get("/health", tags=["meta"], summary="Liveness probe")
     def health() -> dict:

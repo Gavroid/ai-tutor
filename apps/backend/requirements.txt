@@ -48,3 +48,10 @@ markdown-it-py==3.0.0
 websockets==13.1
 # 2FA TOTP (Sprint 32 — Parent 2FA)
 pyotp==2.9.0
+
+# Sprint 62: OpenTelemetry (distributed tracing)
+opentelemetry-api==1.44.0
+opentelemetry-sdk==1.44.0
+opentelemetry-instrumentation-fastapi==0.65b0
+opentelemetry-instrumentation-sqlalchemy==0.65b0
+opentelemetry-instrumentation-redis==0.65b0
