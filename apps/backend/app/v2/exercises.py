@@ -37,7 +37,8 @@ router = APIRouter(prefix="/api/v2/exercises", tags=["v2-exercises"])
 
 class GenerateIn(BaseModel):
     topic_id: int
-    difficulty: int = Field(default=2, ge=1, le=5)
+    # Sprint 61: difficulty=0 = auto (adaptive), 1-5 = explicit
+    difficulty: int = Field(default=0, ge=0, le=5)
 
 
 class GenerateOut(BaseModel):
@@ -63,6 +64,58 @@ class AnswerOut(BaseModel):
     error_type: str | None = None
 
 
+# === Sprint 61: Adaptive difficulty ===
+
+def compute_adaptive_difficulty(
+    db: Session,
+    user_id: int,
+    topic_id: int,
+    recovery_mode: bool = False,
+) -> int:
+    """Sprint 61: adaptive difficulty на основе recent performance + recovery.
+
+    Returns:
+        1 (easy) — recovery_mode active ИЛИ low recent accuracy
+        2 (medium) — default
+        3 (hard) — high recent accuracy AND no recovery
+
+    Logic:
+        - Если recovery_mode → 1 (T1D safety, легкий контент)
+        - Иначе анализируем last 5 attempts:
+            - avg_score < 0.5 → 1 (слишком сложно)
+            - avg_score > 0.8 → 3 (можно усложнить)
+            - иначе → 2 (default)
+    """
+    from app.progress import models as prog_models
+
+    # T1D safety: recovery mode = easy
+    if recovery_mode:
+        return 1
+
+    # Анализ recent attempts
+    recent_attempts = (
+        db.query(prog_models.Attempt)
+        .filter(prog_models.Attempt.user_id == user_id)
+        .filter(prog_models.Attempt.topic_id == topic_id)
+        .order_by(prog_models.Attempt.created_at.desc())
+        .limit(5)
+        .all()
+    )
+
+    if not recent_attempts:
+        return 2  # default для новых пользователей
+
+    # avg score (0.0-1.0)
+    avg_score = sum(a.score for a in recent_attempts) / len(recent_attempts)
+
+    if avg_score < 0.5:
+        return 1  # easy — слишком сложно
+    elif avg_score > 0.8 and len(recent_attempts) >= 3:
+        return 3  # hard — можно усложнить
+    else:
+        return 2  # medium — default
+
+
 @router.post("/generate", response_model=GenerateOut)
 async def generate_exercise(
     payload: GenerateIn,
@@ -81,6 +134,37 @@ async def generate_exercise(
     topic = db.get(subj_models.Topic, payload.topic_id)
     if topic is None:
         raise HTTPException(status_code=404, detail="Topic not found")
+
+    # Sprint 61: adaptive difficulty.
+    # Если client явно НЕ передал difficulty (0 = auto), вычисляем на основе
+    # recovery_mode + recent performance.
+    target_difficulty = payload.difficulty
+    if target_difficulty == 0:
+        # Sprint 42: проверяем recovery_mode (недавняя hypo/hyper пауза)
+        from app.sessions.models import SessionPause
+        from datetime import datetime, timezone, timedelta
+        recovery = (
+            db.query(SessionPause)
+            .filter(
+                SessionPause.user_id == current.id,
+                SessionPause.reason.in_(["hypo", "hyper"]),
+            )
+            .order_by(SessionPause.started_at.desc())
+            .first()
+        )
+        recovery_mode = False
+        if recovery and recovery.started_at:
+            ref_time = datetime.now(timezone.utc)
+            started = recovery.started_at
+            if started.tzinfo is None:
+                started = started.replace(tzinfo=timezone.utc)
+            minutes_ago = (ref_time - started).total_seconds() / 60
+            if minutes_ago < 30:
+                recovery_mode = True
+
+        target_difficulty = compute_adaptive_difficulty(
+            db, user_id=current.id, topic_id=payload.topic_id, recovery_mode=recovery_mode
+        )
 
     # Переиспользуем существующий AI-сервис. Он уже возвращает correct_answer
     # в GeneratedExercise — мы НЕ отдаём его в ответе, а сохраняем в БД.
