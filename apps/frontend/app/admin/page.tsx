@@ -167,6 +167,14 @@ export default function AdminPage() {
         <Tab active={tab === "tools"} onClick={() => setTab("tools")}>
           Инструменты
         </Tab>
+        {/* Sprint 52: отдельная страница для invites */}
+        <a
+          href="/admin/invites"
+          className="px-3 py-1.5 text-sm rounded-md bg-sky-100 text-sky-800 hover:bg-sky-200"
+          data-testid="invites-tab-link"
+        >
+          Invites
+        </a>
       </nav>
 
       {error && (
