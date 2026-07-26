@@ -35,6 +35,25 @@ def list_children(
     return service.list_linked_students(db, current)
 
 
+@router.get("/me/children", response_model=list[schemas.LinkedStudent])
+def me_children(
+    db: Session = Depends(get_db),
+    current: User = Depends(require_parent()),
+):
+    """Sprint 59: alias для /children (semantic clarity)."""
+    return service.list_linked_students(db, current)
+
+
+@router.get("/me/children/count")
+def me_children_count(
+    db: Session = Depends(get_db),
+    current: User = Depends(require_parent()),
+):
+    """Sprint 59: количество linked students (для badge в UI)."""
+    children = service.list_linked_students(db, current)
+    return {"count": len(children), "parent_id": current.id}
+
+
 @router.get("/children/{student_id}", response_model=schemas.ChildOverview)
 def child_overview(
     student_id: int,
