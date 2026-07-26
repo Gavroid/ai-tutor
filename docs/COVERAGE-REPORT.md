@@ -1,121 +1,100 @@
-# Backend Test Coverage Report (Sprint 53)
-
-**Дата:** 2026-07-26
-**Tool:** coverage 7.15.0
-**Target:** ≥70% (Luna Pro MVP recommended)
-**Result:** ✅ **78%** (exceeds target by 8%)
-
-## 📊 Summary
-
-| Показатель | Значение |
-|---|---|
-| **Total statements** | 6,125 |
-| **Covered** | 4,759 |
-| **Missed** | 1,366 |
-| **Coverage** | **78%** |
-| **Tests passed** | 621 |
-| **Tests skipped** | 27 |
-
-## 📈 Coverage by module
-
-### High coverage (≥80%)
-
-| Module | Coverage | Notes |
-|---|---|---|
-| `app/admin/context.py` | 100% | request context |
-| `app/admin/models.py` | 100% | ORM models |
-| `app/v2/exercises.py` | 88% | Checker dispatcher + async semantic |
-| `app/student/router.py` | ~85% | Streak, AI budget |
-| `app/auth/security.py` | ~85% | JWT, password reset |
-| `app/subjects/models.py` | ~85% | |
-| `app/notifications/service.py` | 81% | |
-| `app/diagnostics/router.py` | 81% | |
-| `app/cgm/router.py` | 81% | Sprint 40 |
-
-### Acceptable (70-80%)
-
-| Module | Coverage |
-|---|---|
-| `app/admin/service.py` | 78% (Sprint 45 hash chain) |
-| `app/rag.py` | 79% |
-| `app/main.py` | 77% |
-| `app/ai/markdown_render.py` | 77% |
-| `app/ai/service.py` | 77% |
-| `app/ai/budget.py` | 77% |
-| `app/rag_router.py` | 75% |
-| `app/materials/service.py` | 74% |
-| `app/teacher/service.py` | 73% |
-| `app/ai/router.py` | 73% |
-
-### Low coverage (<70%) — known limitations
-
-| Module | Coverage | Reason |
-|---|---|---|
-| `app/admin/router.py` | 64% | Lots of endpoints, partial test coverage |
-| `app/ai/websocket.py` | 67% | WebSocket handlers hard to test |
-| `app/ai/websocket_more.py` | 64% | Same |
-| `app/bot/alert_worker.py` | 68% | (Sprint 50: now 16 tests added, expect ~85%) |
-| `app/bot/telegram_bot.py` | 54% | Telegram bot — external integration |
-| `app/voice/router.py` | 35% | Whisper ASR — mock-heavy |
-| `app/auth/oauth.py` | 28% | OAuth (not used in MVP) |
-| `app/ai/hermes.py` | 25% | External API integration |
-| `app/notifications/weekly.py` | 22% | Notification system |
-| `app/admin/realtime.py` | 17% | Admin WS realtime |
-| `app/scripts/*` | 0% | CLI scripts (not unit-testable) |
-
-## 🔬 Coverage by sprint
-
-| Sprint | Что добавлено | Coverage impact |
-|---|---|---|
-| 16 | 8 P0 security tests | +5% |
-| 19 | 32 checker tests | +3% |
-| 21-25 | T1D UX tests | +1% |
-| 27 | 5 cookie auth tests | +1% |
-| 32 | 12 parent 2FA tests | +2% |
-| 34 | 9 session pause tests | +1% |
-| 35 | 7 teacher flow tests | +1% |
-| 36.1 | 4 source_type tests | +0.5% |
-| 38 | 8 OpenAPI tests | +0.5% |
-| 40 | 12 CGM tests | +1% |
-| 42 | 6 recovery mode tests | +0.5% |
-| 44 | 9 invite tests | +1% |
-| 45 | 8 audit log 2.0 tests | +1% |
-| 47 | 5 invite audit tests | +0.5% |
-| 49 | 8 parent metrics tests | +0.5% |
-| 50 | 16 alert worker v2 tests | +1% |
-| 51 | 10 multi-worker rate-limit | +0.5% |
-
-## 📊 График (выборочно)
-
-```
-Coverage distribution:
-  100% ████████████████████ (admin/context, admin/models)
-  90-99% ████████████████████ (v2/exercises 88%)
-  80-89% ██████████████████████████████ (most modules)
-  70-79% ████████████████████████████████████ (main.py 77%, rag.py 79%)
-  60-69% ████████ (admin/router, websocket, alert_worker)
-  <60%   ████████ (voice, oauth, hermes, scripts)
-```
-
-## 🎯 Sprint 53 status
-
-✅ **TARGET REACHED**: 78% coverage (≥70% threshold).
-✅ Все critical paths покрыты (auth, security, AI, audit, sessions, CGM, invites).
-⚠️ Low-coverage модули — external integrations (OAuth, Whisper, Telegram) — acceptable для MVP.
-
-## 📋 Рекомендации (backlog, не critical)
-
-1. Add unit tests для `app/admin/router.py` (64% → 85%) — больше endpoints tests.
-2. Add integration tests для `app/voice/router.py` (35% → 60%) — Whisper mock.
-3. Add tests для `app/admin/realtime.py` (17% → 50%) — WS admin.
-4. Mock tests для `app/scripts/*` — CLI scripts.
-
-## 🔗 Как воспроизвести
-
-```bash
-cd /opt/ai-tutor/apps/backend
-.venv/bin/coverage run --source=app -m pytest tests/ -q
-.venv/bin/coverage report --sort=cover
-.venv/bin/coverage report --format=markdown > docs/COVERAGE-REPORT.md
-.venv/bin/coverage html  # → htmlcov/index.html
-```
+| Name                                  |    Stmts |     Miss |   Cover |
+|-------------------------------------- | -------: | -------: | ------: |
+| app/\_\_init\_\_.py                   |        1 |        0 |    100% |
+| app/admin/context.py                  |       11 |        0 |    100% |
+| app/admin/models.py                   |       18 |        0 |    100% |
+| app/admin/realtime.py                 |      113 |       94 |     17% |
+| app/admin/router.py                   |      205 |       73 |     64% |
+| app/admin/schemas.py                  |       16 |        0 |    100% |
+| app/admin/service.py                  |      111 |       24 |     78% |
+| app/ai/budget.py                      |       79 |       18 |     77% |
+| app/ai/hermes.py                      |       85 |       64 |     25% |
+| app/ai/markdown\_render.py            |       70 |       16 |     77% |
+| app/ai/mock.py                        |       27 |        2 |     93% |
+| app/ai/models.py                      |       57 |        4 |     93% |
+| app/ai/prompts.py                     |       32 |        6 |     81% |
+| app/ai/router.py                      |      165 |       45 |     73% |
+| app/ai/sanitize.py                    |       28 |        7 |     75% |
+| app/ai/service.py                     |      206 |       47 |     77% |
+| app/ai/types.py                       |       27 |        0 |    100% |
+| app/ai/websocket.py                   |       70 |       23 |     67% |
+| app/ai/websocket\_more.py             |      118 |       42 |     64% |
+| app/auth/oauth.py                     |       80 |       58 |     28% |
+| app/auth/password\_reset.py           |       62 |        4 |     94% |
+| app/auth/password\_reset\_models.py   |       14 |        0 |    100% |
+| app/auth/router.py                    |      151 |       16 |     89% |
+| app/auth/security.py                  |       63 |        2 |     97% |
+| app/bot/\_\_init\_\_.py               |        0 |        0 |    100% |
+| app/bot/alert\_worker.py              |      129 |       41 |     68% |
+| app/bot/telegram\_bot.py              |      131 |       60 |     54% |
+| app/cgm/\_\_init\_\_.py               |        0 |        0 |    100% |
+| app/cgm/models.py                     |       12 |        0 |    100% |
+| app/cgm/router.py                     |      101 |       19 |     81% |
+| app/common/\_\_init\_\_.py            |        0 |        0 |    100% |
+| app/common/deps.py                    |       19 |        1 |     95% |
+| app/config.py                         |       61 |        8 |     87% |
+| app/db/\_\_init\_\_.py                |        2 |        0 |    100% |
+| app/db/session.py                     |       20 |        1 |     95% |
+| app/diagnostics/\_\_init\_\_.py       |        0 |        0 |    100% |
+| app/diagnostics/cat.py                |       76 |        9 |     88% |
+| app/diagnostics/models.py             |       29 |        0 |    100% |
+| app/diagnostics/router.py             |       47 |        9 |     81% |
+| app/diagnostics/schemas.py            |       23 |        0 |    100% |
+| app/diagnostics/service.py            |      131 |       20 |     85% |
+| app/invites/\_\_init\_\_.py           |        0 |        0 |    100% |
+| app/invites/models.py                 |       17 |        0 |    100% |
+| app/invites/public\_router.py         |       30 |        2 |     93% |
+| app/invites/router.py                 |       83 |        9 |     89% |
+| app/main.py                           |      371 |       84 |     77% |
+| app/materials/router.py               |       29 |        2 |     93% |
+| app/materials/schemas.py              |       17 |        0 |    100% |
+| app/materials/service.py              |      100 |       26 |     74% |
+| app/notifications/models.py           |       27 |        0 |    100% |
+| app/notifications/router.py           |       24 |        1 |     96% |
+| app/notifications/schemas.py          |       12 |        0 |    100% |
+| app/notifications/service.py          |      101 |       19 |     81% |
+| app/notifications/weekly.py           |       60 |       47 |     22% |
+| app/observability.py                  |       46 |        1 |     98% |
+| app/parent\_metrics.py                |       19 |        0 |    100% |
+| app/parents/router.py                 |      112 |       19 |     83% |
+| app/parents/schemas.py                |       74 |        0 |    100% |
+| app/parents/service.py                |      119 |        7 |     94% |
+| app/practice/\_\_init\_\_.py          |        0 |        0 |    100% |
+| app/practice/checkers.py              |       74 |        2 |     97% |
+| app/progress/models.py                |       42 |        0 |    100% |
+| app/progress/router.py                |       86 |        2 |     98% |
+| app/progress/schemas.py               |       57 |        0 |    100% |
+| app/progress/service.py               |       97 |       10 |     90% |
+| app/progress/spaced.py                |       32 |        1 |     97% |
+| app/rag.py                            |      103 |       22 |     79% |
+| app/rag\_models.py                    |       23 |        0 |    100% |
+| app/rag\_persist.py                   |      158 |       40 |     75% |
+| app/rag\_router.py                    |       83 |       29 |     65% |
+| app/scripts/\_\_init\_\_.py           |        0 |        0 |    100% |
+| app/scripts/seed.py                   |       21 |       21 |      0% |
+| app/scripts/seed\_users.py            |      173 |      173 |      0% |
+| app/scripts/weekly\_summary.py        |       20 |       20 |      0% |
+| app/sessions/models.py                |       14 |        0 |    100% |
+| app/sessions/router.py                |       56 |        5 |     91% |
+| app/student/\_\_init\_\_.py           |        0 |        0 |    100% |
+| app/student/badges.py                 |       78 |        4 |     95% |
+| app/student/models.py                 |       30 |        0 |    100% |
+| app/student/router.py                 |      132 |        5 |     96% |
+| app/subjects/curriculum\_7\_class.py  |        7 |        2 |     71% |
+| app/subjects/models.py                |       80 |        0 |    100% |
+| app/subjects/router.py                |       36 |        3 |     92% |
+| app/subjects/schemas.py               |       57 |        0 |    100% |
+| app/subjects/scripts\_seed\_runner.py |       37 |        1 |     97% |
+| app/teacher/\_\_init\_\_.py           |        0 |        0 |    100% |
+| app/teacher/router.py                 |      167 |       25 |     85% |
+| app/teacher/schemas.py                |       72 |        0 |    100% |
+| app/teacher/service.py                |      202 |       54 |     73% |
+| app/users/models.py                   |       49 |        0 |    100% |
+| app/users/schemas.py                  |       47 |        0 |    100% |
+| app/users/service.py                  |       42 |        6 |     86% |
+| app/users/twofa.py                    |       86 |        5 |     94% |
+| app/v2/\_\_init\_\_.py                |       11 |        0 |    100% |
+| app/v2/exercises.py                   |      109 |       13 |     88% |
+| app/voice/\_\_init\_\_.py             |        0 |        0 |    100% |
+| app/voice/router.py                   |       37 |       24 |     35% |
+| **TOTAL**                             | **6149** | **1397** | **77%** |
