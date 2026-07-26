@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
+from app.admin import service as audit_service
 from app.common.deps import get_db
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -52,6 +53,20 @@ def redeem_invite(
     # Проверяем max_uses
     if invite.uses_count >= invite.max_uses:
         raise HTTPException(status_code=410, detail="Invite code уже использован")
+
+    # Sprint 47: audit log для successful redeem.
+    audit_service.record(
+        db,
+        user=None,  # public endpoint, user может быть None
+        action="invite.redeem",
+        entity="invite",
+        entity_id=invite.code,
+        details={
+            "role": invite.role,
+            "remaining_uses_after": invite.max_uses - invite.uses_count - 1,
+        },
+    )
+    db.commit()
 
     return RedeemInviteOut(
         valid=True,

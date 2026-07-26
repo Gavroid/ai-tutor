@@ -18,3 +18,6 @@ class AuditLogOut(BaseModel):
     details: Any | None
     ip_address: str | None
     created_at: datetime
+    # Sprint 45: hash chain integrity fields.
+    previous_hash: str | None = None
+    record_hash: str | None = None

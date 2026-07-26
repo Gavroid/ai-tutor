@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.admin import service as audit_service
 from app.common.deps import User, get_current_user
 from app.db.session import get_db
 from app.invites.models import Invite
@@ -95,6 +96,22 @@ def create_invite(
     db.add(invite)
     db.commit()
     db.refresh(invite)
+
+    # Sprint 47: audit log (с hash chain integrity через Sprint 45).
+    audit_service.record(
+        db,
+        user=current,
+        action="invite.create",
+        entity="invite",
+        entity_id=invite.code,
+        details={
+            "role": invite.role,
+            "note": invite.note,
+            "expires_at": invite.expires_at.isoformat() if invite.expires_at else None,
+            "max_uses": invite.max_uses,
+        },
+    )
+    db.commit()
 
     return InviteOut(
         code=invite.code,
@@ -191,5 +208,16 @@ def delete_invite(
         raise HTTPException(409, "Нельзя удалить использованный invite")
 
     db.delete(invite)
+    db.commit()
+
+    # Sprint 47: audit log для delete.
+    audit_service.record(
+        db,
+        user=current,
+        action="invite.delete",
+        entity="invite",
+        entity_id=code,
+        details={"deleted_by": current.id},
+    )
     db.commit()
     return None
