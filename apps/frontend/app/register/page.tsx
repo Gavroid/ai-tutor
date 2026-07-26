@@ -1,11 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 
 export default function RegisterPage() {
+  // Sprint 52 fix: оборачиваем useSearchParams в Suspense для Next.js 16 prerender.
+  return (
+    <Suspense fallback={<RegisterPageSkeleton />}>
+      <RegisterPageInner />
+    </Suspense>
+  );
+}
+
+function RegisterPageSkeleton() {
+  // Sprint 52: loading fallback для Suspense (избегает build error).
+  return (
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+        <h1 className="text-2xl font-bold">Регистрация</h1>
+        <p className="mt-1 text-sm text-slate-600">Загрузка...</p>
+      </div>
+    </main>
+  );
+}
+
+function RegisterPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   // Sprint 44: optional invite code из URL.
