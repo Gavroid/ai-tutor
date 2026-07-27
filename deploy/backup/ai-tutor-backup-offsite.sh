@@ -94,11 +94,42 @@ log "OFFSITE: uploading artifacts from $BACKUP_SRC"
 FILES_TO_UPLOAD=$(find "$BACKUP_SRC" -maxdepth 1 -type f \( -name "manifest-*.md5" -o -name "db-*.sql.gz" -o -name "uploads-*.tar.gz" \) -mtime -7)
 UPLOAD_COUNT=0
 UPLOAD_FAILED=0
+UPLOAD_CORRUPTED=0
+# Sprint 75: минимальный размер db dump (sanity threshold).
+# Production DB > 1MB, empty/zero db < 100KB.
+MIN_DB_SIZE_BYTES=100000
+
 for f in $FILES_TO_UPLOAD; do
   bn=$(basename "$f")
+  LOCAL_SIZE=$(stat -c '%s' "$f" 2>/dev/null || echo 0)
+
+  # Sprint 75: detect zero-size files BEFORE upload (fail-fast).
+  if [ "$LOCAL_SIZE" -eq 0 ]; then
+    log "OFFSITE FAIL: $bn is 0 bytes locally, refusing to upload"
+    UPLOAD_FAILED=$((UPLOAD_FAILED + 1))
+    continue
+  fi
+
+  # Sprint 75: detect suspicious db sizes (suspicious < MIN_DB_SIZE_BYTES).
+  if [[ "$bn" == db-*.sql.gz ]] && [ "$LOCAL_SIZE" -lt "$MIN_DB_SIZE_BYTES" ]; then
+    log "OFFSITE FAIL: $bn size=$LOCAL_SIZE < $MIN_DB_SIZE_BYTES threshold (suspicious)"
+    UPLOAD_FAILED=$((UPLOAD_FAILED + 1))
+    continue
+  fi
+
   if smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
        -c "cd ${SMB_OFFSITE_DIR}; put ${f} ${bn}" >/dev/null 2>&1; then
-    UPLOAD_COUNT=$((UPLOAD_COUNT + 1))
+    # Sprint 75: verify remote file size matches local.
+    REMOTE_SIZE=$(smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
+      -c "cd ${SMB_OFFSITE_DIR; ls -la ${bn}" 2>/dev/null | \
+      awk "/^[[:space:]]+${bn//./\\\\.}\\s/ {print \$3}" | head -1)
+    # Fallback: use dir listing
+    if [ -z "$REMOTE_SIZE" ] || [ "$REMOTE_SIZE" != "$LOCAL_SIZE" ]; then
+      log "OFFSITE FAIL: $bn size mismatch local=$LOCAL_SIZE remote=$REMOTE_SIZE"
+      UPLOAD_CORRUPTED=$((UPLOAD_CORRUPTED + 1))
+    else
+      UPLOAD_COUNT=$((UPLOAD_COUNT + 1))
+    fi
   else
     UPLOAD_FAILED=$((UPLOAD_FAILED + 1))
     log "OFFSITE WARN: failed to upload $bn"
@@ -108,7 +139,11 @@ done
   log "OFFSITE FAIL: $UPLOAD_FAILED files failed to upload"
   exit 1
 }
-log "OFFSITE: uploaded $UPLOAD_COUNT files"
+[ "$UPLOAD_CORRUPTED" -eq 0 ] || {
+  log "OFFSITE FAIL: $UPLOAD_CORRUPTED files have size mismatch (likely SMB transfer corruption)"
+  exit 1
+}
+log "OFFSITE: uploaded $UPLOAD_COUNT files (all size-verified)"
 
 # 5) Verify: md5 свежего manifest на source должен совпасть с md5 на SMB
 SRC_HASH=$(md5sum "$LATEST_LOCAL" | awk '{print $1}')
