@@ -274,6 +274,71 @@ def admin_engagement(
         for s in top_subjects_rows
     ]
 
+    # Sprint 85: cohort retention (D1, D7, D30).
+    # Для каждого cohort week (Monday-based, ISO format), считаем:
+    # - cohort_size: сколько users зарегистрировано в эту неделю
+    # - retained_d1: сколько вернулись через 1 день
+    # - retained_d7: сколько вернулись через 7 дней
+    # - retained_d30: сколько вернулись через 30 дней
+    from app.users import models as user_models
+    retention_cohorts = []
+    # Cohort weeks: последние N недель, в пределах period
+    cohort_week_count = min(days // 7, 8) if days >= 7 else 0
+    if cohort_week_count > 0:
+        now = datetime.now(timezone.utc)
+        for week_offset in range(cohort_week_count):
+            cohort_end = now - timedelta(weeks=week_offset)
+            cohort_start = cohort_end - timedelta(days=7)
+            # Cohort: users created_at за эту неделю
+            cohort_user_ids = set(
+                db.execute(
+                    select(user_models.User.id).where(
+                        user_models.User.created_at >= cohort_start,
+                        user_models.User.created_at < cohort_end,
+                    )
+                ).scalars().all()
+            )
+            if not cohort_user_ids:
+                continue
+            cohort_size = len(cohort_user_ids)
+            # Retained D1: users с attempt >=1 day+1 после cohort_end
+            retained_d1 = db.scalar(
+                select(sqlfunc.count(sqlfunc.distinct(prog_models.Attempt.user_id))).where(
+                    prog_models.Attempt.user_id.in_(cohort_user_ids),
+                    prog_models.Attempt.created_at >= cohort_end + timedelta(days=1),
+                    prog_models.Attempt.created_at < cohort_end + timedelta(days=2),
+                )
+            ) or 0
+            # Retained D7
+            retained_d7 = db.scalar(
+                select(sqlfunc.count(sqlfunc.distinct(prog_models.Attempt.user_id))).where(
+                    prog_models.Attempt.user_id.in_(cohort_user_ids),
+                    prog_models.Attempt.created_at >= cohort_end + timedelta(days=7),
+                    prog_models.Attempt.created_at < cohort_end + timedelta(days=8),
+                )
+            ) or 0
+            # Retained D30 (только для старых cohorts)
+            retained_d30 = 0
+            if week_offset >= 4:  # только cohorts старше 30 дней
+                retained_d30 = db.scalar(
+                    select(sqlfunc.count(sqlfunc.distinct(prog_models.Attempt.user_id))).where(
+                        prog_models.Attempt.user_id.in_(cohort_user_ids),
+                        prog_models.Attempt.created_at >= cohort_end + timedelta(days=30),
+                        prog_models.Attempt.created_at < cohort_end + timedelta(days=31),
+                    )
+                ) or 0
+
+            retention_cohorts.append({
+                "cohort_week": cohort_start.date().isoformat(),
+                "cohort_size": cohort_size,
+                "retained_d1": int(retained_d1),
+                "retained_d1_pct": round(retained_d1 / cohort_size * 100, 1) if cohort_size else 0,
+                "retained_d7": int(retained_d7),
+                "retained_d7_pct": round(retained_d7 / cohort_size * 100, 1) if cohort_size else 0,
+                "retained_d30": int(retained_d30),
+                "retained_d30_pct": round(retained_d30 / cohort_size * 100, 1) if cohort_size and week_offset >= 4 else None,
+            })
+
     return {
         "period_days": days,
         "active_users": active_users,
@@ -283,6 +348,7 @@ def admin_engagement(
         ),
         "dau_last_14_days": dau_14,
         "top_subjects": top_subjects,
+        "retention_cohorts": retention_cohorts,
     }
 
 
