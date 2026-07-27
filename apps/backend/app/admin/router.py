@@ -15,6 +15,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.admin import models, schemas, service
+from app.admin import service as audit_service
 from app.common.deps import Role, User, require_admin
 from app.db.session import get_db
 
@@ -613,6 +614,67 @@ async def add_ai_kill_switch(
     )
     db.commit()
     return {"ok": True, "user_id": user_id, "all_killed": sorted(new_ids)}
+
+
+
+@router.post("/config/reload-ai-budget")
+def reload_ai_budget_config(
+    daily_requests: int | None = None,
+    daily_tokens: int | None = None,
+    hourly_requests: int | None = None,
+    alert_threshold: int | None = None,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_admin()),
+):
+    """Sprint 86: hot-reload AI budget limits без рестарта.
+
+    Позволяет админу менять лимиты в production без downtime.
+    Изменения применяются immediately (module attribute replacement).
+
+    Args:
+        daily_requests: новый DAILY_REQUESTS_LIMIT (None = keep current)
+        daily_tokens: новый DAILY_TOKENS_LIMIT
+        hourly_requests: новый HOURLY_REQUESTS_LIMIT
+        alert_threshold: новый ALERT_THRESHOLD_PCT (1-100)
+
+    Returns:
+        200 with updated limits
+        400 if invalid params
+    """
+    from app.ai import budget as budget_module
+
+    try:
+        budget_module.reload_limits(
+            daily_requests=daily_requests,
+            daily_tokens=daily_tokens,
+            hourly_requests=hourly_requests,
+            alert_threshold=alert_threshold,
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+
+    # Audit log
+    audit_service.record(
+        db,
+        user=current,
+        action="config.reload",
+        entity="ai_budget",
+        entity_id="runtime",
+        details={
+            "daily_requests": budget_module.DAILY_REQUESTS_LIMIT,
+            "daily_tokens": budget_module.DAILY_TOKENS_LIMIT,
+            "hourly_requests": budget_module.HOURLY_REQUESTS_LIMIT,
+            "alert_threshold": budget_module.ALERT_THRESHOLD_PCT,
+        },
+    )
+
+    return {
+        "ok": True,
+        "daily_requests": budget_module.DAILY_REQUESTS_LIMIT,
+        "daily_tokens": budget_module.DAILY_TOKENS_LIMIT,
+        "hourly_requests": budget_module.HOURLY_REQUESTS_LIMIT,
+        "alert_threshold": budget_module.ALERT_THRESHOLD_PCT,
+    }
 
 
 @router.delete("/ai-kill-switch/{user_id}")

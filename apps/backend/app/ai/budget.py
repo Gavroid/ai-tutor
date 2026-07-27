@@ -29,6 +29,54 @@ HOURLY_REQUESTS_LIMIT = int(os.environ.get("AI_BUDGET_REQUESTS_PER_HOUR", "20"))
 ALERT_THRESHOLD_PCT = int(os.environ.get("AI_BUDGET_ALERT_PCT", "80"))
 
 
+# Sprint 86: hot-reload поддержка.
+# Module-level constants могут быть переопределены через reload_limits()
+# БЕЗ рестарта backend (для admin ops).
+def reload_limits(
+    daily_requests: int | None = None,
+    daily_tokens: int | None = None,
+    hourly_requests: int | None = None,
+    alert_threshold: int | None = None,
+) -> None:
+    """Sprint 86: runtime reload AI budget limits.
+
+    Безопасные изменения (не требуют рестарта):
+    - Daily requests limit
+    - Daily tokens limit
+    - Hourly requests limit (burst)
+    - Alert threshold %
+
+    Args:
+        daily_requests: новый DAILY_REQUESTS_LIMIT (None = keep current)
+        daily_tokens: новый DAILY_TOKENS_LIMIT
+        hourly_requests: новый HOURLY_REQUESTS_LIMIT
+        alert_threshold: новый ALERT_THRESHOLD_PCT
+    """
+    global DAILY_REQUESTS_LIMIT, DAILY_TOKENS_LIMIT, HOURLY_REQUESTS_LIMIT, ALERT_THRESHOLD_PCT
+    if daily_requests is not None:
+        if daily_requests < 1:
+            raise ValueError(f"daily_requests must be >=1, got {daily_requests}")
+        DAILY_REQUESTS_LIMIT = daily_requests
+    if daily_tokens is not None:
+        if daily_tokens < 100:
+            raise ValueError(f"daily_tokens must be >=100, got {daily_tokens}")
+        DAILY_TOKENS_LIMIT = daily_tokens
+    if hourly_requests is not None:
+        if hourly_requests < 1 or hourly_requests > DAILY_REQUESTS_LIMIT:
+            raise ValueError(
+                f"hourly_requests must be 1-{DAILY_REQUESTS_LIMIT}, got {hourly_requests}"
+            )
+        HOURLY_REQUESTS_LIMIT = hourly_requests
+    if alert_threshold is not None:
+        if alert_threshold < 1 or alert_threshold > 100:
+            raise ValueError(f"alert_threshold must be 1-100, got {alert_threshold}")
+        ALERT_THRESHOLD_PCT = alert_threshold
+    logger.info(
+        "AI budget limits reloaded: daily_req=%s daily_tok=%s hourly_req=%s alert_pct=%s",
+        DAILY_REQUESTS_LIMIT, DAILY_TOKENS_LIMIT, HOURLY_REQUESTS_LIMIT, ALERT_THRESHOLD_PCT,
+    )
+
+
 def _try_redis():
     try:
         import redis
