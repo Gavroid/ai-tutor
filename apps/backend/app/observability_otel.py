@@ -40,12 +40,45 @@ def setup_telemetry(app=None, engine=None) -> bool:
         logger.warning(f"OpenTelemetry packages not available: {e}")
         return False
 
-    # Resource: service name + version
+    # Resource: service name + version + semantic conventions.
+    # Sprint 95: добавлены host.name, process.pid, runtime info
+    # (per OTel semantic conventions: https://opentelemetry.io/docs/specs/semconv/)
+    import platform
+    import socket
+
+    # Get git commit short hash (если доступен)
+    commit_sha = "unknown"
+    try:
+        import subprocess
+
+        commit_sha = (
+            subprocess.run(
+                ["git", "-C", "/opt/ai-tutor/apps/backend", "rev-parse", "--short", "HEAD"],
+                capture_output=True,
+                text=True,
+                timeout=2,
+            ).stdout.strip()
+            or "unknown"
+        )
+    except Exception:
+        pass
+
     resource = Resource.create(
         {
+            # Service
             "service.name": "ai-tutor-backend",
             "service.version": "0.1.0-mvp",
+            "service.instance.id": socket.gethostname(),
+            # Deployment
             "deployment.environment": os.getenv("APP_ENV", "production"),
+            "deployment.git.commit_sha": commit_sha,
+            # Host
+            "host.name": socket.gethostname(),
+            "host.arch": platform.machine(),
+            # Process
+            "process.pid": os.getpid(),
+            "process.runtime.name": "python",
+            "process.runtime.version": platform.python_version(),
         }
     )
 
