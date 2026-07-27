@@ -158,12 +158,25 @@ def test_list_recent_pauses(client, student_login):
 
 
 def test_list_recent_pauses_limit_validation(client, student_login):
-    """Sprint 34: limit > 100 или < 1 → 400."""
-    r = client.get(
+    """Sprint 34: limit > 100 или < 1 → 422 (Pydantic v2 validation error).
+
+    Sprint 67 added Query(ge=1, le=100) bounds → FastAPI/Pydantic
+    automatically returns 422 (Unprocessable Entity) for invalid params.
+    Sprint 34 originally expected 400 — updated to 422.
+    """
+    # limit > 100
+    r1 = client.get(
         "/api/v1/sessions/pauses/recent?limit=200",
         headers={"Authorization": f"Bearer {student_login}"},
     )
-    assert r.status_code == 400
+    assert r1.status_code == 422
+
+    # limit < 1
+    r2 = client.get(
+        "/api/v1/sessions/pauses/recent?limit=0",
+        headers={"Authorization": f"Bearer {student_login}"},
+    )
+    assert r2.status_code == 422
 
 
 def test_pause_does_not_affect_streak(client, student_login):
