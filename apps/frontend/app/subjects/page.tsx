@@ -6,6 +6,9 @@ import Link from "next/link";
 import { api, getToken, setToken, ApiError } from "@/lib/api";
 import type { Subject, User } from "@/types";
 import EmptyState from "@/components/EmptyState";
+import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
 
 type RecItem = {
   topic_id: number;
@@ -220,33 +223,53 @@ export default function HomePage() {
                 <label htmlFor="subject-search" className="sr-only">
                   Поиск предмета
                 </label>
-                <input
+                <Input
                   id="subject-search"
                   type="search"
                   inputMode="search"
                   placeholder="🔍 Поиск предмета (математика, русский...)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
                 />
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-                {filtered.map((s: Subject) => (
+              <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                {filtered.map((s: Subject, idx: number) => (
                   <Link
                     key={s.id}
                     href={`/subjects/${s.id}`}
-                    className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                    className="group block animate-slide-up"
+                    style={{ animationDelay: `${Math.min(idx * 30, 300)}ms` }}
                   >
-                    <div className="text-3xl" aria-hidden="true">
-                      {s.icon || "📘"}
-                    </div>
-                    <div className="mt-2 font-semibold">{s.name}</div>
-                    {s.description && (
-                      <div className="mt-1 line-clamp-2 text-xs text-slate-500">
-                        {s.description}
+                    <Card
+                      variant="elevated"
+                      padding="md"
+                      interactive
+                      className="h-full"
+                    >
+                      <div
+                        className="mb-3 flex size-12 items-center justify-center rounded-lg text-2xl"
+                        style={{
+                          background: `linear-gradient(135deg, ${s.color || "#6366f1"}20, ${s.color || "#6366f1"}05)`,
+                        }}
+                        aria-hidden="true"
+                      >
+                        {s.icon || "📘"}
                       </div>
-                    )}
+                      <h3 className="font-semibold text-fg group-hover:text-brand-500 transition-modern">
+                        {s.name}
+                      </h3>
+                      {s.description && (
+                        <p className="mt-1 line-clamp-2 text-sm text-fg-muted">
+                          {s.description}
+                        </p>
+                      )}
+                      <div className="mt-3 flex items-center gap-2 text-xs text-fg-subtle">
+                        <Badge variant="outline" size="sm">
+                          7 класс
+                        </Badge>
+                      </div>
+                    </Card>
                   </Link>
                 ))}
               </div>
