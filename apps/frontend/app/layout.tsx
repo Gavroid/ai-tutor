@@ -68,6 +68,21 @@ export default function RootLayout({
         <div className="fixed bottom-4 right-4 z-50">
           <ThemeToggle />
         </div>
+        {/* Sprint 98: register service worker для PWA offline support. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                  navigator.serviceWorker.register('/sw.js').then(
+                    (reg) => console.log('[SW] Registered scope:', reg.scope),
+                    (err) => console.warn('[SW] Registration failed:', err)
+                  );
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
