@@ -181,6 +181,22 @@ def create_app() -> FastAPI:
 
     # Простой in-memory rate limit для /api/v1/ai/* — защита от спама.
     # В production с несколькими воркерами uvicorn включается Redis через REDIS_URL.
+    # Sprint 96: locale detection middleware (для i18n error messages).
+    @app.middleware("http")
+    async def locale_middleware(request, call_next):
+        from app.i18n import get_locale
+
+        # Parse Accept-Language header → locale code (ru/en)
+        accept_lang = request.headers.get("accept-language", "")
+        locale = get_locale(accept_lang)
+        # Store в request.state для handlers
+        request.state.locale = locale
+
+        response = await call_next(request)
+        # Add X-Locale header для debugging
+        response.headers["X-Locale"] = locale
+        return response
+
     @app.middleware("http")
     async def rate_limit_ai(request, call_next):
         # === Sprint 4.1: Rate limit для REGISTER (anti-abuse) ===
