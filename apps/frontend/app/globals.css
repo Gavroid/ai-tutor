@@ -1,72 +1,204 @@
+/* Sprint 103: AI-Tutor 2026 Design System.
+ *
+ * 2026 design trends:
+ * - Subtle, warm neutrals (cool gray → warm gray)
+ * - Electric blue + violet accents (CTAs, links)
+ * - Glass morphism (subtle, optional)
+ * - Generous whitespace (4px base, 8px grid)
+ * - Layered, soft shadows (not harsh drop shadows)
+ * - Smooth animations (200-300ms)
+ * - Dark mode first (less eye strain)
+ * - T1D-friendly preserved: 17px base, 1.55 line-height, prefers-reduced-motion
+ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================ */
+/* 1. Design tokens (CSS variables) */
+/* ============================================================ */
+
 :root {
-  color-scheme: light;
+  /* === Brand colors (2026 electric blue + violet) === */
+  --color-brand-50:  #eef2ff;  /* indigo-50 */
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;  /* primary brand */
+  --color-brand-600: #4f46e5;  /* hover */
+  --color-brand-700: #4338ca;  /* active */
+  --color-brand-800: #3730a3;
+  --color-brand-900: #312e81;
+
+  /* === Accent (warm coral — friendly, T1D-positive) === */
+  --color-accent-500: #f97316;  /* orange-500 */
+  --color-accent-600: #ea580c;
+
+  /* === Surfaces (neutral grays) === */
+  --color-bg:           #fafafa;  /* page bg */
+  --color-surface:      #ffffff;  /* card bg */
+  --color-surface-2:    #f4f4f5;  /* nested surface */
+  --color-surface-3:    #e4e4e7;  /* hover */
+  --color-border:       #e4e4e7;
+  --color-border-strong:#d4d4d8;
+
+  --color-fg:           #09090b;  /* primary text */
+  --color-fg-muted:     #52525b;  /* secondary */
+  --color-fg-subtle:    #a1a1aa;  /* tertiary */
+
+  /* === Semantic === */
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-danger:  #dc2626;
+  --color-info:    #0284c7;
+
+  /* === Typography === */
+  --font-sans: "Inter", "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Inter", "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+
+  /* === Sizing (4px base) === */
+  --radius-sm: 6px;
+  --radius:    10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* === Shadows (subtle, layered) === */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.06), 0 1px 3px 0 rgb(0 0 0 / 0.04);
+  --shadow:    0 2px 4px -1px rgb(0 0 0 / 0.06), 0 4px 8px -2px rgb(0 0 0 / 0.04);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 8px 24px -4px rgb(0 0 0 / 0.06);
+  --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.10), 0 24px 64px -16px rgb(0 0 0 / 0.08);
+  --shadow-glow: 0 0 0 1px rgb(99 102 241 / 0.10), 0 4px 16px -2px rgb(99 102 241 / 0.20);
+
+  /* === Motion === */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 150ms;
+  --duration: 220ms;
+  --duration-slow: 320ms;
 }
+
+/* === Dark mode tokens === */
+html.dark {
+  --color-bg:           #09090b;  /* zinc-950 */
+  --color-surface:      #18181b;  /* zinc-900 */
+  --color-surface-2:    #27272a;  /* zinc-800 */
+  --color-surface-3:    #3f3f46;  /* zinc-700 */
+  --color-border:       #27272a;
+  --color-border-strong:#3f3f46;
+
+  --color-fg:           #fafafa;
+  --color-fg-muted:     #a1a1aa;
+  --color-fg-subtle:    #71717a;
+
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.30);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.40), 0 1px 3px 0 rgb(0 0 0 / 0.30);
+  --shadow:    0 2px 4px -1px rgb(0 0 0 / 0.40), 0 4px 8px -2px rgb(0 0 0 / 0.30);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.50), 0 8px 24px -4px rgb(0 0 0 / 0.40);
+  --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.60), 0 24px 64px -16px rgb(0 0 0 / 0.50);
+  --shadow-glow: 0 0 0 1px rgb(129 140 248 / 0.20), 0 4px 16px -2px rgb(99 102 241 / 0.30);
+}
+
+/* ============================================================ */
+/* 2. Base styles (T1D-friendly preserved) */
+/* ============================================================ */
 
 html,
 body {
   height: 100%;
   margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  /* Sprint 11.5: Увеличенный базовый font-size для T1D-friendly UX.
-     17px (вместо дефолтного 16px) делает текст читабельнее во время
-     гипо/гипер эпизодов (глаза фокусируются хуже). line-height 1.55 для
-     комфортного чтения длинных AI-ответов. WCAG AAA контраст не теряется. */
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01", "ss03";  /* Inter stylistic sets */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+
+  /* Sprint 11.5: T1D-friendly 17px / 1.55 line-height */
   font-size: 17px;
   line-height: 1.55;
 }
 
-/* Sprint 5.3: dark mode базовые стили. Сейчас используется class-based darkMode
-   (см. tailwind.config.js), так что bg-slate-50 → dark:bg-slate-900 работает
-   на любых элементах. Этот блок — для глобального body bg/text, который не
-   покрывается Tailwind dark: variants. */
 html.dark {
   color-scheme: dark;
 }
 
-html.dark body {
-  background-color: rgb(15 23 42); /* slate-900 */
-  color: rgb(226 232 240); /* slate-200 */
+/* Selection */
+::selection {
+  background-color: var(--color-brand-200);
+  color: var(--color-brand-900);
+}
+html.dark ::selection {
+  background-color: var(--color-brand-800);
+  color: var(--color-brand-100);
 }
 
-/* Sprint 11.2 — keyboard navigation accessibility.
-   WCAG 2.1 SC 2.4.7 (Focus Visible): focus indicator должен быть ясно видимым.
-   - 3px solid ring (WCAG non-text contrast 3:1 minimum).
-   - Контрастный outline-offset 2px чтобы не сливался с border. */
+/* ============================================================ */
+/* 3. Focus ring (accessibility) */
+/* ============================================================ */
+
 *:focus-visible {
-  outline: 3px solid rgb(2 132 199) !important; /* sky-600 — контраст 4.5+ на светлом */
-  outline-offset: 2px !important;
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
   border-radius: 4px;
 }
 html.dark *:focus-visible {
-  outline-color: rgb(125 211 252) !important; /* sky-300 для контраста на тёмном */
+  outline-color: var(--color-brand-400);
 }
 
-/* Sprint 11.2 — skip-link для screen-reader / keyboard users.
-   Появляется только при фокусе (визуально скрыт, но доступен клавиатуре). */
+/* ============================================================ */
+/* 4. Skip-link (a11y) */
+/* ============================================================ */
+
 .skip-link {
   position: absolute;
-  top: -100px;
+  top: -40px;
   left: 0;
-  padding: 8px 16px;
-  background: rgb(2 132 199);
+  background: var(--color-brand-500);
   color: white;
-  font-weight: 600;
+  padding: 8px 16px;
   z-index: 100;
-  border-radius: 0 0 4px 0;
   text-decoration: none;
-  transition: top 0.2s;
+  border-radius: 0 0 var(--radius) 0;
 }
-.skip-link:focus,
-.skip-link:focus-visible {
+.skip-link:focus {
   top: 0;
 }
 
-/* Sprint 11.5 — prefers-reduced-motion: уважаем настройки пользователя.
-   Для детей с T1D (Кирилл) это важно — снижает напряжение глаз при гипо/гипер. */
+/* ============================================================ */
+/* 5. Animations (2026 smooth, opt-out for reduced motion) */
+/* ============================================================ */
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.animate-fade-in { animation: fade-in var(--duration) var(--ease-out); }
+.animate-slide-up { animation: slide-up var(--duration) var(--ease-out); }
+.animate-scale-in { animation: scale-in var(--duration-fast) var(--ease-out); }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -76,4 +208,106 @@ html.dark *:focus-visible {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ============================================================ */
+/* 6. Skeleton loader (shimmer animation) */
+/* ============================================================ */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-2) 0%,
+    var(--color-surface-3) 50%,
+    var(--color-surface-2) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear;
+  border-radius: var(--radius);
+}
+
+/* ============================================================ */
+/* 7. Utilities (semantic shortcuts) */
+/* ============================================================ */
+
+.bg-app     { background-color: var(--color-bg); }
+.bg-card    { background-color: var(--color-surface); }
+.bg-card-2  { background-color: var(--color-surface-2); }
+.text-fg    { color: var(--color-fg); }
+.text-muted { color: var(--color-fg-muted); }
+.text-subtle{ color: var(--color-fg-subtle); }
+.border-default { border-color: var(--color-border); }
+.border-strong  { border-color: var(--color-border-strong); }
+.shadow-soft { box-shadow: var(--shadow); }
+.shadow-elevated { box-shadow: var(--shadow-md); }
+.shadow-glow { box-shadow: var(--shadow-glow); }
+.rounded-modern { border-radius: var(--radius); }
+.rounded-modern-lg { border-radius: var(--radius-lg); }
+.rounded-modern-xl { border-radius: var(--radius-xl); }
+
+.transition-modern {
+  transition-property: color, background-color, border-color, transform, box-shadow, opacity;
+  transition-duration: var(--duration);
+  transition-timing-function: var(--ease-out);
+}
+
+/* ============================================================ */
+/* 8. Gradients (2026 auroras) */
+/* ============================================================ */
+
+.bg-aurora {
+  background:
+    radial-gradient(at 27% 37%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+    radial-gradient(at 97% 21%, rgba(168, 85, 247, 0.12) 0px, transparent 50%),
+    radial-gradient(at 52% 99%, rgba(236, 72, 153, 0.10) 0px, transparent 50%),
+    radial-gradient(at 10% 29%, rgba(34, 211, 238, 0.10) 0px, transparent 50%),
+    radial-gradient(at 97% 96%, rgba(34, 197, 94, 0.08) 0px, transparent 50%);
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(0 0 0 / 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(0 0 0 / 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+html.dark .bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.04) 1px, transparent 1px);
+}
+
+.bg-dots {
+  background-image: radial-gradient(circle, rgb(0 0 0 / 0.15) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+html.dark .bg-dots {
+  background-image: radial-gradient(circle, rgb(255 255 255 / 0.10) 1px, transparent 1px);
+}
+
+/* ============================================================ */
+/* 9. Glass morphism (subtle, opt-in) */
+/* ============================================================ */
+
+.glass {
+  background-color: color-mix(in srgb, var(--color-surface) 75%, transparent);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+}
+
+.glass-strong {
+  background-color: color-mix(in srgb, var(--color-surface) 90%, transparent);
+  backdrop-filter: blur(20px) saturate(200%);
+  -webkit-backdrop-filter: blur(20px) saturate(200%);
+  border: 1px solid var(--color-border);
+}
+
+/* ============================================================ */
+/* 10. Print styles (T1D-friendly: ink saving) */
+/* ============================================================ */
+
+@media print {
+  .no-print { display: none !important; }
+  body { font-size: 12pt; line-height: 1.4; color: black; background: white; }
+  a::after { content: " (" attr(href) ")"; font-size: 90%; }
 }
