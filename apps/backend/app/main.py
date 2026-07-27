@@ -22,17 +22,36 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    """Startup/shutdown: пингуем БД. Полноценные миграции запускаются отдельно (alembic upgrade head)."""
+    """Startup/shutdown: пингуем БД с retry. Полноценные миграции запускаются отдельно (alembic upgrade head)."""
     from sqlalchemy import text
+    import asyncio
 
-    try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-    except Exception as exc:  # noqa: BLE001 — health-check должен логировать, не падать
-        # Sprint 16.1 P1-4: logger вместо print для структурированных логов.
-        # На старте БД может быть ещё не готова (race в docker-compose);
-        # healthcheck эндпоинт отразит реальное состояние.
-        logger.warning("startup DB ping failed: %r", exc)
+    # Sprint 81: retry DB ping с exponential backoff (max 3 attempts).
+    # Если PostgreSQL ещё не готова в docker-compose (race condition),
+    # не fail-fast — подождём и попробуем ещё раз.
+    max_attempts = 3
+    for attempt in range(1, max_attempts + 1):
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            if attempt > 1:
+                logger.info("startup DB ping succeeded on attempt %d", attempt)
+            break
+        except Exception as exc:  # noqa: BLE001
+            if attempt < max_attempts:
+                # Exponential backoff: 1s, 2s, 4s
+                wait_seconds = 2 ** (attempt - 1)
+                logger.warning(
+                    "startup DB ping failed (attempt %d/%d): %r. Retrying in %ds...",
+                    attempt, max_attempts, exc, wait_seconds,
+                )
+                await asyncio.sleep(wait_seconds)
+            else:
+                # Last attempt — fail gracefully (Sprint 16.1 P1-4).
+                logger.warning(
+                    "startup DB ping failed after %d attempts: %r. Healthcheck will report unhealthy.",
+                    max_attempts, exc,
+                )
     yield
     engine.dispose()
 
