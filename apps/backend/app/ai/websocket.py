@@ -5,8 +5,10 @@
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import time
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -15,6 +17,11 @@ from app.auth.security import decode_token
 from app.db.session import SessionLocal
 
 logger = logging.getLogger(__name__)
+# Sprint 83: WS keepalive + max lifetime.
+# Защита от hung connections (WS может висеть вечно без ping/pong).
+WS_MAX_LIFETIME_SECONDS = 3600  # 1 час max connection
+WS_PING_INTERVAL_SECONDS = 30    # ping каждые 30 сек
+
 
 router = APIRouter(tags=["websocket"])
 
@@ -77,9 +84,45 @@ async def ai_chat_stream(websocket: WebSocket):
 
     await websocket.accept()
 
+    # Sprint 83: keepalive + max lifetime.
+    # Background task sends ping каждые 30 сек; основной loop работает с timeout.
+    start_time = time.time()
+    last_ping_time = start_time
+
+    async def _send_pings():
+        nonlocal last_ping_time
+        while True:
+            await asyncio.sleep(WS_PING_INTERVAL_SECONDS)
+            elapsed = time.time() - start_time
+            if elapsed > WS_MAX_LIFETIME_SECONDS:
+                logger.info("WS max lifetime exceeded user_id=%s elapsed=%ss", user_id, int(elapsed))
+                await websocket.close(code=1008, reason="Max lifetime exceeded")
+                return
+            try:
+                await websocket.send_json({"type": "ping", "ts": int(time.time())})
+                last_ping_time = time.time()
+            except Exception:
+                return
+
+    ping_task = asyncio.create_task(_send_pings())
+
     try:
         while True:
-            data = await websocket.receive_text()
+            # Calculate remaining time
+            elapsed = time.time() - start_time
+            if elapsed > WS_MAX_LIFETIME_SECONDS:
+                await websocket.close(code=1008, reason="Max lifetime exceeded")
+                break
+
+            try:
+                # Receive with timeout (slightly larger than ping interval)
+                data = await asyncio.wait_for(
+                    websocket.receive_text(),
+                    timeout=WS_PING_INTERVAL_SECONDS * 2,
+                )
+            except asyncio.TimeoutError:
+                # No message received — that's OK, just continue
+                continue
             try:
                 msg = json.loads(data)
             except json.JSONDecodeError:
@@ -130,6 +173,12 @@ async def ai_chat_stream(websocket: WebSocket):
         except Exception:
             pass
     finally:
+        # Sprint 84: cancel background ping task (memory leak fix).
+        # ping_task создан в начале цикла, должен быть отменён при выходе.
+        try:
+            ping_task.cancel()
+        except Exception:
+            pass
         try:
             await websocket.close()
         except Exception:
