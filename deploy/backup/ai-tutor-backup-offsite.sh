@@ -120,12 +120,12 @@ for f in $FILES_TO_UPLOAD; do
   if smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
        -c "cd ${SMB_OFFSITE_DIR}; put ${f} ${bn}" >/dev/null 2>&1; then
     # Sprint 75: verify remote file size matches local.
+    # Простой способ — grep через dir listing (smbclient не возвращает размер напрямую).
     REMOTE_SIZE=$(smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
-      -c "cd ${SMB_OFFSITE_DIR; ls -la ${bn}" 2>/dev/null | \
-      awk "/^[[:space:]]+${bn//./\\\\.}\\s/ {print \$3}" | head -1)
-    # Fallback: use dir listing
+      -c "cd ${SMB_OFFSITE_DIR}; ls" 2>/dev/null | \
+      awk -v fname="${bn}" '$1 == fname {print $3; exit}')
     if [ -z "$REMOTE_SIZE" ] || [ "$REMOTE_SIZE" != "$LOCAL_SIZE" ]; then
-      log "OFFSITE FAIL: $bn size mismatch local=$LOCAL_SIZE remote=$REMOTE_SIZE"
+      log "OFFSITE FAIL: $bn size mismatch local=$LOCAL_SIZE remote=${REMOTE_SIZE:-NOT_FOUND}"
       UPLOAD_CORRUPTED=$((UPLOAD_CORRUPTED + 1))
     else
       UPLOAD_COUNT=$((UPLOAD_COUNT + 1))
