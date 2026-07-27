@@ -312,8 +312,12 @@ def search_real_persistent(
             id=row.hash,
             material_id=row.material_id,
             text=row.text,
+            # Sprint 88: добавляем cosine_score в metadata для hybrid search.
             embedding=real_emb,
-            metadata=metadata,
+            metadata={
+                **metadata,
+                "cosine_score": float(sim),
+            },
         )))
     scored.sort(key=lambda x: -x[0])
     return [c for _, c in scored[:top_k]]
@@ -369,16 +373,23 @@ def search_bm25_persistent(
     )
 
     # Convert back to PersistentChunk.
+    # Sprint 88: сохраняем bm25_score в metadata для hybrid search.
     result: list[PersistentChunk] = []
     for chunk_dict in top_chunks:
         row = chunk_dict["_row"]
         emb = json_to_embedding(row.embedding_json)
+        # bm25_score хранится в chunk_dict (добавлено bm25_search)
+        bm25_score_value = chunk_dict.get("bm25_score", 0)
+        metadata_with_score = {
+            **chunk_dict["metadata"],
+            "bm25_score": bm25_score_value,
+        }
         result.append(PersistentChunk(
             id=row.hash,
             material_id=row.material_id,
             text=row.text,
             embedding=emb,
-            metadata=chunk_dict["metadata"],
+            metadata=metadata_with_score,
         ))
     return result
 
@@ -387,3 +398,70 @@ def count_persistent(db: Session) -> int:
     """Sprint 3.5.2: сколько chunk'ов в rag_chunks."""
     from app.rag_models import RagChunk
     return db.execute(select(func.count(RagChunk.id))).scalar_one()
+
+def search_hybrid_persistent(
+    db: Session,
+    query: str,
+    query_embedding: list[float] | None = None,
+    top_k: int = 3,
+    material_id: int | None = None,
+    bm25_weight: float = 0.5,
+    embedding_weight: float = 0.5,
+) -> list[PersistentChunk]:
+    """Sprint 88: hybrid BM25 + real embeddings search.
+
+    Комбинирует:
+    - BM25 score (keyword match, fast, no embeddings needed)
+    - Cosine similarity на real embeddings (semantic match)
+
+    Использует weighted combination: final_score = bm25_weight * norm_bm25
+    + embedding_weight * norm_cosine.
+
+    Default: 50/50 weighted. Для keyword-heavy queries → increase
+    bm25_weight. Для semantic queries → increase embedding_weight.
+
+    Returns: top_k PersistentChunk sorted by combined score (desc).
+    """
+    from app.rag_models import RagChunk
+
+    # Get BM25 results (top 5x candidates)
+    bm25_results = search_bm25_persistent(
+        db, query, top_k=top_k * 5, material_id=material_id
+    )
+    if not bm25_results:
+        return []
+
+    # Build BM25 score map (normalize to 0-1)
+    bm25_scores: dict[str, float] = {}
+    bm25_max = max(
+        (c.metadata.get("bm25_score", 0) for c in bm25_results),
+        default=1.0,
+    )
+    for chunk in bm25_results:
+        bm25_scores[chunk.id] = (
+            chunk.metadata.get("bm25_score", 0) / bm25_max
+            if bm25_max > 0 else 0
+        )
+
+    # Get real embeddings results (если есть)
+    embedding_scores: dict[str, float] = {}
+    if query_embedding:
+        real_results = search_real_persistent(
+            db, query_embedding, top_k=top_k * 5, material_id=material_id
+        )
+        for chunk in real_results:
+            # Cosine similarity уже в normalized embeddings
+            embedding_scores[chunk.id] = chunk.metadata.get("cosine_score", 0)
+
+    # Combine scores
+    combined: list[tuple[float, PersistentChunk]] = []
+    for chunk in bm25_results:
+        bm25_norm = bm25_scores.get(chunk.id, 0)
+        emb_norm = embedding_scores.get(chunk.id, 0)
+        final_score = bm25_weight * bm25_norm + embedding_weight * emb_norm
+        combined.append((final_score, chunk))
+
+    # Sort by combined score desc
+    combined.sort(key=lambda x: -x[0])
+    return [c for _, c in combined[:top_k]]
+

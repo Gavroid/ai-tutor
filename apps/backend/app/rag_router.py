@@ -12,6 +12,7 @@ from app.rag_persist import (
     add_chunks_persistent,
     count_persistent,
     search_bm25_persistent,
+    search_hybrid_persistent,
     search_persistent,
     search_real_persistent,
 )
@@ -127,6 +128,56 @@ def search_bm25_endpoint(
     """
     results = search_bm25_persistent(
         db, payload.query, top_k=payload.top_k, material_id=payload.material_id
+    )
+    return SearchResponse(
+        query=payload.query,
+        hits=[
+            SearchHit(
+                chunk_id=c.id,
+                material_id=c.material_id,
+                text=c.text,
+                score=0.0,
+                metadata=c.metadata,
+            )
+            for c in results
+        ],
+    )
+
+
+@router.post("/search/hybrid", response_model=SearchResponse)
+def search_hybrid_endpoint(
+    payload: SearchRequest,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
+    """Sprint 88: hybrid BM25 + real embeddings search.
+
+    Комбинирует keyword (BM25) и semantic (cosine) similarity
+    weighted (default 50/50). Best for mixed queries.
+
+    Returns 422 если sentence-transformers unavailable
+    (но BM25 часть работает без embeddings).
+
+    Expected Recall@3: > BM25 alone (10%) + real alone (11%).
+    """
+    from app.rag_embeddings import encode_single, is_available
+
+    # BM25 часть работает без embeddings
+    bm25_weight = 0.5
+    embedding_weight = 0.5
+
+    query_embedding = None
+    if is_available():
+        query_embedding = encode_single(payload.query)
+
+    results = search_hybrid_persistent(
+        db,
+        payload.query,
+        query_embedding=query_embedding,
+        top_k=payload.top_k,
+        material_id=payload.material_id,
+        bm25_weight=bm25_weight,
+        embedding_weight=embedding_weight,
     )
     return SearchResponse(
         query=payload.query,
