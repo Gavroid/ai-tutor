@@ -659,6 +659,16 @@ def create_app() -> FastAPI:
     app.include_router(v2_router)
     app.include_router(v2_exercises_router)
 
+    # Sprint 94: GraphQL endpoint для mobile clients.
+    # POST /graphql — single endpoint, multiple queries.
+    try:
+        from app.graphql_schema import graphql_router
+
+        app.include_router(graphql_router)
+        logger.info("GraphQL endpoint mounted at /graphql")
+    except ImportError as e:
+        logger.warning("GraphQL not available: %s", e)
+
     return app
 
 
