@@ -258,6 +258,67 @@ def search_persistent(
     return [c for _, c in scored[:top_k]]
 
 
+def search_real_persistent(
+    db: Session,
+    query_embedding: list[float],
+    top_k: int = 3,
+    material_id: int | None = None,
+) -> list[PersistentChunk]:
+    """Sprint 70: persistent search через rag_chunks + REAL embeddings.
+
+    Использует sentence-transformers embeddings из metadata_json["embedding_v2"]
+    (backfilled в Sprint 70). 384-dim cosine similarity.
+
+    Recall@3: 0% (hash) → 11% (real). Sprint 88 планирует hybrid search
+    (BM25 + real) для >60% Recall.
+
+    Args:
+        db: SQLAlchemy session
+        query_embedding: 384-dim vector (sentence-transformers)
+        top_k: top-k results
+        material_id: optional filter
+
+    Returns:
+        list of PersistentChunk sorted by cosine similarity (desc)
+    """
+    from app.rag_models import RagChunk  # local import
+    import numpy as np
+
+    q = select(RagChunk)
+    if material_id is not None:
+        q = q.where(RagChunk.material_id == material_id)
+    # Sprint 70: filter chunks с real embeddings (Sprint 70 backfill).
+    rows = db.execute(q).scalars().all()
+
+    if not rows:
+        return []
+
+    query_np = np.array(query_embedding)
+
+    scored: list[tuple[float, PersistentChunk]] = []
+    for row in rows:
+        # Sprint 70: real embeddings в metadata_json["embedding_v2"].
+        metadata = json.loads(row.metadata_json or "{}")
+        real_emb = metadata.get("embedding_v2")
+        if not real_emb:
+            continue  # chunk ещё не backfilled
+        try:
+            chunk_np = np.array(real_emb)
+            # Cosine similarity (vectors are normalized, so dot product).
+            sim = float(np.dot(query_np, chunk_np))
+        except (TypeError, ValueError):
+            continue
+        scored.append((sim, PersistentChunk(
+            id=row.hash,
+            material_id=row.material_id,
+            text=row.text,
+            embedding=real_emb,
+            metadata=metadata,
+        )))
+    scored.sort(key=lambda x: -x[0])
+    return [c for _, c in scored[:top_k]]
+
+
 def search_bm25_persistent(
     db: Session,
     query: str,

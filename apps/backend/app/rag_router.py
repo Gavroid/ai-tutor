@@ -8,7 +8,13 @@ from sqlalchemy.orm import Session
 from app.auth.security import get_current_user
 from app.db.session import get_db
 from app.rag import add_chunks, chunk_text, get_embedding, remove_by_material, search, stats
-from app.rag_persist import add_chunks_persistent, count_persistent, search_bm25_persistent, search_persistent
+from app.rag_persist import (
+    add_chunks_persistent,
+    count_persistent,
+    search_bm25_persistent,
+    search_persistent,
+    search_real_persistent,
+)
 from app.subjects import models as subj_models
 from app.users.models import User
 
@@ -129,6 +135,55 @@ def search_bm25_endpoint(
                 chunk_id=c.id,
                 material_id=c.material_id,
                 text=c.text,
+                score=0.0,
+                metadata=c.metadata,
+            )
+            for c in results
+        ],
+    )
+
+
+@router.post("/search/real", response_model=SearchResponse)
+def search_real_endpoint(
+    payload: SearchRequest,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
+    """Sprint 70: real embeddings search (sentence-transformers).
+
+    Uses 384-dim vectors from metadata_json["embedding_v2"]
+    (backfilled in Sprint 70). Better for semantic queries
+    than BM25 (keyword) or hash-based (random).
+
+    Requires 8GB RAM (Sprint 70 upgrade). Returns 422 если
+    sentence-transformers unavailable.
+
+    Recall@3: ~11% (Sprint 70 benchmark, vs 0% hash, 10% BM25).
+    """
+    from app.rag_embeddings import encode_single, is_available
+
+    if not is_available():
+        raise HTTPException(
+            422,
+            "Real embeddings unavailable. sentence-transformers not installed.",
+        )
+
+    query_vec = encode_single(payload.query)
+    if query_vec is None:
+        raise HTTPException(500, "Encoding failed")
+
+    results = search_real_persistent(
+        db, query_vec, top_k=payload.top_k, material_id=payload.material_id
+    )
+    return SearchResponse(
+        query=payload.query,
+        hits=[
+            SearchHit(
+                chunk_id=c.id,
+                material_id=c.material_id,
+                text=c.text,
+                # Sprint 70: return cosine similarity as score.
+                # We need to recompute since PersistentChunk не хранит score.
                 score=0.0,
                 metadata=c.metadata,
             )
