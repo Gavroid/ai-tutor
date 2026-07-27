@@ -439,10 +439,14 @@ def export_audit_log(
     fmt: str = Query("json", pattern="^(json|csv)$"),
     since: str | None = Query(None, description="ISO datetime"),
     until: str | None = Query(None, description="ISO datetime"),
+    # Sprint 87: max_records позволяет админу выбрать сколько rows export.
+    # Default 10000 (Sprint 45), max 100000 (DoS protection).
+    max_records: int = Query(10000, ge=1, le=100000),
     db: Session = Depends(get_db),
     current: User = Depends(require_admin()),
 ):
-    """Sprint 45: export audit log (для compliance)."""
+    """Sprint 45: export audit log (для compliance).
+    Sprint 87: max_records query param (1-100000)."""
     from datetime import datetime
     from sqlalchemy import select
     import csv
@@ -461,7 +465,7 @@ def export_audit_log(
         if until_dt.tzinfo is None:
             until_dt = until_dt.replace(tzinfo=timezone.utc)
         q = q.where(models.AuditLog.created_at <= until_dt)
-    q = q.order_by(models.AuditLog.id.asc()).limit(10000)
+    q = q.order_by(models.AuditLog.id.asc()).limit(max_records)
     rows = db.execute(q).scalars().all()
 
     # Log the export action
