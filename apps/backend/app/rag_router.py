@@ -144,6 +144,39 @@ def search_bm25_endpoint(
     )
 
 
+
+
+def _detect_hybrid_weights(query: str) -> tuple[float, float]:
+    """Sprint 93: heuristic auto-detection of hybrid search weights.
+
+    Heuristics:
+    - Short queries (< 5 слов) → keyword-heavy (BM25 0.7, real 0.3)
+      Example: "площадь круга", "теорема Пифагора" → BM25 wins
+    - Math symbols (цифры, =, ², √) → keyword-heavy
+    - Long queries (> 10 слов) → semantic-heavy (real 0.7, BM25 0.3)
+      Example: "объясни пожалуйста как решать такие задачи по алгебре"
+    - Default → 50/50
+    """
+    import re
+
+    query_lower = query.lower().strip()
+    words = query_lower.split()
+
+    # Math/symbols detection
+    has_math = bool(re.search(r"[0-9=+\-*/^²³√∫]", query))
+
+    # Length-based heuristic
+    if len(words) <= 3 or has_math:
+        # Short или math → keyword-heavy
+        return 0.7, 0.3
+    elif len(words) >= 10:
+        # Long → semantic-heavy
+        return 0.3, 0.7
+    else:
+        # Medium → balanced
+        return 0.5, 0.5
+
+
 @router.post("/search/hybrid", response_model=SearchResponse)
 def search_hybrid_endpoint(
     payload: SearchRequest,
@@ -155,6 +188,11 @@ def search_hybrid_endpoint(
     Комбинирует keyword (BM25) и semantic (cosine) similarity
     weighted (default 50/50). Best for mixed queries.
 
+    Sprint 93: heuristic auto-detection of weights.
+    - Short queries (< 5 слов) + math symbols → keyword-heavy (BM25 0.7)
+    - Long queries (> 10 слов) → semantic-heavy (real 0.7)
+    - Default → 50/50
+
     Returns 422 если sentence-transformers unavailable
     (но BM25 часть работает без embeddings).
 
@@ -162,9 +200,8 @@ def search_hybrid_endpoint(
     """
     from app.rag_embeddings import encode_single, is_available
 
-    # BM25 часть работает без embeddings
-    bm25_weight = 0.5
-    embedding_weight = 0.5
+    # Sprint 93: heuristic auto-detection of weights.
+    bm25_weight, embedding_weight = _detect_hybrid_weights(payload.query)
 
     query_embedding = None
     if is_available():

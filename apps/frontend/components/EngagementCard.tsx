@@ -7,6 +7,17 @@ interface EngagementData {
   avg_attempts_per_active_user: number;
   dau_last_14_days: Array<{ date: string; active_users: number }>;
   top_subjects: Array<{ id: number; name: string; students: number }>;
+  // Sprint 92: cohort retention (Sprint 85 backend).
+  retention_cohorts?: Array<{
+    cohort_week: string;
+    cohort_size: number;
+    retained_d1: number;
+    retained_d1_pct: number;
+    retained_d7: number;
+    retained_d7_pct: number;
+    retained_d30: number | null;
+    retained_d30_pct: number | null;
+  }>;
 }
 
 interface EngagementCardProps {
@@ -75,7 +86,41 @@ export default function EngagementCard({ data }: EngagementCardProps) {
         </div>
       </div>
 
-      {/* Top subjects */}
+      {/* Sprint 92: cohort retention (Sprint 85 backend) */}
+      {data.retention_cohorts && data.retention_cohorts.length > 0 && (
+        <div data-testid="retention-card" className="border-t border-slate-100 pt-4">
+          <h3 className="mb-2 text-sm font-semibold text-slate-700">📅 Cohort Retention (D1/D7/D30)</h3>
+          <p className="text-xs text-slate-500 mb-2">
+            Сколько % users из cohort week вернулись
+          </p>
+          <div className="space-y-1">
+            {data.retention_cohorts.map((cohort) => (
+              <div
+                key={cohort.cohort_week}
+                className="flex items-center justify-between gap-2 text-xs"
+              >
+                <span className="text-slate-600 font-mono">{cohort.cohort_week}</span>
+                <span className="text-slate-500">n={cohort.cohort_size}</span>
+                <div className="flex gap-3">
+                  <span className="text-blue-600 font-semibold">
+                    D1: {cohort.retained_d1_pct}%
+                  </span>
+                  <span className="text-green-600 font-semibold">
+                    D7: {cohort.retained_d7_pct}%
+                  </span>
+                  {cohort.retained_d30_pct !== null && (
+                    <span className="text-purple-600 font-semibold">
+                      D30: {cohort.retained_d30_pct}%
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+{/* Top subjects */}
       {data.top_subjects.length > 0 && (
         <div>
           <h3 className="mb-2 text-sm font-semibold text-slate-700">🏆 Топ предметы</h3>
