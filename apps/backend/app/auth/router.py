@@ -170,6 +170,18 @@ def refresh(
 
     tokens = service.issue_tokens(user)
     set_auth_cookies(response, access_token=tokens.access_token, refresh_token=tokens.refresh_token)
+
+    # Sprint 77: log refresh token rotation в audit (Kimi P1-3).
+    # Без audit log — невозможно отследить кто и когда обновлял токены.
+    audit_service.record(
+        db,
+        user=user,
+        action="auth.refresh",
+        entity="user",
+        entity_id=str(user.id),
+        details={"rotation": True, "via": "cookie" if not payload.refresh_token else "body"},
+    )
+
     return tokens
 
 
