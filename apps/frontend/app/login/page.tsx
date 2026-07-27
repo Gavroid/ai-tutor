@@ -1,15 +1,21 @@
 "use client";
 
+/**
+ * Sprint 106: Login page (2026 design).
+ *
+ * - Aurora gradient background
+ * - Glass card with form
+ * - Input + Button from new UI library
+ */
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Card } from "@/components/ui/Card";
 
 // Sprint 11.1: per-role landing page.
-// parent → /parents (linked children dashboard)
-// teacher → /teacher (materials + generate tools)
-// admin → /admin (audit + users)
-// student → /subjects (default).
 async function landingForRole(role: string): Promise<string> {
   switch (role) {
     case "parent":
@@ -33,7 +39,6 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.localStorage.getItem("ai-tutor-token")) {
-      // Sprint 11.1: если уже залогинен — сразу на нужную страницу (через /me).
       const stored = window.localStorage.getItem("ai-tutor-me");
       const role = stored ? (safeParse(stored)?.role ?? "student") : "student";
       landingForRole(role).then((p) => router.push(p));
@@ -53,17 +58,14 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      // Sprint 27: cookie ставится автоматически через Set-Cookie header.
-      // НЕ сохраняем access_token в localStorage (XSS-safe).
       await api.login({ email, password });
-      // Sprint 11.1: запросить /me для определения роли и редиректа.
       let role = "student";
       try {
         const me = await api.me();
         role = me.role;
         window.localStorage.setItem("ai-tutor-me", JSON.stringify(me));
       } catch {
-        // если /me не успел — fallback на student
+        // fallback
       }
       router.push(await landingForRole(role));
     } catch (err) {
@@ -75,56 +77,84 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-bold">Вход</h1>
-        <p className="mt-1 text-sm text-slate-600">AI-репетитор 7 класса</p>
-        <form className="mt-6 space-y-4" onSubmit={onSubmit}>
-          <Field label="Email" type="email" value={email} onChange={setEmail} required />
-          <Field label="Пароль" type="password" value={password} onChange={setPassword} required />
-          {error && <div className="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</div>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-sky-600 px-4 py-2.5 font-semibold text-white shadow hover:bg-sky-500 disabled:opacity-60"
-          >
-            {loading ? "Входим…" : "Войти"}
-          </button>
-        </form>
-        <p className="mt-4 text-center text-sm text-slate-600">
-          Нет аккаунта?{" "}
-          <Link className="text-sky-600 underline" href="/register">
-            Зарегистрироваться
-          </Link>
-        </p>
-        <p className="mt-2 text-center text-sm text-slate-600">
-          Забыли пароль?{" "}
-          <Link className="text-sky-600 underline" href="/forgot-password">
-            Восстановить
-          </Link>
-        </p>
-      </div>
-    </main>
-  );
-}
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg p-6">
+      {/* Background aurora */}
+      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-aurora" />
+      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-grid opacity-30" />
 
-function Field(props: {
-  label: string;
-  type: string;
-  value: string;
-  onChange: (v: string) => void;
-  required?: boolean;
-}) {
-  return (
-    <label className="block">
-      <span className="block text-sm font-medium text-slate-700">{props.label}</span>
-      <input
-        type={props.type}
-        value={props.value}
-        onChange={(e) => props.onChange(e.target.value)}
-        required={props.required}
-        className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
-      />
-    </label>
+      <Card
+        variant="glass"
+        padding="xl"
+        className="w-full max-w-md animate-scale-in"
+      >
+        <div className="mb-6 text-center">
+          <div className="mb-4 inline-flex size-12 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-purple-500 text-2xl">
+            🎓
+          </div>
+          <h1 className="text-display-sm font-bold tracking-tight text-fg">С возвращением</h1>
+          <p className="mt-1 text-sm text-fg-muted">AI-репетитор 7 класса</p>
+        </div>
+
+        <form className="space-y-4" onSubmit={onSubmit}>
+          <div>
+            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-fg">
+              Email
+            </label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              placeholder="your@email.com"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-fg">
+              Пароль
+            </label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              placeholder="••••••••"
+            />
+          </div>
+
+          {error && (
+            <div
+              role="alert"
+              className="rounded-md border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger"
+            >
+              {error}
+            </div>
+          )}
+
+          <Button type="submit" variant="primary" size="lg" fullWidth loading={loading}>
+            {loading ? "Входим…" : "Войти"}
+          </Button>
+        </form>
+
+        <div className="mt-6 space-y-2 text-center text-sm text-fg-muted">
+          <p>
+            Нет аккаунта?{" "}
+            <Link className="font-medium text-brand-500 hover:underline" href="/register">
+              Зарегистрироваться
+            </Link>
+          </p>
+          <p>
+            Забыли пароль?{" "}
+            <Link className="text-fg-muted underline hover:text-fg" href="/forgot-password">
+              Восстановить
+            </Link>
+          </p>
+        </div>
+      </Card>
+    </main>
   );
 }
