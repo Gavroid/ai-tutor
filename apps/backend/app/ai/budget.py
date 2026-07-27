@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 # Можно переопределить через env: AI_BUDGET_REQUESTS_PER_DAY, AI_BUDGET_TOKENS_PER_DAY.
 DAILY_REQUESTS_LIMIT = int(os.environ.get("AI_BUDGET_REQUESTS_PER_DAY", "200"))
 DAILY_TOKENS_LIMIT = int(os.environ.get("AI_BUDGET_TOKENS_PER_DAY", "200000"))
+# Sprint 80: hourly limit — burst protection (24h limit не защищает от burst).
+# Если за 1 час пользователь сделал >20 запросов → 429 (защита от runaway loops).
+HOURLY_REQUESTS_LIMIT = int(os.environ.get("AI_BUDGET_REQUESTS_PER_HOUR", "20"))
 ALERT_THRESHOLD_PCT = int(os.environ.get("AI_BUDGET_ALERT_PCT", "80"))
 
 
@@ -67,6 +70,12 @@ def check_and_increment(user_id: int, *, estimated_output_tokens: int = 0) -> No
     Raises:
         BudgetExceeded: если превышен дневной лимит.
     """
+    # Sprint 80: hourly limit (burst protection)
+    # Используем отдельный ключ с TTL 3600 (1 час).
+    hourly_used = _increment(_key(user_id, "hourly_req"), HOURLY_REQUESTS_LIMIT, ttl=3600)
+    if hourly_used > HOURLY_REQUESTS_LIMIT:
+        raise BudgetExceeded("hourly_requests", hourly_used, HOURLY_REQUESTS_LIMIT)
+
     # 1) Счётчик запросов
     requests_used = _increment(_key(user_id, "req"), DAILY_REQUESTS_LIMIT, ttl=86400)
     if requests_used > DAILY_REQUESTS_LIMIT:
@@ -83,9 +92,12 @@ def get_usage(user_id: int) -> dict[str, int]:
     """Текущее использование (для UI в /admin/budget)."""
     req = _get(_key(user_id, "req"))
     tok = _get(_key(user_id, "tok"))
+    hourly_req = _get(_key(user_id, "hourly_req"))
     return {
         "requests_used": req,
         "requests_limit": DAILY_REQUESTS_LIMIT,
+        "hourly_used": hourly_req,
+        "hourly_limit": HOURLY_REQUESTS_LIMIT,
         "tokens_used": tok,
         "tokens_limit": DAILY_TOKENS_LIMIT,
         "alert_threshold_pct": ALERT_THRESHOLD_PCT,
