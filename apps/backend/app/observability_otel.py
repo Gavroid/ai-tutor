@@ -17,6 +17,25 @@ import os
 
 logger = logging.getLogger(__name__)
 
+# Sprint 101: module-level imports для testability (mockable).
+# Local imports внутри функций не могут быть patched через monkeypatch.
+try:
+    from opentelemetry import trace
+    from opentelemetry.sdk.resources import Resource
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import (
+        BatchSpanProcessor,
+        ConsoleSpanExporter,
+    )
+    OTEL_AVAILABLE = True
+except ImportError:
+    OTEL_AVAILABLE = False
+    trace = None
+    Resource = None
+    TracerProvider = None
+    BatchSpanProcessor = None
+    ConsoleSpanExporter = None
+
 
 def setup_telemetry(app=None, engine=None) -> bool:
     """Sprint 62: initialize OpenTelemetry tracing.
@@ -28,16 +47,8 @@ def setup_telemetry(app=None, engine=None) -> bool:
         logger.info("OpenTelemetry disabled via OTEL_SDK_DISABLED env var")
         return False
 
-    try:
-        from opentelemetry import trace
-        from opentelemetry.sdk.resources import Resource
-        from opentelemetry.sdk.trace import TracerProvider
-        from opentelemetry.sdk.trace.export import (
-            BatchSpanProcessor,
-            ConsoleSpanExporter,
-        )
-    except ImportError as e:
-        logger.warning(f"OpenTelemetry packages not available: {e}")
+    if not OTEL_AVAILABLE:
+        logger.warning("OpenTelemetry packages not available")
         return False
 
     # Resource: service name + version + semantic conventions.

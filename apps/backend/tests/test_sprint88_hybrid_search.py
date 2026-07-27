@@ -123,10 +123,12 @@ def test_hybrid_search_requires_auth(client):
 
 @pytest.mark.slow
 def test_hybrid_search_fallback_without_embeddings(client, user_token, monkeypatch):
-    """Sprint 88: если sentence-transformers unavailable → BM25 only (не crash)."""
-    from app.rag_embeddings import is_available
+    """Sprint 88: если sentence-transformers unavailable → BM25 only (не crash).
 
-    monkeypatch.setattr(is_available.__module__, "is_available", lambda: False)
+    Sprint 101: is_available теперь module-level в rag_router,
+    поэтому monkeypatch работает.
+    """
+    monkeypatch.setattr("app.rag_router.is_available", lambda: False)
 
     r = client.post(
         "/api/v1/rag/search/hybrid",
@@ -135,3 +137,5 @@ def test_hybrid_search_fallback_without_embeddings(client, user_token, monkeypat
     )
     # BM25 должен работать (не требует embeddings)
     assert r.status_code == 200
+    data = r.json()
+    assert "hits" in data

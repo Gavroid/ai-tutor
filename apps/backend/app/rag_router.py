@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.auth.security import get_current_user
 from app.db.session import get_db
 from app.rag import add_chunks, chunk_text, get_embedding, remove_by_material, search, stats
+from app.rag_embeddings import encode_single, is_available
 from app.rag_persist import (
     add_chunks_persistent,
     count_persistent,
@@ -198,8 +199,6 @@ def search_hybrid_endpoint(
 
     Expected Recall@3: > BM25 alone (10%) + real alone (11%).
     """
-    from app.rag_embeddings import encode_single, is_available
-
     # Sprint 93: heuristic auto-detection of weights.
     bm25_weight, embedding_weight = _detect_hybrid_weights(payload.query)
 
@@ -248,8 +247,6 @@ def search_real_endpoint(
 
     Recall@3: ~11% (Sprint 70 benchmark, vs 0% hash, 10% BM25).
     """
-    from app.rag_embeddings import encode_single, is_available
-
     if not is_available():
         raise HTTPException(
             422,

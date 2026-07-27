@@ -72,21 +72,21 @@ def test_setup_telemetry_disabled_via_env():
 
 
 def test_setup_telemetry_no_otlp_endpoint_uses_console():
-    """Sprint 91: без OTEL_EXPORTER_OTLP_ENDPOINT → console exporter."""
+    """Sprint 91: без OTEL_EXPORTER_OTLP_ENDPOINT → console exporter.
+
+    Sprint 101: module-level imports делают patch возможным.
+    """
     from app.observability_otel import setup_telemetry
 
     # Clear env var
     with patch.dict(os.environ, {}, clear=False):
         os.environ.pop("OTEL_EXPORTER_OTLP_ENDPOINT", None)
 
-        # Mock OTel providers
         with patch("app.observability_otel.trace") as mock_trace:
             with patch("app.observability_otel.ConsoleSpanExporter") as mock_console:
                 with patch("app.observability_otel.BatchSpanProcessor") as mock_batch:
-                    mock_provider = MagicMock()
-                    mock_trace.get_tracer_provider.return_value = mock_provider
-
                     result = setup_telemetry()
+
     # Should return True (setup succeeded)
     assert result is True or result is False  # either is OK
 
