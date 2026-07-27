@@ -47,6 +47,26 @@ async def ai_explain_stream(websocket: WebSocket):
         await websocket.close(code=1008, reason="Invalid token payload")
         return
 
+    # Sprint 69: AI budget guard на WS уровне (admin bypass).
+    try:
+        from app.db.session import SessionLocal
+        from app.users import models as user_models
+        from app.ai.budget import BudgetExceeded, check_and_increment
+
+        with SessionLocal() as db_session:
+            user = db_session.get(user_models.User, user_id)
+            if user is None:
+                await websocket.close(code=1008, reason="User not found")
+                return
+            if user.role != user_models.Role.ADMIN:
+                check_and_increment(user_id)
+    except BudgetExceeded as e:
+        logger.warning(
+            "WS budget exceeded user_id=%s: %s/%s", user_id, e.used, e.limit,
+        )
+        await websocket.close(code=1008, reason=f"AI budget exceeded: {e.limit_kind}")
+        return
+
     await websocket.accept()
     try:
         while True:
@@ -130,6 +150,26 @@ async def ai_generate_stream(websocket: WebSocket):
     user_id = int(payload.get("sub", 0))
     if not user_id:
         await websocket.close(code=1008, reason="Invalid token payload")
+        return
+
+    # Sprint 69: AI budget guard на WS уровне (admin bypass).
+    try:
+        from app.db.session import SessionLocal
+        from app.users import models as user_models
+        from app.ai.budget import BudgetExceeded, check_and_increment
+
+        with SessionLocal() as db_session:
+            user = db_session.get(user_models.User, user_id)
+            if user is None:
+                await websocket.close(code=1008, reason="User not found")
+                return
+            if user.role != user_models.Role.ADMIN:
+                check_and_increment(user_id)
+    except BudgetExceeded as e:
+        logger.warning(
+            "WS budget exceeded user_id=%s: %s/%s", user_id, e.used, e.limit,
+        )
+        await websocket.close(code=1008, reason=f"AI budget exceeded: {e.limit_kind}")
         return
 
     await websocket.accept()

@@ -525,8 +525,21 @@ def create_app() -> FastAPI:
             or client_ip == "testclient"  # FastAPI TestClient в pytest
         )
         if not allowed:
+            # Sprint 69: логируем denied requests для security audit.
+            import logging
+            logging.getLogger(__name__).warning(
+                "Metrics access DENIED from ip=%s path=%s",
+                client_ip, request.url.path,
+            )
             from fastapi.exceptions import HTTPException
             raise HTTPException(status_code=403, detail="Metrics access denied")
+
+        # Sprint 69: логируем successful scrapes (audit trail).
+        import logging
+        logging.getLogger(__name__).info(
+            "Metrics access from ip=%s path=%s",
+            client_ip, request.url.path,
+        )
         from app.observability import metrics_endpoint
 
         return metrics_endpoint()

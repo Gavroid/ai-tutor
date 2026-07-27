@@ -54,12 +54,22 @@ async def ai_chat_stream(websocket: WebSocket):
         await websocket.close(code=1008, reason="Invalid token payload")
         return
 
-    # Sprint 16.1 P1-3: AI budget guard на WS уровне.
+    # Sprint 16.1 P1-3 + Sprint 69: AI budget guard на WS уровне.
     # Без проверки user мог открыть WS и бомбить AI запросами напрямую.
+    # Sprint 69: admin role bypasses budget (operational necessity).
+    # Загружаем user из БД для role check.
     try:
+        from app.db.session import SessionLocal
+        from app.users import models as user_models
         from app.ai.budget import BudgetExceeded, check_and_increment
 
-        check_and_increment(user_id)
+        with SessionLocal() as db_session:
+            user = db_session.get(user_models.User, user_id)
+            if user is None:
+                await websocket.close(code=1008, reason="User not found")
+                return
+            if user.role != user_models.Role.ADMIN:
+                check_and_increment(user_id)
     except BudgetExceeded as e:
         logger.warning("WS budget exceeded user_id=%s: %s/%s", user_id, e.used, e.limit)
         await websocket.close(code=1008, reason=f"AI budget exceeded: {e.limit_kind}")

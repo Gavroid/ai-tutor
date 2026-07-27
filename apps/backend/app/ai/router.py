@@ -106,7 +106,16 @@ def _ai_response(
 
 
 def _enforce_budget(current: user_models.User) -> None:
-    """AI-budget: 429 если превышен дневной лимит."""
+    """AI-budget: 429 если превышен дневной лимит.
+
+    Sprint 69: admin role bypasses budget (operational necessity).
+    Admin/teacher используют AI для debugging и tests,
+    обычные users (student/parent) ограничены.
+    """
+    # Sprint 69: admin bypass — только для оперативных нужд (debugging, tests).
+    if current.role == user_models.Role.ADMIN:
+        return
+
     try:
         check_and_increment(current.id)
     except BudgetExceeded as e:
