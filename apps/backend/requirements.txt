@@ -57,7 +57,9 @@ opentelemetry-instrumentation-sqlalchemy==0.65b0
 opentelemetry-instrumentation-redis==0.65b0
 
 # Sprint 70: Real RAG embeddings (8GB RAM unlocked)
-torch==2.10.0+cpu
-torchvision==0.25.0+cpu
+# torch/torchvision из PyTorch CPU index (--index-url)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.10.0
+torchvision==0.25.0
 sentence-transformers==5.6.1
 
