@@ -133,10 +133,13 @@ def create_app() -> FastAPI:
         }
 
     # Эндпоинт /ready не считается в rate limit — это healthcheck
-    @app.get("/ready", tags=["meta"], summary="Readiness probe (БД доступна)")
+    @app.get("/ready", tags=["meta"], summary="Readiness probe (БД + Redis доступны)")
     def ready() -> dict[str, str]:
         from sqlalchemy import text
 
+        # Sprint 82: check БД + Redis (multi-worker state).
+        # Если Redis недоступна — rate limit + AI budget не работают,
+        # поэтому readiness должен быть not_ready.
         try:
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
@@ -146,6 +149,34 @@ def create_app() -> FastAPI:
             # leak SQL state into a public healthcheck response.
             logging.getLogger(__name__).exception("/ready DB check failed")
             return {"status": "not_ready", "reason": "db_unavailable"}
+
+        # Sprint 82: Redis check (используем existing _get_redis helper).
+        try:
+            import asyncio
+
+            async def _check_redis():
+                redis = _get_redis()
+                if redis is None:
+                    return False
+                try:
+                    await redis.ping()
+                    return True
+                except Exception:
+                    return False
+                finally:
+                    try:
+                        await redis.aclose()
+                    except Exception:
+                        pass
+
+            redis_ok = asyncio.run(_check_redis())
+            if not redis_ok:
+                logging.getLogger(__name__).warning("/ready Redis check failed")
+                return {"status": "not_ready", "reason": "redis_unavailable"}
+        except Exception:  # noqa: BLE001
+            logging.getLogger(__name__).exception("/ready Redis check raised")
+            return {"status": "not_ready", "reason": "redis_error"}
+
         return {"status": "ready"}
 
     # Простой in-memory rate limit для /api/v1/ai/* — защита от спама.
