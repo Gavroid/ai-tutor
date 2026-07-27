@@ -78,6 +78,10 @@ def audit_log_count(
 
     Используется админом для отображения пагинации.
     """
+    # Sprint 76: защита от unbounded date range.
+    # Если оба фильтра since+until не указаны — потенциально можно прочитать
+    # всю таблицу audit_log (10K+ строк). Ограничиваем дефолтный диапазон
+    # последними 90 днями если фильтры не указаны.
     since_dt = None
     until_dt = None
     if since:
@@ -90,6 +94,22 @@ def audit_log_count(
             until_dt = datetime.fromisoformat(until.replace("Z", "+00:00"))
         except ValueError:
             raise HTTPException(400, f"Некорректный until: {until}")
+
+    # Sprint 76: если оба фильтра None, дефолт = последние 90 дней.
+    # Защищает от случайного чтения всей таблицы.
+    if since_dt is None and until_dt is None:
+        from datetime import timedelta
+        until_dt = datetime.now(timezone.utc)
+        since_dt = until_dt - timedelta(days=90)
+
+    # Sprint 76: если только один фильтр, ограничиваем диапазон max 2 года.
+    if since_dt and until_dt:
+        delta_days = (until_dt - since_dt).days
+        if delta_days > 730:  # 2 года
+            raise HTTPException(
+                400,
+                f"Date range too large: {delta_days} days (max 730)",
+            )
 
     total = service.count_logs(
         db, user_id, action, entity, since_dt, until_dt
