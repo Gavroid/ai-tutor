@@ -204,11 +204,13 @@ def admin_engagement(
 ):
     """Sprint 9: метрики engagement за последние N дней.
 
+    Sprint 89: Redis cache (TTL 60s) для expensive queries.
+
     Возвращает:
     - active_users: уникальных пользователей с активностью за период
     - total_sessions: количество сессий (по audit_log)
     - avg_session_duration_min: средняя длительность сессии
-    - retention_d1, retention_d7: cohort retention (TODO Sprint 9.2)
+    - retention_d1, retention_d7, retention_d30: cohort retention (Sprint 85)
     - top_subjects: топ-3 предмета по attempts
     - daily_active_users: DAU за последние 14 дней (для графика)
     """
@@ -217,6 +219,21 @@ def admin_engagement(
     from app.progress import models as prog_models
     from app.subjects import models as subj_models
     from sqlalchemy import func as sqlfunc
+    import json
+    import redis as redis_lib
+
+    # Sprint 89: Redis cache для expensive engagement queries.
+    # TTL 60 секунд — дашборд не критичный к fresh data.
+    cache_key = f"engagement:{days}"
+    try:
+        redis_url = os.environ.get("REDIS_URL", "redis://redis:6379/0")
+        r = redis_lib.Redis.from_url(redis_url, decode_responses=True)
+        cached = r.get(cache_key)
+        if cached:
+            return json.loads(cached)
+    except Exception:
+        # Cache miss/fail — proceed to DB query
+        pass
 
     since = datetime.now(timezone.utc) - timedelta(days=days)
 
@@ -340,7 +357,7 @@ def admin_engagement(
                 "retained_d30_pct": round(retained_d30 / cohort_size * 100, 1) if cohort_size and week_offset >= 4 else None,
             })
 
-    return {
+    result = {
         "period_days": days,
         "active_users": active_users,
         "total_attempts": int(total_attempts),
@@ -351,6 +368,15 @@ def admin_engagement(
         "top_subjects": top_subjects,
         "retention_cohorts": retention_cohorts,
     }
+
+    # Sprint 89: save to Redis cache (TTL 60s).
+    try:
+        if 'r' in locals():
+            r.setex(cache_key, 60, json.dumps(result))
+    except Exception:
+        pass
+
+    return result
 
 
 @router.post("/diagnostics/expire-stale")
