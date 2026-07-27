@@ -212,10 +212,19 @@ def cmd_start(chat_id: int, args: list[str]) -> None:
             data = r.json()
             user_id = data["user_id"]
             set_binding(chat_id, user_id, code)
+            # Sprint 78: улучшенное welcome message (Kimi P1-4).
+            # Включает краткий обзор возможностей + tips для родителей.
             send_message(
                 chat_id,
-                f"✅ Привязка успешна! <b>{email}</b> теперь связан с твоим Telegram.\n"
-                "Доступные команды: /homework, /stats, /hint, /pause, /help",
+                f"✅ Привязка успешна! <b>{email}</b> теперь связан с твоим Telegram.\n\n"
+                "📚 <b>Что я умею:</b>\n"
+                "• /homework — список невыполненных тем\n"
+                "• /stats — статистика за неделю\n"
+                "• /hint <id> — подсказка по задаче\n"
+                "• /pause — поставить AI на паузу (T1D safety)\n"
+                "• /help — список всех команд\n\n"
+                "💡 <i>Совет:</i> подписывайся на уведомления, чтобы видеть прогресс ребёнка.\n\n"
+                "Если есть вопросы — пиши /help или обратись к админу.",
             )
         else:
             err = r.json().get("detail", "unknown error")
