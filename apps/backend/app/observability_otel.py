@@ -56,17 +56,40 @@ def setup_telemetry(app=None, engine=None) -> bool:
     # В production можно подключить OTLPExporter для Jaeger/Zipkin
     otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
     if otlp_endpoint:
-        # OTLP exporter — optional, gracefully skip if not installed
+        # Sprint 91: try gRPC exporter first, fallback to HTTP.
+        # gRPC требует otlp-proto-grpc, HTTP требует otlp-proto-http.
+        # HTTP более firewall-friendly (только HTTPS port 4318).
+        exporter_configured = False
         try:
             from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
-                OTLPSpanExporter,
+                OTLPSpanExporter as GrpcExporter,
             )
-
-            exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
+            exporter = GrpcExporter(endpoint=otlp_endpoint, insecure=True)
             provider.add_span_processor(BatchSpanProcessor(exporter))
-            logger.info(f"OTLP exporter configured: {otlp_endpoint}")
+            logger.info(f"OTLP gRPC exporter configured: {otlp_endpoint}")
+            exporter_configured = True
         except ImportError:
-            logger.warning("OTLP exporter not available, using console")
+            pass
+
+        if not exporter_configured:
+            try:
+                from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+                    OTLPSpanExporter as HttpExporter,
+                )
+                # HTTP endpoint: replace port if needed
+                # gRPC default 4317 → HTTP 4318 (если не указан)
+                http_endpoint = otlp_endpoint
+                if ":4317" in http_endpoint:
+                    http_endpoint = http_endpoint.replace(":4317", ":4318")
+                exporter = HttpExporter(endpoint=f"{http_endpoint}/v1/traces")
+                provider.add_span_processor(BatchSpanProcessor(exporter))
+                logger.info(f"OTLP HTTP exporter configured: {http_endpoint}/v1/traces")
+                exporter_configured = True
+            except ImportError:
+                pass
+
+        if not exporter_configured:
+            logger.warning("OTLP exporters not available, falling back to console")
             provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
     else:
         # По умолчанию — console exporter (для debugging)
