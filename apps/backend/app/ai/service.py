@@ -46,6 +46,16 @@ class GeneratedExercise:
 
 
 
+def _fallback_explanation(subject_name: str, topic_name: str) -> str:
+    """Safe explanation fallback when the model returns only stripped reasoning/empty text."""
+    return (
+        f"**{topic_name}** — тема по предмету «{subject_name}».\n\n"
+        "Коротко: начни с определения темы, затем разбери один простой пример "
+        "и проверь себя вопросом: что здесь главное правило или смысл?\n\n"
+        "Если хочешь, нажми «Практика» — я дам задание по этой теме."
+    )
+
+
 _ALLOWED_EXERCISE_TYPES = {"single", "multiple", "numeric", "text", "fill", "code"}
 
 
@@ -204,6 +214,8 @@ class AIService:
         )
         try:
             resp = await self.provider.complete(req)
+            if not resp.content.strip():
+                resp.content = _fallback_explanation(subject.name, topic.name)
             _record_ai("explain", "ok", resp=resp)
             # Sprint 4.1.3: добавляем sources в response для UI индикатора "📖 Источник"
             resp.sources = sources

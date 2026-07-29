@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import json
 
+from types import SimpleNamespace
+
 import pytest
 
 from app.ai.hermes import _extract_structured_json, _prepare_model_output
@@ -84,6 +86,30 @@ async def test_generate_exercise_uses_safe_fallback_for_unstructured_output() ->
     assert exercise.type == "text"
     assert exercise.correct_answer
     assert "Фразеологизмы" in exercise.question_text
+
+
+@pytest.mark.asyncio
+async def test_explain_topic_uses_safe_fallback_when_model_content_empty() -> None:
+    svc = AIService(
+        StaticProvider(
+            AIResponse(
+                content="",
+                model="test-model",
+                structured=None,
+            )
+        )
+    )
+    topic = SimpleNamespace(
+        name="Фразеологизмы",
+        section=SimpleNamespace(subject=SimpleNamespace(name="Русский язык")),
+    )
+    user = SimpleNamespace(student_profile=SimpleNamespace(grade=7))
+
+    response = await svc.explain_topic(None, user, topic)
+
+    assert response.content
+    assert "Фразеологизмы" in response.content
+    assert "think" not in response.content.lower()
 
 
 @pytest.mark.asyncio
