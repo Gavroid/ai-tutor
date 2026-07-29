@@ -21,6 +21,18 @@ function expectNoRawAiGarbage(text: string): void {
   expect(text).not.toMatch(/"correct_answer"\s*:/);
 }
 
+function answerForFractionQuestion(question: string): string {
+  const fractions = [...question.matchAll(/(\d+)\s*\/\s*(\d+)/g)].map((m) => ({
+    n: Number(m[1]),
+    d: Number(m[2]),
+  }));
+  if (fractions.length >= 2 && fractions[0].d === fractions[1].d) {
+    return `${fractions[0].n + fractions[1].n}/${fractions[0].d}`;
+  }
+  if (question.includes("1/2") && question.includes("1/3")) return "5/6";
+  throw new Error(`Cannot infer answer for generated MVP question: ${question}`);
+}
+
 test.describe("MVP student learning flow", () => {
   test("student can open topic, request explain, generate practice, and see clean feedback", async ({
     page,
@@ -56,6 +68,41 @@ test.describe("MVP student learning flow", () => {
     expectNoRawAiGarbage(generateBody);
 
     await expect(page.getByText(/Задание/i).first()).toBeVisible({ timeout: 10_000 });
+    const mainAfterGenerate = await page.locator("main").innerText();
+    expectNoRawAiGarbage(mainAfterGenerate);
+
+    const parsedGenerate = JSON.parse(generateBody) as { question_text: string; options: string[] | null };
+    const questionText = parsedGenerate.question_text;
+    const answer = answerForFractionQuestion(questionText);
+    if (parsedGenerate.options?.includes(answer)) {
+      await page.getByRole("button", { name: answer }).click();
+    } else {
+      await page.locator("input[placeholder='Числовой ответ'], input[placeholder='Текстовый ответ']").first().fill(answer);
+    }
+    const answerResponsePromise = page.waitForResponse(
+      (response) => response.url().includes("/api/v2/exercises/") && response.url().includes("/answer"),
+      { timeout: 30_000 },
+    );
+    await page.getByRole("button", { name: /проверить/i }).click();
+    const answerResponse = await answerResponsePromise;
+    expect(answerResponse.ok()).toBeTruthy();
+    const answerBody = await answerResponse.json();
+    expect(answerBody.is_correct).toBeTruthy();
+    await expect(page.getByText("Верно!").first()).toBeVisible({ timeout: 10_000 });
+
+    await page.locator("input[placeholder='Задай вопрос репетитору…']").fill("Объясни проще про дроби");
+    await page.getByRole("button", { name: /отправить/i }).click();
+    await expect(page.getByText("Объясни проще про дроби")).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator("main").getByText("AI временно недоступен")).toHaveCount(0, { timeout: 20_000 });
+    await expect(page.locator("main").getByText("WS закрыт")).toHaveCount(0, { timeout: 20_000 });
+    await expect(page.getByTestId("chat-message-assistant").last()).toBeVisible({ timeout: 20_000 });
     expectNoRawAiGarbage(await page.locator("main").innerText());
+
+    await page.getByRole("button", { name: /очистить/i }).click();
+    await page.getByRole("button", { name: /да, удалить/i }).click();
+    await expect(page.getByText(/Задание/i)).toHaveCount(0);
+    await expect(page.getByText("Верно!")).toHaveCount(0);
+    await expect(page.getByText("Объясни проще про дроби")).toHaveCount(0);
+    await expect(page.locator("input[placeholder='Задай вопрос репетитору…']")).toHaveValue("");
   });
 });

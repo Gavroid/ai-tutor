@@ -135,6 +135,24 @@ async def test_explain_topic_uses_safe_fallback_when_model_content_empty() -> No
 
 
 @pytest.mark.asyncio
+async def test_explain_topic_math_fallback_is_instructional() -> None:
+    svc = AIService(StaticProvider(AIResponse(content="", model="test-model", structured=None)))
+    topic = SimpleNamespace(
+        name="Действия с обыкновенными дробями",
+        section=SimpleNamespace(
+            subject=SimpleNamespace(name="Математика (6 класс - повторение пройденного материала)")
+        ),
+    )
+    user = SimpleNamespace(student_profile=SimpleNamespace(grade=7))
+
+    response = await svc.explain_topic(None, user, topic)
+
+    assert "общему знаменателю" in response.content
+    assert "1/2 + 1/3" in response.content
+    assert len(response.content) > 500
+
+
+@pytest.mark.asyncio
 async def test_generate_exercise_accepts_json_after_think() -> None:
     content, structured = _prepare_model_output(
         """

@@ -14,8 +14,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
-
 export type ChatMsg = {
   role: "user" | "assistant";
   content: string;
@@ -80,10 +78,12 @@ export function streamChat(
   // Cookie приходит автоматически (same-origin через Next.js rewrites).
   const cfg = { ...DEFAULT_CONFIG, ...config };
 
-  // ws://host/ws/ai/chat — cookie отправляется автоматически.
-  // Без ?token= в URL → нет утечки в логи.
-  const wsBase = API_URL.replace(/^https/, "wss").replace(/^http/, "ws");
-  const url = `${wsBase}/ws/ai/chat`;
+  // Cookie auth works only reliably on same-origin WS. Do not use build-time API_URL here:
+  // production can be opened as school.431a.ru or 192.168.1.86, and cookies are host-scoped.
+  const url =
+    typeof window !== "undefined"
+      ? `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws/ai/chat`
+      : "/ws/ai/chat";
 
   let ws: WebSocket | null = null;
   let attempt = 0;

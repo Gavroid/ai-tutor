@@ -511,7 +511,7 @@ export default function TopicPage() {
               ))}
             </div>
           )}
-          {exercise.type === "numeric" || exercise.type === "text" ? (
+          {(!exercise.options || exercise.options.length === 0 || exercise.type === "numeric" || exercise.type === "text") ? (
             <input
               value={userAnswer}
               onChange={(e) => setUserAnswer(e.target.value)}
@@ -569,6 +569,7 @@ export default function TopicPage() {
         {msgs.map((m, i) => (
           <div
             key={i}
+            data-testid={`chat-message-${m.role}`}
             className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
               m.role === "user"
                 ? "ml-auto bg-sky-600 text-white"
