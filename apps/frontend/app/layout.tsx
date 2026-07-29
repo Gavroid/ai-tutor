@@ -33,17 +33,13 @@ const themeInitScript = `
 (function() {
   try {
     var saved = localStorage.getItem('ai-tutor:theme');
-    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var theme = saved || (prefersDark ? 'dark' : 'light');
+    var theme = saved || 'light';
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     }
   } catch (e) {
     // localStorage может быть недоступен (приватный режим, sandbox).
-    // Fallback на system preference через media query.
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      document.documentElement.classList.add('dark');
-    }
+    // MVP testing default: stay in readable light mode unless user explicitly toggles.
   }
 })();
 `;
@@ -57,7 +53,7 @@ export default function RootLayout({
         {/* Sprint 33: FOUC prevention — выполняется до hydration */}
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+      <body className="min-h-screen bg-app text-fg">
         {/* Sprint 11.2: a11y — skip-link для screen-reader / keyboard users.
            Tab → переход к основному контенту без tab через всю навигацию. */}
         <a href="#main-content" className="skip-link">

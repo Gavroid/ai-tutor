@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from app.ai.hermes import _extract_structured_json, _prepare_model_output
-from app.ai.service import AIService
+from app.ai.service import AIService, _dedupe_rag_sources, _rag_enabled_for_subject
 from app.ai.types import AIMessage, AIRequest, AIResponse, AIProvider
 
 
@@ -65,6 +65,27 @@ def test_extract_structured_json_handles_fenced_json() -> None:
     )
 
     assert structured == {"question_text": "Сколько будет 2+2?", "type": "numeric"}
+
+
+def test_rag_sources_only_enabled_for_math_repeat_subject() -> None:
+    assert _rag_enabled_for_subject("Математика (6 класс - повторение пройденного материала)")
+    assert not _rag_enabled_for_subject("Русский язык")
+    assert not _rag_enabled_for_subject("Алгебра")
+
+
+def test_rag_sources_are_deduplicated() -> None:
+    sources = [
+        {"material_title": "Математика 6 класс", "page_number": 114, "chunk_id": "a"},
+        {"material_title": "Математика 6 класс", "page_number": 114, "chunk_id": "b"},
+        {"material_title": "Математика 6 класс", "page_number": 130, "chunk_id": "c"},
+    ]
+
+    deduped = _dedupe_rag_sources(sources)
+
+    assert deduped == [
+        {"material_title": "Математика 6 класс", "page_number": 114, "chunk_id": "a"},
+        {"material_title": "Математика 6 класс", "page_number": 130, "chunk_id": "c"},
+    ]
 
 
 @pytest.mark.asyncio

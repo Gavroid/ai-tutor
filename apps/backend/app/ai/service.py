@@ -46,6 +46,25 @@ class GeneratedExercise:
 
 
 
+def _rag_enabled_for_subject(subject_name: str) -> bool:
+    """MVP: RAG materials are currently indexed only for 6th-grade math repeat subject."""
+    normalized = subject_name.lower()
+    return "математика" in normalized and "6" in normalized and "повтор" in normalized
+
+
+def _dedupe_rag_sources(sources: list[dict]) -> list[dict]:
+    """Deduplicate source display by material title + page."""
+    seen: set[tuple[str, object]] = set()
+    result: list[dict] = []
+    for source in sources:
+        key = (str(source.get("material_title") or ""), source.get("page_number"))
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(source)
+    return result
+
+
 def _fallback_explanation(subject_name: str, topic_name: str) -> str:
     """Safe explanation fallback when the model returns only stripped reasoning/empty text."""
     return (
@@ -242,6 +261,10 @@ class AIService:
         """
         from app.rag_persist import get_or_compute_embedding, search_persistent
 
+        subject = topic.section.subject
+        if not _rag_enabled_for_subject(subject.name):
+            return None, []
+        # Sprint 3.5.2 + MVP rescue: RAG только для предмета, где материалы реально загружены.
         query = f"{topic.name} {topic.section.subject.name}"
         try:
             query_emb = get_or_compute_embedding(query)
@@ -276,7 +299,7 @@ class AIService:
                 "material_title": mat_title,
                 "page_number": page,
             })
-        return "\n".join(lines), sources
+        return "\n".join(lines), _dedupe_rag_sources(sources)
 
     async def hint(self, question_text: str, level: int = 1) -> AIResponse:
         """Sprint 7.4: подсказка уровня 1 (наводящий вопрос).

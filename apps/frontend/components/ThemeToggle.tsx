@@ -16,9 +16,7 @@ export default function ThemeToggle() {
       | "light"
       | "dark"
       | null;
-    const initial: "light" | "dark" =
-      saved ??
-      (window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const initial: "light" | "dark" = saved ?? "light";
     setTheme(initial);
     applyTheme(initial);
   }, []);
