@@ -91,7 +91,7 @@ export function streamChat(
   let connectionTimer: ReturnType<typeof setTimeout> | null = null;
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   let manuallyClosed = false;
-  let payload: { history: ChatMsg[]; topicId: number | undefined } | null = null;
+  let payload: { history: ChatMsg[]; topic_id?: number } | null = null;
 
   function cleanup() {
     if (reconnectTimer) {
@@ -157,7 +157,7 @@ export function streamChat(
       heartbeatTimer = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           try {
-            ws.send(JSON.stringify({ type: "ping" }));
+            ws.send(JSON.stringify({ type: "client_ping" }));
           } catch {}
         }
       }, cfg.heartbeatInterval);
@@ -217,7 +217,7 @@ export function streamChat(
   }
 
   // Изначальный payload
-  payload = { history, topicId };
+  payload = { history, topic_id: topicId };
 
   // Старт
   connect();

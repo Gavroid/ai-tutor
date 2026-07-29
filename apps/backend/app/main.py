@@ -10,6 +10,7 @@ import time as _time
 from typing import AsyncIterator
 
 from fastapi import FastAPI, Request, Response
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
@@ -133,9 +134,20 @@ def create_app() -> FastAPI:
         }
 
     # Эндпоинт /ready не считается в rate limit — это healthcheck
-    @app.get("/ready", tags=["meta"], summary="Readiness probe (БД + Redis доступны)")
-    def ready() -> dict[str, str]:
+    @app.get(
+        "/ready",
+        tags=["meta"],
+        summary="Readiness probe (БД + Redis доступны)",
+        response_model=None,
+    )
+    def ready():
         from sqlalchemy import text
+
+        def _not_ready(reason: str) -> JSONResponse:
+            return JSONResponse(
+                status_code=503,
+                content={"status": "not_ready", "reason": reason},
+            )
 
         # Sprint 82: check БД + Redis (multi-worker state).
         # Если Redis недоступна — rate limit + AI budget не работают,
@@ -148,34 +160,36 @@ def create_app() -> FastAPI:
             # details) goes only to logs. HTTP body is intentionally generic so we never
             # leak SQL state into a public healthcheck response.
             logging.getLogger(__name__).exception("/ready DB check failed")
-            return {"status": "not_ready", "reason": "db_unavailable"}
+            return _not_ready("db_unavailable")
 
-        # Sprint 82: Redis check (используем existing _get_redis helper).
+        # Sprint 82 + MVP rescue: Redis unavailable must fail readiness with HTTP 503.
         try:
             import asyncio
+            import inspect
 
-            async def _check_redis():
+            async def _check_redis() -> bool:
                 redis = _get_redis()
                 if redis is None:
                     return False
                 try:
-                    await redis.ping()
+                    result = redis.ping()
+                    if inspect.isawaitable(result):
+                        await result
                     return True
                 except Exception:
                     return False
                 finally:
-                    try:
-                        await redis.aclose()
-                    except Exception:
-                        pass
+                    # Do not close the shared Redis singleton returned by _get_redis().
+                    # Closing it here poisons subsequent /ready, rate-limit, and budget calls.
+                    pass
 
             redis_ok = asyncio.run(_check_redis())
             if not redis_ok:
                 logging.getLogger(__name__).warning("/ready Redis check failed")
-                return {"status": "not_ready", "reason": "redis_unavailable"}
+                return _not_ready("redis_unavailable")
         except Exception:  # noqa: BLE001
             logging.getLogger(__name__).exception("/ready Redis check raised")
-            return {"status": "not_ready", "reason": "redis_error"}
+            return _not_ready("redis_error")
 
         return {"status": "ready"}
 

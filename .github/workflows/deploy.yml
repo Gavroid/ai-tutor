@@ -4,7 +4,7 @@ name: Deploy to production
 #
 # Архитектура:
 #   1. Self-hosted runner на проде (Kirill-AI 192.168.1.86).
-#   2. Runner подключается по ssh к localhost с приватным ключом из PRODUCTION_SSH_KEY.
+#   2. Runner подключается к production через заранее настроенный deploy credential.
 #   3. rsync staging → release dir → deploy.sh → smoke.sh.
 #
 # Безопасность (Luna Pro recommendations):
@@ -118,17 +118,24 @@ jobs:
           echo "=== Healthcheck после deploy ==="
           # Даём контейнерам 10 сек стартануть
           sleep 10
-          health_code=$(curl -sk --max-time 5 https://localhost/health -o /dev/null -w "%{http_code}" 2>&1)
-          ready_code=$(curl -sk --max-time 5 https://localhost/ready -o /dev/null -w "%{http_code}" 2>&1)
-          echo "  /health: $health_code"
-          echo "  /ready:  $ready_code"
-          if [ "$health_code" != "200" ] || [ "$ready_code" != "200" ]; then
+          health_body=$(curl -sk --max-time 5 https://localhost/health)
+          ready_body=$(curl -sk --max-time 5 https://localhost/ready)
+          health_code=$(printf '%s' "$health_body" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status",""))' 2>/dev/null || echo "parse_error")
+          ready_status=$(printf '%s' "$ready_body" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status",""))' 2>/dev/null || echo "parse_error")
+          echo "  /health status: $health_code"
+          echo "  /ready status:  $ready_status"
+          echo "  /ready body:    $ready_body"
+          if [ "$health_code" != "ok" ] || [ "$ready_status" != "ready" ]; then
             echo "❌ Healthcheck failed. Initiating rollback..."
             last_release=$(cat /opt/ai-tutor/deploy/release/rollback_backup/last_release.txt 2>/dev/null)
             if [ -n "$last_release" ]; then
               echo "Rolling back to: $last_release"
-              # Здесь будет rollback script — пока логируем
-              echo "TODO: implement rollback to $last_release"
+              # Rollback must be real before pilot; fail closed instead of pretending.
+              if [ -x /opt/ai-tutor/deploy/release/rollback.sh ]; then
+                bash /opt/ai-tutor/deploy/release/rollback.sh "$last_release"
+              else
+                echo "::error::rollback.sh missing or not executable"
+              fi
             fi
             exit 1
           fi

@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, getToken, setToken, ApiError } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import type { Subject, User } from "@/types";
 import EmptyState from "@/components/EmptyState";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import Header from "@/components/Header";
 
 type RecItem = {
   topic_id: number;
@@ -40,11 +41,6 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      router.push("/login");
-      return;
-    }
     api
       .me()
       .then(setUser)
@@ -67,31 +63,36 @@ export default function HomePage() {
     api.dueForReview(10).then(setDueReview).catch(() => {});
   }, [router]);
 
-  function logout() {
-    // Sprint 27: setToken removed
+  async function logout() {
+    try {
+      await api.logout();
+    } catch {
+      // ignore network/logout cleanup errors; redirect anyway
+    }
     router.push("/login");
   }
 
   return (
-    <main className="mx-auto max-w-5xl p-6">
-      <header className="flex items-center justify-between border-b border-slate-200 pb-4">
-        <div>
-          <h1 className="text-2xl font-bold">Привет{user ? `, ${user.display_name}` : ""}!</h1>
-          <p className="text-sm text-slate-600">
-            Выбери предмет и начни заниматься
+    <main className="min-h-screen bg-app">
+      <Header user={user} title={user ? `Привет, ${user.display_name}` : "AI Tutor"} />
+      <section className="mx-auto max-w-5xl p-6">
+        <div className="mb-6 rounded-modern-lg border border-border bg-surface p-5 shadow-soft">
+          <h1 className="text-2xl font-bold text-fg">Выбери предмет и начни заниматься</h1>
+          <p className="mt-1 text-sm text-fg-muted">
+            Спокойный учебный маршрут: тема → объяснение → практика → обратная связь.
             {aiOk === true && aiModel && (
-              <span className="ml-2 inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">
+              <span className="ml-2 inline-block rounded-full bg-success/10 px-2 py-0.5 text-xs text-success">
                 AI: {aiModel}
               </span>
             )}
             {aiOk === false && (
-              <span className="ml-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
-                AI недоступен (mock)
+              <span className="ml-2 inline-block rounded-full bg-warning/10 px-2 py-0.5 text-xs text-warning">
+                AI недоступен
               </span>
             )}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="mb-4 flex flex-wrap gap-2">
           <Link
             href="/diagnostic"
             className="rounded-md bg-emerald-100 px-3 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-200"
@@ -128,11 +129,7 @@ export default function HomePage() {
               Учительская
             </Link>
           )}
-          <button onClick={logout} className="rounded-md bg-slate-100 px-3 py-1.5 text-sm hover:bg-slate-200">
-            Выйти
-          </button>
         </div>
-      </header>
 
       {dueReview.length > 0 && (
         <section className="mt-6 rounded-xl border border-violet-200 bg-violet-50 p-4">
@@ -287,6 +284,7 @@ export default function HomePage() {
           )
         );
       })()}
+      </section>
     </main>
   );
 }

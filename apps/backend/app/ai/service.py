@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
+from typing import Any
 
 from app.ai import prompts, sanitize
 from app.ai.types import AIMessage, AIRequest, AIResponse, AIProvider
@@ -42,6 +43,53 @@ class GeneratedExercise:
     correct_answer: str
     explanation: str
     typical_mistakes: list[str]
+
+
+
+_ALLOWED_EXERCISE_TYPES = {"single", "multiple", "numeric", "text", "fill", "code"}
+
+
+def _clean_ai_text(value: Any) -> str:
+    return str(value or "").strip()
+
+
+def _valid_generated_exercise(data: dict[str, Any]) -> GeneratedExercise:
+    """Validate model JSON before it becomes a student-facing exercise."""
+    question_text = _clean_ai_text(data.get("question_text"))
+    exercise_type = _clean_ai_text(data.get("type") or "text")
+    correct_answer = _clean_ai_text(data.get("correct_answer"))
+    explanation = _clean_ai_text(data.get("explanation"))
+
+    lowered_blob = "\n".join([question_text, correct_answer, explanation]).lower()
+    if (
+        len(question_text) < 10
+        or "<think" in lowered_blob
+        or "&lt;think" in lowered_blob
+        or not correct_answer
+        or correct_answer == "(см. объяснение)"
+        or exercise_type not in _ALLOWED_EXERCISE_TYPES
+    ):
+        raise ValueError("AI did not return a valid structured exercise")
+
+    raw_options = data.get("options")
+    options = [str(item).strip() for item in raw_options if str(item).strip()] if isinstance(raw_options, list) else None
+    if exercise_type in {"single", "multiple"} and (not options or len(options) < 2):
+        raise ValueError("AI did not return a valid structured exercise")
+
+    raw_mistakes = data.get("typical_mistakes", [])
+    typical_mistakes = (
+        [str(item).strip() for item in raw_mistakes if str(item).strip()]
+        if isinstance(raw_mistakes, list)
+        else []
+    )
+    return GeneratedExercise(
+        question_text=question_text,
+        type=exercise_type,
+        options=options,
+        correct_answer=correct_answer,
+        explanation=explanation,
+        typical_mistakes=typical_mistakes,
+    )
 
 
 @dataclass
@@ -317,32 +365,15 @@ class AIService:
         try:
             resp = await self.provider.complete(req)
             if resp.structured:
-                s = resp.structured
-                opts = s.get("options")
-                tm = s.get("typical_mistakes", [])
                 try:
-                    result = GeneratedExercise(
-                        question_text=str(s.get("question_text", "")),
-                        type=str(s.get("type", "text")),
-                        options=list(opts) if isinstance(opts, list) else None,
-                        correct_answer=str(s.get("correct_answer", "")),
-                        explanation=str(s.get("explanation", "")),
-                        typical_mistakes=list(tm) if isinstance(tm, list) else [],
-                    )
+                    result = _valid_generated_exercise(resp.structured)
                     _record_ai("generate", "ok", resp=resp, parse_status="ok")
                     return result
                 except (TypeError, ValueError):
                     _record_ai("generate", "ok", resp=resp, parse_status="error")
-            # Fallback — текстовое задание
+                    raise ValueError("AI did not return a valid structured exercise")
             _record_ai("generate", "ok", resp=resp, parse_status="fallback")
-            return GeneratedExercise(
-                question_text=resp.content[:500],
-                type="text",
-                options=None,
-                correct_answer="(см. объяснение)",
-                explanation=resp.content[:1000],
-                typical_mistakes=[],
-            )
+            raise ValueError("AI did not return a valid structured exercise")
         except Exception as e:
             _record_ai("generate", "error")
             logger.exception("AI generate failed: %s", e)

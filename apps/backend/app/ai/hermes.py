@@ -10,8 +10,10 @@
 """
 from __future__ import annotations
 
+import html
 import json
 import logging
+import re
 from typing import Any
 
 import httpx
@@ -21,6 +23,86 @@ from app.ai.types import AIMessage, AIRequest, AIResponse, AIProvider
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
+
+
+
+_THINK_BLOCK_RE = re.compile(r"(?is)<think\b[^>]*>.*?</think>")
+_ESCAPED_THINK_BLOCK_RE = re.compile(r"(?is)&lt;think\b[^&]*&gt;.*?&lt;/think&gt;")
+_FENCED_JSON_RE = re.compile(r"(?is)```(?:json)?\s*(\{.*?\})\s*```")
+
+
+def _strip_reasoning_blocks(text: str) -> str:
+    """Remove provider reasoning blocks before parsing or displaying output."""
+    if not text:
+        return ""
+    text = _THINK_BLOCK_RE.sub("", text)
+    text = _ESCAPED_THINK_BLOCK_RE.sub("", text)
+    return text.strip()
+
+
+def _find_first_json_object(text: str) -> str | None:
+    """Return the first balanced JSON object substring, ignoring prose around it."""
+    start = text.find("{")
+    if start == -1:
+        return None
+
+    depth = 0
+    in_string = False
+    escaped = False
+    for idx in range(start, len(text)):
+        ch = text[idx]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : idx + 1]
+    return None
+
+
+def _extract_structured_json(text: str) -> dict | None:
+    """Extract structured JSON from raw/fenced/prose-prefixed model output."""
+    if not text:
+        return None
+    candidates: list[str] = []
+    unescaped = html.unescape(text.strip())
+    for source in (text.strip(), unescaped):
+        fenced = _FENCED_JSON_RE.search(source)
+        if fenced:
+            candidates.append(fenced.group(1))
+        obj = _find_first_json_object(source)
+        if obj:
+            candidates.append(obj)
+        candidates.append(source)
+
+    for candidate in candidates:
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    return None
+
+
+def _prepare_model_output(raw_content: str) -> tuple[str, dict | None]:
+    """Clean raw provider output and parse structure before HTML escaping."""
+    cleaned_raw = _strip_reasoning_blocks(raw_content)
+    structured = _extract_structured_json(cleaned_raw)
+    if structured is not None:
+        display_content = json.dumps(structured, ensure_ascii=False)
+        return display_content, structured
+    return sanitize_output(cleaned_raw), structured
 
 
 class HermesProviderError(Exception):
@@ -119,17 +201,8 @@ class HermesProvider(AIProvider):
         except (KeyError, IndexError, TypeError, ValueError) as exc:
             raise HermesProviderError(f"Bad response shape: {exc}") from exc
 
-        # Sanitize output
-        content = sanitize_output(raw_content)
-
-        # Пытаемся распарсить структурированный JSON, если он есть
-        structured: dict | None = None
-        stripped = content.strip()
-        if stripped.startswith("{") and stripped.endswith("}"):
-            try:
-                structured = json.loads(stripped)
-            except json.JSONDecodeError:
-                pass
+        # Clean visible output and parse structured JSON before HTML escaping.
+        content, structured = _prepare_model_output(raw_content)
 
         return AIResponse(
             content=content,

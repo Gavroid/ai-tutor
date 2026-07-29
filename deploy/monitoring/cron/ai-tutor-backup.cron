@@ -1,7 +1,9 @@
-# Sprint 3.0 — ежедневный полный бэкап PostgreSQL + uploads.
+# Sprint 3.0 + MVP rescue — ежедневный полный backup + offsite sync.
 # Ежедневно 03:00 UTC. Источник env: /opt/ai-tutor/.env.
+# Authoritative scheduler: /etc/cron.d/ai-tutor-backup.
+# Не дублировать в root crontab — иначе два backup.sh пишут один timestamp.
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 HOME=/root
 
-0 3 * * * root bash -c "set -a; source /opt/ai-tutor/.env; set +a; /opt/ai-tutor/deploy/backup/backup.sh" >> /var/log/ai-tutor-backup.log 2>&1
+0 3 * * * root bash -c "set -a; source /opt/ai-tutor/.env; set +a; /opt/ai-tutor/deploy/backup/backup.sh && /opt/ai-tutor/deploy/backup/ai-tutor-backup-offsite.sh" >> /var/log/ai-tutor-backup.log 2>&1

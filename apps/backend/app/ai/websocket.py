@@ -129,6 +129,10 @@ async def ai_chat_stream(websocket: WebSocket):
                 await websocket.send_json({"type": "error", "message": "Invalid JSON"})
                 continue
 
+            if msg.get("type") in {"client_ping", "ping"}:
+                await websocket.send_json({"type": "pong", "ts": int(time.time())})
+                continue
+
             history = msg.get("history", [])
             topic_id = msg.get("topic_id")
 
@@ -169,7 +173,7 @@ async def ai_chat_stream(websocket: WebSocket):
     except Exception as exc:
         logger.exception("WS error")
         try:
-            await websocket.send_json({"type": "error", "message": repr(exc)})
+            await websocket.send_json({"type": "error", "message": "AI temporarily unavailable"})
         except Exception:
             pass
     finally:

@@ -3,73 +3,128 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, getToken, setToken } from "@/lib/api";
-import type { Subject, Topic } from "@/types";
+import { api, ApiError } from "@/lib/api";
+import type { Subject, Topic, User } from "@/types";
+import Header from "@/components/Header";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 
 export default function SubjectPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const subjectId = Number(params?.id);
 
+  const [user, setUser] = useState<User | null>(null);
   const [subject, setSubject] = useState<Subject | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Sprint 27: cookie auth.
     if (!subjectId || Number.isNaN(subjectId)) return;
 
+    let cancelled = false;
     (async () => {
       try {
+        const me = await api.me();
+        if (cancelled) return;
+        setUser(me);
+
         const all = await api.subjects();
-        const s = all.find((x) => x.id === subjectId) ?? null;
-        setSubject(s);
-        const t = await api.subjectTopics(subjectId);
-        setTopics(t);
-      } catch (e) {
-        setError("Не удалось загрузить темы");
+        if (cancelled) return;
+        const currentSubject = all.find((x) => x.id === subjectId) ?? null;
+        setSubject(currentSubject);
+        if (!currentSubject) {
+          setError("Предмет не найден");
+          return;
+        }
+
+        const loadedTopics = await api.subjectTopics(subjectId);
+        if (!cancelled) setTopics(loadedTopics);
+      } catch (e: unknown) {
+        if (cancelled) return;
+        if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+          router.push("/login");
+          return;
+        }
+        setError("Не удалось загрузить темы. Проверь соединение и попробуй ещё раз.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [subjectId, router]);
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <header className="border-b border-slate-200 pb-4">
-        <Link href="/subjects" className="text-sm text-sky-600 hover:underline">
-          ← Все предметы
-        </Link>
-        <h1 className="mt-2 text-2xl font-bold">
-          {subject?.icon} {subject?.name || "Предмет"}
-        </h1>
-        {subject?.description && <p className="text-sm text-slate-600">{subject.description}</p>}
-      </header>
+    <main className="min-h-screen bg-app">
+      <Header
+        user={user}
+        backHref="/subjects"
+        backLabel="Все предметы"
+        title={subject ? `${subject.icon || "📘"} ${subject.name}` : "Предмет"}
+      />
 
-      <section className="mt-6">
-        <h2 className="text-lg font-semibold">Темы</h2>
-        {loading && <p className="mt-3 text-sm text-slate-500">Загружаем…</p>}
-        {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
-        {!loading && topics.length === 0 && (
-          <p className="mt-3 text-sm text-slate-500">В этом предмете пока нет тем.</p>
+      <section className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+        <Card variant="glass" padding="lg" className="mb-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-brand-500">Учебный маршрут</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight text-fg">
+                {subject?.name || "Загружаем предмет…"}
+              </h2>
+              {subject?.description && (
+                <p className="mt-2 max-w-2xl text-sm text-fg-muted">{subject.description}</p>
+              )}
+            </div>
+            <Badge variant="outline" size="lg">
+              {topics.length || 0} тем
+            </Badge>
+          </div>
+        </Card>
+
+        {loading && (
+          <Card variant="flat" padding="lg" className="text-sm text-fg-muted">
+            Загружаем темы…
+          </Card>
         )}
-        <ol className="mt-4 space-y-2">
-          {topics.map((t, i) => (
-            <li key={t.id}>
-              <Link
-                href={`/topics/${t.id}`}
-                className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4 hover:border-sky-300"
-              >
-                <div className="flex items-start gap-3">
-                  <span className="inline-block w-7 text-center text-sm font-mono text-slate-400">
-                    {i + 1}
-                  </span>
-                  <span className="font-medium">{t.name}</span>
-                </div>
-                <span className={`rounded-full px-2 py-0.5 text-xs ${difficultyClass(t.difficulty)}`}>
-                  сложность {t.difficulty}/5
-                </span>
+
+        {error && !loading && (
+          <Card variant="flat" padding="lg" className="border-danger/30 bg-danger/5 text-sm text-danger">
+            {error}
+          </Card>
+        )}
+
+        {!loading && !error && topics.length === 0 && (
+          <Card variant="flat" padding="lg" className="text-sm text-fg-muted">
+            В этом предмете пока нет тем.
+          </Card>
+        )}
+
+        <ol className="grid gap-3">
+          {topics.map((topic, index) => (
+            <li key={topic.id}>
+              <Link href={`/topics/${topic.id}`} className="group block">
+                <Card variant="elevated" padding="md" interactive className="flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface-2 text-sm font-semibold text-fg-muted">
+                      {index + 1}
+                    </span>
+                    <div>
+                      <h3 className="font-semibold text-fg transition-modern group-hover:text-brand-500">
+                        {topic.name}
+                      </h3>
+                      {topic.description && (
+                        <p className="mt-1 line-clamp-2 text-sm text-fg-muted">{topic.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  <Badge variant={difficultyVariant(topic.difficulty)} size="sm">
+                    {topic.difficulty}/5
+                  </Badge>
+                </Card>
               </Link>
             </li>
           ))}
@@ -79,9 +134,9 @@ export default function SubjectPage() {
   );
 }
 
-function difficultyClass(d: number): string {
-  if (d <= 2) return "bg-emerald-100 text-emerald-800";
-  if (d <= 3) return "bg-sky-100 text-sky-800";
-  if (d <= 4) return "bg-amber-100 text-amber-800";
-  return "bg-rose-100 text-rose-800";
+function difficultyVariant(difficulty: number): "success" | "info" | "warning" | "danger" {
+  if (difficulty <= 2) return "success";
+  if (difficulty <= 3) return "info";
+  if (difficulty <= 4) return "warning";
+  return "danger";
 }

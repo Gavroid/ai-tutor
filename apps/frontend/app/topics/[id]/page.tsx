@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, getToken, ApiError } from "@/lib/api";
+import Header from "@/components/Header";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { useChatStream } from "@/lib/ws-chat";
 import { renderMarkdown } from "@/lib/markdown";
 import SafeMarkdown from "@/components/SafeMarkdown";
@@ -12,7 +15,7 @@ import SessionTimer from "@/components/SessionTimer";
 import CGMStatus from "@/components/CGMStatus";
 import RecoveryBadge from "@/components/RecoveryBadge";
 import { playCompletionCue } from "@/lib/audio-cue";
-import type { Topic, ChatMsg } from "@/types";
+import type { Topic, ChatMsg, User } from "@/types";
 
 // Sprint 12: helper для извлечения error-сообщения.
 // ApiError содержит status + message. Generic Error — только message.
@@ -90,12 +93,14 @@ export default function TopicPage() {
   const router = useRouter();
   const topicId = Number(params?.id);
 
+  const [user, setUser] = useState<User | null>(null);
   const [topic, setTopic] = useState<Topic | null>(null);
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   // Sprint 15.5: подтверждение очистки чата (чтобы ребёнок случайно не потерял).
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Sprint 42: T1D recovery mode (timing-based, opt-in через backend).
   // Если недавно была hypo/hyper пауза → recovery_mode=true → badge показывается.
@@ -139,7 +144,24 @@ export default function TopicPage() {
   useEffect(() => {
     // Sprint 27: cookie auth.
     if (!topicId || Number.isNaN(topicId)) return;
-    api.topic(topicId).then(setTopic).catch(() => router.push("/subjects"));
+    let cancelled = false;
+    (async () => {
+      try {
+        const [me, loadedTopic] = await Promise.all([api.me(), api.topic(topicId)]);
+        if (cancelled) return;
+        setUser(me);
+        setTopic(loadedTopic);
+      } catch (err: unknown) {
+        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+          router.push("/login");
+          return;
+        }
+        router.push("/subjects");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [topicId, router]);
 
   // Sprint 42: T1D recovery mode — fetch recommend-next для RecoveryBadge.
@@ -269,6 +291,7 @@ export default function TopicPage() {
   function send() {
     const text = input.trim();
     if (!text || busy) return;
+    setActionError(null);
     const next: ChatMsg[] = [...msgs, { role: "user", content: text }];
     setMsgs(next);
     setInput("");
@@ -295,16 +318,14 @@ export default function TopicPage() {
         setBusy(false);
       },
       onError: (msg) => {
+        setActionError(msg || "AI временно недоступен. Попробуй ещё раз.");
         setMsgs((m) => {
           const updated = [...m];
           if (updated[assistantIdx]) {
             updated[assistantIdx] = {
               ...updated[assistantIdx],
-              content:
-                (updated[assistantIdx].content || "") +
-                "\n\n[Ошибка: " +
-                msg +
-                "]",
+              content: updated[assistantIdx].content || "🤖 AI временно недоступен. Попробуй ещё раз через несколько секунд.",
+              error: msg,
             };
           }
           return updated;
@@ -316,6 +337,7 @@ export default function TopicPage() {
 
   async function explain() {
     if (busy) return;
+    setActionError(null);
     setBusy(true);
     try {
       const r = await api.aiExplain(topicId);
@@ -341,6 +363,7 @@ export default function TopicPage() {
 
   async function generate() {
     if (busy) return;
+    setActionError(null);
     setBusy(true);
     setExercise(null);
     setCheckResult(null);
@@ -349,7 +372,8 @@ export default function TopicPage() {
       // Pilot Core Stage 1 — secure flow: server-owned truth, opaque id.
       const r = await api.v2GenerateExercise({
         topic_id: topicId,
-        difficulty: topic?.difficulty ?? 2,
+        // MVP rescue: 0 = backend adaptive difficulty. Do not bypass auto mode from UI.
+        difficulty: 0,
       });
       setExercise({
         exercise_id: r.exercise_id,
@@ -358,8 +382,8 @@ export default function TopicPage() {
         type: r.type,
         // correct_answer и explanation придут ПОСЛЕ submit (server-trusted).
       });
-    } catch {
-      alert("Не удалось сгенерировать задание");
+    } catch (err: unknown) {
+      setActionError(extractErrorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -367,6 +391,7 @@ export default function TopicPage() {
 
   async function checkAnswer() {
     if (!exercise?.exercise_id) return;
+    setActionError(null);
     setBusy(true);
     try {
       // Pilot Core: client отправляет только exercise_id + user_answer.
@@ -381,37 +406,39 @@ export default function TopicPage() {
         // Sprint 4.3.1: error_type для context-aware hints.
         error_type: r.error_type ?? null,
       });
-    } catch {
-      alert("Не удалось проверить ответ");
+    } catch (err: unknown) {
+      setActionError(extractErrorMessage(err));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <main className="mx-auto flex h-screen max-w-3xl flex-col p-3 sm:p-4">
-      <header className="border-b border-slate-200 pb-3">
-        <Link href="/subjects" className="text-sm text-sky-600 hover:underline">
-          ← Все предметы
-        </Link>
-        <h1 className="mt-1 text-xl font-bold">{topic?.name || "Тема"}</h1>
-      </header>
+    <main className="min-h-screen bg-app">
+      <Header user={user} backHref="/subjects" backLabel="Все предметы" title={topic?.name || "Тема"} />
 
-      <section className="mt-4 flex flex-wrap gap-2">
-        <button
+      <div className="mx-auto flex h-[calc(100vh-65px)] max-w-4xl flex-col px-3 py-4 sm:px-4">
+      <Card variant="flat" padding="md" className="mb-3">
+      <section className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
           onClick={explain}
           disabled={busy}
-          className="rounded-lg bg-sky-100 px-3 py-1.5 text-sm font-medium text-sky-800 hover:bg-sky-200 disabled:opacity-50"
+          loading={busy && !exercise}
+          variant="primary"
+          size="sm"
         >
-          Объясни тему
-        </button>
-        <button
+          Объяснить
+        </Button>
+        <Button
+          type="button"
           onClick={generate}
           disabled={busy}
-          className="rounded-lg bg-emerald-100 px-3 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-200 disabled:opacity-50"
+          variant="secondary"
+          size="sm"
         >
-          Дай задание
-        </button>
+          Практика
+        </Button>
 
         {/* Sprint 15.5: кнопка Clear chat (с confirm для safety).
             T1D-friendly: показываем вторичную кнопку сначала — очистить чат,
@@ -449,11 +476,17 @@ export default function TopicPage() {
           </div>
         )}
       </section>
+      {actionError && (
+        <div role="alert" className="mt-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+          {actionError}
+        </div>
+      )}
+      </Card>
 
       {exercise && (
         <section className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
           <div className="text-xs uppercase tracking-wide text-emerald-700">Задание</div>
-          <p className="mt-1 whitespace-pre-wrap text-slate-900">{exercise.question_text}</p>
+          <SafeMarkdown text={exercise.question_text} className="mt-1" />
           {exercise.options && exercise.options.length > 0 && (
             <div className="mt-3 space-y-1">
               {exercise.options.map((opt) => (
@@ -479,13 +512,16 @@ export default function TopicPage() {
               className="mt-3 block w-full rounded-md border border-slate-300 bg-white px-3 py-2"
             />
           ) : null}
-          <button
+          <Button
+            type="button"
             onClick={checkAnswer}
             disabled={busy || !userAnswer}
-            className="mt-3 rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+            variant="primary"
+            size="sm"
+            className="mt-3"
           >
             Проверить
-          </button>
+          </Button>
           {checkResult && (
             <div
               className={`mt-3 rounded-md p-3 text-sm ${
@@ -496,22 +532,13 @@ export default function TopicPage() {
                 {checkResult.is_correct ? "Верно!" : "Есть ошибка"} (оценка {Math.round(checkResult.score * 100)}%)
               </div>
               {checkResult.first_error && <div className="mt-1">Шаг ошибки: {checkResult.first_error}</div>}
-              <div className="mt-1">{checkResult.explanation}</div>
-              {/* Sprint 4.2.3: показываем правильный ответ если score < 0.6 */}
-              {!checkResult.is_correct && checkResult.score < 0.6 && exercise && (
-                <details className="mt-2 rounded-md bg-white/70 p-2">
-                  <summary className="cursor-pointer text-xs font-semibold text-rose-900">
-                    📖 Покажи правильный ответ
-                  </summary>
-                  <div className="mt-2 text-sm">
-                    <div>
-                      <strong>Твой ответ:</strong> {userAnswer || "(пусто)"}
-                    </div>
-                    <div className="mt-1">
-                      <strong>Правильный:</strong> {exercise.correct_answer || "(недоступен)"}
-                    </div>
-                  </div>
-                </details>
+              <SafeMarkdown text={checkResult.explanation} className="mt-1" />
+              {/* MVP rescue: v2 deliberately does not expose correct_answer before/after submit.
+                  Do not show a broken “(недоступен)” answer reveal. */}
+              {!checkResult.is_correct && checkResult.score < 0.6 && (
+                <div className="mt-2 rounded-md bg-white/70 p-2 text-xs text-rose-900">
+                  Попроси подсказку или попробуй ещё раз — репетитор поможет без раскрытия ответа.
+                </div>
               )}
             </div>
           )}
@@ -633,7 +660,7 @@ export default function TopicPage() {
             <VoiceMicButton
               disabled={busy}
               onTranscript={(text) => setInput((prev) => (prev ? prev + " " : "") + text)}
-              onError={(msg) => alert("Микрофон: " + msg)}
+              onError={(msg) => setActionError("Микрофон: " + msg)}
             />
           )}
           <button
@@ -675,6 +702,7 @@ export default function TopicPage() {
           />
         </div>
       </form>
+      </div>
     </main>
   );
 }

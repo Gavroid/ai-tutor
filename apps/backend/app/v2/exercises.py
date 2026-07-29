@@ -172,7 +172,7 @@ async def generate_exercise(
     gen = await svc.generate_exercise(
         subject_name=topic.section.subject.name,
         topic_name=topic.name,
-        difficulty=payload.difficulty,
+        difficulty=target_difficulty,
     )
     options_json = None
     if gen.options:
@@ -187,7 +187,7 @@ async def generate_exercise(
     inferred_checker = "keyword"
     if gen.type == "numeric":
         inferred_checker = "numeric"
-    elif gen.type in ("text", "short"):
+    elif gen.type in ("single", "multiple", "text", "short"):
         inferred_checker = "exact"
 
     inst = GeneratedExerciseInstance(
@@ -198,7 +198,7 @@ async def generate_exercise(
         options_json=options_json,
         correct_answer=gen.correct_answer,
         explanation=gen.explanation,
-        difficulty=payload.difficulty,
+        difficulty=target_difficulty,
         model=getattr(get_ai_service().provider, "model_name", None)
         or getattr(get_ai_service().provider, "model", "mock"),
         prompt_version="pilot-1",
@@ -251,7 +251,11 @@ async def submit_answer(
     # - numeric/keyword/exact — sync
     # - semantic — async через AIService.check_answer
     # Fallback на exact match для обратной совместимости.
-    if inst.checker_type and inst.checker_type != "exact":
+    effective_checker = inst.checker_type or "exact"
+    if inst.type in ("single", "multiple"):
+        effective_checker = "exact"
+
+    if effective_checker != "exact":
         from app.practice.checkers import check_answer, check_answer_async
         import json as _json
 
@@ -262,7 +266,7 @@ async def submit_answer(
             except (ValueError, TypeError):
                 keywords_list = []
 
-        if inst.checker_type == "semantic":
+        if effective_checker == "semantic":
             # Sprint 25: async semantic через AI judge.
             check_result = await check_answer_async(
                 user_answer=norm_user,
@@ -273,7 +277,7 @@ async def submit_answer(
             check_result = check_answer(
                 user_answer=norm_user,
                 reference_solution=norm_ref,
-                checker_type=inst.checker_type,
+                checker_type=effective_checker,
                 keywords=keywords_list,
                 question_text=inst.question_text,
             )

@@ -1,12 +1,11 @@
 name: Test
 
-# Sprint 3.5.3 — минимальный test workflow
-# Проверяет что workflows вообще триггерятся.
+# Lightweight workflow trigger check. Do not print secrets or secret-derived files.
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -16,59 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Hello
+      - name: Workflow metadata
         run: |
-          echo "🚀 Test workflow триггернулся!"
+          echo "Workflow triggered"
           echo "Commit: $GITHUB_SHA"
           echo "Branch: $GITHUB_REF"
           echo "Repository: $GITHUB_REPOSITORY"
           echo "Event: $GITHUB_EVENT_NAME"
           echo "Time: $(date -u)"
-
-      - name: List secrets (только имена, не значения)
-        run: |
-          echo "Secrets в GitHub Actions:"
-          echo "  PRODUCTION_HOST: ${PRODUCTION_HOST:+set}${PRODUCTION_HOST:-NOT SET}"
-          echo "  PRODUCTION_SSH_PORT: ${PRODUCTION_SSH_PORT:+set}${PRODUCTION_SSH_PORT:-NOT SET}"
-          echo "  PRODUCTION_SSH_KEY: $(if [ -n \"$PRODUCTION_SSH_KEY\" ]; then echo set; else echo NOT SET; fi)"
-          echo "  TELEGRAM_BOT_TOKEN: $(if [ -n \"$TELEGRAM_BOT_TOKEN\" ]; then echo set; else echo NOT SET; fi)"
-          echo "  TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:+set}${TELEGRAM_CHAT_ID:-NOT SET}"
-        env:
-          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
-          PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT }}
-          PRODUCTION_SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-
-      - name: Validate SSH key if present
-        if: env.PRODUCTION_SSH_KEY != ''
-        env:
-          PRODUCTION_SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
-        run: |
-          echo "=== Диагностика SSH key ==="
-          echo "Длина: ${#PRODUCTION_SSH_KEY}"
-          echo "Первые 100 символов: '${PRODUCTION_SSH_KEY:0:100}'"
-          echo "Последние 100 символов: '${PRODUCTION_SSH_KEY: -100}'"
-          echo "Начинается с BEGIN? $(echo "$PRODUCTION_SSH_KEY" | head -1)"
-          echo "Заканчивается на END? $(echo "$PRODUCTION_SSH_KEY" | tail -1)"
-          echo "Количество строк: $(echo "$PRODUCTION_SSH_KEY" | wc -l)"
-          echo "Содержит \\r (CRLF)? $(echo "$PRODUCTION_SSH_KEY" | grep -c $'\r' || echo 0)"
-
-          echo ""
-          echo "=== Попытка распарсить ==="
-          echo "$PRODUCTION_SSH_KEY" > /tmp/test_key
-          chmod 600 /tmp/test_key
-
-          if ssh-keygen -y -f /tmp/test_key > /tmp/test_key.pub 2>&1; then
-            echo "✅ SSH key валидный"
-            ssh-keygen -l -f /tmp/test_key
-          else
-            echo "❌ SSH key НЕ валидный:"
-            echo "--- stderr ssh-keygen ---"
-            ssh-keygen -y -f /tmp/test_key 2>&1 || true
-            echo "--- содержимое /tmp/test_key (head) ---"
-            head -3 /tmp/test_key
-            echo "--- hex dump первых 100 байт ---"
-            head -c 100 /tmp/test_key | od -c | head -5
-            exit 1
-          fi

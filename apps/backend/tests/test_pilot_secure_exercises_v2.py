@@ -226,6 +226,66 @@ def test_v2_answer_other_user_exercise_id_returns_404(client):
     assert r.status_code == 404, r.text
 
 
+def test_v2_single_choice_wrong_option_does_not_pass_keyword_checker(client):
+    """MVP rescue: single-choice must use exact option matching, not keyword overlap."""
+    token = _register(client, "v2-single-choice@example.com")
+    h = {"Authorization": f"Bearer {token}"}
+    topic_id = _first_topic_id()
+
+    gen = client.post(
+        "/api/v2/exercises/generate",
+        headers=h,
+        json={"topic_id": topic_id, "difficulty": 2},
+    ).json()
+
+    from app.ai.models import GeneratedExerciseInstance
+    from app.db.session import SessionLocal
+
+    with SessionLocal() as s:
+        inst = s.get(GeneratedExerciseInstance, gen["exercise_id"])
+        inst.type = "single"
+        inst.options_json = json.dumps(["Вариант A", "Вариант B", "Вариант C"], ensure_ascii=False)
+        inst.correct_answer = "Вариант A"
+        inst.reference_solution = "Вариант A"
+        inst.checker_type = "keyword"
+        s.commit()
+
+    r = client.post(
+        f"/api/v2/exercises/{gen['exercise_id']}/answer",
+        headers=h,
+        json={"user_answer": "Вариант B"},
+    )
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["is_correct"] is False
+    assert body["score"] == 0.0
+
+
+def test_v2_auto_difficulty_is_stored_and_used(client):
+    """MVP rescue: difficulty=0 should store computed target difficulty, not 0."""
+    token = _register(client, "v2-auto-difficulty@example.com")
+    h = {"Authorization": f"Bearer {token}"}
+    topic_id = _first_topic_id()
+
+    r = client.post(
+        "/api/v2/exercises/generate",
+        headers=h,
+        json={"topic_id": topic_id, "difficulty": 0},
+    )
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["difficulty"] == 2
+
+    from app.ai.models import GeneratedExerciseInstance
+    from app.db.session import SessionLocal
+
+    with SessionLocal() as s:
+        inst = s.get(GeneratedExerciseInstance, body["exercise_id"])
+        assert inst.difficulty == 2
+
+
 def test_v2_answer_expired_returns_410(client):
     """P1.2.3: expired exercise_id → 410 Gone."""
     token = _register(client, "v2-exp@example.com")

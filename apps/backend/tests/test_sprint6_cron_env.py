@@ -121,6 +121,17 @@ def test_telegram_bot_supervisor_uses_correct_env_path():
         pytest.fail("telegram-bot.sh must have TELEGRAM_BOT_TOKEN env var (env source or hardcode)")
 
 
+def test_cron_backup_runs_offsite_after_local_backup():
+    """MVP rescue: one authoritative backup cron must run local backup and offsite sync together."""
+    path = DEPLOY_DIR / "monitoring" / "cron" / "ai-tutor-backup.cron"
+    if not path.exists():
+        pytest.skip("File not in repo")
+    content = _read_cron_content(path)
+    assert "/opt/ai-tutor/deploy/backup/backup.sh" in content
+    assert "/opt/ai-tutor/deploy/backup/ai-tutor-backup-offsite.sh" in content
+    assert "&&" in content, "offsite must only run after successful local backup"
+
+
 # === Тесты: executable permission ===
 
 def test_monitoring_scripts_are_executable():

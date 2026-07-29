@@ -39,8 +39,69 @@ def test_health_always_ok() -> None:
 def test_ready_endpoint_responds() -> None:
     """ready должен вернуть структурированный ответ в любом случае."""
     r = client.get("/ready")
-    assert r.status_code == 200
+    assert r.status_code in {200, 503}
     assert r.json()["status"] in {"ready", "not_ready"}
+
+
+def test_ready_returns_503_when_redis_unavailable(monkeypatch) -> None:
+    """MVP rescue: not_ready must fail health gates with HTTP 503."""
+    import app.main as main_module
+
+    class BrokenRedis:
+        async def ping(self) -> None:
+            raise RuntimeError("redis down")
+
+        async def aclose(self) -> None:
+            return None
+
+    monkeypatch.setattr(main_module, "_get_redis", lambda: BrokenRedis())
+
+    r = client.get("/ready")
+
+    assert r.status_code == 503
+    assert r.json() == {"status": "not_ready", "reason": "redis_unavailable"}
+
+
+def test_ready_returns_503_when_redis_missing(monkeypatch) -> None:
+    """MVP rescue: missing Redis is not ready for multi-worker production."""
+    import app.main as main_module
+
+    monkeypatch.setattr(main_module, "_get_redis", lambda: None)
+
+    r = client.get("/ready")
+
+    assert r.status_code == 503
+    assert r.json() == {"status": "not_ready", "reason": "redis_unavailable"}
+
+
+def test_ready_does_not_close_shared_redis_client(monkeypatch) -> None:
+    """MVP rescue: /ready must not close the shared Redis singleton from _get_redis()."""
+    import app.main as main_module
+
+    class SharedRedis:
+        def __init__(self) -> None:
+            self.closed = False
+            self.pings = 0
+
+        async def ping(self) -> bool:
+            if self.closed:
+                raise RuntimeError("redis client is closed")
+            self.pings += 1
+            return True
+
+        async def aclose(self) -> None:
+            self.closed = True
+
+    redis = SharedRedis()
+    monkeypatch.setattr(main_module, "_get_redis", lambda: redis)
+
+    r1 = client.get("/ready")
+    r2 = client.get("/ready")
+
+    assert r1.status_code == 200
+    assert r2.status_code == 200
+    assert redis.pings == 2
+    assert redis.closed is False
 
 
 def test_openapi_available() -> None:
