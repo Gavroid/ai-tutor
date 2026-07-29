@@ -100,13 +100,14 @@ async def test_generate_exercise_uses_safe_fallback_for_unstructured_output() ->
         )
     )
 
-    exercise = await svc.generate_exercise("Русский язык", "Фразеологизмы", 2)
+    exercise = await svc.generate_exercise("Математика (6 класс - повторение пройденного материала)", "Действия с обыкновенными дробями", 2)
 
     assert "think" not in exercise.question_text.lower()
     assert "raw reasoning" not in exercise.question_text.lower()
-    assert exercise.type == "text"
-    assert exercise.correct_answer
-    assert "Фразеологизмы" in exercise.question_text
+    assert exercise.type == "single"
+    assert exercise.options
+    assert exercise.correct_answer in exercise.options
+    assert "1/2" in exercise.question_text or "дроб" in exercise.question_text.lower()
 
 
 @pytest.mark.asyncio

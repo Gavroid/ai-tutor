@@ -460,6 +460,13 @@ export default function TopicPage() {
               type="button"
               onClick={() => {
                 setMsgs([]);
+                setExercise(null);
+                setUserAnswer("");
+                setCheckResult(null);
+                setInput("");
+                setActionError(null);
+                localStorage.removeItem(draftKey(topicId));
+                api.topicDraftClear(topicId).catch(() => {});
                 setShowClearConfirm(false);
               }}
               className="rounded bg-amber-600 px-2 py-0.5 text-xs font-semibold text-white hover:bg-amber-700"

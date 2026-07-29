@@ -19,7 +19,7 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-from app.auth.security import create_access_token
+from app.auth.security import ACCESS_COOKIE, create_access_token
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
 from app.subjects.scripts_seed_runner import seed_for_tests
@@ -83,7 +83,7 @@ def client_with_cookie():
     client = TestClient(app)
     token = _token()
     # Устанавливаем cookie через .cookies
-    client.cookies.set("access_token", token)
+    client.cookies.set(ACCESS_COOKIE, token)
     return client
 
 
@@ -109,7 +109,7 @@ def test_websocket_chat_streams_chunks(setup):
     """Sprint 66: WS chat через cookie auth."""
     client = TestClient(app)
     token = _token()
-    client.cookies.set("access_token", token)
+    client.cookies.set(ACCESS_COOKIE, token)
     with client.websocket_connect("/ws/ai/chat") as ws:
         ws.send_text(json.dumps({"history": [{"role": "user", "content": "Привет"}], "topic_id": None}))
         chunks = []
@@ -140,7 +140,7 @@ def test_websocket_explain_streams(setup):
     finally:
         s.close()
 
-    client.cookies.set("access_token", token)
+    client.cookies.set(ACCESS_COOKIE, token)
     with client.websocket_connect("/ws/ai/explain") as ws:
         ws.send_text(json.dumps({"topic_id": tid}))
         chunks = []
@@ -168,7 +168,7 @@ def test_websocket_generate_streams(setup):
     finally:
         s.close()
 
-    client.cookies.set("access_token", token)
+    client.cookies.set(ACCESS_COOKIE, token)
     with client.websocket_connect("/ws/ai/generate") as ws:
         ws.send_text(json.dumps({"topic_id": tid, "difficulty": 2}))
         msg = ws.receive_json()
@@ -182,7 +182,7 @@ def test_websocket_generate_streams(setup):
 def test_websocket_rejects_bad_token(setup):
     """Sprint 66: bad cookie token → WS close."""
     client = TestClient(app)
-    client.cookies.set("access_token", "invalid_token_garbage")
+    client.cookies.set(ACCESS_COOKIE, "invalid_token_garbage")
     with pytest.raises(Exception):
         with client.websocket_connect("/ws/ai/chat") as ws:
             pass

@@ -13,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.db.session import Base, SessionLocal, engine, get_db
+from app.auth.security import ACCESS_COOKIE
 from app.main import app, _login_attempts_log, _ws_concurrent_log
 from app.users import service as user_service
 from app.users.schemas import UserCreate
@@ -66,13 +67,13 @@ def test_ws_chat_under_limit(client):
     token = _login(client)
     # Открываем 4 чат-соединения (всё ещё работает — лимит 5/мин)
     for i in range(4):
-        client.cookies.set("access_token", token)
+        client.cookies.set(ACCESS_COOKIE, token)
         with client.websocket_connect("/ws/ai/chat") as ws:
             ws.send_text('{"history": [{"role": "user", "content": "hi"}]}')
             ws.receive_json()  # chunk
             ws.receive_json()  # done
     # 5-е — ещё ок
-    client.cookies.set("access_token", token)
+    client.cookies.set(ACCESS_COOKIE, token)
     with client.websocket_connect("/ws/ai/chat") as ws:
         ws.send_text('{"history": []}')
         ws.receive_json()
@@ -81,7 +82,7 @@ def test_ws_chat_under_limit(client):
 def test_ws_explain_under_limit(client):
     """WS /ws/ai/explain — лимит общий для всех /ws/ai/*."""
     token = _login(client)
-    client.cookies.set("access_token", token)
+    client.cookies.set(ACCESS_COOKIE, token)
     with client.websocket_connect("/ws/ai/explain") as ws:
         ws.send_text('{"topic_id": 1}')
         ws.receive_json()
@@ -94,7 +95,7 @@ def test_ws_generate_under_limit(client):
     # Главное что лимит middleware не блокирует.
     import json
 
-    client.cookies.set("access_token", token)
+    client.cookies.set(ACCESS_COOKIE, token)
     with client.websocket_connect("/ws/ai/generate") as ws:
         ws.send_text(json.dumps({"topic_id": 99999, "difficulty": 2}))
         msg = ws.receive_json()
@@ -136,7 +137,7 @@ def test_ws_log_isolated_per_test(client):
     _ws_concurrent_log[1] = [999999999]
     # Conftest autouse должен очистить — тест пройдёт без блокировки
     token = _login(client)
-    client.cookies.set("access_token", token)
+    client.cookies.set(ACCESS_COOKIE, token)
     r = client.get(
         "/ws/ai/chat",
         headers={"Upgrade": "websocket", "Connection": "Upgrade"},

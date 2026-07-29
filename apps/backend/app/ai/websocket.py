@@ -13,7 +13,7 @@ import time
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.ai.service import get_ai_service
-from app.auth.security import decode_token
+from app.auth.security import ACCESS_COOKIE, decode_token
 from app.db.session import SessionLocal
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ async def ai_chat_stream(websocket: WebSocket):
     """
     # Sprint 66: только cookie auth (Sprint 16.1 P1-2 migration).
     # Query string fallback УБРАН (security: nginx access logs, browser history).
-    token = websocket.cookies.get("access_token")
+    token = websocket.cookies.get(ACCESS_COOKIE)
     if not token:
         await websocket.close(code=1008, reason="Missing token (cookie required)")
         return

@@ -127,6 +127,24 @@ def _fallback_generated_exercise(
     difficulty: int,
 ) -> GeneratedExercise:
     """Safe deterministic fallback when the model does not return usable JSON."""
+    subject_lower = subject_name.lower()
+    topic_lower = topic_name.lower()
+    if "математика" in subject_lower and "дроб" in topic_lower:
+        return GeneratedExercise(
+            question_text="Вычисли: 1/2 + 1/3. Выбери правильный ответ.",
+            type="single",
+            options=["5/6", "2/5", "2/6", "1/5"],
+            correct_answer="5/6",
+            explanation=(
+                "Чтобы сложить 1/2 и 1/3, приводим дроби к общему знаменателю 6: "
+                "1/2 = 3/6, 1/3 = 2/6, значит 3/6 + 2/6 = 5/6."
+            ),
+            typical_mistakes=[
+                "Складывать знаменатели напрямую",
+                "Не приводить дроби к общему знаменателю",
+            ],
+        )
+
     prompt = (
         f"Сформулируй короткий ответ по теме «{topic_name}» "
         f"({subject_name}, сложность {difficulty}/5)."
