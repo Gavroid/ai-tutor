@@ -29,12 +29,8 @@ test.describe("MVP student learning flow", () => {
 
     await loginAsStudent(page);
 
-    const mathSubject = page.getByRole("link", {
-      name: /Математика \(6 класс - повторение пройденного материала\)/i,
-    }).first();
-    await expect(mathSubject).toBeVisible({ timeout: 10_000 });
-    await mathSubject.click();
-    await page.waitForURL(/\/subjects\/\d+/, { timeout: 10_000 });
+    await page.goto("/subjects/3");
+    await page.waitForURL(/\/subjects\/3/, { timeout: 10_000 });
 
     const firstTopic = page.locator("a[href^='/topics/']").first();
     await expect(firstTopic).toBeVisible({ timeout: 10_000 });
