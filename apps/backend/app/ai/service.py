@@ -92,6 +92,26 @@ def _valid_generated_exercise(data: dict[str, Any]) -> GeneratedExercise:
     )
 
 
+def _fallback_generated_exercise(
+    subject_name: str,
+    topic_name: str,
+    difficulty: int,
+) -> GeneratedExercise:
+    """Safe deterministic fallback when the model does not return usable JSON."""
+    prompt = (
+        f"Сформулируй короткий ответ по теме «{topic_name}» "
+        f"({subject_name}, сложность {difficulty}/5)."
+    )
+    return GeneratedExercise(
+        question_text=prompt,
+        type="text",
+        options=None,
+        correct_answer=f"Короткое объяснение по теме «{topic_name}» своими словами.",
+        explanation="Это резервное задание: AI не вернул корректный JSON, поэтому система дала безопасный вопрос без технического текста.",
+        typical_mistakes=["Копировать определение без понимания", "Отвечать слишком общо"],
+    )
+
+
 @dataclass
 class QuizQuestion:
     """Один вопрос квиза (режим mode='quiz').
@@ -373,7 +393,7 @@ class AIService:
                     _record_ai("generate", "ok", resp=resp, parse_status="error")
                     raise ValueError("AI did not return a valid structured exercise")
             _record_ai("generate", "ok", resp=resp, parse_status="fallback")
-            raise ValueError("AI did not return a valid structured exercise")
+            return _fallback_generated_exercise(subject_name, topic_name, difficulty)
         except Exception as e:
             _record_ai("generate", "error")
             logger.exception("AI generate failed: %s", e)

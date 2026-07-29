@@ -140,7 +140,7 @@ def create_app() -> FastAPI:
         summary="Readiness probe (БД + Redis доступны)",
         response_model=None,
     )
-    def ready():
+    async def ready():
         from sqlalchemy import text
 
         def _not_ready(reason: str) -> JSONResponse:
@@ -164,7 +164,6 @@ def create_app() -> FastAPI:
 
         # Sprint 82 + MVP rescue: Redis unavailable must fail readiness with HTTP 503.
         try:
-            import asyncio
             import inspect
 
             async def _check_redis() -> bool:
@@ -183,7 +182,7 @@ def create_app() -> FastAPI:
                     # Closing it here poisons subsequent /ready, rate-limit, and budget calls.
                     pass
 
-            redis_ok = asyncio.run(_check_redis())
+            redis_ok = await _check_redis()
             if not redis_ok:
                 logging.getLogger(__name__).warning("/ready Redis check failed")
                 return _not_ready("redis_unavailable")

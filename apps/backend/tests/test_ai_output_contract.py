@@ -66,19 +66,24 @@ def test_extract_structured_json_handles_fenced_json() -> None:
 
 
 @pytest.mark.asyncio
-async def test_generate_exercise_rejects_reasoning_fallback_blob() -> None:
+async def test_generate_exercise_uses_safe_fallback_for_unstructured_output() -> None:
     svc = AIService(
         StaticProvider(
             AIResponse(
-                content="<think>I should create JSON</think> raw reasoning without valid object",
+                content=" raw reasoning without valid object",
                 model="test-model",
                 structured=None,
             )
         )
     )
 
-    with pytest.raises(ValueError, match="valid structured exercise"):
-        await svc.generate_exercise("Русский язык", "Фразеологизмы", 2)
+    exercise = await svc.generate_exercise("Русский язык", "Фразеологизмы", 2)
+
+    assert "think" not in exercise.question_text.lower()
+    assert "raw reasoning" not in exercise.question_text.lower()
+    assert exercise.type == "text"
+    assert exercise.correct_answer
+    assert "Фразеологизмы" in exercise.question_text
 
 
 @pytest.mark.asyncio
