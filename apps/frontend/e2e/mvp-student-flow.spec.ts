@@ -100,7 +100,7 @@ test.describe("MVP student learning flow", () => {
 
     await page.getByRole("button", { name: /очистить/i }).click();
     await page.getByRole("button", { name: /да, удалить/i }).click();
-    await expect(page.getByText(/Задание/i)).toHaveCount(0);
+    await expect(page.getByTestId("exercise-card")).toHaveCount(0);
     await expect(page.getByText("Верно!")).toHaveCount(0);
     await expect(page.getByText("Объясни проще про дроби")).toHaveCount(0);
     await expect(page.locator("input[placeholder='Задай вопрос репетитору…']")).toHaveValue("");

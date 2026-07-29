@@ -7,7 +7,6 @@ import { api, getToken, ApiError } from "@/lib/api";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { useChatStream } from "@/lib/ws-chat";
 import { renderMarkdown } from "@/lib/markdown";
 import SafeMarkdown from "@/components/SafeMarkdown";
 import PauseButton from "@/components/PauseButton";
@@ -138,7 +137,6 @@ export default function TopicPage() {
     error_type?: string | null;
   }>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const chat = useChatStream(getToken());
   const voiceEnabled = process.env.NEXT_PUBLIC_VOICE_ENABLED === "1";
 
   useEffect(() => {
@@ -280,15 +278,10 @@ export default function TopicPage() {
   }, [topicId, draftRestored, msgs, exercise, userAnswer, input, checkResult]);
 
   useEffect(() => {
-    return () => chat.cancel();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [msgs]);
 
-  function send() {
+  async function send() {
     const text = input.trim();
     if (!text || busy) return;
     setActionError(null);
@@ -297,42 +290,23 @@ export default function TopicPage() {
     setInput("");
     setBusy(true);
 
-    // Добавляем пустое сообщение ассистента, которое будем наполнять chunks
-    const assistantIdx = next.length;
-    setMsgs((m) => [...m, { role: "assistant", content: "" }]);
-
-    chat.send(next, topicId, {
-      onChunk: (chunk) => {
-        setMsgs((m) => {
-          const updated = [...m];
-          if (updated[assistantIdx]) {
-            updated[assistantIdx] = {
-              ...updated[assistantIdx],
-              content: updated[assistantIdx].content + chunk,
-            };
-          }
-          return updated;
-        });
-      },
-      onDone: () => {
-        setBusy(false);
-      },
-      onError: (msg) => {
-        setActionError(msg || "AI временно недоступен. Попробуй ещё раз.");
-        setMsgs((m) => {
-          const updated = [...m];
-          if (updated[assistantIdx]) {
-            updated[assistantIdx] = {
-              ...updated[assistantIdx],
-              content: updated[assistantIdx].content || "🤖 AI временно недоступен. Попробуй ещё раз через несколько секунд.",
-              error: msg,
-            };
-          }
-          return updated;
-        });
-        setBusy(false);
-      },
-    });
+    try {
+      const resp = await api.aiChat(next, topicId);
+      setMsgs((m) => [...m, { role: "assistant", content: resp.content }]);
+    } catch (err: unknown) {
+      const message = extractErrorMessage(err);
+      setActionError(message);
+      setMsgs((m) => [
+        ...m,
+        {
+          role: "assistant",
+          content: "🤖 AI временно недоступен. Попробуй ещё раз через несколько секунд.",
+          error: message,
+        },
+      ]);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function explain() {
@@ -491,7 +465,7 @@ export default function TopicPage() {
       </Card>
 
       {exercise && (
-        <section className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+        <section data-testid="exercise-card" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
           <div className="text-xs uppercase tracking-wide text-emerald-700">Задание</div>
           <SafeMarkdown text={exercise.question_text} className="mt-1" />
           {exercise.options && exercise.options.length > 0 && (
@@ -623,24 +597,10 @@ export default function TopicPage() {
         ))}
         {busy && (
           <div className="mr-auto flex items-center gap-1 rounded-2xl bg-white px-4 py-2 text-sm text-slate-500 shadow-sm">
-            {chat.status === "reconnecting" ? (
-              <>
-                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-amber-500" />
-                <span className="ml-1">Переподключение к AI…</span>
-              </>
-            ) : chat.status === "error" ? (
-              <>
-                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-rose-500" />
-                <span className="ml-1">Ошибка соединения</span>
-              </>
-            ) : (
-              <>
-                <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: "0ms" }} />
-                <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: "150ms" }} />
-                <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: "300ms" }} />
-                <span className="ml-1">AI думает…</span>
-              </>
-            )}
+            <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: "0ms" }} />
+            <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: "150ms" }} />
+            <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: "300ms" }} />
+            <span className="ml-1">AI думает…</span>
           </div>
         )}
       </section>
