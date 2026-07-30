@@ -18,6 +18,12 @@ function expectNoRawAiGarbage(text: string): void {
   expect(text.toLowerCase()).not.toContain("&lt;think");
   expect(text).not.toContain("{&quot;");
   expect(text).not.toMatch(/```json/i);
+  expect(text).not.toContain("&amp;gt;");
+  expect(text).not.toContain("&gt;");
+  expect(text).not.toContain("$$");
+  expect(text).not.toContain("\\\\frac");
+  expect(text).not.toContain("\\\\text");
+  expect(text).not.toMatch(/\|\s*-{3,}\s*\|/);
   expect(text).not.toMatch(/"correct_answer"\s*:/);
 }
 
@@ -35,7 +41,7 @@ function answerForMvpQuestion(question: string, options: string[] | null): strin
   if (fractions.length >= 2 && fractions[0].d === fractions[1].d) {
     return `${fractions[0].n + fractions[1].n}/${fractions[0].d}`;
   }
-  const averageMatch = question.match(/(?:числа|оценки|значения)[^:]*:\s*([0-9,\.\sи-]+)\./i);
+  const averageMatch = question.match(/(?:числа|чисел|оценки|значения)[^:]*:\s*([0-9,\.\sи-]+)\./i);
   if (averageMatch) {
     const nums = [...averageMatch[1].matchAll(/-?\d+(?:[,.]\d+)?/g)]
       .map((m) => Number(m[0].replace(",", ".")))
@@ -45,11 +51,11 @@ function answerForMvpQuestion(question: string, options: string[] | null): strin
       return String(avg).replace(".", ",");
     }
   }
-  const averageNumbers = [...question.matchAll(/-?\d+(?:[,.]\d+)?(?=\s*(?:°C|°|,|\.))/g)]
+  const allNumbers = [...question.matchAll(/-?\d+(?:[,.]\d+)?/g)]
     .map((m) => Number(m[0].replace(",", ".")))
     .filter((x) => Number.isFinite(x));
-  if (/средн/i.test(question) && averageNumbers.length >= 2) {
-    const avg = averageNumbers.reduce((a, b) => a + b, 0) / averageNumbers.length;
+  if (/средн/i.test(question) && allNumbers.length >= 2) {
+    const avg = allNumbers.reduce((a, b) => a + b, 0) / allNumbers.length;
     return String(avg).replace(".", ",");
   }
   if (question.includes("1/2") && question.includes("1/3")) return "5/6";
