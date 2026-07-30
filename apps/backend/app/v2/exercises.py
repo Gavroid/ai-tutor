@@ -234,11 +234,11 @@ async def submit_answer(
         raise HTTPException(status_code=404, detail="Exercise not found")
     if inst.is_expired:
         raise HTTPException(status_code=410, detail="Exercise expired")
-    if inst.is_submitted:
-        # Идемпотентно: возвращаем тот же результат, не пишем новый attempt.
+    # A wrong answer is not final for a child: allow correction on the same exercise.
+    if inst.is_submitted and inst.submission_score is not None and inst.submission_score >= 0.5:
         return AnswerOut(
             exercise_id=inst.id,
-            is_correct=bool(inst.submission_score and inst.submission_score >= 0.5),
+            is_correct=True,
             score=float(inst.submission_score or 0.0),
             feedback="(повторный submit, попытка уже зафиксирована)",
             explanation=inst.explanation,

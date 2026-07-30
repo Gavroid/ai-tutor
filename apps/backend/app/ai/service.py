@@ -266,11 +266,14 @@ class AIService:
         )
         try:
             resp = await self.provider.complete(req)
+            used_fallback = False
             if not resp.content.strip():
                 resp.content = _fallback_explanation(subject.name, topic.name)
+                used_fallback = True
             _record_ai("explain", "ok", resp=resp)
-            # Sprint 4.1.3: добавляем sources в response для UI индикатора "📖 Источник"
-            resp.sources = sources
+            # Do not attach textbook sources to deterministic fallback text: it is not
+            # a citation and otherwise misleads the student about the page contents.
+            resp.sources = [] if used_fallback else sources
             return resp
         except Exception as e:
             _record_ai("explain", "error")
@@ -306,6 +309,10 @@ class AIService:
             from app.db.session import SessionLocal
             with SessionLocal() as db:
                 chunks = search_persistent(db, query_emb, top_k=top_k)
+                chunks = [
+                    c for c in chunks
+                    if (getattr(c, "metadata", {}) or {}).get("topic_id") == topic.id
+                ]
         except Exception as e:
             logger.warning("RAG search failed: %s", e)
             return None, []

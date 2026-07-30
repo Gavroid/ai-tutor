@@ -152,6 +152,47 @@ def test_v2_answer_wrong_does_not_set_correct(client):
     assert body["score"] == 0.0
 
 
+def test_v2_answer_wrong_can_be_corrected_on_same_exercise(client):
+    """MVP rescue: after a wrong answer, the student can correct the same exercise."""
+    token = _register(client, "v2-correct-after-wrong@example.com")
+    h = {"Authorization": f"Bearer {token}"}
+    topic_id = _first_topic_id()
+
+    gen = client.post(
+        "/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}
+    ).json()
+
+    from app.ai.models import GeneratedExerciseInstance
+    from app.db.session import SessionLocal
+
+    with SessionLocal() as s:
+        inst = s.get(GeneratedExerciseInstance, gen["exercise_id"])
+        assert inst is not None
+        inst.type = "single"
+        inst.options_json = json.dumps(["5/6", "2/5"], ensure_ascii=False)
+        inst.correct_answer = "5/6"
+        inst.reference_solution = "5/6"
+        inst.checker_type = "exact"
+        s.commit()
+
+    wrong = client.post(
+        f"/api/v2/exercises/{gen['exercise_id']}/answer",
+        headers=h,
+        json={"user_answer": "2/5"},
+    )
+    assert wrong.status_code == 200, wrong.text
+    assert wrong.json()["is_correct"] is False
+
+    corrected = client.post(
+        f"/api/v2/exercises/{gen['exercise_id']}/answer",
+        headers=h,
+        json={"user_answer": "5/6"},
+    )
+    assert corrected.status_code == 200, corrected.text
+    assert corrected.json()["is_correct"] is True
+    assert corrected.json()["score"] == 1.0
+
+
 def test_v2_answer_idempotent_does_not_create_second_attempt(client):
     """P1.2.4: повтор submit возвращает тот же результат, без новой attempt-записи."""
     token = _register(client, "v2-student-4@example.com")

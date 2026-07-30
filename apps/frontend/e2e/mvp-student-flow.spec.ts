@@ -74,10 +74,27 @@ test.describe("MVP student learning flow", () => {
     const parsedGenerate = JSON.parse(generateBody) as { question_text: string; options: string[] | null };
     const questionText = parsedGenerate.question_text;
     const answer = answerForFractionQuestion(questionText);
+    const wrongOption = parsedGenerate.options?.find((opt) => opt !== answer);
+    if (wrongOption) {
+      await page.getByRole("button", { name: wrongOption }).click();
+      const wrongResponsePromise = page.waitForResponse(
+        (response) => response.url().includes("/api/v2/exercises/") && response.url().includes("/answer"),
+        { timeout: 30_000 },
+      );
+      await page.getByRole("button", { name: /проверить/i }).click();
+      const wrongResponse = await wrongResponsePromise;
+      expect(wrongResponse.ok()).toBeTruthy();
+      const wrongBody = await wrongResponse.json();
+      expect(wrongBody.is_correct).toBeFalsy();
+      await expect(page.getByText("Есть ошибка").first()).toBeVisible({ timeout: 10_000 });
+    }
+
     if (parsedGenerate.options?.includes(answer)) {
       await page.getByRole("button", { name: answer }).click();
+      await expect(page.getByText("Есть ошибка")).toHaveCount(0);
     } else {
       await page.locator("input[placeholder='Числовой ответ'], input[placeholder='Текстовый ответ']").first().fill(answer);
+      await expect(page.getByText("Есть ошибка")).toHaveCount(0);
     }
     const answerResponsePromise = page.waitForResponse(
       (response) => response.url().includes("/api/v2/exercises/") && response.url().includes("/answer"),

@@ -473,7 +473,11 @@ export default function TopicPage() {
               {exercise.options.map((opt) => (
                 <button
                   key={opt}
-                  onClick={() => setUserAnswer(opt)}
+                  onClick={() => {
+                    setUserAnswer(opt);
+                    setCheckResult(null);
+                    setActionError(null);
+                  }}
                   className={`block w-full rounded-md border px-3 py-2 text-left text-sm ${
                     userAnswer === opt
                       ? "border-emerald-500 bg-white"
@@ -488,7 +492,11 @@ export default function TopicPage() {
           {(!exercise.options || exercise.options.length === 0 || exercise.type === "numeric" || exercise.type === "text") ? (
             <input
               value={userAnswer}
-              onChange={(e) => setUserAnswer(e.target.value)}
+              onChange={(e) => {
+                setUserAnswer(e.target.value);
+                setCheckResult(null);
+                setActionError(null);
+              }}
               placeholder={exercise.type === "numeric" ? "Числовой ответ" : "Текстовый ответ"}
               className="mt-3 block w-full rounded-md border border-slate-300 bg-white px-3 py-2"
             />
