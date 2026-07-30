@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from app.ai.hermes import _extract_structured_json, _prepare_model_output
-from app.ai.service import AIService, _dedupe_rag_sources, _rag_enabled_for_subject
+from app.ai.service import AIService, GeneratedExercise, _dedupe_rag_sources, _exercise_matches_topic, _rag_enabled_for_subject
 from app.ai.types import AIMessage, AIRequest, AIResponse, AIProvider
 
 
@@ -88,6 +88,36 @@ def test_rag_sources_are_deduplicated() -> None:
     ]
 
 
+def test_decimal_topic_rejects_common_fraction_exercise_drift() -> None:
+    exercise = GeneratedExercise(
+        question_text="Вычисли: 1/2 + 1/3. Выбери правильный ответ.",
+        type="single",
+        options=["5/6", "2/5"],
+        correct_answer="5/6",
+        explanation="Приводим к общему знаменателю.",
+        typical_mistakes=[],
+    )
+
+    assert not _exercise_matches_topic(exercise, "Действия с десятичными дробями")
+
+
+def test_prepare_model_output_removes_markdown_fence_and_table_separator() -> None:
+    content, structured = _prepare_model_output(
+        """
+```markdown
+| Действие | Что помнить |
+|---|---|
+| Деление | Сделай делитель целым |
+```
+"""
+    )
+
+    assert structured is None
+    assert "```" not in content
+    assert "|---|" not in content
+    assert "Действие" in content
+
+
 @pytest.mark.asyncio
 async def test_generate_exercise_uses_safe_fallback_for_unstructured_output() -> None:
     svc = AIService(
@@ -132,6 +162,23 @@ async def test_explain_topic_uses_safe_fallback_when_model_content_empty() -> No
     assert response.content
     assert "Фразеологизмы" in response.content
     assert "think" not in response.content.lower()
+
+
+@pytest.mark.asyncio
+async def test_generate_exercise_decimal_fallback_matches_decimal_topic() -> None:
+    svc = AIService(StaticProvider(AIResponse(content="bad", model="test-model", structured=None)))
+
+    exercise = await svc.generate_exercise(
+        "Математика (6 класс - повторение пройденного материала)",
+        "Действия с десятичными дробями",
+        2,
+    )
+
+    assert exercise.type == "single"
+    assert exercise.correct_answer == "0,24"
+    assert exercise.correct_answer in (exercise.options or [])
+    assert "0,6" in exercise.question_text
+    assert "1/2" not in exercise.question_text
 
 
 @pytest.mark.asyncio

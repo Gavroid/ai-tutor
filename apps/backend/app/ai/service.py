@@ -69,6 +69,18 @@ def _fallback_explanation(subject_name: str, topic_name: str) -> str:
     """Safe explanation fallback when the model returns only stripped reasoning/empty text."""
     subject_lower = subject_name.lower()
     topic_lower = topic_name.lower()
+    if "математика" in subject_lower and "десятич" in topic_lower:
+        return (
+            f"**{topic_name}** — это вычисления с числами, у которых есть запятая.\n\n"
+            "### Главное правило\n"
+            "- При сложении и вычитании записывай запятую под запятой: `2,5 + 0,8 = 3,3`.\n"
+            "- При умножении сначала умножай как целые числа, потом верни запятую: `0,6 × 0,4 = 0,24`.\n"
+            "- При делении на целое число дели как обычно и ставь запятую в частном: `7,2 : 3 = 2,4`.\n\n"
+            "### Пример\n"
+            "Вычислим `1,2 × 0,5`: считаем `12 × 5 = 60`; всего два знака после запятой, значит ответ `0,60 = 0,6`.\n\n"
+            "### Проверь себя\n"
+            "Сколько будет `0,5 × 0,3`?"
+        )
     if "математика" in subject_lower and "дроб" in topic_lower:
         return (
             f"**{topic_name}** — это действия с частями целого.\n\n"
@@ -88,6 +100,20 @@ def _fallback_explanation(subject_name: str, topic_name: str) -> str:
         "и проверь себя вопросом: что здесь главное правило или смысл?\n\n"
         "Если хочешь, нажми «Практика» — я дам задание по этой теме."
     )
+
+
+def _exercise_matches_topic(exercise: GeneratedExercise, topic_name: str) -> bool:
+    """Reject common provider drift where a valid JSON task belongs to another topic."""
+    topic_lower = topic_name.lower()
+    question_lower = exercise.question_text.lower()
+    blob = "\n".join([exercise.question_text, exercise.correct_answer, exercise.explanation]).lower()
+    if "десятич" in topic_lower:
+        if "1/2" in blob or "1/3" in blob or "обыкновенн" in blob:
+            return False
+        return "," in question_lower or "десятич" in question_lower or "0," in question_lower
+    if "обыкнов" in topic_lower or "дроб" in topic_lower:
+        return "/" in blob or "дроб" in blob
+    return True
 
 
 _ALLOWED_EXERCISE_TYPES = {"single", "multiple", "numeric", "text", "fill", "code"}
@@ -144,6 +170,22 @@ def _fallback_generated_exercise(
     """Safe deterministic fallback when the model does not return usable JSON."""
     subject_lower = subject_name.lower()
     topic_lower = topic_name.lower()
+    if "математика" in subject_lower and "десятич" in topic_lower:
+        return GeneratedExercise(
+            question_text="Вычисли: 0,6 × 0,4. Выбери правильный ответ.",
+            type="single",
+            options=["0,24", "2,4", "0,024", "24"],
+            correct_answer="0,24",
+            explanation=(
+                "Умножаем как целые числа: 6 × 4 = 24. "
+                "В множителях 0,6 и 0,4 вместе два знака после запятой, поэтому ответ 0,24."
+            ),
+            typical_mistakes=[
+                "Забыть посчитать знаки после запятой",
+                "Поставить запятую сразу после первой цифры без проверки",
+            ],
+        )
+
     if "математика" in subject_lower and "дроб" in topic_lower:
         return GeneratedExercise(
             question_text="Вычисли: 1/2 + 1/3. Выбери правильный ответ.",
@@ -271,9 +313,9 @@ class AIService:
                 resp.content = _fallback_explanation(subject.name, topic.name)
                 used_fallback = True
             _record_ai("explain", "ok", resp=resp)
-            # Do not attach textbook sources to deterministic fallback text: it is not
-            # a citation and otherwise misleads the student about the page contents.
-            resp.sources = [] if used_fallback else sources
+            # MVP rescue: source snippets are not reliable enough yet for student-facing citation.
+            # Keep RAG context for grounding, but do not show a misleading page link in UI.
+            resp.sources = []
             return resp
         except Exception as e:
             _record_ai("explain", "error")
@@ -462,6 +504,9 @@ class AIService:
             if resp.structured:
                 try:
                     result = _valid_generated_exercise(resp.structured)
+                    if not _exercise_matches_topic(result, topic_name):
+                        _record_ai("generate", "ok", resp=resp, parse_status="fallback")
+                        return _fallback_generated_exercise(subject_name, topic_name, difficulty)
                     _record_ai("generate", "ok", resp=resp, parse_status="ok")
                     return result
                 except (TypeError, ValueError):

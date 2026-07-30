@@ -29,15 +29,23 @@ logger = logging.getLogger(__name__)
 _THINK_BLOCK_RE = re.compile(r"(?is)<think\b[^>]*>.*?</think>")
 _ESCAPED_THINK_BLOCK_RE = re.compile(r"(?is)&lt;think\b[^&]*&gt;.*?&lt;/think&gt;")
 _FENCED_JSON_RE = re.compile(r"(?is)```(?:json)?\s*(\{.*?\})\s*```")
+_FENCE_LINE_RE = re.compile(r"(?m)^\s*```[a-zA-Z0-9_-]*\s*$")
+_MARKDOWN_TABLE_SEPARATOR_RE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$")
 
 
 def _strip_reasoning_blocks(text: str) -> str:
-    """Remove provider reasoning blocks before parsing or displaying output."""
+    """Remove provider reasoning/code-fence artefacts before parsing or displaying output."""
     if not text:
         return ""
     text = _THINK_BLOCK_RE.sub("", text)
     text = _ESCAPED_THINK_BLOCK_RE.sub("", text)
-    return text.strip()
+    text = _FENCE_LINE_RE.sub("", text)
+    cleaned_lines: list[str] = []
+    for line in text.splitlines():
+        if _MARKDOWN_TABLE_SEPARATOR_RE.match(line):
+            continue
+        cleaned_lines.append(line)
+    return "\n".join(cleaned_lines).strip()
 
 
 def _find_first_json_object(text: str) -> str | None:
