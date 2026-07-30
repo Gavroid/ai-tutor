@@ -180,6 +180,16 @@ def _fallback_generated_exercise(
             typical_mistakes=["Забыть разделить сумму на количество чисел", "Взять только самое большое число"],
         )
 
+    if "математика" in subject_lower and "кругов" in topic_lower and "диаграм" in topic_lower:
+        return GeneratedExercise(
+            question_text="На круговой диаграмме сектор занимает 25% всего круга. Какой угол у этого сектора?",
+            type="single",
+            options=["90°", "45°", "25°", "180°"],
+            correct_answer="90°",
+            explanation="Весь круг — это 360°. 25% — это четверть круга, значит 360° : 4 = 90°.",
+            typical_mistakes=["Путать проценты и градусы", "Забыть, что полный круг — 360°"],
+        )
+
     if "математика" in subject_lower and ("процент" in topic_lower or "проценты" in topic_lower):
         return GeneratedExercise(
             question_text="Найди 20% от 150. Выбери правильный ответ.",
@@ -251,7 +261,7 @@ def _fallback_generated_exercise(
         type="text",
         options=None,
         correct_answer=f"Короткое объяснение по теме «{topic_name}» своими словами.",
-        explanation="Это резервное задание: AI не вернул корректный JSON, поэтому система дала безопасный вопрос без технического текста.",
+        explanation="Попробуй ответить своими словами: назови главное правило темы и приведи короткий пример.",
         typical_mistakes=["Копировать определение без понимания", "Отвечать слишком общо"],
     )
 

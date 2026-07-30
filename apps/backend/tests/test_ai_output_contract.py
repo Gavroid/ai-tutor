@@ -204,6 +204,27 @@ async def test_generate_exercise_decimal_fallback_matches_decimal_topic() -> Non
 
 
 @pytest.mark.asyncio
+async def test_generate_exercise_pie_chart_fallback_is_student_ready() -> None:
+    svc = AIService(StaticProvider(AIResponse(content="bad", model="test-model", structured=None)))
+
+    exercise = await svc.generate_exercise(
+        "Математика (6 класс - повторение пройденного материала)",
+        "Круговые диаграммы",
+        1,
+    )
+
+    assert exercise.type == "single"
+    assert exercise.correct_answer == "90°"
+    assert exercise.correct_answer in (exercise.options or [])
+    visible = f"{exercise.question_text}\n{exercise.explanation}"
+    assert "круг" in visible.lower()
+    assert "25%" in visible
+    assert "AI" not in visible
+    assert "JSON" not in visible
+    assert "резерв" not in visible.lower()
+
+
+@pytest.mark.asyncio
 async def test_explain_topic_math_fallback_is_instructional() -> None:
     svc = AIService(StaticProvider(AIResponse(content="", model="test-model", structured=None)))
     topic = SimpleNamespace(
