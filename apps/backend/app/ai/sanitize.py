@@ -37,6 +37,8 @@ def _normalize_latex(text: str) -> str:
         )
     text = text.replace(r"\cdot", "×").replace(r"\times", "×")
     text = text.replace(r"\div", ":").replace(r"\:", ":")
+    text = text.replace(r"\dots", "…").replace(r"\ldots", "…")
+    text = re.sub(r"\b([A-Za-zА-Яа-я])_\{?([0-9A-Za-zА-Яа-я]+)\}?", r"\1\2", text)
     text = text.replace(r"\%", "%")
     return text
 

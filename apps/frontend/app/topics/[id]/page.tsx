@@ -7,7 +7,6 @@ import { api, getToken, ApiError } from "@/lib/api";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { renderMarkdown } from "@/lib/markdown";
 import SafeMarkdown from "@/components/SafeMarkdown";
 import PauseButton from "@/components/PauseButton";
 import SessionTimer from "@/components/SessionTimer";
@@ -32,27 +31,26 @@ function extractErrorMessage(err: unknown): string {
   return "Неизвестная ошибка";
 }
 
-// Sprint 15.4: copyToClipboard — для кнопки «Копировать» в chat.
-// В современных браузерах navigator.clipboard.writeText есть всегда.
-// Fallback для старых: textarea + execCommand.
-async function copyToClipboard(text: string): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    // Fallback для неподдерживаемых браузеров / insecure context.
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.setAttribute("readonly", "");
-    ta.style.position = "absolute";
-    ta.style.left = "-9999px";
-    document.body.appendChild(ta);
-    ta.select();
-    try {
-      document.execCommand("copy");
-    } finally {
-      document.body.removeChild(ta);
-    }
+type FollowUpAction = {
+  label: string;
+  prompt: string;
+};
+
+function followUpActionsForTopic(topicName: string | undefined): FollowUpAction[] {
+  const name = (topicName || "").toLowerCase();
+  if (name.includes("среднее арифметическое")) {
+    return [
+      { label: "Среднее чисел", prompt: "Объясни подробнее среднее арифметическое обычных чисел на новом примере." },
+      { label: "Средняя скорость", prompt: "Объясни среднюю скорость как отдельный тип задач, с простым примером." },
+      { label: "Средний вес", prompt: "Объясни средний вес как отдельный тип задач, с простым примером." },
+    ];
   }
+  if (name.includes("уравнен")) {
+    return [
+      { label: "Далее", prompt: "Продолжи объяснение темы по следующему шагу: как переносить слагаемые в уравнении и менять знак." },
+    ];
+  }
+  return [];
 }
 
 type Exercise = {
@@ -280,8 +278,8 @@ export default function TopicPage() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [msgs]);
 
-  async function send() {
-    const text = input.trim();
+  async function send(textOverride?: string) {
+    const text = (textOverride ?? input).trim();
     if (!text || busy) return;
     setActionError(null);
     const next: ChatMsg[] = [...msgs, { role: "user", content: text }];
@@ -391,7 +389,11 @@ export default function TopicPage() {
     <main className="min-h-screen bg-app">
       <Header user={user} backHref="/subjects" backLabel="Все предметы" title={topic?.name || "Тема"} />
 
-      <div className="mx-auto flex h-[calc(100vh-65px)] max-w-4xl flex-col px-3 py-4 sm:px-4">
+      <div
+        onCopy={(event) => event.preventDefault()}
+        onCut={(event) => event.preventDefault()}
+        className="mx-auto flex h-[calc(100vh-65px)] max-w-4xl select-none flex-col px-3 py-4 sm:px-4"
+      >
       <Card variant="flat" padding="md" className="mb-3">
       <section className="flex flex-wrap items-center gap-2">
         <Button
@@ -548,7 +550,10 @@ export default function TopicPage() {
             Напиши вопрос репетитору или нажми «Объясни тему» / «Дай задание».
           </p>
         )}
-        {msgs.map((m, i) => (
+        {msgs.map((m, i) => {
+          const isLastAssistant = i === msgs.length - 1 && m.role === "assistant";
+          const followUps = isLastAssistant && !busy ? followUpActionsForTopic(topic?.name) : [];
+          return (
           <div
             key={i}
             data-testid={`chat-message-${m.role}`}
@@ -582,26 +587,26 @@ export default function TopicPage() {
                     </ul>
                   </div>
                 )}
-                {/* Sprint 15.4: кнопка copy для последнего assistant msg.
-                    Не показываем во время streaming чтобы не копировать черновик.
-                    T1D-friendly: крупная (44px) для слабой моторики. */}
-                {i === msgs.length - 1 &&
-                  m.role === "assistant" &&
-                  !busy &&
-                  m.content && (
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(m.content)}
-                      aria-label="Копировать ответ"
-                      className="mt-1 inline-flex items-center gap-1 rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-                    >
-                      📋 Копировать
-                    </button>
-                  )}
+                {followUps.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {followUps.map((action) => (
+                      <button
+                        key={action.label}
+                        type="button"
+                        onClick={() => send(action.prompt)}
+                        className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800 hover:bg-sky-100 disabled:opacity-50"
+                        disabled={busy}
+                      >
+                        {action.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </div>
-        ))}
+          );
+        })}
         {busy && (
           <div className="mr-auto flex items-center gap-1 rounded-2xl bg-white px-4 py-2 text-sm text-slate-500 shadow-sm">
             <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: "0ms" }} />

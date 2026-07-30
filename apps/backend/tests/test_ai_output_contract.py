@@ -140,6 +140,28 @@ $$\\text{Среднее} = \\frac{\\text{сумма всех чисел}}{\\text
     assert "25% = 25 ÷ 100 = 0,25" in content
 
 
+def test_prepare_model_output_normalizes_plain_latex_variables_and_dots() -> None:
+    content, structured = _prepare_model_output(
+        r"""
+Средняя порция = сумма всех порций ÷ количество порций
+
+Формула простая:
+
+Среднее = (x_1 + x_2 + x_3 + \dots + x_n) / (n)
+
+где x_1, x_2, \dots — это сколько борща получил каждый.
+"""
+    )
+
+    assert structured is None
+    assert "\\dots" not in content
+    assert "x_1" not in content
+    assert "x_2" not in content
+    assert "x_n" not in content
+    assert "…" in content
+    assert "x1" in content
+
+
 def test_verified_rag_sources_require_topic_and_page_metadata() -> None:
     sources = [
         {
