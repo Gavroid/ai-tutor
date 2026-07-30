@@ -170,6 +170,46 @@ def _fallback_generated_exercise(
     """Safe deterministic fallback when the model does not return usable JSON."""
     subject_lower = subject_name.lower()
     topic_lower = topic_name.lower()
+    if "математика" in subject_lower and "среднее арифметическое" in topic_lower:
+        return GeneratedExercise(
+            question_text="Найди среднее арифметическое чисел 8, 9 и 4. Выбери правильный ответ.",
+            type="single",
+            options=["7", "8", "6", "21"],
+            correct_answer="7",
+            explanation="Складываем числа: 8 + 9 + 4 = 21. Делим сумму на количество чисел: 21 : 3 = 7.",
+            typical_mistakes=["Забыть разделить сумму на количество чисел", "Взять только самое большое число"],
+        )
+
+    if "математика" in subject_lower and ("процент" in topic_lower or "проценты" in topic_lower):
+        return GeneratedExercise(
+            question_text="Найди 20% от 150. Выбери правильный ответ.",
+            type="single",
+            options=["30", "20", "75", "300"],
+            correct_answer="30",
+            explanation="20% = 0,2. Значит 150 × 0,2 = 30.",
+            typical_mistakes=["Делить на 20 вместо умножения на 0,2", "Путать 20% и 20"],
+        )
+
+    if "математика" in subject_lower and "пропорц" in topic_lower:
+        return GeneratedExercise(
+            question_text="Реши пропорцию: x/5 = 12/3. Выбери x.",
+            type="single",
+            options=["20", "15", "4", "60"],
+            correct_answer="20",
+            explanation="12/3 = 4, значит x/5 = 4. Умножаем обе части на 5: x = 20.",
+            typical_mistakes=["Перемножить не те члены пропорции", "Забыть умножить на 5"],
+        )
+
+    if "математика" in subject_lower and "уравнен" in topic_lower:
+        return GeneratedExercise(
+            question_text="Реши уравнение: 2x + 3 = 11. Выбери x.",
+            type="single",
+            options=["4", "7", "5", "14"],
+            correct_answer="4",
+            explanation="Сначала вычитаем 3: 2x = 8. Затем делим на 2: x = 4.",
+            typical_mistakes=["Не перенести 3 в другую часть", "Забыть разделить на 2"],
+        )
+
     if "математика" in subject_lower and "десятич" in topic_lower:
         return GeneratedExercise(
             question_text="Вычисли: 0,6 × 0,4. Выбери правильный ответ.",

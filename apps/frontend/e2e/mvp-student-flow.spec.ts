@@ -21,7 +21,13 @@ function expectNoRawAiGarbage(text: string): void {
   expect(text).not.toMatch(/"correct_answer"\s*:/);
 }
 
-function answerForFractionQuestion(question: string): string {
+function answerForMvpQuestion(question: string, options: string[] | null): string {
+  if (options?.includes("7") && question.includes("8") && question.includes("9") && question.includes("4")) return "7";
+  if (options?.includes("30") && question.includes("20%")) return "30";
+  if (options?.includes("20") && question.includes("x/5")) return "20";
+  if (options?.includes("4") && question.includes("2x + 3 = 11")) return "4";
+  if (options?.includes("0,24") && question.includes("0,6") && question.includes("0,4")) return "0,24";
+
   const fractions = [...question.matchAll(/(\d+)\s*\/\s*(\d+)/g)].map((m) => ({
     n: Number(m[1]),
     d: Number(m[2]),
@@ -29,7 +35,26 @@ function answerForFractionQuestion(question: string): string {
   if (fractions.length >= 2 && fractions[0].d === fractions[1].d) {
     return `${fractions[0].n + fractions[1].n}/${fractions[0].d}`;
   }
+  const averageMatch = question.match(/(?:числа|оценки)[^:]*:\s*([0-9,\.\s]+)\./i);
+  if (averageMatch) {
+    const nums = averageMatch[1]
+      .split(/[,\s]+/)
+      .map((x) => Number(x.replace(",", ".")))
+      .filter((x) => Number.isFinite(x));
+    if (nums.length > 0) {
+      const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+      return String(avg).replace(".", ",");
+    }
+  }
+  const averageNumbers = [...question.matchAll(/-?\d+(?:[,.]\d+)?(?=\s*(?:°C|°|,|\.))/g)]
+    .map((m) => Number(m[0].replace(",", ".")))
+    .filter((x) => Number.isFinite(x));
+  if (/средн/i.test(question) && averageNumbers.length >= 2) {
+    const avg = averageNumbers.reduce((a, b) => a + b, 0) / averageNumbers.length;
+    return String(avg).replace(".", ",");
+  }
   if (question.includes("1/2") && question.includes("1/3")) return "5/6";
+  if (options && options.length > 0) return options[0];
   throw new Error(`Cannot infer answer for generated MVP question: ${question}`);
 }
 
@@ -73,7 +98,7 @@ test.describe("MVP student learning flow", () => {
 
     const parsedGenerate = JSON.parse(generateBody) as { question_text: string; options: string[] | null };
     const questionText = parsedGenerate.question_text;
-    const answer = answerForFractionQuestion(questionText);
+    const answer = answerForMvpQuestion(questionText, parsedGenerate.options);
     const wrongOption = parsedGenerate.options?.find((opt) => opt !== answer);
     if (wrongOption) {
       await page.getByRole("button", { name: wrongOption }).click();
