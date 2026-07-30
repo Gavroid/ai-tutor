@@ -35,11 +35,10 @@ function answerForMvpQuestion(question: string, options: string[] | null): strin
   if (fractions.length >= 2 && fractions[0].d === fractions[1].d) {
     return `${fractions[0].n + fractions[1].n}/${fractions[0].d}`;
   }
-  const averageMatch = question.match(/(?:числа|оценки)[^:]*:\s*([0-9,\.\s]+)\./i);
+  const averageMatch = question.match(/(?:числа|оценки|значения)[^:]*:\s*([0-9,\.\sи-]+)\./i);
   if (averageMatch) {
-    const nums = averageMatch[1]
-      .split(/[,\s]+/)
-      .map((x) => Number(x.replace(",", ".")))
+    const nums = [...averageMatch[1].matchAll(/-?\d+(?:[,.]\d+)?/g)]
+      .map((m) => Number(m[0].replace(",", ".")))
       .filter((x) => Number.isFinite(x));
     if (nums.length > 0) {
       const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
