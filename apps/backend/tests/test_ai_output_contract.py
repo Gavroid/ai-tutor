@@ -187,6 +187,24 @@ async def test_explain_topic_uses_safe_fallback_when_model_content_empty() -> No
 
 
 @pytest.mark.asyncio
+async def test_explain_topic_uses_fallback_when_model_content_too_short() -> None:
+    svc = AIService(StaticProvider(AIResponse(content="# Деление рациональных чисел\n\nСлишком коротко", model="test-model", structured=None)))
+    topic = SimpleNamespace(
+        name="Деление рациональных чисел",
+        section=SimpleNamespace(
+            subject=SimpleNamespace(name="Математика (6 класс - повторение пройденного материала)")
+        ),
+    )
+    user = SimpleNamespace(student_profile=SimpleNamespace(grade=7))
+
+    response = await svc.explain_topic(None, user, topic)
+
+    assert len(response.content) > 500
+    assert "правило знаков" in response.content.lower()
+    assert "12 : (-3)" in response.content
+
+
+@pytest.mark.asyncio
 async def test_generate_exercise_decimal_fallback_matches_decimal_topic() -> None:
     svc = AIService(StaticProvider(AIResponse(content="bad", model="test-model", structured=None)))
 

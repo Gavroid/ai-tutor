@@ -81,6 +81,20 @@ def _fallback_explanation(subject_name: str, topic_name: str) -> str:
             "### Проверь себя\n"
             "Сколько будет `0,5 × 0,3`?"
         )
+    if "математика" in subject_lower and "деление рациональных" in topic_lower:
+        return (
+            f"**{topic_name}** — это деление чисел, среди которых могут быть отрицательные.\n\n"
+            "### Главное правило знаков\n"
+            "- Если числа одного знака, результат положительный: `12 : 3 = 4`, `(-12) : (-3) = 4`.\n"
+            "- Если числа разных знаков, результат отрицательный: `12 : (-3) = -4`, `(-12) : 3 = -4`.\n\n"
+            "### Пример\n"
+            "Вычислим `12 : (-3)`. Сначала делим модули: `12 : 3 = 4`. Знаки разные, значит ответ отрицательный: `-4`.\n\n"
+            "### Частая ошибка\n"
+            "Не теряй минус. Деление рациональных чисел почти всегда начинается с вопроса: одинаковые знаки или разные?\n\n"
+            "### Проверь себя\n"
+            "Сколько будет `(-18) : 6` и почему знак ответа отрицательный?"
+        )
+
     if "математика" in subject_lower and "дроб" in topic_lower:
         return (
             f"**{topic_name}** — это действия с частями целого.\n\n"
@@ -599,7 +613,7 @@ class AIService:
         try:
             resp = await self.provider.complete(req)
             used_fallback = False
-            if not resp.content.strip():
+            if len(resp.content.strip()) < 250:
                 resp.content = _fallback_explanation(subject.name, topic.name)
                 used_fallback = True
             _record_ai("explain", "ok", resp=resp)
