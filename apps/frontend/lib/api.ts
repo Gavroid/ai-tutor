@@ -86,10 +86,16 @@ export const api = {
       content_html: string;
       model: string;
       sources: Array<{
-        chunk_id?: number | null;
+        chunk_id?: number | string | null;
         material_id?: number | null;
         material_title: string;
         page_number?: number | null;
+        part?: number | null;
+        topic_id?: number | null;
+        topic_name?: string | null;
+        snippet?: string | null;
+        label?: string | null;
+        citation_confidence?: "verified" | string;
       }>;
     }>("/api/v1/ai/explain", { method: "POST", body: JSON.stringify({ topic_id }) }),
   aiChat: (history: ChatMsg[], topic_id?: number) =>

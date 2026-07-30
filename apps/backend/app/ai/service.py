@@ -65,6 +65,49 @@ def _dedupe_rag_sources(sources: list[dict]) -> list[dict]:
     return result
 
 
+def _source_label(source: dict) -> str:
+    title = str(source.get("material_title") or "Источник")
+    part = source.get("part")
+    page = source.get("page_number")
+    suffix: list[str] = []
+    if part is not None:
+        suffix.append(f"часть {part}")
+    if page is not None:
+        suffix.append(f"стр. {page}")
+    return f"{title}, {', '.join(suffix)}" if suffix else title
+
+
+def _verified_rag_sources(
+    sources: list[dict],
+    *,
+    topic_id: int,
+    topic_name: str,
+) -> list[dict]:
+    """Return only citation-safe sources for the current topic.
+
+    Stage 3: source display is allowed only with exact topic metadata and a page.
+    This prevents old failure modes: wrong subject/topic, duplicate rows, and vague links.
+    """
+    verified: list[dict] = []
+    for source in _dedupe_rag_sources(sources):
+        if source.get("topic_id") != topic_id:
+            continue
+        if str(source.get("topic_name") or "") != topic_name:
+            continue
+        if source.get("page_number") is None:
+            continue
+        if source.get("part") is None:
+            continue
+        item = dict(source)
+        snippet = str(item.get("snippet") or "").strip()
+        if snippet:
+            item["snippet"] = snippet[:220]
+        item["citation_confidence"] = "verified"
+        item["label"] = _source_label(item)
+        verified.append(item)
+    return verified[:3]
+
+
 def _fallback_explanation(subject_name: str, topic_name: str) -> str:
     """Safe explanation fallback when the model returns only stripped reasoning/empty text."""
     subject_lower = subject_name.lower()
@@ -617,9 +660,11 @@ class AIService:
                 resp.content = _fallback_explanation(subject.name, topic.name)
                 used_fallback = True
             _record_ai("explain", "ok", resp=resp)
-            # MVP rescue: source snippets are not reliable enough yet for student-facing citation.
-            # Keep RAG context for grounding, but do not show a misleading page link in UI.
-            resp.sources = []
+            resp.sources = [] if used_fallback else _verified_rag_sources(
+                sources,
+                topic_id=topic.id,
+                topic_name=topic.name,
+            )
             return resp
         except Exception as e:
             _record_ai("explain", "error")
@@ -653,12 +698,22 @@ class AIService:
             # Sprint 3.5.2: persistent search через PostgreSQL rag_chunks.
             # Используем db сессию через SessionLocal (self-contained).
             from app.db.session import SessionLocal
+            from app.subjects.models import LearningMaterial
+
             with SessionLocal() as db:
-                chunks = search_persistent(db, query_emb, top_k=top_k)
+                material_ids = [
+                    row[0]
+                    for row in db.query(LearningMaterial.id)
+                    .filter(LearningMaterial.topic_id == topic.id)
+                    .all()
+                ]
+                chunks = []
+                for material_id in material_ids:
+                    chunks.extend(search_persistent(db, query_emb, top_k=top_k, material_id=material_id))
                 chunks = [
                     c for c in chunks
                     if (getattr(c, "metadata", {}) or {}).get("topic_id") == topic.id
-                ]
+                ][:top_k]
         except Exception as e:
             logger.warning("RAG search failed: %s", e)
             return None, []
@@ -684,6 +739,10 @@ class AIService:
                 "material_id": getattr(c, "material_id", None),
                 "material_title": mat_title,
                 "page_number": page,
+                "part": meta.get("part"),
+                "topic_id": meta.get("topic_id"),
+                "topic_name": meta.get("topic_name"),
+                "snippet": text[:220],
             })
         return "\n".join(lines), _dedupe_rag_sources(sources)
 

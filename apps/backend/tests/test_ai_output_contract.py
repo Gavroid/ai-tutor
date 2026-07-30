@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from app.ai.hermes import _extract_structured_json, _prepare_model_output
-from app.ai.service import AIService, GeneratedExercise, _dedupe_rag_sources, _exercise_matches_topic, _rag_enabled_for_subject
+from app.ai.service import AIService, GeneratedExercise, _dedupe_rag_sources, _exercise_matches_topic, _rag_enabled_for_subject, _verified_rag_sources
 from app.ai.types import AIMessage, AIRequest, AIResponse, AIProvider
 
 
@@ -138,6 +138,57 @@ $$\\text{Среднее} = \\frac{\\text{сумма всех чисел}}{\\text
     assert "Среднее" in content
     assert "сумма всех чисел" in content
     assert "25% = 25 ÷ 100 = 0,25" in content
+
+
+def test_verified_rag_sources_require_topic_and_page_metadata() -> None:
+    sources = [
+        {
+            "chunk_id": "good",
+            "material_id": 1,
+            "material_title": "Виленкин 6 класс — часть 1: Проценты",
+            "page_number": 19,
+            "part": 1,
+            "topic_id": 188,
+            "topic_name": "Проценты",
+            "snippet": "Процент — это одна сотая часть числа.",
+        },
+        {
+            "chunk_id": "wrong-topic",
+            "material_id": 2,
+            "material_title": "Виленкин 6 класс — часть 1: Круговые диаграммы",
+            "page_number": 27,
+            "part": 1,
+            "topic_id": 189,
+            "topic_name": "Круговые диаграммы",
+            "snippet": "Круг делится на секторы.",
+        },
+        {
+            "chunk_id": "no-page",
+            "material_id": 3,
+            "material_title": "Виленкин 6 класс",
+            "part": 1,
+            "topic_id": 188,
+            "topic_name": "Проценты",
+            "snippet": "Нет страницы.",
+        },
+    ]
+
+    verified = _verified_rag_sources(sources, topic_id=188, topic_name="Проценты")
+
+    assert verified == [
+        {
+            "chunk_id": "good",
+            "material_id": 1,
+            "material_title": "Виленкин 6 класс — часть 1: Проценты",
+            "page_number": 19,
+            "part": 1,
+            "topic_id": 188,
+            "topic_name": "Проценты",
+            "snippet": "Процент — это одна сотая часть числа.",
+            "citation_confidence": "verified",
+            "label": "Виленкин 6 класс — часть 1: Проценты, часть 1, стр. 19",
+        }
+    ]
 
 
 @pytest.mark.asyncio

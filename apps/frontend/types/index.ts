@@ -103,10 +103,16 @@ export type ChatMsg = {
   content: string;
   // Sprint 4.1.3: RAG-источники для UI индикатора "📖 Источник".
   sources?: Array<{
-    chunk_id?: number | null;
+    chunk_id?: number | string | null;
     material_id?: number | null;
     material_title: string;
     page_number?: number | null;
+    part?: number | null;
+    topic_id?: number | null;
+    topic_name?: string | null;
+    snippet?: string | null;
+    label?: string | null;
+    citation_confidence?: "verified" | string;
   }>;
   // Sprint 12: error info если AI вызов упал.
   // UI показывает вкладку «Подробности» с error-сообщением.
