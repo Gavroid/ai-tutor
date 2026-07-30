@@ -65,6 +65,19 @@ def _dedupe_rag_sources(sources: list[dict]) -> list[dict]:
     return result
 
 
+def _trim_incomplete_trailing_fragment(text: str) -> str:
+    """Remove unfinished trailing sentence fragments from student-facing chat output."""
+    cleaned = text.rstrip()
+    if not cleaned:
+        return ""
+    if cleaned[-1] in ".!?…":
+        return cleaned
+    last_end = max(cleaned.rfind("."), cleaned.rfind("!"), cleaned.rfind("?"), cleaned.rfind("…"))
+    if last_end >= 0:
+        return cleaned[: last_end + 1].rstrip()
+    return cleaned
+
+
 def _source_label(source: dict) -> str:
     title = str(source.get("material_title") or "Источник")
     part = source.get("part")
@@ -124,6 +137,21 @@ def _fallback_explanation(subject_name: str, topic_name: str) -> str:
             "### Проверь себя\n"
             "Сколько будет `0,5 × 0,3`?"
         )
+    if "математика" in subject_lower and "кругов" in topic_lower and "диаграм" in topic_lower:
+        return (
+            f"**{topic_name}** показывает части одного целого с помощью круга.\n\n"
+            "### Главное правило\n"
+            "Весь круг — это `100%`, а в градусах весь круг равен `360°`. Каждый сектор показывает долю от целого.\n\n"
+            "### Как найти угол сектора\n"
+            "Если известен процент, умножь `360°` на эту долю. Например, `25% = 1/4`, значит сектор занимает `360° : 4 = 90°`.\n\n"
+            "### Пример\n"
+            "В классе 40 учеников. 25% записались на олимпиаду. На круговой диаграмме это четверть круга, то есть сектор `90°`.\n\n"
+            "### Частая ошибка\n"
+            "Не путай проценты и градусы: `25%` — это доля, а `90°` — угол сектора на диаграмме.\n\n"
+            "### Проверь себя\n"
+            "Какой угол будет у сектора, если он занимает `50%` круга?"
+        )
+
     if "математика" in subject_lower and "деление рациональных" in topic_lower:
         return (
             f"**{topic_name}** — это деление чисел, среди которых могут быть отрицательные.\n\n"
@@ -972,6 +1000,7 @@ class AIService:
         req = AIRequest(messages=msgs, mode="chat", max_tokens=900)
         try:
             resp = await self.provider.complete(req)
+            resp.content = _trim_incomplete_trailing_fragment(resp.content)
             _record_ai("chat", "ok", resp=resp)
             return resp
         except Exception as e:

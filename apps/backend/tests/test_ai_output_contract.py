@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from app.ai.hermes import _extract_structured_json, _prepare_model_output
-from app.ai.service import AIService, GeneratedExercise, _dedupe_rag_sources, _exercise_matches_topic, _rag_enabled_for_subject, _verified_rag_sources
+from app.ai.service import AIService, GeneratedExercise, _dedupe_rag_sources, _exercise_matches_topic, _rag_enabled_for_subject, _verified_rag_sources, _trim_incomplete_trailing_fragment
 from app.ai.types import AIMessage, AIRequest, AIResponse, AIProvider
 
 
@@ -253,6 +253,47 @@ async def test_explain_topic_uses_fallback_when_model_content_too_short() -> Non
     assert len(response.content) > 500
     assert "правило знаков" in response.content.lower()
     assert "12 : (-3)" in response.content
+
+
+@pytest.mark.asyncio
+async def test_explain_topic_pie_chart_short_model_output_uses_instructional_fallback() -> None:
+    svc = AIService(StaticProvider(AIResponse(content="Коротко про круговые диаграммы", model="test-model", structured=None)))
+    topic = SimpleNamespace(
+        name="Круговые диаграммы",
+        section=SimpleNamespace(
+            subject=SimpleNamespace(name="Математика (6 класс - повторение пройденного материала)")
+        ),
+    )
+    user = SimpleNamespace(student_profile=SimpleNamespace(grade=7))
+
+    response = await svc.explain_topic(None, user, topic)
+
+    assert len(response.content) > 500
+    assert "360" in response.content
+    assert "сектор" in response.content.lower()
+    assert "Коротко: начни с определения" not in response.content
+
+
+@pytest.mark.asyncio
+async def test_chat_removes_incomplete_trailing_fragment() -> None:
+    svc = AIService(
+        StaticProvider(
+            AIResponse(
+                content="Хочешь сам? Придумай свою задачу, и мы её разберём. Или давай я дам похожую:\n\nВ",
+                model="test-model",
+                structured=None,
+            )
+        )
+    )
+
+    response = await svc.chat([
+        {"role": "user", "content": "Дай похожий пример"},
+    ], "Математика", "Проценты")
+
+    assert _trim_incomplete_trailing_fragment("Хочешь сам? Придумай свою задачу. Или давай я дам похожую:\n\nВ") == "Хочешь сам? Придумай свою задачу."
+    assert response.content.endswith("разберём.")
+    assert "похожую" not in response.content
+    assert not response.content.endswith("В")
 
 
 @pytest.mark.asyncio

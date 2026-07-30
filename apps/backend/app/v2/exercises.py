@@ -234,8 +234,15 @@ async def submit_answer(
         raise HTTPException(status_code=404, detail="Exercise not found")
     if inst.is_expired:
         raise HTTPException(status_code=410, detail="Exercise expired")
-    # A wrong answer is not final for a child: allow correction on the same exercise.
-    if inst.is_submitted and inst.submission_score is not None and inst.submission_score >= 0.5:
+    # Idempotent only for the same already-correct answer. If the child changes
+    # the answer after seeing feedback, the UI must reflect the latest answer.
+    norm_incoming = (payload.user_answer or "").strip()
+    if (
+        inst.is_submitted
+        and inst.submission_score is not None
+        and inst.submission_score >= 0.5
+        and norm_incoming.lower() == (inst.submission_answer or "").strip().lower()
+    ):
         return AnswerOut(
             exercise_id=inst.id,
             is_correct=True,
@@ -244,7 +251,7 @@ async def submit_answer(
             explanation=inst.explanation,
         )
 
-    norm_user = (payload.user_answer or "").strip()
+    norm_user = norm_incoming
     norm_ref = (inst.correct_answer or "").strip()
 
     # Sprint 19 P2-2 + Sprint 25: используем диспатчер checkers.
