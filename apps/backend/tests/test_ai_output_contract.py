@@ -224,6 +224,46 @@ async def test_generate_exercise_pie_chart_fallback_is_student_ready() -> None:
     assert "резерв" not in visible.lower()
 
 
+@pytest.mark.parametrize(
+    ("topic_name", "expected_answer", "needle"),
+    [
+        ("Разложение числа на простые множители", "2² × 3²", "36"),
+        ("Наибольший общий делитель. Взаимно простые числа", "6", "18"),
+        ("Наименьшее общее кратное", "24", "6"),
+        ("Приведение дробей к наименьшему общему знаменателю", "12", "общий знаменатель"),
+        ("Сложение и вычитание смешанных чисел", "3 2/3", "2 1/3"),
+        ("Умножение смешанных чисел", "3", "1 1/2"),
+        ("Нахождение дроби от числа", "15", "3/4"),
+        ("Деление смешанных чисел", "7", "3 1/2"),
+        ("Отношения", "3:2", "12 девочек"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_generate_exercise_p0_fallback_bank_is_student_ready(
+    topic_name: str,
+    expected_answer: str,
+    needle: str,
+) -> None:
+    svc = AIService(StaticProvider(AIResponse(content="bad", model="test-model", structured=None)))
+
+    exercise = await svc.generate_exercise(
+        "Математика (6 класс - повторение пройденного материала)",
+        topic_name,
+        2,
+    )
+
+    assert exercise.type == "single"
+    assert exercise.options
+    assert exercise.correct_answer == expected_answer
+    assert expected_answer in exercise.options
+    visible = f"{exercise.question_text}\n{exercise.explanation}"
+    assert needle.lower() in visible.lower()
+    assert "Сформулируй короткий ответ" not in visible
+    assert "AI" not in visible
+    assert "JSON" not in visible
+    assert "резерв" not in visible.lower()
+
+
 @pytest.mark.asyncio
 async def test_explain_topic_math_fallback_is_instructional() -> None:
     svc = AIService(StaticProvider(AIResponse(content="", model="test-model", structured=None)))

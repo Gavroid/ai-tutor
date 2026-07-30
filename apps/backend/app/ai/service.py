@@ -190,6 +190,96 @@ def _fallback_generated_exercise(
             typical_mistakes=["Путать проценты и градусы", "Забыть, что полный круг — 360°"],
         )
 
+    if "математика" in subject_lower and "разложение" in topic_lower and "прост" in topic_lower:
+        return GeneratedExercise(
+            question_text="Разложи число 36 на простые множители. Выбери правильный вариант.",
+            type="single",
+            options=["2² × 3²", "2 × 18", "4 × 9", "6 × 6"],
+            correct_answer="2² × 3²",
+            explanation="36 делится на 2: 36 = 2 × 18. Ещё раз на 2: 18 = 2 × 9. А 9 = 3 × 3. Значит 36 = 2² × 3².",
+            typical_mistakes=["Остановиться на составных множителях 4 и 9", "Забыть, что множители должны быть простыми"],
+        )
+
+    if "математика" in subject_lower and "наибольш" in topic_lower and "делител" in topic_lower:
+        return GeneratedExercise(
+            question_text="Найди наибольший общий делитель чисел 18 и 24. Выбери ответ.",
+            type="single",
+            options=["6", "3", "12", "8"],
+            correct_answer="6",
+            explanation="Делители 18: 1, 2, 3, 6, 9, 18. Делители 24: 1, 2, 3, 4, 6, 8, 12, 24. Самый большой общий делитель — 6.",
+            typical_mistakes=["Выбрать общий делитель, но не самый большой", "Перепутать НОД и НОК"],
+        )
+
+    if "математика" in subject_lower and "наимень" in topic_lower and "кратн" in topic_lower:
+        return GeneratedExercise(
+            question_text="Найди наименьшее общее кратное чисел 6 и 8. Выбери ответ.",
+            type="single",
+            options=["24", "48", "14", "12"],
+            correct_answer="24",
+            explanation="Кратные 6: 6, 12, 18, 24. Кратные 8: 8, 16, 24. Первое общее кратное — 24.",
+            typical_mistakes=["Выбрать произведение 6 × 8 без проверки", "Перепутать НОК и НОД"],
+        )
+
+    if "математика" in subject_lower and "приведение" in topic_lower and "знаменател" in topic_lower:
+        return GeneratedExercise(
+            question_text="К какому наименьшему общему знаменателю удобно привести дроби 1/3 и 1/4?",
+            type="single",
+            options=["12", "7", "6", "24"],
+            correct_answer="12",
+            explanation="Общий знаменатель должен делиться и на 3, и на 4. Наименьшее такое число — 12.",
+            typical_mistakes=["Сложить знаменатели 3 + 4", "Взять общий знаменатель больше нужного без необходимости"],
+        )
+
+    if "математика" in subject_lower and "сложение и вычитание смешанных" in topic_lower:
+        return GeneratedExercise(
+            question_text="Вычисли: 2 1/3 + 1 1/3. Выбери ответ.",
+            type="single",
+            options=["3 2/3", "3 1/3", "4 2/3", "2 2/3"],
+            correct_answer="3 2/3",
+            explanation="Складываем целые части: 2 + 1 = 3. Складываем дробные части: 1/3 + 1/3 = 2/3. Ответ: 3 2/3.",
+            typical_mistakes=["Сложить знаменатели", "Забыть отдельно сложить целые части"],
+        )
+
+    if "математика" in subject_lower and "умножение смешанных" in topic_lower:
+        return GeneratedExercise(
+            question_text="Вычисли: 1 1/2 × 2. Выбери ответ.",
+            type="single",
+            options=["3", "2 1/2", "1", "4"],
+            correct_answer="3",
+            explanation="1 1/2 = 3/2. Умножаем: 3/2 × 2 = 3.",
+            typical_mistakes=["Умножить только дробную часть", "Не перевести смешанное число в неправильную дробь"],
+        )
+
+    if "математика" in subject_lower and "нахождение дроби от числа" in topic_lower:
+        return GeneratedExercise(
+            question_text="Найди 3/4 от числа 20. Выбери ответ.",
+            type="single",
+            options=["15", "12", "10", "16"],
+            correct_answer="15",
+            explanation="Чтобы найти 3/4 от 20, делим 20 на 4 и умножаем на 3: 20 : 4 = 5, 5 × 3 = 15.",
+            typical_mistakes=["Умножить только на знаменатель", "Забыть умножить на числитель"],
+        )
+
+    if "математика" in subject_lower and "деление смешанных" in topic_lower:
+        return GeneratedExercise(
+            question_text="Вычисли: 3 1/2 ÷ 1/2. Выбери ответ.",
+            type="single",
+            options=["7", "3", "6", "1 3/4"],
+            correct_answer="7",
+            explanation="3 1/2 = 7/2. Деление на 1/2 заменяем умножением на 2: 7/2 × 2 = 7.",
+            typical_mistakes=["Не перевернуть вторую дробь", "Работать отдельно с целой частью"],
+        )
+
+    if "математика" in subject_lower and topic_lower.strip() == "отношения":
+        return GeneratedExercise(
+            question_text="В классе 18 мальчиков и 12 девочек. Каково отношение мальчиков к девочкам после сокращения?",
+            type="single",
+            options=["3:2", "2:3", "18:12", "6:4"],
+            correct_answer="3:2",
+            explanation="Отношение 18:12 можно сократить на 6. Получаем 3:2.",
+            typical_mistakes=["Не сократить отношение", "Перепутать порядок: мальчики к девочкам"],
+        )
+
     if "математика" in subject_lower and ("процент" in topic_lower or "проценты" in topic_lower):
         return GeneratedExercise(
             question_text="Найди 20% от 150. Выбери правильный ответ.",
