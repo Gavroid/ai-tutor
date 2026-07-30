@@ -264,6 +264,52 @@ async def test_generate_exercise_p0_fallback_bank_is_student_ready(
     assert "резерв" not in visible.lower()
 
 
+@pytest.mark.parametrize(
+    ("topic_name", "expected_answer", "needle"),
+    [
+        ("Виды треугольников", "равнобедренный", "две стороны"),
+        ("Понятие множества", "{2, 4}", "чётные"),
+        ("Дробные выражения", "3/2", "1/2"),
+        ("Прямая и обратная пропорциональные зависимости", "15", "прямая"),
+        ("Масштаб", "500", "1:100"),
+        ("Симметрия", "ось симметрии", "делит фигуру"),
+        ("Положительные и отрицательные числа", "-3", "ниже нуля"),
+        ("Противоположные числа", "-7", "7"),
+        ("Модуль числа", "8", "-8"),
+        ("Сравнение положительных и отрицательных чисел", "-2", "-5"),
+        ("Сложение отрицательных чисел", "-9", "-4"),
+        ("Сложение чисел с разными знаками", "2", "-3"),
+        ("Вычитание рациональных чисел", "-7", "3 - 10"),
+        ("Умножение рациональных чисел", "-12", "-3"),
+        ("Деление рациональных чисел", "-4", "12"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_generate_exercise_p1_fallback_bank_is_student_ready(
+    topic_name: str,
+    expected_answer: str,
+    needle: str,
+) -> None:
+    svc = AIService(StaticProvider(AIResponse(content="bad", model="test-model", structured=None)))
+
+    exercise = await svc.generate_exercise(
+        "Математика (6 класс - повторение пройденного материала)",
+        topic_name,
+        2,
+    )
+
+    assert exercise.type == "single"
+    assert exercise.options
+    assert exercise.correct_answer == expected_answer
+    assert expected_answer in exercise.options
+    visible = f"{exercise.question_text}\n{exercise.explanation}"
+    assert needle.lower() in visible.lower()
+    assert "Сформулируй короткий ответ" not in visible
+    assert "AI" not in visible
+    assert "JSON" not in visible
+    assert "резерв" not in visible.lower()
+
+
 @pytest.mark.asyncio
 async def test_explain_topic_math_fallback_is_instructional() -> None:
     svc = AIService(StaticProvider(AIResponse(content="", model="test-model", structured=None)))

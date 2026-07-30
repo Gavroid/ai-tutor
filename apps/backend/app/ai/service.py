@@ -190,6 +190,156 @@ def _fallback_generated_exercise(
             typical_mistakes=["Путать проценты и градусы", "Забыть, что полный круг — 360°"],
         )
 
+    if "математика" in subject_lower and "виды треугольников" in topic_lower:
+        return GeneratedExercise(
+            question_text="У треугольника две стороны равны. Как называется такой треугольник?",
+            type="single",
+            options=["равнобедренный", "равносторонний", "разносторонний", "прямоугольный"],
+            correct_answer="равнобедренный",
+            explanation="Если у треугольника две стороны равны, его называют равнобедренным.",
+            typical_mistakes=["Путать равнобедренный и равносторонний", "Смотреть только на углы, а не на стороны"],
+        )
+
+    if "математика" in subject_lower and "понятие множества" in topic_lower:
+        return GeneratedExercise(
+            question_text="Дано множество A = {1, 2, 3, 4}. Какое подмножество состоит только из чётных чисел?",
+            type="single",
+            options=["{2, 4}", "{1, 3}", "{1, 2}", "{3, 4}"],
+            correct_answer="{2, 4}",
+            explanation="Чётные числа из множества A — это 2 и 4, значит нужное подмножество {2, 4}.",
+            typical_mistakes=["Выбрать нечётные числа", "Перепутать элемент и множество"],
+        )
+
+    if "математика" in subject_lower and "дробные выражения" in topic_lower:
+        return GeneratedExercise(
+            question_text="Вычисли дробное выражение: (3/4) ÷ (1/2). Выбери ответ.",
+            type="single",
+            options=["3/2", "3/8", "2/3", "1/2"],
+            correct_answer="3/2",
+            explanation="Деление на 1/2 заменяем умножением на 2: 3/4 × 2 = 6/4 = 3/2.",
+            typical_mistakes=["Не перевернуть вторую дробь", "Сократить неверные числа"],
+        )
+
+    if "математика" in subject_lower and "прямая" in topic_lower and "обратная" in topic_lower:
+        return GeneratedExercise(
+            question_text="При прямой пропорциональности 3 тетради стоят 45 рублей. Сколько стоят 1 тетрадь?",
+            type="single",
+            options=["15", "45", "135", "12"],
+            correct_answer="15",
+            explanation="Это прямая пропорциональная зависимость: цена растёт во столько же раз, во сколько растёт количество. Цена одной тетради равна 45 : 3 = 15 рублей.",
+            typical_mistakes=["Умножить вместо деления", "Перепутать прямую и обратную зависимость"],
+        )
+
+    if "математика" in subject_lower and "масштаб" in topic_lower:
+        return GeneratedExercise(
+            question_text="Масштаб карты 1:100. На карте отрезок 5 см. Сколько сантиметров это в реальности?",
+            type="single",
+            options=["500", "50", "100", "5"],
+            correct_answer="500",
+            explanation="Масштаб 1:100 означает, что 1 см на карте — это 100 см в реальности. 5 × 100 = 500 см.",
+            typical_mistakes=["Разделить вместо умножения", "Забыть единицы измерения"],
+        )
+
+    if "математика" in subject_lower and "симметр" in topic_lower:
+        return GeneratedExercise(
+            question_text="Как называется прямая, которая делит фигуру на две зеркально равные части?",
+            type="single",
+            options=["ось симметрии", "радиус", "диаметр", "биссектриса"],
+            correct_answer="ось симметрии",
+            explanation="Ось симметрии делит фигуру так, что одна часть является зеркальным отражением другой.",
+            typical_mistakes=["Путать ось симметрии и диагональ", "Считать любую прямую осью"],
+        )
+
+    if "математика" in subject_lower and "положительные и отрицательные" in topic_lower:
+        return GeneratedExercise(
+            question_text="Температура стала на 3 градуса ниже нуля. Как записать это число?",
+            type="single",
+            options=["-3", "3", "0", "+3"],
+            correct_answer="-3",
+            explanation="Ниже нуля записывают отрицательным числом. На 3 ниже нуля — это -3.",
+            typical_mistakes=["Забыть знак минус", "Поставить плюс перед числом ниже нуля"],
+        )
+
+    if "математика" in subject_lower and "противоположные числа" in topic_lower:
+        return GeneratedExercise(
+            question_text="Какое число противоположно числу 7?",
+            type="single",
+            options=["-7", "7", "1/7", "0"],
+            correct_answer="-7",
+            explanation="Противоположные числа имеют одинаковый модуль, но разные знаки: 7 и -7.",
+            typical_mistakes=["Ответить тем же числом", "Перепутать противоположное и обратное число"],
+        )
+
+    if "математика" in subject_lower and "модуль числа" in topic_lower:
+        return GeneratedExercise(
+            question_text="Найди модуль числа -8. Выбери ответ.",
+            type="single",
+            options=["8", "-8", "0", "1/8"],
+            correct_answer="8",
+            explanation="Модуль показывает расстояние от числа до нуля. Расстояние от -8 до 0 равно 8.",
+            typical_mistakes=["Оставить знак минус", "Путать модуль с противоположным числом"],
+        )
+
+    if "математика" in subject_lower and "сравнение положительных" in topic_lower:
+        return GeneratedExercise(
+            question_text="Какое число больше: -2 или -5?",
+            type="single",
+            options=["-2", "-5", "они равны", "0"],
+            correct_answer="-2",
+            explanation="На координатной прямой -2 правее, чем -5, значит -2 больше.",
+            typical_mistakes=["Считать, что больше число с большим модулем", "Не учитывать направление координатной прямой"],
+        )
+
+    if "математика" in subject_lower and "сложение отрицательных" in topic_lower:
+        return GeneratedExercise(
+            question_text="Вычисли: -4 + (-5). Выбери ответ.",
+            type="single",
+            options=["-9", "1", "9", "-1"],
+            correct_answer="-9",
+            explanation="Складываем модули 4 и 5, знак остаётся минус: -4 + (-5) = -9.",
+            typical_mistakes=["Потерять минус", "Вычесть модули вместо сложения"],
+        )
+
+    if "математика" in subject_lower and "разными знаками" in topic_lower:
+        return GeneratedExercise(
+            question_text="Вычисли: -3 + 5. Выбери ответ.",
+            type="single",
+            options=["2", "-8", "8", "-2"],
+            correct_answer="2",
+            explanation="У чисел разные знаки, поэтому вычитаем модули: 5 - 3 = 2. Знак берём от большего модуля — плюс.",
+            typical_mistakes=["Сложить модули", "Выбрать знак отрицательного числа без сравнения модулей"],
+        )
+
+    if "математика" in subject_lower and "вычитание рациональных" in topic_lower:
+        return GeneratedExercise(
+            question_text="Вычисли: 3 - 10. Выбери ответ.",
+            type="single",
+            options=["-7", "7", "13", "-13"],
+            correct_answer="-7",
+            explanation="3 - 10 = 3 + (-10). После движения на 10 влево от 3 получаем -7.",
+            typical_mistakes=["Поменять порядок вычитания", "Потерять отрицательный знак"],
+        )
+
+    if "математика" in subject_lower and "умножение рациональных" in topic_lower:
+        return GeneratedExercise(
+            question_text="Вычисли: -3 × 4. Выбери ответ.",
+            type="single",
+            options=["-12", "12", "-7", "1"],
+            correct_answer="-12",
+            explanation="При умножении чисел с разными знаками ответ отрицательный. 3 × 4 = 12, значит -3 × 4 = -12.",
+            typical_mistakes=["Забыть правило знаков", "Сложить вместо умножения"],
+        )
+
+    if "математика" in subject_lower and "деление рациональных" in topic_lower:
+        return GeneratedExercise(
+            question_text="Вычисли: 12 ÷ (-3). Выбери ответ.",
+            type="single",
+            options=["-4", "4", "-36", "9"],
+            correct_answer="-4",
+            explanation="При делении чисел с разными знаками ответ отрицательный. 12 : 3 = 4, значит 12 : (-3) = -4.",
+            typical_mistakes=["Потерять минус", "Умножить вместо деления"],
+        )
+
     if "математика" in subject_lower and "разложение" in topic_lower and "прост" in topic_lower:
         return GeneratedExercise(
             question_text="Разложи число 36 на простые множители. Выбери правильный вариант.",
