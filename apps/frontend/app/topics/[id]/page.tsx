@@ -576,8 +576,7 @@ export default function TopicPage() {
                     <ul className="space-y-1">
                       {m.sources.map((s, idx) => (
                         <li key={idx} className="text-amber-900">
-                          <div>{s.label || `${s.material_title}${s.page_number != null ? `, стр. ${s.page_number}` : ""}`}</div>
-                          {s.snippet && <div className="mt-1 text-amber-800/80">{s.snippet}</div>}
+                          {s.label || `${s.material_title}${s.page_number != null ? `, стр. ${s.page_number}` : ""}`}
                         </li>
                       ))}
                     </ul>

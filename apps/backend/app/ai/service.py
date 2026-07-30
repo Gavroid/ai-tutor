@@ -660,11 +660,13 @@ class AIService:
                 resp.content = _fallback_explanation(subject.name, topic.name)
                 used_fallback = True
             _record_ai("explain", "ok", resp=resp)
-            resp.sources = [] if used_fallback else _verified_rag_sources(
+            topic_id = getattr(topic, "id", None)
+            verified_sources = _verified_rag_sources(
                 sources,
-                topic_id=topic.id,
+                topic_id=topic_id,
                 topic_name=topic.name,
-            )
+            ) if topic_id is not None else []
+            resp.sources = verified_sources
             return resp
         except Exception as e:
             _record_ai("explain", "error")
