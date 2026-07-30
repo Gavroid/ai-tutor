@@ -12,7 +12,6 @@ import SafeMarkdown from "@/components/SafeMarkdown";
 import PauseButton from "@/components/PauseButton";
 import SessionTimer from "@/components/SessionTimer";
 import CGMStatus from "@/components/CGMStatus";
-import RecoveryBadge from "@/components/RecoveryBadge";
 import { playCompletionCue } from "@/lib/audio-cue";
 import type { Topic, ChatMsg, User } from "@/types";
 
@@ -539,8 +538,8 @@ export default function TopicPage() {
       {/* Sprint 40: CGM badge (T1D-friendly, opt-in). */}
       <CGMStatus />
 
-      {/* Sprint 42: Recovery badge (T1D-friendly timing-based). */}
-      <RecoveryBadge recovery={recommendNext} />
+      {/* Sprint 42 recovery data remains available via API, but the banner is hidden in MVP lesson flow.
+          It was visually noisy during pilot walkthroughs and did not require user action. */}
 
       <section ref={scrollRef} className="mt-4 flex-1 space-y-3 overflow-y-auto rounded-xl bg-slate-50 p-4">
         {msgs.length === 0 && (
