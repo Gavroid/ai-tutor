@@ -22,7 +22,7 @@ from pathlib import Path
 sys.path.insert(0, "/app")
 
 from pypdf import PdfReader
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, text
 
 from app.db.session import SessionLocal
 from app.rag_models import RagChunk
@@ -187,6 +187,17 @@ def rebuild(apply: bool) -> None:
             return
 
         if old_topics:
+            # Remove dependent student state for old artificial math topics before replacing them.
+            # This is scoped to subject=math only; other subjects and users remain untouched.
+            db.execute(text("DELETE FROM topic_drafts WHERE topic_id = ANY(:ids)"), {"ids": old_topics})
+            db.execute(text("DELETE FROM session_pauses WHERE topic_id = ANY(:ids)"), {"ids": old_topics})
+            db.execute(text("DELETE FROM diagnostic_answers WHERE topic_id = ANY(:ids)"), {"ids": old_topics})
+            db.execute(text("DELETE FROM generated_exercise_instances WHERE topic_id = ANY(:ids)"), {"ids": old_topics})
+            db.execute(text("DELETE FROM mistakes WHERE topic_id = ANY(:ids)"), {"ids": old_topics})
+            db.execute(text("DELETE FROM progress WHERE topic_id = ANY(:ids)"), {"ids": old_topics})
+            db.execute(text("DELETE FROM attempts WHERE topic_id = ANY(:ids)"), {"ids": old_topics})
+            db.execute(text("DELETE FROM questions WHERE topic_id = ANY(:ids)"), {"ids": old_topics})
+
             # Remove chunks belonging to previous math learning materials.
             old_material_ids = db.execute(select(subj_models.LearningMaterial.id).where(subj_models.LearningMaterial.topic_id.in_(old_topics))).scalars().all()
             if old_material_ids:
