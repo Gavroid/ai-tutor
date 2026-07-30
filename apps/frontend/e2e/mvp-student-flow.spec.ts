@@ -152,4 +152,25 @@ test.describe("MVP student learning flow", () => {
     await expect(page.getByText("Объясни проще про дроби")).toHaveCount(0);
     await expect(page.locator("input[placeholder='Задай вопрос репетитору…']")).toHaveValue("");
   });
+
+  test("student sees clear AI budget message instead of provider-down text", async ({ page }) => {
+    await loginAsStudent(page);
+    await page.goto("/topics/187");
+    await page.waitForURL(/\/topics\/187/, { timeout: 10_000 });
+
+    await page.route("**/api/v1/ai/explain", async (route) => {
+      await route.fulfill({
+        status: 429,
+        contentType: "application/json",
+        body: JSON.stringify({
+          detail: "AI budget exceeded (hourly_requests): 33/20 (24h). Подожди до завтра или попроси администратора увеличить лимит.",
+        }),
+      });
+    });
+
+    await page.getByRole("button", { name: /объяснить|объясни тему/i }).click();
+
+    await expect(page.getByText(/лимит|много запросов|подожди/i).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("main").getByText("AI временно недоступен")).toHaveCount(0);
+  });
 });

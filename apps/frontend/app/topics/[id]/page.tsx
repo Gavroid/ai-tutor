@@ -299,7 +299,7 @@ export default function TopicPage() {
         ...m,
         {
           role: "assistant",
-          content: "🤖 AI временно недоступен. Попробуй ещё раз через несколько секунд.",
+          content: message,
           error: message,
         },
       ]);
@@ -319,14 +319,15 @@ export default function TopicPage() {
         { role: "assistant", content: r.content, sources: r.sources },
       ]);
     } catch (err) {
+      const message = extractErrorMessage(err);
+      setActionError(message);
       // Sprint 12: T1D-friendly error UI (вместо текстовой inline-ошибки).
       setMsgs((m) => [
         ...m,
         {
           role: "assistant",
-          content:
-            "🤖 AI временно недоступен. Попробуй ещё раз через несколько секунд.",
-          error: extractErrorMessage(err),
+          content: message,
+          error: message,
         },
       ]);
     } finally {
