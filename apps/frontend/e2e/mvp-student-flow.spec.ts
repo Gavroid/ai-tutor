@@ -75,7 +75,7 @@ test.describe("MVP student learning flow", () => {
 
     await page.getByRole("button", { name: /объяснить|объясни тему/i }).click();
     await expect(page.locator("text=AI думает")).toBeVisible({ timeout: 5_000 }).catch(() => undefined);
-    await page.waitForTimeout(8_000);
+    await expect(page.getByRole("button", { name: /практика|дай задание/i })).toBeEnabled({ timeout: 45_000 });
     expectNoRawAiGarbage(await page.locator("main").innerText());
 
     const generateResponsePromise = page.waitForResponse(

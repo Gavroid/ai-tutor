@@ -118,6 +118,28 @@ def test_prepare_model_output_removes_markdown_fence_and_table_separator() -> No
     assert "Действие" in content
 
 
+def test_prepare_model_output_removes_visible_entities_and_latex_artifacts() -> None:
+    content, structured = _prepare_model_output(
+        """
+Формула простая:
+$$\\text{Среднее} = \\frac{\\text{сумма всех чисел}}{\\text{сколько чисел}}$$
+
+&amp;gt;
+25% = 25 ÷ 100 = 0,25
+"""
+    )
+
+    assert structured is None
+    assert "&amp;gt;" not in content
+    assert "&gt;" not in content
+    assert "$$" not in content
+    assert "\\frac" not in content
+    assert "\\text" not in content
+    assert "Среднее" in content
+    assert "сумма всех чисел" in content
+    assert "25% = 25 ÷ 100 = 0,25" in content
+
+
 @pytest.mark.asyncio
 async def test_generate_exercise_uses_safe_fallback_for_unstructured_output() -> None:
     svc = AIService(

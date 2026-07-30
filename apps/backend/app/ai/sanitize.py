@@ -1,19 +1,18 @@
-"""Sanitization входа и выхода LLM: защита от prompt injection и утечек.
-
-Минимальная, но рабочая:
-- Ограничение длины входа
-- Удаление управляющих символов (кроме \\n, \\t)
-- Удаление markdown-инъекций (```system, [INST] и т.д.)
-- Очистка HTML в финальном ответе
-"""
+"""Sanitization входа и выхода LLM: защита от prompt injection и утечек."""
 from __future__ import annotations
 
 import html
 import re
 from typing import Final
 
+_LATEX_FRAC_RE: Final[re.Pattern[str]] = re.compile(r"\\frac\{([^{}]+)\}\{([^{}]+)\}")
+_LATEX_TEXT_RE: Final[re.Pattern[str]] = re.compile(r"\\text\{([^{}]+)\}")
+_DISPLAY_MATH_RE: Final[re.Pattern[str]] = re.compile(r"\$\$\s*(.*?)\s*\$\$", re.DOTALL)
+_INLINE_MATH_RE: Final[re.Pattern[str]] = re.compile(r"(?<!\\)\$(?!\$)(.*?)(?<!\\)\$")
+_ANGLE_ENTITY_RE: Final[re.Pattern[str]] = re.compile(r"^\s*&(?:amp;)?gt;\s*$")
+
 # Символы, которые могут попытаться «сломать» системный промпт
-_INJECTION_PATTERNS: Final[re.RegexPattern[str]] = re.compile(
+_INJECTION_PATTERNS: Final[re.Pattern[str]] = re.compile(
     r"(?im)(\bignore (all )?previous instructions?\b|"
     r"\bforget (everything|all)\b|"
     r"\bdisregard (the )?(system|above)\b|"
@@ -24,6 +23,35 @@ _INJECTION_PATTERNS: Final[re.RegexPattern[str]] = re.compile(
     r"###\s*system\s*###|"
     r"\bact as\b.*\bno restrictions?\b)"
 )
+
+
+def _normalize_latex(text: str) -> str:
+    """Convert simple LaTeX fragments into readable student text."""
+    text = _DISPLAY_MATH_RE.sub(lambda m: m.group(1).strip(), text)
+    text = _INLINE_MATH_RE.sub(lambda m: m.group(1).strip(), text)
+    text = _LATEX_TEXT_RE.sub(lambda m: m.group(1), text)
+    for _ in range(3):
+        text = _LATEX_FRAC_RE.sub(
+            lambda m: f"({m.group(1).strip()}) / ({m.group(2).strip()})",
+            text,
+        )
+    text = text.replace(r"\cdot", "×").replace(r"\times", "×")
+    text = text.replace(r"\div", ":").replace(r"\:", ":")
+    text = text.replace(r"\%", "%")
+    return text
+
+
+def _normalize_markdown_artifacts(text: str) -> str:
+    """Remove visible markdown/HTML artefacts that confuse pupils."""
+    lines: list[str] = []
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip()
+        if _ANGLE_ENTITY_RE.match(line):
+            continue
+        if _ANGLE_ENTITY_RE.match(html.unescape(line)):
+            continue
+        lines.append(line)
+    return "\n".join(lines).strip()
 
 
 def sanitize_user_input(text: str, max_chars: int) -> str:
@@ -52,12 +80,14 @@ def detect_injection(text: str) -> bool:
 
 
 def sanitize_output(text: str) -> str:
-    """Очистить HTML в ответе LLM перед отдачей пользователю.
+    """Normalize model output before frontend Markdown rendering.
 
-    Экранирует < > &, но сохраняет переносы строк.
+    The frontend renderer already escapes HTML. Returning HTML-escaped text here
+    caused double escaping like ``&amp;gt;`` and visible formula artefacts.
     """
     if not text:
         return ""
-    # Экранируем HTML
-    text = html.escape(text, quote=True)
+    text = html.unescape(text)
+    text = _normalize_latex(text)
+    text = _normalize_markdown_artifacts(text)
     return text.strip()
