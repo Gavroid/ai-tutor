@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import Annotated
 
@@ -167,6 +168,69 @@ def deactivate_user(
     )
     db.commit()
     return {"ok": True}
+
+
+@router.get("/ops/status")
+def admin_ops_status(
+    db: Session = Depends(get_db),
+    current: User = Depends(require_admin()),
+):
+    """Stage 6: one-shot operator preflight status for MVP manual testing."""
+    from sqlalchemy import text
+    from app.config import get_settings
+
+    settings = get_settings()
+    db_ok = False
+    db_error = None
+    try:
+        db.execute(text("SELECT 1"))
+        db_ok = True
+    except Exception as exc:  # noqa: BLE001
+        db_error = str(exc)[:200]
+
+    redis_ok = False
+    redis_error = None
+    try:
+        import redis as redis_lib
+
+        redis_url = os.environ.get("REDIS_URL", "redis://redis:6379/0")
+        r = redis_lib.Redis.from_url(redis_url, socket_timeout=2)
+        redis_ok = bool(r.ping())
+        r.close()
+    except Exception as exc:  # noqa: BLE001
+        redis_error = str(exc)[:200]
+
+    upload_dir = Path(settings.upload_dir)
+    registry_path = upload_dir / "teacher_content_registry.json"
+    marker_path = Path("/opt/ai-tutor/.mvp-rescue-commit")
+    backup_cron = Path("/opt/ai-tutor/deploy/monitoring/cron/ai-tutor-backup.cron")
+    backup_script = Path("/opt/ai-tutor/deploy/backup/backup.sh")
+
+    checks = {
+        "database": {"ok": db_ok, "error": db_error},
+        "redis": {"ok": redis_ok, "error": redis_error},
+        "uploads": {"ok": upload_dir.exists(), "path": str(upload_dir)},
+        "teacher_registry": {
+            "ok": registry_path.exists() or upload_dir.exists(),
+            "path": str(registry_path),
+            "exists": registry_path.exists(),
+        },
+        "backup": {
+            "cron_exists": backup_cron.exists(),
+            "script_exists": backup_script.exists(),
+        },
+        "commit_marker": {
+            "ok": marker_path.exists(),
+            "commit": marker_path.read_text().strip() if marker_path.exists() else None,
+        },
+    }
+    overall_ok = bool(db_ok and redis_ok and upload_dir.exists())
+    return {
+        "ok": overall_ok,
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "environment": settings.app_env,
+        "checks": checks,
+    }
 
 
 @router.get("/stats")
