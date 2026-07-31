@@ -57,7 +57,7 @@ router = APIRouter(prefix="/api/v1/subjects", tags=["subjects"])
 @router.get("", response_model=list[schemas.SubjectOut])
 def list_subjects(active_only: bool = True, db: Session = Depends(get_db)):
     # Sprint 64: cache (5 min TTL)
-    cache_key = f"subjects:list:active={active_only}"
+    cache_key = f"subjects:v2:list:active={active_only}"
     cached = cache_get(cache_key)
     if cached is not None:
         return cached  # list of Pydantic-compatible dicts
@@ -75,7 +75,7 @@ def list_subjects(active_only: bool = True, db: Session = Depends(get_db)):
 
 @router.get("/{subject_id}", response_model=schemas.SubjectOut)
 def get_subject(subject_id: int, db: Session = Depends(get_db)):
-    cache_key = f"subjects:id={subject_id}"
+    cache_key = f"subjects:v2:id={subject_id}"
     cached = cache_get(cache_key)
     if cached is not None:
         return cached
