@@ -41,6 +41,13 @@ type TimeStats = {
   last_30_days: number;
   avg_per_active_day: number;
 };
+type ParentRecommendation = {
+  title: string;
+  detail: string;
+  tone: "neutral" | "info" | "warning" | "success" | string;
+  topic_id: number | null;
+  topic_name: string | null;
+};
 type Dashboard = {
   student: { id: number; display_name: string; email: string };
   generated_at: string;
@@ -55,6 +62,9 @@ type Dashboard = {
   time_stats: TimeStats;
   daily_activity_30d: Array<{ date: string; attempts: number }>;
   due_for_review_count: number;
+  summary: string;
+  recommendations: ParentRecommendation[];
+  last_activity_label: string;
   privacy_note: string;
 };
 
@@ -151,6 +161,17 @@ export default function ParentDashboardPage() {
           </div>
         </div>
       </header>
+
+      <section className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-4 shadow-sm">
+        <div className="text-xs uppercase tracking-wide text-sky-700">Что важно сейчас</div>
+        <p className="mt-1 text-sm font-medium text-sky-950">{dash.summary}</p>
+        <div className="mt-3 grid gap-2 md:grid-cols-3">
+          {dash.recommendations.map((rec, idx) => (
+            <RecommendationCard key={`${rec.title}-${idx}`} rec={rec} />
+          ))}
+        </div>
+        <div className="mt-3 text-xs text-sky-800">Последняя активность: {dash.last_activity_label}</div>
+      </section>
 
       {/* KPI карточки */}
       <section className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -290,6 +311,26 @@ export default function ParentDashboardPage() {
         🔒 {dash.privacy_note}
       </section>
     </main>
+  );
+}
+
+function RecommendationCard({ rec }: { rec: ParentRecommendation }) {
+  const colors: Record<string, string> = {
+    warning: "border-amber-200 bg-white text-amber-950",
+    info: "border-sky-200 bg-white text-sky-950",
+    success: "border-emerald-200 bg-white text-emerald-950",
+    neutral: "border-slate-200 bg-white text-slate-900",
+  };
+  return (
+    <div className={`rounded-lg border p-3 text-sm ${colors[rec.tone] || colors.neutral}`}>
+      <div className="font-semibold">{rec.title}</div>
+      <div className="mt-1 text-xs leading-relaxed">{rec.detail}</div>
+      {rec.topic_id && (
+        <Link href={`/topics/${rec.topic_id}`} className="mt-2 inline-block text-xs font-semibold underline">
+          Открыть тему
+        </Link>
+      )}
+    </div>
   );
 }
 

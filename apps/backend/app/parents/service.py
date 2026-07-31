@@ -249,6 +249,67 @@ def _compute_streak(active_dates: set[str], today_str: str) -> tuple[int, int, i
     return current, longest, len(active_dates)
 
 
+def _parent_summary(
+    total_attempts: int,
+    accuracy: float,
+    weak_topics: list[schemas.WeakTopic],
+    due_count: int,
+    last_activity_label: str,
+) -> str:
+    if total_attempts == 0:
+        return "Пока нет учебных попыток. Лучше начать с одной короткой темы и 2–3 задач."
+    if weak_topics:
+        return f"Есть темы для повторения: начните с «{weak_topics[0].topic_name}». Последняя активность: {last_activity_label}."
+    if due_count > 0:
+        return f"Есть {due_count} тем к повторению. Лучше закрепить их до новых тем."
+    if accuracy >= 0.8:
+        return f"Темп хороший: точность около {round(accuracy * 100)}%. Можно дать чуть более сложную практику."
+    return f"Точность около {round(accuracy * 100)}%. Лучше закрепить текущие темы короткой практикой."
+
+
+def _parent_recommendations(
+    weak_topics: list[schemas.WeakTopic],
+    due_count: int,
+    accuracy: float,
+    last_7: int,
+) -> list[schemas.ParentRecommendation]:
+    recs: list[schemas.ParentRecommendation] = []
+    if weak_topics:
+        first = weak_topics[0]
+        recs.append(schemas.ParentRecommendation(
+            title="Повторить слабую тему",
+            detail=f"Начните с темы «{first.topic_name}»: mastery {round(first.mastery * 100)}%, попыток {first.attempts_count}.",
+            tone="warning",
+            topic_id=first.topic_id,
+            topic_name=first.topic_name,
+        ))
+    if due_count > 0:
+        recs.append(schemas.ParentRecommendation(
+            title="Сделать повторение",
+            detail=f"К повторению сейчас {due_count} тем. Лучше 10 минут повторения, чем новая сложная тема.",
+            tone="info",
+        ))
+    if last_7 == 0:
+        recs.append(schemas.ParentRecommendation(
+            title="Вернуться мягко",
+            detail="За последние 7 дней нет попыток. Начните с лёгкой темы и одной задачи без давления.",
+            tone="neutral",
+        ))
+    elif accuracy < 0.6:
+        recs.append(schemas.ParentRecommendation(
+            title="Снизить сложность",
+            detail="Точность ниже 60%. Лучше разобрать пример и дать похожую простую задачу.",
+            tone="warning",
+        ))
+    if not recs:
+        recs.append(schemas.ParentRecommendation(
+            title="Продолжать план",
+            detail="Критичных слабых сигналов нет. Можно продолжать следующую P0/P1 тему.",
+            tone="success",
+        ))
+    return recs[:3]
+
+
 def child_dashboard(
     db: Session,
     parent: user_models.User,
@@ -454,6 +515,21 @@ def child_dashboard(
         )
     ) or 0
 
+    last_activity_label = max(active_dates) if active_dates else "активности пока нет"
+    summary = _parent_summary(
+        int(total_attempts),
+        accuracy,
+        weak_topics,
+        int(due_count),
+        last_activity_label,
+    )
+    recommendations = _parent_recommendations(
+        weak_topics,
+        int(due_count),
+        accuracy,
+        last_7,
+    )
+
     return schemas.ChildDashboard(
         student=schemas.StudentBrief(
             id=student.id,
@@ -484,6 +560,9 @@ def child_dashboard(
         ),
         daily_activity_30d=daily_30,
         due_for_review_count=int(due_count),
+        summary=summary,
+        recommendations=recommendations,
+        last_activity_label=last_activity_label,
         privacy_note=(
             "Родитель видит агрегированные метрики. Содержимое чатов ребёнка "
             "с AI-репетитором не отображается (приватность)."

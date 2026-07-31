@@ -457,6 +457,15 @@ export const api = {
       };
       daily_activity_30d: Array<{ date: string; attempts: number }>;
       due_for_review_count: number;
+      summary: string;
+      recommendations: Array<{
+        title: string;
+        detail: string;
+        tone: string;
+        topic_id: number | null;
+        topic_name: string | null;
+      }>;
+      last_activity_label: string;
       privacy_note: string;
     }>(`/api/v1/parents/students/${studentId}/dashboard`),
   passwordResetRequest: (email: string) =>

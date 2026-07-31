@@ -187,6 +187,48 @@ def test_full_parent_linking_flow(client):
     assert "privacy_note" in body
 
 
+def test_parent_dashboard_includes_actionable_summary(client):
+    mom_token = _login(client, "mom@example.com")
+    code = client.post(
+        "/api/v1/parents/invite",
+        headers={"Authorization": f"Bearer {mom_token}"},
+    ).json()["code"]
+    kid_token = _login(client, "kid@example.com")
+    assert client.post(
+        "/api/v1/students/link-parent",
+        json={"code": code},
+        headers={"Authorization": f"Bearer {kid_token}"},
+    ).status_code == 200
+
+    tid = _first_algebra_topic_id()
+    client.post(
+        "/api/v1/progress/attempts",
+        headers={"Authorization": f"Bearer {kid_token}"},
+        json={
+            "topic_id": tid,
+            "question_text": "q",
+            "user_answer": "bad",
+            "correct_answer": "ok",
+            "is_correct": False,
+            "score": 0.0,
+            "feedback": "Неверно",
+        },
+    )
+    kid_id = client.get("/api/v1/parents/children", headers={"Authorization": f"Bearer {mom_token}"}).json()[0]["student_id"]
+
+    r = client.get(f"/api/v1/parents/students/{kid_id}/dashboard", headers={"Authorization": f"Bearer {mom_token}"})
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["summary"]
+    assert body["last_activity_label"]
+    assert body["recommendations"]
+    assert body["recommendations"][0]["title"]
+    assert body["recommendations"][0]["detail"]
+    assert "privacy_note" in body
+
+
+
 def test_parent_cannot_view_unlinked_child(client):
     mom_token = _login(client, "mom@example.com")
     # No invite accepted → no linked children

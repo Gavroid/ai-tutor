@@ -94,6 +94,16 @@ class SubjectTimeStats(BaseModel):
     avg_per_active_day: float
 
 
+class ParentRecommendation(BaseModel):
+    """Actionable recommendation for parent, not raw analytics."""
+
+    title: str
+    detail: str
+    tone: str = "neutral"
+    topic_id: int | None = None
+    topic_name: str | None = None
+
+
 class ChildDashboard(BaseModel):
     """Полный дашборд для родителя (Sprint 3.1)."""
 
@@ -122,5 +132,10 @@ class ChildDashboard(BaseModel):
 
     # Sprint 3.3
     due_for_review_count: int
+
+    # Stage 5: parent-friendly actionable summary.
+    summary: str
+    recommendations: list[ParentRecommendation]
+    last_activity_label: str
 
     privacy_note: str
