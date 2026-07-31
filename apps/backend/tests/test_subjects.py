@@ -87,6 +87,13 @@ def test_list_subjects_returns_seed(seeded_client):
     assert data[0]["recommended_grade"] == 7
     codes = {x["code"] for x in data}
     assert codes == {x["code"] for x in CURRICULUM_7_CLASS}
+    math = next(x for x in data if x["code"] == "math")
+    algebra = next(x for x in data if x["code"] == "algebra")
+    assert math["mvp_status"] == "mvp_ready"
+    assert math["rag_ready"] is True
+    assert math["practice_ready"] is True
+    assert algebra["mvp_status"] == "preview"
+    assert algebra["rag_ready"] is False
 
 
 def test_subject_topics_returns_flat_list(seeded_client):

@@ -261,11 +261,17 @@ export default function HomePage() {
                           {s.description}
                         </p>
                       )}
-                      <div className="mt-3 flex items-center gap-2 text-xs text-fg-subtle">
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-fg-subtle">
                         <Badge variant="outline" size="sm">
                           7 класс
                         </Badge>
+                        <Badge variant={s.mvp_status === "mvp_ready" ? "success" : "warning"} size="sm">
+                          {s.mvp_status === "mvp_ready" ? "MVP-ready" : "Preview"}
+                        </Badge>
                       </div>
+                      {s.support_note && (
+                        <p className="mt-2 text-xs text-fg-subtle">{s.support_note}</p>
+                      )}
                     </Card>
                   </Link>
                 ))}

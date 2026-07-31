@@ -19,6 +19,10 @@ class SubjectOut(BaseModel):
     age_min: int
     age_max: int
     is_active: bool
+    mvp_status: str = "preview"
+    support_note: str = "Preview: учебный маршрут виден, но материалы/RAG ещё не подтверждены."
+    rag_ready: bool = False
+    practice_ready: bool = False
 
 
 class SectionOut(BaseModel):

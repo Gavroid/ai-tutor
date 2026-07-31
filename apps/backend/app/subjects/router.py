@@ -23,6 +23,34 @@ from app.subjects import models, schemas
 
 logger = logging.getLogger(__name__)
 
+
+MVP_READY_SUBJECT_KEYWORDS = ("математика", "6 класс", "повтор")
+
+
+def _subject_support(subject: models.Subject) -> dict[str, object]:
+    normalized = f"{subject.name} {subject.description or ''}".lower()
+    ready = all(word in normalized for word in MVP_READY_SUBJECT_KEYWORDS)
+    if ready:
+        return {
+            "mvp_status": "mvp_ready",
+            "support_note": "MVP-ready: объяснения, практика и проверенные источники доступны для ручного тестирования.",
+            "rag_ready": True,
+            "practice_ready": True,
+        }
+    return {
+        "mvp_status": "preview",
+        "support_note": "Preview: учебный маршрут виден, но материалы/RAG ещё не подтверждены. Используй для навигации, не для пилотного теста.",
+        "rag_ready": False,
+        "practice_ready": False,
+    }
+
+
+def _subject_out(subject: models.Subject) -> dict[str, object]:
+    base = schemas.SubjectOut.model_validate(subject).model_dump()
+    base.update(_subject_support(subject))
+    return base
+
+
 router = APIRouter(prefix="/api/v1/subjects", tags=["subjects"])
 
 
@@ -40,12 +68,9 @@ def list_subjects(active_only: bool = True, db: Session = Depends(get_db)):
     results = db.scalars(q).all()
 
     # Cache as Pydantic dicts (полная схема через model_dump)
-    results_dicts = [
-        schemas.SubjectOut.model_validate(s).model_dump()
-        for s in results
-    ]
+    results_dicts = [_subject_out(s) for s in results]
     cache_set(cache_key, results_dicts, ttl=SUBJECTS_TTL)
-    return results
+    return results_dicts
 
 
 @router.get("/{subject_id}", response_model=schemas.SubjectOut)
@@ -58,7 +83,9 @@ def get_subject(subject_id: int, db: Session = Depends(get_db)):
     subj = db.get(models.Subject, subject_id)
     if subj is None:
         raise HTTPException(404, "Subject not found")
-    return subj
+    result = _subject_out(subj)
+    cache_set(cache_key, result, ttl=SUBJECTS_TTL)
+    return result
 
 
 @router.get("/{subject_id}/topics", response_model=list[schemas.TopicOut])

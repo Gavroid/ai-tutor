@@ -83,6 +83,16 @@ export default function SubjectPage() {
               {topics.length || 0} тем
             </Badge>
           </div>
+          {subject && subject.mvp_status !== "mvp_ready" && (
+            <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <b>Preview-предмет.</b> {subject.support_note || "Темы доступны для навигации, но материалы и источники ещё не подтверждены."}
+            </div>
+          )}
+          {subject && subject.mvp_status === "mvp_ready" && (
+            <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+              <b>MVP-ready.</b> {subject.support_note}
+            </div>
+          )}
         </Card>
 
         {loading && (

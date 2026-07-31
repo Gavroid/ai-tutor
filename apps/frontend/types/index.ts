@@ -24,6 +24,10 @@ export type Subject = {
   age_min: number;
   age_max: number;
   is_active: boolean;
+  mvp_status?: "mvp_ready" | "preview" | string;
+  support_note?: string;
+  rag_ready?: boolean;
+  practice_ready?: boolean;
 };
 
 // === Teacher (Sprint 1.2-1.3) ===
