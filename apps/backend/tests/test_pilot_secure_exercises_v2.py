@@ -369,6 +369,36 @@ def test_v2_auto_difficulty_is_stored_and_used(client):
         assert inst.difficulty == 2
 
 
+def test_v2_generate_avoids_repeating_same_question_for_same_topic(client, monkeypatch):
+    """Regression: repeated Practice clicks must not return the same question 3x in a row."""
+    from app.ai.service import GeneratedExercise
+
+    class SameExerciseService:
+        provider = type("Provider", (), {"model": "test-provider"})()
+
+        async def generate_exercise(self, **kwargs):
+            return GeneratedExercise(
+                question_text="Найди среднее арифметическое чисел 8, 9 и 4. Выбери правильный ответ.",
+                type="single",
+                options=["7", "8", "6", "21"],
+                correct_answer="7",
+                explanation="8 + 9 + 4 = 21, 21 : 3 = 7.",
+                typical_mistakes=[],
+            )
+
+    monkeypatch.setattr("app.v2.exercises.get_ai_service", lambda: SameExerciseService())
+    token = _register(client, "v2-repeat-practice@example.com")
+    h = {"Authorization": f"Bearer {token}"}
+
+    first = client.post("/api/v2/exercises/generate", headers=h, json={"topic_id": _first_topic_id(), "difficulty": 1})
+    second = client.post("/api/v2/exercises/generate", headers=h, json={"topic_id": _first_topic_id(), "difficulty": 2})
+    third = client.post("/api/v2/exercises/generate", headers=h, json={"topic_id": _first_topic_id(), "difficulty": 3})
+
+    assert first.status_code == 200, first.text
+    assert second.status_code == 200, second.text
+    assert third.status_code == 200, third.text
+    questions = [first.json()["question_text"], second.json()["question_text"], third.json()["question_text"]]
+    assert len(set(questions)) >= 2
 def test_v2_answer_expired_returns_410(client):
     """P1.2.3: expired exercise_id → 410 Gone."""
     token = _register(client, "v2-exp@example.com")

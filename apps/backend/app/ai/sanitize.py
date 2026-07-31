@@ -30,9 +30,11 @@ def _normalize_latex(text: str) -> str:
     text = _DISPLAY_MATH_RE.sub(lambda m: m.group(1).strip(), text)
     text = _INLINE_MATH_RE.sub(lambda m: m.group(1).strip(), text)
     text = _LATEX_TEXT_RE.sub(lambda m: m.group(1), text)
+    # Common LLM/PDF artefact for decimal comma inside LaTeX groups: 110{,}6.
+    text = text.replace("{,}", ",")
     for _ in range(3):
         text = _LATEX_FRAC_RE.sub(
-            lambda m: f"({m.group(1).strip()}) / ({m.group(2).strip()})",
+            lambda m: f"{m.group(1).strip()} / {m.group(2).strip()}",
             text,
         )
     text = text.replace(r"\cdot", "×").replace(r"\times", "×")

@@ -116,6 +116,47 @@ def compute_adaptive_difficulty(
         return 2  # medium — default
 
 
+def _rotate_repeated_exercise(
+    db: Session,
+    current: User,
+    topic: subj_models.Topic,
+    target_difficulty: int,
+    gen,
+):
+    """Server-side anti-repeat guard for repeated Practice clicks."""
+    recent_questions = set(
+        db.execute(
+            select(GeneratedExerciseInstance.question_text)
+            .where(
+                GeneratedExerciseInstance.owner_id == current.id,
+                GeneratedExerciseInstance.topic_id == topic.id,
+            )
+            .order_by(GeneratedExerciseInstance.created_at.desc())
+            .limit(3)
+        ).scalars().all()
+    )
+    if gen.question_text not in recent_questions:
+        return gen
+    svc = get_ai_service()
+    for offset in range(1, 6):
+        rotated = _run_sync_generate_fallback(topic, target_difficulty + offset, svc)
+        if rotated.question_text not in recent_questions:
+            return rotated
+    return gen
+
+
+def _run_sync_generate_fallback(topic: subj_models.Topic, difficulty: int, svc):
+    """Use AIService fallback directly; kept small for anti-repeat guard."""
+    from app.ai.service import _fallback_generated_exercise
+
+    return _fallback_generated_exercise(
+        topic.section.subject.name,
+        topic.name,
+        max(1, difficulty),
+        topic_id=topic.id,
+    )
+
+
 @router.post("/generate", response_model=GenerateOut)
 async def generate_exercise(
     payload: GenerateIn,
@@ -175,6 +216,8 @@ async def generate_exercise(
         difficulty=target_difficulty,
         topic_id=topic.id,
     )
+    gen = _rotate_repeated_exercise(db, current, topic, target_difficulty, gen)
+
     options_json = None
     if gen.options:
         import json

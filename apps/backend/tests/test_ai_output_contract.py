@@ -23,6 +23,21 @@ class StaticProvider(AIProvider):
         return True
 
 
+class SequenceProvider(AIProvider):
+    def __init__(self, responses: list[AIResponse]) -> None:
+        self.responses = list(responses)
+        self.calls = 0
+
+    async def complete(self, req: AIRequest) -> AIResponse:
+        self.calls += 1
+        if len(self.responses) > 1:
+            return self.responses.pop(0)
+        return self.responses[0]
+
+    async def ping(self) -> bool:
+        return True
+
+
 def test_prepare_model_output_strips_raw_think_blocks() -> None:
     content, structured = _prepare_model_output(
         "<think>private reasoning</think>\n\n**Коротко:** это дробь."
@@ -138,6 +153,16 @@ $$\\text{Среднее} = \\frac{\\text{сумма всех чисел}}{\\text
     assert "Среднее" in content
     assert "сумма всех чисел" in content
     assert "25% = 25 ÷ 100 = 0,25" in content
+
+
+def test_prepare_model_output_normalizes_decimal_latex_frac_with_braced_comma() -> None:
+    content, structured = _prepare_model_output(r"vср = \frac{110{,}6}{7} = 15{,}8 км/ч")
+
+    assert structured is None
+    assert "\\frac" not in content
+    assert "110{,}6" not in content
+    assert "110,6 / 7" in content
+    assert "15,8" in content
 
 
 def test_prepare_model_output_normalizes_plain_latex_variables_and_dots() -> None:
@@ -294,6 +319,36 @@ async def test_explain_topic_pie_chart_short_model_output_uses_instructional_fal
     assert "360" in response.content
     assert "сектор" in response.content.lower()
     assert "Коротко: начни с определения" not in response.content
+
+
+@pytest.mark.asyncio
+async def test_explain_topic_retries_short_model_output_before_fallback() -> None:
+    provider = SequenceProvider([
+        AIResponse(content="Слишком коротко", model="test-model", structured=None),
+        AIResponse(
+            content="Среднее арифметическое — это сумма чисел, делённая на их количество. "
+            "Чтобы найти среднее, сначала складываем все значения, затем делим на число значений. "
+            "Например, для чисел 4, 5 и 6 сумма равна 15, а 15 : 3 = 5. "
+            "Проверочный вопрос: почему мы делим именно на 3?",
+            model="test-model",
+            structured=None,
+        ),
+    ])
+    svc = AIService(provider)
+    topic = SimpleNamespace(
+        id=187,
+        name="Среднее арифметическое",
+        section=SimpleNamespace(
+            subject=SimpleNamespace(name="Математика")
+        ),
+    )
+    user = SimpleNamespace(student_profile=SimpleNamespace(grade=7))
+
+    response = await svc.explain_topic(None, user, topic)
+
+    assert provider.calls == 2
+    assert "4, 5 и 6" in response.content
+    assert "Коротко: начни" not in response.content
 
 
 @pytest.mark.asyncio

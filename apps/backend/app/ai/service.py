@@ -273,14 +273,33 @@ def _fallback_generated_exercise(
     subject_lower = subject_name.lower()
     topic_lower = topic_name.lower()
     if "математика" in subject_lower and "среднее арифметическое" in topic_lower:
-        return GeneratedExercise(
-            question_text="Найди среднее арифметическое чисел 8, 9 и 4. Выбери правильный ответ.",
-            type="single",
-            options=["7", "8", "6", "21"],
-            correct_answer="7",
-            explanation="Складываем числа: 8 + 9 + 4 = 21. Делим сумму на количество чисел: 21 : 3 = 7.",
-            typical_mistakes=["Забыть разделить сумму на количество чисел", "Взять только самое большое число"],
-        )
+        variants = [
+            GeneratedExercise(
+                question_text="Найди среднее арифметическое чисел 8, 9 и 4. Выбери правильный ответ.",
+                type="single",
+                options=["7", "8", "6", "21"],
+                correct_answer="7",
+                explanation="Складываем числа: 8 + 9 + 4 = 21. Делим сумму на количество чисел: 21 : 3 = 7.",
+                typical_mistakes=["Забыть разделить сумму на количество чисел", "Взять только самое большое число"],
+            ),
+            GeneratedExercise(
+                question_text="Найди среднее арифметическое чисел 5, 6, 7 и 10. Выбери правильный ответ.",
+                type="single",
+                options=["7", "6", "8", "28"],
+                correct_answer="7",
+                explanation="Складываем: 5 + 6 + 7 + 10 = 28. Делим на 4 числа: 28 : 4 = 7.",
+                typical_mistakes=["Забыть разделить на количество чисел", "Разделить на 3 вместо 4"],
+            ),
+            GeneratedExercise(
+                question_text="За неделю температуры были 3°, 5°, 4°, 2°, 6°. Найди среднюю температуру.",
+                type="single",
+                options=["4°", "5°", "20°", "3°"],
+                correct_answer="4°",
+                explanation="Сумма температур: 3 + 5 + 4 + 2 + 6 = 20. Делим на 5 дней: 20 : 5 = 4°.",
+                typical_mistakes=["Взять самую частую температуру", "Не разделить сумму на количество дней"],
+            ),
+        ]
+        return variants[(max(difficulty, 1) - 1) % len(variants)]
 
     if "математика" in subject_lower and "кругов" in topic_lower and "диаграм" in topic_lower:
         return GeneratedExercise(
@@ -721,8 +740,23 @@ class AIService:
             resp = await self.provider.complete(req)
             used_fallback = False
             if len(resp.content.strip()) < 250:
-                resp.content = _fallback_explanation(subject.name, topic.name)
-                used_fallback = True
+                retry_req = AIRequest(
+                    messages=req.messages + [
+                        AIMessage(
+                            role="user",
+                            content="Ответ слишком короткий. Дай полноценное объяснение: определение, правило, пример и проверочный вопрос. Не обрывай фразы.",
+                        )
+                    ],
+                    mode="explain",
+                    max_tokens=1100,
+                    temperature=0.4,
+                )
+                retry_resp = await self.provider.complete(retry_req)
+                if len(retry_resp.content.strip()) >= 250:
+                    resp = retry_resp
+                else:
+                    resp.content = _fallback_explanation(subject.name, topic.name)
+                    used_fallback = True
             _record_ai("explain", "ok", resp=resp)
             topic_id = getattr(topic, "id", None)
             verified_sources = _verified_rag_sources(
