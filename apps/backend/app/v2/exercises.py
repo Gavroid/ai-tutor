@@ -173,6 +173,7 @@ async def generate_exercise(
         subject_name=topic.section.subject.name,
         topic_name=topic.name,
         difficulty=target_difficulty,
+        topic_id=topic.id,
     )
     options_json = None
     if gen.options:

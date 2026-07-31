@@ -98,6 +98,43 @@ export type Topic = {
   order_index: number;
 };
 
+export type TopicFollowup = {
+  label: string;
+  prompt: string;
+  kind: "choice" | "next" | string;
+  order_index: number;
+};
+
+export type TopicPracticeFallback = {
+  question_text: string;
+  type: string;
+  options: string[] | null;
+  correct_answer: string;
+  explanation: string;
+  typical_mistakes: string[];
+  difficulty: number;
+  order_index: number;
+  is_active: boolean;
+};
+
+export type TopicStatusUpdate = {
+  explain_status?: string;
+  practice_status?: string;
+  source_status?: string;
+  manual_qa_status?: string;
+  notes?: string;
+};
+
+export type RagRebuildJob = {
+  job_id: string;
+  topic_id: number | null;
+  subject_id: number | null;
+  status: string;
+  chunks_before: number;
+  chunks_after: number | null;
+  message: string;
+};
+
 export type TopicReadiness = {
   topic_id: number;
   topic_name: string;

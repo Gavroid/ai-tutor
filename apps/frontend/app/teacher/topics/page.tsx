@@ -143,7 +143,11 @@ export default function TeacherTopicsReadinessPage() {
               {rows.map((row) => (
                 <tr key={row.topic_id} className="hover:bg-slate-50">
                   <td className="max-w-md px-3 py-2">
-                    <div className="font-semibold text-slate-900">#{row.topic_id} · {row.topic_name}</div>
+                    <div className="font-semibold text-slate-900">
+                      <Link href={`/teacher/topics/${row.topic_id}`} className="text-sky-700 hover:underline">
+                        #{row.topic_id} · {row.topic_name}
+                      </Link>
+                    </div>
                     <div className="text-xs text-slate-500">{row.section_name}</div>
                   </td>
                   <td className="px-3 py-2">{badge(row.priority)}</td>

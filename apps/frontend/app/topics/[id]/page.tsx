@@ -12,7 +12,7 @@ import PauseButton from "@/components/PauseButton";
 import SessionTimer from "@/components/SessionTimer";
 import CGMStatus from "@/components/CGMStatus";
 import { playCompletionCue } from "@/lib/audio-cue";
-import type { Topic, ChatMsg, User } from "@/types";
+import type { Topic, TopicFollowup, ChatMsg, User } from "@/types";
 
 // Sprint 12: helper для извлечения error-сообщения.
 // ApiError содержит status + message. Generic Error — только message.
@@ -29,34 +29,6 @@ function extractErrorMessage(err: unknown): string {
   }
   if (err instanceof Error) return err.message;
   return "Неизвестная ошибка";
-}
-
-type FollowUpAction = {
-  label: string;
-  prompt: string;
-};
-
-function followUpActionsForTopic(topicName: string | undefined): FollowUpAction[] {
-  const name = (topicName || "").toLowerCase();
-  if (name.includes("среднее арифметическое")) {
-    return [
-      { label: "Среднее чисел", prompt: "Объясни подробнее среднее арифметическое обычных чисел на новом примере." },
-      { label: "Средняя скорость", prompt: "Объясни среднюю скорость как отдельный тип задач, с простым примером." },
-      { label: "Средний вес", prompt: "Объясни средний вес как отдельный тип задач, с простым примером." },
-    ];
-  }
-  if (name.includes("наибольш") && name.includes("делител")) {
-    return [
-      { label: "Попробовать самому", prompt: "Дай мне похожую задачу на НОД и взаимно простые числа, но не показывай ответ сразу." },
-      { label: "Второй способ", prompt: "Покажи второй способ нахождения НОД через разложение на простые множители." },
-    ];
-  }
-  if (name.includes("уравнен")) {
-    return [
-      { label: "Далее", prompt: "Продолжи объяснение темы по следующему шагу: как переносить слагаемые в уравнении и менять знак." },
-    ];
-  }
-  return [];
 }
 
 type Exercise = {
@@ -97,6 +69,7 @@ export default function TopicPage() {
 
   const [user, setUser] = useState<User | null>(null);
   const [topic, setTopic] = useState<Topic | null>(null);
+  const [followups, setFollowups] = useState<TopicFollowup[]>([]);
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   // Sprint 15.5: подтверждение очистки чата (чтобы ребёнок случайно не потерял).
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -149,10 +122,11 @@ export default function TopicPage() {
     let cancelled = false;
     (async () => {
       try {
-        const [me, loadedTopic] = await Promise.all([api.me(), api.topic(topicId)]);
+        const [me, loadedTopic, loadedFollowups] = await Promise.all([api.me(), api.topic(topicId), api.topicFollowups(topicId)]);
         if (cancelled) return;
         setUser(me);
         setTopic(loadedTopic);
+        setFollowups(loadedFollowups);
       } catch (err: unknown) {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           router.push("/login");
@@ -581,7 +555,7 @@ export default function TopicPage() {
         )}
         {msgs.map((m, i) => {
           const isLastAssistant = i === msgs.length - 1 && m.role === "assistant";
-          const followUps = isLastAssistant && !busy ? followUpActionsForTopic(topic?.name) : [];
+          const followUps = isLastAssistant && !busy ? followups : [];
           return (
           <div
             key={i}

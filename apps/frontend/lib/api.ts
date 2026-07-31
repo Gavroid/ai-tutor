@@ -44,7 +44,7 @@ export class ApiError extends Error {
   }
 }
 
-import type { ChatMsg, MaterialDraftOut, MaterialListItem, Subject, TokenPair, Topic, TopicReadiness, User } from "@/types";
+import type { ChatMsg, MaterialDraftOut, MaterialListItem, RagRebuildJob, Subject, TokenPair, Topic, TopicFollowup, TopicPracticeFallback, TopicReadiness, TopicStatusUpdate, User } from "@/types";
 
 export const api = {
   // Auth
@@ -75,6 +75,7 @@ export const api = {
   subjects: () => request<Subject[]>("/api/v1/subjects"),
   subjectTopics: (id: number) => request<Topic[]>(`/api/v1/subjects/${id}/topics`),
   topic: (id: number) => request<Topic>(`/api/v1/topics/${id}`),
+  topicFollowups: (id: number) => request<TopicFollowup[]>(`/api/v1/topics/${id}/followups`),
   teacherTopicReadiness: (params: { subject_id?: number; priority?: "P0" | "P1" | "P2" } = {}) => {
     const search = new URLSearchParams();
     if (params.subject_id !== undefined) search.set("subject_id", String(params.subject_id));
@@ -82,6 +83,26 @@ export const api = {
     const qs = search.toString();
     return request<TopicReadiness[]>(`/api/v1/teacher/topics/readiness${qs ? "?" + qs : ""}`);
   },
+  teacherGetFollowups: (topicId: number) => request<TopicFollowup[]>(`/api/v1/teacher/topics/${topicId}/followups`),
+  teacherPutFollowups: (topicId: number, rows: TopicFollowup[]) =>
+    request<TopicFollowup[]>(`/api/v1/teacher/topics/${topicId}/followups`, {
+      method: "PUT",
+      body: JSON.stringify(rows),
+    }),
+  teacherGetFallbacks: (topicId: number) => request<TopicPracticeFallback[]>(`/api/v1/teacher/topics/${topicId}/fallbacks`),
+  teacherPutFallbacks: (topicId: number, rows: TopicPracticeFallback[]) =>
+    request<TopicPracticeFallback[]>(`/api/v1/teacher/topics/${topicId}/fallbacks`, {
+      method: "PUT",
+      body: JSON.stringify(rows),
+    }),
+  teacherPatchTopicStatus: (topicId: number, payload: TopicStatusUpdate) =>
+    request<{ ok: boolean; topic_id: number; status: TopicStatusUpdate }>(`/api/v1/teacher/topics/${topicId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  teacherRebuildTopicRag: (topicId: number) =>
+    request<RagRebuildJob>(`/api/v1/teacher/rag/rebuild-topic/${topicId}`, { method: "POST" }),
+  teacherGetRagJob: (jobId: string) => request<RagRebuildJob>(`/api/v1/teacher/rag/jobs/${jobId}`),
 
   // AI
   aiPing: () => request<{ ok: boolean; model: string | null }>("/api/v1/ai/ping"),

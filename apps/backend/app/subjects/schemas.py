@@ -42,6 +42,13 @@ class TopicOut(BaseModel):
     order_index: int
 
 
+class TopicFollowupOut(BaseModel):
+    label: str
+    prompt: str
+    kind: str = "choice"
+    order_index: int = 0
+
+
 class SubtopicOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

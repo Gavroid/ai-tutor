@@ -177,6 +177,56 @@ def test_teacher_topics_readiness_returns_topic_rows(client):
     assert isinstance(first["chunk_count"], int)
 
 
+def test_teacher_can_update_followups_and_audit(client):
+    teacher = _token(client, "teacher@example.com")
+    payload = [
+        {"label": "Дальше", "prompt": "Продолжи объяснение", "kind": "next", "order_index": 1}
+    ]
+
+    r = client.put(f"/api/v1/teacher/topics/{client.topic_id}/followups", headers=_h(teacher), json=payload)
+
+    assert r.status_code == 200, r.text
+    assert r.json()[0]["label"] == "Дальше"
+    public = client.get(f"/api/v1/topics/{client.topic_id}/followups")
+    assert public.json()[0]["label"] == "Дальше"
+
+
+def test_teacher_can_update_fallbacks_status_and_request_rag_job(client):
+    teacher = _token(client, "teacher@example.com")
+    fallback = [{
+        "question_text": "Сколько будет 2 + 2?",
+        "type": "single",
+        "options": ["4", "5"],
+        "correct_answer": "4",
+        "explanation": "2 + 2 = 4",
+        "difficulty": 1,
+        "order_index": 1,
+        "is_active": True,
+    }]
+
+    r = client.put(f"/api/v1/teacher/topics/{client.topic_id}/fallbacks", headers=_h(teacher), json=fallback)
+    assert r.status_code == 200, r.text
+    assert r.json()[0]["correct_answer"] == "4"
+
+    status = client.patch(
+        f"/api/v1/teacher/topics/{client.topic_id}/status",
+        headers=_h(teacher),
+        json={"manual_qa_status": "ok", "notes": "checked"},
+    )
+    assert status.status_code == 200, status.text
+    assert status.json()["status"]["manual_qa_status"] == "ok"
+
+    job = client.post(f"/api/v1/teacher/rag/rebuild-topic/{client.topic_id}", headers=_h(teacher))
+    assert job.status_code == 200, job.text
+    body = job.json()
+    assert body["status"] == "succeeded"
+    assert body["chunks_before"] >= 0
+
+    job2 = client.get(f"/api/v1/teacher/rag/jobs/{body['job_id']}", headers=_h(teacher))
+    assert job2.status_code == 200
+    assert job2.json()["job_id"] == body["job_id"]
+
+
 # ============================================================
 # RBAC: генерация
 # ============================================================

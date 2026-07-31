@@ -251,8 +251,25 @@ def _fallback_generated_exercise(
     subject_name: str,
     topic_name: str,
     difficulty: int,
+    topic_id: int | None = None,
 ) -> GeneratedExercise:
     """Safe deterministic fallback when the model does not return usable JSON."""
+    if topic_id is not None:
+        try:
+            from app.teacher import content_registry
+
+            row = content_registry.fallback_for_topic(topic_id, difficulty)
+            if row:
+                return GeneratedExercise(
+                    question_text=str(row["question_text"]),
+                    type=str(row.get("type") or "single"),
+                    options=list(row["options"]) if isinstance(row.get("options"), list) else None,
+                    correct_answer=str(row["correct_answer"]),
+                    explanation=str(row.get("explanation") or "Проверь правило темы и попробуй ещё раз."),
+                    typical_mistakes=list(row.get("typical_mistakes") or []),
+                )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("content registry fallback failed: %s", exc)
     subject_lower = subject_name.lower()
     topic_lower = topic_name.lower()
     if "математика" in subject_lower and "среднее арифметическое" in topic_lower:
@@ -898,6 +915,7 @@ class AIService:
         subject_name: str,
         topic_name: str,
         difficulty: int,
+        topic_id: int | None = None,
     ) -> GeneratedExercise:
         req = AIRequest(
             messages=[
@@ -918,14 +936,14 @@ class AIService:
                     result = _valid_generated_exercise(resp.structured)
                     if not _exercise_matches_topic(result, topic_name):
                         _record_ai("generate", "ok", resp=resp, parse_status="fallback")
-                        return _fallback_generated_exercise(subject_name, topic_name, difficulty)
+                        return _fallback_generated_exercise(subject_name, topic_name, difficulty, topic_id=topic_id)
                     _record_ai("generate", "ok", resp=resp, parse_status="ok")
                     return result
                 except (TypeError, ValueError):
                     _record_ai("generate", "ok", resp=resp, parse_status="error")
                     raise ValueError("AI did not return a valid structured exercise")
             _record_ai("generate", "ok", resp=resp, parse_status="fallback")
-            return _fallback_generated_exercise(subject_name, topic_name, difficulty)
+            return _fallback_generated_exercise(subject_name, topic_name, difficulty, topic_id=topic_id)
         except Exception as e:
             _record_ai("generate", "error")
             logger.exception("AI generate failed: %s", e)

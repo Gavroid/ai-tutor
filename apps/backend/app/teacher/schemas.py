@@ -156,6 +156,47 @@ class TopicReadinessOut(BaseModel):
     manual_qa_status: str
 
 
+class TopicFollowupOut(BaseModel):
+    label: str
+    prompt: str
+    kind: str = "choice"
+    order_index: int = 0
+
+
+class TopicStatusUpdateIn(BaseModel):
+    explain_status: str | None = None
+    practice_status: str | None = None
+    source_status: str | None = None
+    manual_qa_status: str | None = None
+    notes: str | None = None
+
+
+class TopicPracticeFallbackIn(BaseModel):
+    question_text: str
+    type: str = "single"
+    options: list[str] | None = None
+    correct_answer: str
+    explanation: str = ""
+    typical_mistakes: list[str] = Field(default_factory=list)
+    difficulty: int = 1
+    order_index: int = 1
+    is_active: bool = True
+
+
+class TopicPracticeFallbackOut(TopicPracticeFallbackIn):
+    pass
+
+
+class RagRebuildJobOut(BaseModel):
+    job_id: str
+    topic_id: int | None = None
+    subject_id: int | None = None
+    status: str
+    chunks_before: int
+    chunks_after: int | None = None
+    message: str
+
+
 class MaterialUpdateIn(BaseModel):
     """PATCH /teacher/materials/{id} — редактирование Учителем."""
 

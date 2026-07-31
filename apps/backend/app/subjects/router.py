@@ -99,6 +99,40 @@ def get_topic(topic_id: int, db: Session = Depends(get_db)):
     return t
 
 
+def _followups_for_topic(topic: models.Topic) -> list[schemas.TopicFollowupOut]:
+    name = topic.name.lower()
+    if "среднее арифметическое" in name:
+        return [
+            schemas.TopicFollowupOut(label="Среднее чисел", prompt="Объясни подробнее среднее арифметическое обычных чисел на новом примере.", kind="choice", order_index=1),
+            schemas.TopicFollowupOut(label="Средняя скорость", prompt="Объясни среднюю скорость как отдельный тип задач, с простым примером.", kind="choice", order_index=2),
+            schemas.TopicFollowupOut(label="Средний вес", prompt="Объясни средний вес как отдельный тип задач, с простым примером.", kind="choice", order_index=3),
+        ]
+    if "наибольш" in name and "делител" in name:
+        return [
+            schemas.TopicFollowupOut(label="Попробовать самому", prompt="Дай мне похожую задачу на НОД и взаимно простые числа, но не показывай ответ сразу.", kind="choice", order_index=1),
+            schemas.TopicFollowupOut(label="Второй способ", prompt="Покажи второй способ нахождения НОД через разложение на простые множители.", kind="choice", order_index=2),
+        ]
+    if "уравнен" in name:
+        return [
+            schemas.TopicFollowupOut(label="Далее", prompt="Продолжи объяснение темы по следующему шагу: как переносить слагаемые в уравнении и менять знак.", kind="next", order_index=1),
+        ]
+    return []
+
+
+def _followup_count_for_topic(topic: models.Topic) -> int:
+    return len(_followups_for_topic(topic))
+
+
+@topics_router.get("/{topic_id}/followups", response_model=list[schemas.TopicFollowupOut])
+def topic_followups(topic_id: int, db: Session = Depends(get_db)):
+    topic = db.get(models.Topic, topic_id)
+    if topic is None:
+        raise HTTPException(404, "Topic not found")
+    from app.teacher import content_registry
+
+    return [schemas.TopicFollowupOut(**row) for row in content_registry.get_followups(topic)]
+
+
 @topics_router.get("/{topic_id}/materials", response_model=list[schemas.MaterialOut])
 def topic_materials(topic_id: int, db: Session = Depends(get_db)):
     # Sprint 64: cache (2 min TTL — materials могут меняться)

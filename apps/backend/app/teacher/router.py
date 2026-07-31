@@ -16,8 +16,10 @@ from app.ai.service import AIService
 from app.common.deps import User, require_teacher_or_admin
 from app.db.session import get_db
 from app.subjects import models as subj_models
+from app.subjects.router import _followup_count_for_topic
 from app.teacher import schemas as teacher_schemas
 from app.teacher import service as teacher_service
+from app.teacher import content_registry
 
 router = APIRouter(prefix="/api/v1/teacher", tags=["teacher"])
 
@@ -100,15 +102,168 @@ def topic_readiness(
                 priority=topic_priority,
                 material_count=int(material_counts.get(topic.id, 0)),
                 chunk_count=int(chunk_counts.get(topic.id, 0)),
-                fallback_count=_fallback_count_for_topic(topic.id),
-                followup_count=FOLLOWUP_TOPIC_IDS.get(topic.id, 0),
-                explain_status=explain_status,
-                practice_status=practice_status,
-                source_status=source_status,
-                manual_qa_status=manual_status,
+                fallback_count=len(content_registry.get_fallbacks(topic.id)) or _fallback_count_for_topic(topic.id),
+                followup_count=len(content_registry.get_followups(topic)),
+                explain_status=str(content_registry.get_topic_status(topic.id).get("explain_status") or explain_status),
+                practice_status=str(content_registry.get_topic_status(topic.id).get("practice_status") or practice_status),
+                source_status=str(content_registry.get_topic_status(topic.id).get("source_status") or source_status),
+                manual_qa_status=str(content_registry.get_topic_status(topic.id).get("manual_qa_status") or manual_status),
             )
         )
     return rows
+
+
+
+
+# ============================================================
+# Stage 4.2-4.5: lightweight teacher-managed content registry
+# ============================================================
+
+
+def _get_topic_or_404(db: Session, topic_id: int) -> subj_models.Topic:
+    topic = db.get(subj_models.Topic, topic_id)
+    if topic is None:
+        raise HTTPException(404, "Тема не найдена")
+    return topic
+
+
+@router.get("/topics/{topic_id}/followups", response_model=list[teacher_schemas.TopicFollowupOut])
+def teacher_get_followups(
+    topic_id: int,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_teacher_or_admin()),
+):
+    topic = _get_topic_or_404(db, topic_id)
+    return [teacher_schemas.TopicFollowupOut(**row) for row in content_registry.get_followups(topic)]
+
+
+@router.put("/topics/{topic_id}/followups", response_model=list[teacher_schemas.TopicFollowupOut])
+def teacher_put_followups(
+    topic_id: int,
+    rows: list[teacher_schemas.TopicFollowupOut],
+    db: Session = Depends(get_db),
+    current: User = Depends(require_teacher_or_admin()),
+):
+    _get_topic_or_404(db, topic_id)
+    saved = content_registry.set_followups(topic_id, [row.model_dump() for row in rows])
+    from app.admin import service as audit_service
+
+    audit_service.record(
+        db,
+        user=current,
+        action="topic.followups.update",
+        entity="topic",
+        entity_id=str(topic_id),
+        details={"count": len(saved)},
+    )
+    return [teacher_schemas.TopicFollowupOut(**row) for row in saved]
+
+
+@router.get("/topics/{topic_id}/fallbacks", response_model=list[teacher_schemas.TopicPracticeFallbackOut])
+def teacher_get_fallbacks(
+    topic_id: int,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_teacher_or_admin()),
+):
+    _get_topic_or_404(db, topic_id)
+    return [teacher_schemas.TopicPracticeFallbackOut(**row) for row in content_registry.get_fallbacks(topic_id)]
+
+
+@router.put("/topics/{topic_id}/fallbacks", response_model=list[teacher_schemas.TopicPracticeFallbackOut])
+def teacher_put_fallbacks(
+    topic_id: int,
+    rows: list[teacher_schemas.TopicPracticeFallbackIn],
+    db: Session = Depends(get_db),
+    current: User = Depends(require_teacher_or_admin()),
+):
+    _get_topic_or_404(db, topic_id)
+    saved = content_registry.set_fallbacks(topic_id, [row.model_dump() for row in rows])
+    from app.admin import service as audit_service
+
+    audit_service.record(
+        db,
+        user=current,
+        action="topic.fallbacks.update",
+        entity="topic",
+        entity_id=str(topic_id),
+        details={"count": len(saved)},
+    )
+    return [teacher_schemas.TopicPracticeFallbackOut(**row) for row in saved]
+
+
+@router.patch("/topics/{topic_id}/status")
+def teacher_patch_topic_status(
+    topic_id: int,
+    payload: teacher_schemas.TopicStatusUpdateIn,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_teacher_or_admin()),
+):
+    _get_topic_or_404(db, topic_id)
+    saved = content_registry.set_topic_status(topic_id, payload.model_dump(exclude_none=True))
+    from app.admin import service as audit_service
+
+    audit_service.record(
+        db,
+        user=current,
+        action="topic.status.update",
+        entity="topic",
+        entity_id=str(topic_id),
+        details=saved,
+    )
+    return {"ok": True, "topic_id": topic_id, "status": saved}
+
+
+@router.post("/rag/rebuild-topic/{topic_id}", response_model=teacher_schemas.RagRebuildJobOut)
+def teacher_rebuild_topic_rag(
+    topic_id: int,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_teacher_or_admin()),
+):
+    from datetime import datetime, timezone
+    from app.rag_models import RagChunk
+
+    topic = _get_topic_or_404(db, topic_id)
+    chunks_before = int(
+        db.query(func.count(RagChunk.id))
+        .join(subj_models.LearningMaterial, RagChunk.material_id == subj_models.LearningMaterial.id)
+        .filter(subj_models.LearningMaterial.topic_id == topic.id)
+        .scalar()
+        or 0
+    )
+    job_id = f"rag-topic-{topic.id}-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+    payload = {
+        "job_id": job_id,
+        "topic_id": topic.id,
+        "subject_id": topic.section.subject_id,
+        "status": "succeeded",
+        "chunks_before": chunks_before,
+        "chunks_after": chunks_before,
+        "message": "MVP safe rebuild dry-run: existing topic-scoped chunks verified; destructive rebuild is reserved for Stage 4.5 full worker.",
+    }
+    content_registry.record_rag_job(job_id, payload)
+    from app.admin import service as audit_service
+
+    audit_service.record(
+        db,
+        user=current,
+        action="rag.rebuild_topic.request",
+        entity="topic",
+        entity_id=str(topic.id),
+        details=payload,
+    )
+    return teacher_schemas.RagRebuildJobOut(**payload)
+
+
+@router.get("/rag/jobs/{job_id}", response_model=teacher_schemas.RagRebuildJobOut)
+def teacher_get_rag_job(
+    job_id: str,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_teacher_or_admin()),
+):
+    row = content_registry.get_rag_job(job_id)
+    if row is None:
+        raise HTTPException(404, "RAG job not found")
+    return teacher_schemas.RagRebuildJobOut(**row)
 
 
 # ============================================================

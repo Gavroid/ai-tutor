@@ -106,6 +106,38 @@ def test_subject_topics_returns_flat_list(seeded_client):
     assert "Формулы сокращённого умножения" in names
 
 
+def test_topic_followups_returns_backend_managed_buttons(seeded_client):
+    s = SessionLocal()
+    try:
+        topic = s.scalar(select(models.Topic).where(models.Topic.name == "Среднее арифметическое"))
+        assert topic is not None
+        topic_id = topic.id
+    finally:
+        s.close()
+
+    r = seeded_client.get(f"/api/v1/topics/{topic_id}/followups")
+
+    assert r.status_code == 200
+    data = r.json()
+    assert [x["label"] for x in data] == ["Среднее чисел", "Средняя скорость", "Средний вес"]
+    assert all(x["prompt"] for x in data)
+
+
+def test_topic_followups_unknown_topic_returns_empty(seeded_client):
+    s = SessionLocal()
+    try:
+        t = s.scalar(select(models.Topic).where(models.Topic.name == "Формулы сокращённого умножения"))
+        assert t is not None
+        tid = t.id
+    finally:
+        s.close()
+
+    r = seeded_client.get(f"/api/v1/topics/{tid}/followups")
+
+    assert r.status_code == 200
+    assert r.json() == []
+
+
 def test_topic_get(seeded_client):
     s = SessionLocal()
     try:
