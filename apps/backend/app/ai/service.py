@@ -436,14 +436,33 @@ def _fallback_generated_exercise(
         )
 
     if "математика" in subject_lower and "наибольш" in topic_lower and "делител" in topic_lower:
-        return GeneratedExercise(
-            question_text="Найди наибольший общий делитель чисел 18 и 24. Выбери ответ.",
-            type="single",
-            options=["6", "3", "12", "8"],
-            correct_answer="6",
-            explanation="Делители 18: 1, 2, 3, 6, 9, 18. Делители 24: 1, 2, 3, 4, 6, 8, 12, 24. Самый большой общий делитель — 6.",
-            typical_mistakes=["Выбрать общий делитель, но не самый большой", "Перепутать НОД и НОК"],
-        )
+        variants = [
+            GeneratedExercise(
+                question_text="Найди наибольший общий делитель чисел 18 и 24. Выбери ответ.",
+                type="single",
+                options=["6", "3", "12", "8"],
+                correct_answer="6",
+                explanation="Делители 18: 1, 2, 3, 6, 9, 18. Делители 24: 1, 2, 3, 4, 6, 8, 12, 24. Самый большой общий делитель — 6.",
+                typical_mistakes=["Выбрать общий делитель, но не самый большой", "Перепутать НОД и НОК"],
+            ),
+            GeneratedExercise(
+                question_text="Найди наибольший общий делитель чисел 12 и 25. Выбери ответ.",
+                type="single",
+                options=["1", "5", "12", "25"],
+                correct_answer="1",
+                explanation="Делители 12: 1, 2, 3, 4, 6, 12. Делители 25: 1, 5, 25. Общий делитель только 1, значит числа взаимно простые.",
+                typical_mistakes=["Выбрать 5, хотя 12 на 5 не делится", "Не проверить оба числа"],
+            ),
+            GeneratedExercise(
+                question_text="Найди наибольший общий делитель чисел 30 и 45. Выбери ответ.",
+                type="single",
+                options=["15", "5", "30", "45"],
+                correct_answer="15",
+                explanation="Общие делители 30 и 45: 1, 3, 5, 15. Самый большой из них — 15.",
+                typical_mistakes=["Остановиться на 5", "Выбрать одно из чисел вместо общего делителя"],
+            ),
+        ]
+        return variants[(max(difficulty, 1) - 1) % len(variants)]
 
     if "математика" in subject_lower and "наимень" in topic_lower and "кратн" in topic_lower:
         return GeneratedExercise(

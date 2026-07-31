@@ -45,6 +45,12 @@ function followUpActionsForTopic(topicName: string | undefined): FollowUpAction[
       { label: "Средний вес", prompt: "Объясни средний вес как отдельный тип задач, с простым примером." },
     ];
   }
+  if (name.includes("наибольш") && name.includes("делител")) {
+    return [
+      { label: "Попробовать самому", prompt: "Дай мне похожую задачу на НОД и взаимно простые числа, но не показывай ответ сразу." },
+      { label: "Второй способ", prompt: "Покажи второй способ нахождения НОД через разложение на простые множители." },
+    ];
+  }
   if (name.includes("уравнен")) {
     return [
       { label: "Далее", prompt: "Продолжи объяснение темы по следующему шагу: как переносить слагаемые в уравнении и менять знак." },
@@ -123,6 +129,7 @@ export default function TopicPage() {
     prevMsgsCountRef.current = msgs.length;
   }, [msgs]);
   const [exercise, setExercise] = useState<Exercise | null>(null);
+  const [practiceSeed, setPracticeSeed] = useState(0);
   const [userAnswer, setUserAnswer] = useState("");
   const [checkResult, setCheckResult] = useState<null | {
     is_correct: boolean;
@@ -333,8 +340,9 @@ export default function TopicPage() {
     }
   }
 
-  async function generate() {
+  async function generate(nextSeed?: number) {
     if (busy) return;
+    const seed = nextSeed ?? practiceSeed;
     setActionError(null);
     setBusy(true);
     setExercise(null);
@@ -344,9 +352,10 @@ export default function TopicPage() {
       // Pilot Core Stage 1 — secure flow: server-owned truth, opaque id.
       const r = await api.v2GenerateExercise({
         topic_id: topicId,
-        // MVP rescue: 0 = backend adaptive difficulty. Do not bypass auto mode from UI.
-        difficulty: 0,
+        // MVP rescue: use a small rotating explicit difficulty as variation seed.
+        difficulty: (seed % 5) + 1,
       });
+      setPracticeSeed(seed);
       setExercise({
         exercise_id: r.exercise_id,
         question_text: r.question_text,
@@ -408,7 +417,11 @@ export default function TopicPage() {
         </Button>
         <Button
           type="button"
-          onClick={generate}
+          onClick={() => {
+            const nextSeed = practiceSeed + 1;
+            setPracticeSeed(nextSeed);
+            generate(nextSeed);
+          }}
           disabled={busy}
           variant="secondary"
           size="sm"
@@ -531,6 +544,22 @@ export default function TopicPage() {
                   Попроси подсказку или попробуй ещё раз — репетитор поможет без раскрытия ответа.
                 </div>
               )}
+              {checkResult.is_correct && (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const nextSeed = practiceSeed + 1;
+                    setPracticeSeed(nextSeed);
+                    generate(nextSeed);
+                  }}
+                  disabled={busy}
+                  variant="secondary"
+                  size="sm"
+                  className="mt-3"
+                >
+                  Следующее задание
+                </Button>
+              )}
             </div>
           )}
         </section>
@@ -557,36 +586,36 @@ export default function TopicPage() {
           <div
             key={i}
             data-testid={`chat-message-${m.role}`}
-            className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
+            className={`max-w-[85%] overflow-hidden rounded-2xl px-4 py-2 text-sm shadow-sm ${
               m.role === "user"
                 ? "ml-auto bg-sky-600 text-white"
                 : "mr-auto bg-white text-slate-900"
             }`}
           >
             {m.role === "user" ? (
-              <span className="whitespace-pre-wrap">{m.content}</span>
+              <span className="whitespace-pre-wrap break-words">{m.content}</span>
             ) : (
               // Sprint 7.1: AI-сообщения рендерим Markdown → безопасный HTML.
               // streaming=true только для последнего ассистентского сообщения, которое
               // ещё не подтверждено `done` — даёт typewriter-эффект.
               <>
-                <SafeMarkdown
-                  text={m.content}
-                  streaming={i === msgs.length - 1 && busy && m.role === "assistant"}
-                />
-                {/* Sprint 4.1.3: индикатор источника RAG (📖 Источник) */}
+                {/* Sprint 4.1.3: verified RAG source label goes before explanation text. */}
                 {m.sources && m.sources.length > 0 && (
-                  <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs">
+                  <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs">
                     <div className="mb-1 font-semibold text-amber-800">📖 Источник:</div>
                     <ul className="space-y-1">
                       {m.sources.map((s, idx) => (
-                        <li key={idx} className="text-amber-900">
+                        <li key={idx} className="break-words text-amber-900">
                           {s.label || `${s.material_title}${s.page_number != null ? `, стр. ${s.page_number}` : ""}`}
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
+                <SafeMarkdown
+                  text={m.content}
+                  className="break-words [&_*]:break-words [&_*]:max-w-full"
+                />
                 {followUps.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {followUps.map((action) => (

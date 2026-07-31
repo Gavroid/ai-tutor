@@ -381,7 +381,7 @@ async def test_generate_exercise_p0_fallback_bank_is_student_ready(
     exercise = await svc.generate_exercise(
         "Математика (6 класс - повторение пройденного материала)",
         topic_name,
-        2,
+        1 if topic_name == "Наибольший общий делитель. Взаимно простые числа" else 2,
     )
 
     assert exercise.type == "single"
@@ -440,6 +440,27 @@ async def test_generate_exercise_p1_fallback_bank_is_student_ready(
     assert "AI" not in visible
     assert "JSON" not in visible
     assert "резерв" not in visible.lower()
+
+
+@pytest.mark.asyncio
+async def test_generate_exercise_gcd_fallback_varies_by_difficulty_seed() -> None:
+    svc = AIService(StaticProvider(AIResponse(content="bad", model="test-model", structured=None)))
+
+    first = await svc.generate_exercise(
+        "Математика (6 класс - повторение пройденного материала)",
+        "Наибольший общий делитель. Взаимно простые числа",
+        1,
+    )
+    second = await svc.generate_exercise(
+        "Математика (6 класс - повторение пройденного материала)",
+        "Наибольший общий делитель. Взаимно простые числа",
+        2,
+    )
+
+    assert first.question_text != second.question_text
+    assert first.type == second.type == "single"
+    assert first.options
+    assert second.options
 
 
 @pytest.mark.asyncio
