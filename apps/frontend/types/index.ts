@@ -98,6 +98,24 @@ export type Topic = {
   order_index: number;
 };
 
+export type TopicReadiness = {
+  topic_id: number;
+  topic_name: string;
+  section_id: number;
+  section_name: string;
+  subject_id: number;
+  subject_name: string;
+  priority: "P0" | "P1" | "P2" | string;
+  material_count: number;
+  chunk_count: number;
+  fallback_count: number;
+  followup_count: number;
+  explain_status: string;
+  practice_status: string;
+  source_status: string;
+  manual_qa_status: string;
+};
+
 export type ChatMsg = {
   role: "user" | "assistant";
   content: string;

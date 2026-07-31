@@ -9,6 +9,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.ai.service import AIService
@@ -19,6 +20,95 @@ from app.teacher import schemas as teacher_schemas
 from app.teacher import service as teacher_service
 
 router = APIRouter(prefix="/api/v1/teacher", tags=["teacher"])
+
+
+P0_TOPIC_IDS = {187, 188, 189, 192, 193, 194, 195, 196, 197, 198, 199, 201, 203, 204, 225}
+P1_TOPIC_IDS = {190, 191, 202, 205, 206, 207, 209, 210, 211, 212, 215, 216, 217, 218, 219}
+FOLLOWUP_TOPIC_IDS = {187: 3, 193: 2, 225: 1}
+
+
+def _priority_for_topic(topic_id: int) -> str:
+    if topic_id in P0_TOPIC_IDS:
+        return "P0"
+    if topic_id in P1_TOPIC_IDS:
+        return "P1"
+    return "P2"
+
+
+def _fallback_count_for_topic(topic_id: int) -> int:
+    if topic_id == 193:
+        return 3
+    if topic_id in P0_TOPIC_IDS or topic_id in P1_TOPIC_IDS:
+        return 1
+    return 0
+
+
+def _status_for(priority: str) -> tuple[str, str, str, str]:
+    if priority in {"P0", "P1"}:
+        return "Smoke OK", "Smoke OK", "Verified", "TODO"
+    return "TODO", "TODO", "TODO", "TODO"
+
+
+@router.get(
+    "/topics/readiness",
+    response_model=list[teacher_schemas.TopicReadinessOut],
+    summary="Stage 4.1: read-only readiness dashboard for topics",
+)
+def topic_readiness(
+    subject_id: int | None = Query(None),
+    priority: str | None = Query(None, pattern="^(P0|P1|P2)$"),
+    db: Session = Depends(get_db),
+    current: User = Depends(require_teacher_or_admin()),
+):
+    from app.rag_models import RagChunk
+
+    query = (
+        db.query(subj_models.Topic)
+        .join(subj_models.Section)
+        .join(subj_models.Subject)
+        .order_by(subj_models.Section.order_index, subj_models.Topic.order_index)
+    )
+    if subject_id is not None:
+        query = query.filter(subj_models.Subject.id == subject_id)
+
+    material_counts = dict(
+        db.query(subj_models.LearningMaterial.topic_id, func.count(subj_models.LearningMaterial.id))
+        .group_by(subj_models.LearningMaterial.topic_id)
+        .all()
+    )
+    chunk_counts = dict(
+        db.query(subj_models.LearningMaterial.topic_id, func.count(RagChunk.id))
+        .outerjoin(RagChunk, RagChunk.material_id == subj_models.LearningMaterial.id)
+        .group_by(subj_models.LearningMaterial.topic_id)
+        .all()
+    )
+
+    rows: list[teacher_schemas.TopicReadinessOut] = []
+    for topic in query.all():
+        topic_priority = _priority_for_topic(topic.id)
+        if priority and topic_priority != priority:
+            continue
+        explain_status, practice_status, source_status, manual_status = _status_for(topic_priority)
+        rows.append(
+            teacher_schemas.TopicReadinessOut(
+                topic_id=topic.id,
+                topic_name=topic.name,
+                section_id=topic.section.id,
+                section_name=topic.section.name,
+                subject_id=topic.section.subject.id,
+                subject_name=topic.section.subject.name,
+                priority=topic_priority,
+                material_count=int(material_counts.get(topic.id, 0)),
+                chunk_count=int(chunk_counts.get(topic.id, 0)),
+                fallback_count=_fallback_count_for_topic(topic.id),
+                followup_count=FOLLOWUP_TOPIC_IDS.get(topic.id, 0),
+                explain_status=explain_status,
+                practice_status=practice_status,
+                source_status=source_status,
+                manual_qa_status=manual_status,
+            )
+        )
+    return rows
 
 
 # ============================================================

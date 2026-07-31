@@ -74,12 +74,20 @@ export default function TeacherPage() {
         </Link>
         <div className="mt-1 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Учительская</h1>
-          <Link
-            href="/teacher/generate"
-            className="rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700"
-          >
-            + Сгенерировать материал
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href="/teacher/topics"
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Готовность тем
+            </Link>
+            <Link
+              href="/teacher/generate"
+              className="rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700"
+            >
+              + Сгенерировать материал
+            </Link>
+          </div>
         </div>
         {user && (
           <p className="mt-1 text-sm text-slate-600">

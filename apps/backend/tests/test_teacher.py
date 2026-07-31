@@ -140,6 +140,43 @@ def _h(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
+def test_teacher_topics_readiness_blocks_student(client):
+    kid = _token(client, "kid@example.com")
+
+    r = client.get("/api/v1/teacher/topics/readiness", headers=_h(kid))
+
+    assert r.status_code == 403
+
+
+def test_teacher_topics_readiness_returns_topic_rows(client):
+    teacher = _token(client, "teacher@example.com")
+
+    r = client.get("/api/v1/teacher/topics/readiness", headers=_h(teacher))
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body
+    first = body[0]
+    assert {
+        "topic_id",
+        "topic_name",
+        "section_name",
+        "subject_id",
+        "subject_name",
+        "priority",
+        "material_count",
+        "chunk_count",
+        "fallback_count",
+        "followup_count",
+        "explain_status",
+        "practice_status",
+        "source_status",
+        "manual_qa_status",
+    }.issubset(first)
+    assert isinstance(first["material_count"], int)
+    assert isinstance(first["chunk_count"], int)
+
+
 # ============================================================
 # RBAC: генерация
 # ============================================================

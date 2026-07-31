@@ -44,7 +44,7 @@ export class ApiError extends Error {
   }
 }
 
-import type { ChatMsg, MaterialDraftOut, MaterialListItem, Subject, TokenPair, Topic, User } from "@/types";
+import type { ChatMsg, MaterialDraftOut, MaterialListItem, Subject, TokenPair, Topic, TopicReadiness, User } from "@/types";
 
 export const api = {
   // Auth
@@ -75,6 +75,13 @@ export const api = {
   subjects: () => request<Subject[]>("/api/v1/subjects"),
   subjectTopics: (id: number) => request<Topic[]>(`/api/v1/subjects/${id}/topics`),
   topic: (id: number) => request<Topic>(`/api/v1/topics/${id}`),
+  teacherTopicReadiness: (params: { subject_id?: number; priority?: "P0" | "P1" | "P2" } = {}) => {
+    const search = new URLSearchParams();
+    if (params.subject_id !== undefined) search.set("subject_id", String(params.subject_id));
+    if (params.priority) search.set("priority", params.priority);
+    const qs = search.toString();
+    return request<TopicReadiness[]>(`/api/v1/teacher/topics/readiness${qs ? "?" + qs : ""}`);
+  },
 
   // AI
   aiPing: () => request<{ ok: boolean; model: string | null }>("/api/v1/ai/ping"),

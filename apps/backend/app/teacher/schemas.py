@@ -136,6 +136,26 @@ class MaterialListItem(BaseModel):
     updated_at: datetime | None = None
 
 
+class TopicReadinessOut(BaseModel):
+    """Stage 4.1: read-only topic readiness row for teacher dashboard."""
+
+    topic_id: int
+    topic_name: str
+    section_id: int
+    section_name: str
+    subject_id: int
+    subject_name: str
+    priority: str
+    material_count: int
+    chunk_count: int
+    fallback_count: int
+    followup_count: int
+    explain_status: str
+    practice_status: str
+    source_status: str
+    manual_qa_status: str
+
+
 class MaterialUpdateIn(BaseModel):
     """PATCH /teacher/materials/{id} — редактирование Учителем."""
 
