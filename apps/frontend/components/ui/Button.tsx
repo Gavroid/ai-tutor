@@ -31,14 +31,14 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary: [
-          "bg-brand-500 text-white",
-          "hover:bg-brand-600 active:bg-brand-700",
-          "shadow-sm hover:shadow-glow",
+          "brand-gradient text-white",
+          "shadow-glow hover:shadow-glow-lg",
+          "border border-white/20",
         ].join(" "),
         secondary: [
-          "bg-surface-2 text-fg",
-          "hover:bg-surface-3",
-          "border border-border",
+          "bg-white/92 text-[#171022] backdrop-blur",
+          "hover:bg-white",
+          "border border-brand-300/60 shadow-sm",
         ].join(" "),
         ghost: [
           "bg-transparent text-fg",
@@ -55,8 +55,9 @@ const buttonVariants = cva(
           "shadow-sm",
         ].join(" "),
         gradient: [
-          "bg-aurora-via-brand-500-to-pink-500",
-          "text-white shadow-md hover:shadow-lg",
+          "brand-gradient",
+          "text-white shadow-glow hover:shadow-glow-lg",
+          "border border-white/20",
         ].join(" "),
       },
       size: {

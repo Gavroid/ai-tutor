@@ -19,63 +19,61 @@
 /* 1. Design tokens (CSS variables) */
 /* ============================================================ */
 
-:root {
-  /* === Brand colors (2026 electric blue + violet) === */
-  --color-brand-50:  #eef2ff;  /* indigo-50 */
-  --color-brand-100: #e0e7ff;
-  --color-brand-200: #c7d2fe;
-  --color-brand-300: #a5b4fc;
-  --color-brand-400: #818cf8;
-  --color-brand-500: #6366f1;  /* primary brand */
-  --color-brand-600: #4f46e5;  /* hover */
-  --color-brand-700: #4338ca;  /* active */
-  --color-brand-800: #3730a3;
-  --color-brand-900: #312e81;
+ :root {
+  /* === Neon Coast Learning: GTA-6/Vice-City-inspired, no copyrighted assets === */
+  --color-brand-50:  #fff1fb;
+  --color-brand-100: #ffe1f6;
+  --color-brand-200: #ffc2ec;
+  --color-brand-300: #ff8fde;
+  --color-brand-400: #ff5dcc;
+  --color-brand-500: #ff2fb3;
+  --color-brand-600: #e31696;
+  --color-brand-700: #bf0d7a;
+  --color-brand-800: #9d0d66;
+  --color-brand-900: #7d1154;
 
-  /* === Accent (warm coral — friendly, T1D-positive) === */
-  --color-accent-500: #f97316;  /* orange-500 */
-  --color-accent-600: #ea580c;
+  --color-accent-500: #ff9f1c;
+  --color-accent-600: #ff7a00;
+  --color-cyan-neon: #19f6ff;
+  --color-miami-blue: #2f7cff;
+  --color-sunset-pink: #ff2fb3;
+  --color-sunset-orange: #ff8a1f;
+  --color-night-purple: #26124d;
 
-  /* === Surfaces (neutral grays) === */
-  --color-bg:           #fafafa;  /* page bg */
-  --color-surface:      #ffffff;  /* card bg */
-  --color-surface-2:    #f4f4f5;  /* nested surface */
-  --color-surface-3:    #e4e4e7;  /* hover */
-  --color-border:       #e4e4e7;
-  --color-border-strong:#d4d4d8;
+  --color-bg:           #160b2f;
+  --color-surface:      #fff7fb;
+  --color-surface-2:    #ffeef7;
+  --color-surface-3:    #ffd7ee;
+  --color-border:       rgba(255, 143, 222, 0.32);
+  --color-border-strong:rgba(25, 246, 255, 0.45);
 
-  --color-fg:           #09090b;  /* primary text */
-  --color-fg-muted:     #52525b;  /* secondary */
-  --color-fg-subtle:    #a1a1aa;  /* tertiary */
+  --color-fg:           #171022;
+  --color-fg-muted:     #4a3d5d;
+  --color-fg-subtle:    #7b6c91;
 
-  /* === Semantic === */
-  --color-success: #16a34a;
-  --color-warning: #f59e0b;
-  --color-danger:  #dc2626;
-  --color-info:    #0284c7;
+  --color-success: #14d87a;
+  --color-warning: #ffb000;
+  --color-danger:  #ff3b6b;
+  --color-info:    #19bfff;
 
-  /* === Typography === */
   --font-sans: "Inter", "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: "Inter", "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
 
-  /* === Sizing (4px base) === */
-  --radius-sm: 6px;
-  --radius:    10px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --radius-xl: 28px;
+  --radius-sm: 8px;
+  --radius:    14px;
+  --radius-md: 18px;
+  --radius-lg: 26px;
+  --radius-xl: 34px;
   --radius-full: 9999px;
 
-  /* === Shadows (subtle, layered) === */
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.06), 0 1px 3px 0 rgb(0 0 0 / 0.04);
-  --shadow:    0 2px 4px -1px rgb(0 0 0 / 0.06), 0 4px 8px -2px rgb(0 0 0 / 0.04);
-  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 8px 24px -4px rgb(0 0 0 / 0.06);
-  --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.10), 0 24px 64px -16px rgb(0 0 0 / 0.08);
-  --shadow-glow: 0 0 0 1px rgb(99 102 241 / 0.10), 0 4px 16px -2px rgb(99 102 241 / 0.20);
+  --shadow-xs: 0 1px 2px 0 rgb(10 4 28 / 0.06);
+  --shadow-sm: 0 8px 18px -14px rgb(26 9 52 / 0.35);
+  --shadow:    0 18px 42px -24px rgb(26 9 52 / 0.45);
+  --shadow-md: 0 24px 60px -30px rgb(26 9 52 / 0.55), 0 0 0 1px rgba(255, 47, 179, 0.12);
+  --shadow-lg: 0 36px 90px -42px rgb(5 0 20 / 0.65), 0 0 42px rgba(255, 47, 179, 0.18);
+  --shadow-glow: 0 0 0 1px rgba(25, 246, 255, 0.22), 0 0 26px rgba(255, 47, 179, 0.28), 0 10px 34px rgba(47, 124, 255, 0.16);
 
-  /* === Motion === */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --duration-fast: 150ms;
@@ -85,23 +83,23 @@
 
 /* === Dark mode tokens === */
 html.dark {
-  --color-bg:           #09090b;  /* zinc-950 */
-  --color-surface:      #18181b;  /* zinc-900 */
-  --color-surface-2:    #27272a;  /* zinc-800 */
-  --color-surface-3:    #3f3f46;  /* zinc-700 */
-  --color-border:       #27272a;
-  --color-border-strong:#3f3f46;
+  --color-bg:           #0b0620;
+  --color-surface:      #181033;
+  --color-surface-2:    #241447;
+  --color-surface-3:    #321c60;
+  --color-border:       rgba(255, 143, 222, 0.24);
+  --color-border-strong:rgba(25, 246, 255, 0.38);
 
-  --color-fg:           #fafafa;
-  --color-fg-muted:     #a1a1aa;
-  --color-fg-subtle:    #71717a;
+  --color-fg:           #fff7fb;
+  --color-fg-muted:     #d8cce8;
+  --color-fg-subtle:    #a99aba;
 
   --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.30);
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.40), 0 1px 3px 0 rgb(0 0 0 / 0.30);
-  --shadow:    0 2px 4px -1px rgb(0 0 0 / 0.40), 0 4px 8px -2px rgb(0 0 0 / 0.30);
-  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.50), 0 8px 24px -4px rgb(0 0 0 / 0.40);
-  --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.60), 0 24px 64px -16px rgb(0 0 0 / 0.50);
-  --shadow-glow: 0 0 0 1px rgb(129 140 248 / 0.20), 0 4px 16px -2px rgb(99 102 241 / 0.30);
+  --shadow-sm: 0 10px 22px -16px rgb(0 0 0 / 0.55);
+  --shadow:    0 18px 48px -28px rgb(0 0 0 / 0.60);
+  --shadow-md: 0 28px 68px -34px rgb(0 0 0 / 0.70), 0 0 0 1px rgba(255, 47, 179, 0.18);
+  --shadow-lg: 0 44px 100px -48px rgb(0 0 0 / 0.78), 0 0 46px rgba(255, 47, 179, 0.22);
+  --shadow-glow: 0 0 0 1px rgba(25, 246, 255, 0.28), 0 0 30px rgba(255, 47, 179, 0.30), 0 14px 42px rgba(47, 124, 255, 0.20);
 }
 
 /* ============================================================ */
@@ -300,6 +298,86 @@ html.dark .bg-dots {
   backdrop-filter: blur(20px) saturate(200%);
   -webkit-backdrop-filter: blur(20px) saturate(200%);
   border: 1px solid var(--color-border);
+}
+
+
+/* ============================================================ */
+/* 10. Neon Coast design utilities */
+/* ============================================================ */
+
+body {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 47, 179, 0.34), transparent 28rem),
+    radial-gradient(circle at 88% 4%, rgba(25, 246, 255, 0.22), transparent 26rem),
+    radial-gradient(circle at 72% 92%, rgba(255, 138, 31, 0.20), transparent 28rem),
+    linear-gradient(135deg, #0b0620 0%, #170a36 42%, #2b1248 72%, #3a164b 100%);
+  background-attachment: fixed;
+}
+
+.bg-app {
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255, 47, 179, 0.26), transparent 28rem),
+    radial-gradient(circle at 88% 8%, rgba(25, 246, 255, 0.16), transparent 28rem),
+    linear-gradient(135deg, rgba(11, 6, 32, 0.98), rgba(38, 18, 77, 0.96));
+}
+
+.bg-vice-city {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 47, 179, 0.38), transparent 26rem),
+    radial-gradient(circle at 82% 12%, rgba(25, 246, 255, 0.24), transparent 25rem),
+    linear-gradient(135deg, #120725 0%, #251252 45%, #5b1b69 72%, #ff7a1a 135%);
+}
+
+.bg-neon-grid {
+  background-image:
+    linear-gradient(to right, rgba(25, 246, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 47, 179, 0.08) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+.brand-gradient {
+  background-image: linear-gradient(135deg, #ff2fb3 0%, #ff8a1f 52%, #19f6ff 115%);
+}
+
+.neon-panel {
+  background: linear-gradient(180deg, rgba(255, 247, 251, 0.94), rgba(255, 238, 247, 0.88));
+  border: 1px solid rgba(255, 143, 222, 0.34);
+  box-shadow: var(--shadow-md);
+}
+
+html.dark .neon-panel,
+.neon-panel-dark {
+  background: linear-gradient(180deg, rgba(24, 16, 51, 0.88), rgba(13, 8, 35, 0.84));
+  border: 1px solid rgba(25, 246, 255, 0.22);
+  box-shadow: var(--shadow-glow);
+}
+
+.neon-card-hover:hover {
+  border-color: rgba(25, 246, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(25, 246, 255, 0.24), 0 24px 70px -34px rgba(255, 47, 179, 0.42);
+}
+
+.neon-text {
+  color: #fff7fb;
+  text-shadow: 0 0 18px rgba(255, 47, 179, 0.38), 0 0 30px rgba(25, 246, 255, 0.16);
+}
+
+.sunset-text {
+  background: linear-gradient(90deg, #ff2fb3, #ff8a1f, #19f6ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.lesson-readable {
+  background: rgba(255, 255, 255, 0.95);
+  color: #171022;
+  border: 1px solid rgba(255, 143, 222, 0.24);
+}
+
+html.dark .lesson-readable {
+  background: rgba(255, 247, 251, 0.96);
+  color: #171022;
 }
 
 /* ============================================================ */

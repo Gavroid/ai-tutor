@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 
 const inputVariants = cva(
   [
-    "flex w-full rounded-md border border-border bg-surface",
-    "px-3 py-2 text-base text-fg",
+    "flex w-full rounded-md border border-brand-300/40 bg-white/92",
+    "px-3 py-2 text-base text-[#171022]",
     "placeholder:text-fg-subtle",
     "transition-modern",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500",

@@ -21,10 +21,10 @@ const cardVariants = cva(
   {
     variants: {
       variant: {
-        flat: "bg-surface",
-        elevated: "bg-surface shadow-soft hover:shadow-elevated",
-        glass: "glass",
-        gradient: "bg-aurora",
+        flat: "lesson-readable shadow-soft",
+        elevated: "neon-panel shadow-soft neon-card-hover",
+        glass: "glass shadow-glow",
+        gradient: "bg-vice-city text-white shadow-glow",
         outline: "bg-transparent",
       },
       padding: {

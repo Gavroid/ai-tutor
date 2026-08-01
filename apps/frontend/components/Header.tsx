@@ -35,19 +35,19 @@ export default function Header({ user, backHref, title, backLabel = "Назад"
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-surface/80 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-brand-300/25 bg-[#120725]/82 text-white shadow-glow backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
           {backHref && (
             <Link
               href={backHref}
-              className="flex items-center gap-1 text-sm text-fg-muted transition-modern hover:text-fg"
+              className="flex items-center gap-1 text-sm text-white/75 transition-modern hover:text-white"
             >
               <span aria-hidden>←</span> {backLabel}
             </Link>
           )}
           {title && (
-            <h1 className="text-lg font-semibold tracking-tight text-fg md:text-xl">
+            <h1 className="neon-text text-lg font-semibold tracking-tight md:text-xl">
               {title}
             </h1>
           )}
@@ -56,7 +56,7 @@ export default function Header({ user, backHref, title, backLabel = "Назад"
         {user && (
           <div className="flex items-center gap-3">
             <div className="hidden text-right text-xs sm:block">
-              <div className="font-medium text-fg">
+              <div className="font-medium text-white">
                 {user.display_name || user.email}
               </div>
               <div className="mt-0.5 flex justify-end">
@@ -73,7 +73,7 @@ export default function Header({ user, backHref, title, backLabel = "Назад"
               variant="ghost"
               size="sm"
               onClick={logout}
-              data-testid="logout-button"
+              className="text-white hover:bg-white/10 hover:text-white"
             >
               Выйти
             </Button>

@@ -9,20 +9,20 @@ export default {
       // === Colors (синхронизировано с CSS variables) ===
       colors: {
         brand: {
-          50: "#eef2ff",
-          100: "#e0e7ff",
-          200: "#c7d2fe",
-          300: "#a5b4fc",
-          400: "#818cf8",
-          500: "#6366f1",
-          600: "#4f46e5",
-          700: "#4338ca",
-          800: "#3730a3",
-          900: "#312e81",
+          50: "#fff1fb",
+          100: "#ffe1f6",
+          200: "#ffc2ec",
+          300: "#ff8fde",
+          400: "#ff5dcc",
+          500: "#ff2fb3",
+          600: "#e31696",
+          700: "#bf0d7a",
+          800: "#9d0d66",
+          900: "#7d1154",
         },
         accent: {
-          500: "#f97316",
-          600: "#ea580c",
+          500: "#ff9f1c",
+          600: "#ff7a00",
         },
         surface: {
           DEFAULT: "var(--color-surface)",
@@ -41,10 +41,10 @@ export default {
         bg: {
           DEFAULT: "var(--color-bg)",
         },
-        success: "#16a34a",
-        warning: "#f59e0b",
-        danger: "#dc2626",
-        info: "#0284c7",
+        success: "#14d87a",
+        warning: "#ffb000",
+        danger: "#ff3b6b",
+        info: "#19bfff",
       },
 
       // === Typography ===
@@ -142,7 +142,9 @@ export default {
       // === Background images (2026 trends) ===
       backgroundImage: {
         "aurora":
-          "radial-gradient(at 27% 37%, rgba(99, 102, 241, 0.15) 0px, transparent 50%), radial-gradient(at 97% 21%, rgba(168, 85, 247, 0.12) 0px, transparent 50%), radial-gradient(at 52% 99%, rgba(236, 72, 153, 0.10) 0px, transparent 50%)",
+          "radial-gradient(at 27% 37%, rgba(255, 47, 179, 0.24) 0px, transparent 50%), radial-gradient(at 97% 21%, rgba(25, 246, 255, 0.16) 0px, transparent 50%), radial-gradient(at 52% 99%, rgba(255, 138, 31, 0.16) 0px, transparent 50%)",
+        "vice-city":
+          "radial-gradient(circle at 18% 18%, rgba(255, 47, 179, 0.38), transparent 26rem), radial-gradient(circle at 82% 12%, rgba(25, 246, 255, 0.24), transparent 25rem), linear-gradient(135deg, #120725 0%, #251252 45%, #5b1b69 72%, #ff7a1a 135%)",
         "dots": "radial-gradient(circle, rgb(0 0 0 / 0.10) 1px, transparent 1px)",
         "grid":
           "linear-gradient(to right, rgb(0 0 0 / 0.04) 1px, transparent 1px), linear-gradient(to bottom, rgb(0 0 0 / 0.04) 1px, transparent 1px)",

@@ -16,13 +16,13 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-surface-2 text-fg",
-        brand: "bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300",
+        default: "bg-white/88 text-[#171022]",
+        brand: "brand-gradient text-white shadow-glow",
         success: "bg-success/10 text-success",
         warning: "bg-warning/10 text-warning",
         danger: "bg-danger/10 text-danger",
         info: "bg-info/10 text-info",
-        outline: "border border-border text-fg-muted",
+        outline: "border border-brand-300/50 bg-white/55 text-[#2b1248]",
       },
       size: {
         sm: "px-2 py-0.5 text-xs",

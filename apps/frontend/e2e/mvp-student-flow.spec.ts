@@ -56,7 +56,9 @@ function answerForMvpQuestion(question: string, options: string[] | null): strin
     .filter((x) => Number.isFinite(x));
   if (/средн/i.test(question) && allNumbers.length >= 2) {
     const avg = allNumbers.reduce((a, b) => a + b, 0) / allNumbers.length;
-    return String(avg).replace(".", ",");
+    const base = String(avg).replace(".", ",");
+    const optionWithUnit = options?.find((opt) => opt.replace(/[^0-9,.-]/g, "") === base);
+    return optionWithUnit ?? base;
   }
   if (question.includes("1/2") && question.includes("1/3")) return "5/6";
   if (options && options.length > 0) return options[0];
