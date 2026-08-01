@@ -19,7 +19,7 @@
 /* 1. Design tokens (CSS variables) */
 /* ============================================================ */
 
- :root {
+:root {
   /* === Neon Coast Learning: GTA-6/Vice-City-inspired, no copyrighted assets === */
   --color-brand-50:  #fff1fb;
   --color-brand-100: #ffe1f6;
@@ -378,6 +378,152 @@ html.dark .neon-panel,
 html.dark .lesson-readable {
   background: rgba(255, 247, 251, 0.96);
   color: #171022;
+}
+
+
+
+/* ============================================================ */
+/* 11. Premium app composition utilities */
+/* ============================================================ */
+
+.premium-shell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 14% 12%, rgba(255, 47, 179, 0.36), transparent 30rem),
+    radial-gradient(circle at 88% 10%, rgba(25, 246, 255, 0.22), transparent 28rem),
+    radial-gradient(circle at 70% 88%, rgba(255, 138, 31, 0.24), transparent 34rem),
+    linear-gradient(135deg, #070315 0%, #120729 38%, #27124f 70%, #40174e 100%);
+}
+
+.premium-shell::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.42;
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.045) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(circle at 50% 20%, black, transparent 72%);
+}
+
+.premium-shell > * { position: relative; z-index: 1; }
+
+.premium-container {
+  width: min(1480px, calc(100vw - 32px));
+  margin-inline: auto;
+}
+
+.premium-hero {
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 40px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.055)),
+    radial-gradient(circle at 15% 15%, rgba(255,47,179,0.32), transparent 28rem),
+    radial-gradient(circle at 90% 18%, rgba(25,246,255,0.20), transparent 25rem);
+  box-shadow: 0 50px 140px -70px rgba(0,0,0,0.88), inset 0 1px 0 rgba(255,255,255,0.18);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+}
+
+.premium-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(25,246,255,0.28);
+  background: rgba(10, 6, 32, 0.42);
+  color: #bdfaff;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.premium-title {
+  color: #fff7fb;
+  letter-spacing: -0.055em;
+  line-height: 0.93;
+  text-wrap: balance;
+  text-shadow: 0 0 42px rgba(255,47,179,0.28), 0 0 70px rgba(25,246,255,0.12);
+}
+
+.premium-copy {
+  color: rgba(255,247,251,0.76);
+  text-wrap: pretty;
+}
+
+.premium-panel {
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 30px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0.055));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 30px 80px -55px rgba(0,0,0,0.85);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+}
+
+.premium-tile {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 32px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,242,250,0.88)),
+    radial-gradient(circle at 20% 0%, rgba(255,47,179,0.14), transparent 18rem);
+  box-shadow: 0 30px 90px -55px rgba(0,0,0,0.75);
+}
+
+.premium-tile::after {
+  content: "";
+  position: absolute;
+  inset: auto -30% -45% -30%;
+  height: 160px;
+  background: radial-gradient(ellipse, rgba(255,47,179,0.18), transparent 62%);
+  pointer-events: none;
+}
+
+.premium-tile:hover {
+  transform: translateY(-4px) scale(1.01);
+  border-color: rgba(25,246,255,0.42);
+  box-shadow: 0 40px 110px -58px rgba(255,47,179,0.72), 0 0 0 1px rgba(25,246,255,0.14);
+}
+
+.premium-tile-featured {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.98), rgba(255,238,248,0.90)),
+    radial-gradient(circle at 12% 0%, rgba(255,47,179,0.28), transparent 22rem),
+    radial-gradient(circle at 92% 20%, rgba(25,246,255,0.18), transparent 20rem);
+}
+
+.premium-chip-row a,
+.premium-chip-row button,
+.premium-chip {
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.10);
+  color: rgba(255,247,251,0.88);
+  border-radius: 999px;
+  padding: 9px 13px;
+  font-weight: 700;
+  backdrop-filter: blur(14px);
+}
+
+.lesson-stage {
+  border-radius: 34px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(8, 4, 28, 0.54);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 44px 120px -70px rgba(0,0,0,0.88);
+  backdrop-filter: blur(18px) saturate(150%);
+}
+
+@media (max-width: 768px) {
+  .premium-container { width: min(100% - 20px, 1480px); }
+  .premium-hero { border-radius: 28px; }
+  .premium-title { letter-spacing: -0.04em; }
 }
 
 /* ============================================================ */

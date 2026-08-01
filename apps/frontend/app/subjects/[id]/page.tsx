@@ -59,88 +59,86 @@ export default function SubjectPage() {
   }, [subjectId, router]);
 
   return (
-    <main className="min-h-screen bg-app">
-      <Header
-        user={user}
-        backHref="/subjects"
-        backLabel="Все предметы"
-        title={subject ? `${subject.icon || "📘"} ${subject.name}` : "Предмет"}
-      />
+    <main className="premium-shell">
+      <Header user={user} backHref="/subjects" backLabel="Все предметы" title={subject ? `${subject.icon || "📘"} ${subject.name}` : "Предмет"} />
 
-      <section className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
-        <Card variant="glass" padding="lg" className="mb-6">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <section className="premium-container px-2 py-8 sm:px-4 sm:py-10">
+        <div className="premium-hero p-6 sm:p-9 lg:p-12">
+          <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
             <div>
-              <p className="text-sm font-medium text-brand-500">Учебный маршрут</p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-tight text-fg">
+              <div className="premium-kicker">Learning Route</div>
+              <h1 className="premium-title mt-5 text-5xl font-black sm:text-6xl lg:text-7xl">
                 {subject?.name || "Загружаем предмет…"}
-              </h2>
-              {subject?.description && (
-                <p className="mt-2 max-w-2xl text-sm text-fg-muted">{subject.description}</p>
+              </h1>
+              {subject?.description && <p className="premium-copy mt-5 max-w-2xl text-lg">{subject.description}</p>}
+            </div>
+            <div className="premium-panel p-5 text-white">
+              <div className="grid grid-cols-2 gap-3">
+                <StatusMetric label="Тем" value={topics.length || "—"} />
+                <StatusMetric label="Статус" value={subject?.mvp_status === "mvp_ready" ? "Ready" : "Preview"} />
+                <StatusMetric label="RAG" value={subject?.rag_ready ? "ON" : "OFF"} tone={subject?.rag_ready ? "good" : "warn"} />
+                <StatusMetric label="Practice" value={subject?.practice_ready ? "ON" : "Preview"} tone={subject?.practice_ready ? "good" : "warn"} />
+              </div>
+              {subject && (
+                <div className={`mt-4 rounded-2xl border p-4 text-sm ${subject.mvp_status === "mvp_ready" ? "border-emerald-300/30 bg-emerald-300/10 text-emerald-100" : "border-amber-300/30 bg-amber-300/10 text-amber-100"}`}>
+                  <b>{subject.mvp_status === "mvp_ready" ? "MVP-ready." : "Preview-предмет."}</b> {subject.support_note}
+                </div>
               )}
             </div>
-            <Badge variant="outline" size="lg">
-              {topics.length || 0} тем
+          </div>
+        </div>
+
+        {loading && <Card variant="flat" padding="lg" className="mt-6 text-sm text-[#4a3d5d]">Загружаем темы…</Card>}
+        {error && !loading && <Card variant="flat" padding="lg" className="mt-6 border-danger/30 bg-danger/5 text-sm text-danger">{error}</Card>}
+        {!loading && !error && topics.length === 0 && <Card variant="flat" padding="lg" className="mt-6 text-sm text-[#4a3d5d]">В этом предмете пока нет тем.</Card>}
+
+        <section className="mt-8">
+          <div className="mb-4 flex items-end justify-between gap-4">
+            <div>
+              <div className="premium-kicker">Topic Deck</div>
+              <h2 className="premium-title mt-3 text-3xl font-black sm:text-5xl">Маршрут тем</h2>
+            </div>
+            <Badge variant={subject?.mvp_status === "mvp_ready" ? "success" : "warning"} size="lg">
+              {subject?.mvp_status === "mvp_ready" ? "MVP-ready" : "Preview"}
             </Badge>
           </div>
-          {subject && subject.mvp_status !== "mvp_ready" && (
-            <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-              <b>Preview-предмет.</b> {subject.support_note || "Темы доступны для навигации, но материалы и источники ещё не подтверждены."}
-            </div>
-          )}
-          {subject && subject.mvp_status === "mvp_ready" && (
-            <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-              <b>MVP-ready.</b> {subject.support_note}
-            </div>
-          )}
-        </Card>
 
-        {loading && (
-          <Card variant="flat" padding="lg" className="text-sm text-fg-muted">
-            Загружаем темы…
-          </Card>
-        )}
-
-        {error && !loading && (
-          <Card variant="flat" padding="lg" className="border-danger/30 bg-danger/5 text-sm text-danger">
-            {error}
-          </Card>
-        )}
-
-        {!loading && !error && topics.length === 0 && (
-          <Card variant="flat" padding="lg" className="text-sm text-fg-muted">
-            В этом предмете пока нет тем.
-          </Card>
-        )}
-
-        <ol className="grid gap-3">
-          {topics.map((topic, index) => (
-            <li key={topic.id}>
-              <Link href={`/topics/${topic.id}`} className="group block">
-                <Card variant="elevated" padding="md" interactive className="flex items-center justify-between gap-4">
-                  <div className="flex items-start gap-3">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface-2 text-sm font-semibold text-fg-muted">
-                      {index + 1}
-                    </span>
-                    <div>
-                      <h3 className="font-semibold text-fg transition-modern group-hover:text-brand-500">
-                        {topic.name}
-                      </h3>
-                      {topic.description && (
-                        <p className="mt-1 line-clamp-2 text-sm text-fg-muted">{topic.description}</p>
-                      )}
+          <ol className="grid gap-4 lg:grid-cols-2">
+            {topics.map((topic, index) => (
+              <li key={topic.id}>
+                <Link href={`/topics/${topic.id}`} className="group block">
+                  <article className="premium-tile flex h-full items-center justify-between gap-5 p-5 transition-modern">
+                    <div className="flex items-start gap-4">
+                      <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl brand-gradient text-sm font-black text-white shadow-glow">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <div>
+                        <h3 className="text-xl font-black tracking-tight text-[#171022] transition-modern group-hover:text-brand-600">
+                          {topic.name}
+                        </h3>
+                        {topic.description && <p className="mt-1 line-clamp-2 text-sm text-[#4a3d5d]">{topic.description}</p>}
+                      </div>
                     </div>
-                  </div>
-                  <Badge variant={difficultyVariant(topic.difficulty)} size="sm">
-                    {topic.difficulty}/5
-                  </Badge>
-                </Card>
-              </Link>
-            </li>
-          ))}
-        </ol>
+                    <Badge variant={difficultyVariant(topic.difficulty)} size="sm">
+                      {topic.difficulty}/5
+                    </Badge>
+                  </article>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
       </section>
     </main>
+  );
+}
+
+function StatusMetric({ label, value, tone = "neutral" }: { label: string; value: string | number; tone?: "neutral" | "good" | "warn" }) {
+  return (
+    <div className="rounded-2xl border border-white/12 bg-white/8 p-4">
+      <div className="text-[11px] uppercase tracking-[0.18em] text-white/50">{label}</div>
+      <div className={`mt-1 text-xl font-black ${tone === "good" ? "text-[#14d87a]" : tone === "warn" ? "text-[#ffb000]" : "text-white"}`}>{value}</div>
+    </div>
   );
 }
 

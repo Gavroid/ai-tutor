@@ -454,7 +454,7 @@ export default function TopicPage() {
       </Card>
 
       {exercise && (
-        <section data-testid="exercise-card" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+        <section data-testid="exercise-card" className="lesson-readable mt-4 rounded-[28px] p-5 shadow-glow">
           <div className="text-xs uppercase tracking-wide text-emerald-700">Задание</div>
           <SafeMarkdown text={exercise.question_text} className="mt-1" />
           {exercise.options && exercise.options.length > 0 && (

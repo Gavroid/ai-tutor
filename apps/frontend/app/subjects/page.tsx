@@ -6,7 +6,6 @@ import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import type { Subject, User } from "@/types";
 import EmptyState from "@/components/EmptyState";
-import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import Header from "@/components/Header";
@@ -37,7 +36,6 @@ export default function HomePage() {
       days_overdue: number;
     }>
   >([]);
-  // Sprint 13: состояние поиска (case-insensitive contains).
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -45,15 +43,9 @@ export default function HomePage() {
       .me()
       .then(setUser)
       .catch((err: unknown) => {
-        // Sprint 2.6 — стираем токен ТОЛЬКО при 401/403 (реально невалидный).
-        // При 5xx или network-glitch оставляем токен, чтобы пользователь
-        // не вылетал на /login при временных сбоях.
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
-          // Sprint 27: setToken removed
           router.push("/login");
         } else {
-          // Не 401 — не трогаем токен. user останется null, страница покажет
-          // "Привет!" без имени (это безопасно).
           console.warn("api.me() failed (non-auth):", err);
         }
       });
@@ -63,234 +55,141 @@ export default function HomePage() {
     api.dueForReview(10).then(setDueReview).catch(() => {});
   }, [router]);
 
-  async function logout() {
-    try {
-      await api.logout();
-    } catch {
-      // ignore network/logout cleanup errors; redirect anyway
-    }
-    router.push("/login");
-  }
+  const q = searchQuery.trim().toLowerCase();
+  const filtered = q
+    ? subjects.filter((s) => s.name.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q))
+    : subjects;
+  const readyCount = subjects.filter((s) => s.mvp_status === "mvp_ready").length;
+  const previewCount = Math.max(subjects.length - readyCount, 0);
 
   return (
-    <main className="min-h-screen bg-app">
-      <Header user={user} title={user ? `Привет, ${user.display_name}` : "AI Tutor"} />
-      <section className="mx-auto max-w-5xl p-6">
-        <div className="mb-6 rounded-modern-lg border border-border bg-surface p-5 shadow-soft">
-          <h1 className="text-2xl font-bold text-fg">Выбери предмет и начни заниматься</h1>
-          <p className="mt-1 text-sm text-fg-muted">
-            Спокойный учебный маршрут: тема → объяснение → практика → обратная связь.
-            {aiOk === true && aiModel && (
-              <span className="ml-2 inline-block rounded-full bg-success/10 px-2 py-0.5 text-xs text-success">
-                AI: {aiModel}
-              </span>
-            )}
-            {aiOk === false && (
-              <span className="ml-2 inline-block rounded-full bg-warning/10 px-2 py-0.5 text-xs text-warning">
-                AI недоступен
-              </span>
-            )}
-          </p>
-        </div>
-        <div className="mb-4 flex flex-wrap gap-2">
-          <Link
-            href="/diagnostic"
-            className="rounded-md bg-emerald-100 px-3 py-1.5 text-sm font-medium text-emerald-800 hover:bg-emerald-200"
-          >
-            Диагностика
-          </Link>
-          <Link
-            href="/link-parent"
-            className="rounded-md bg-violet-100 px-3 py-1.5 text-sm font-medium text-violet-800 hover:bg-violet-200"
-          >
-            Привязать родителя
-          </Link>
-          {user?.role === "parent" && (
-            <Link
-              href="/parents"
-              className="rounded-md bg-pink-100 px-3 py-1.5 text-sm font-medium text-pink-800 hover:bg-pink-200"
-            >
-              Родительский кабинет
-            </Link>
-          )}
-          {user?.role === "admin" && (
-            <Link
-              href="/admin"
-              className="rounded-md bg-amber-100 px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-200"
-            >
-              Админ-панель
-            </Link>
-          )}
-          {(user?.role === "teacher" || user?.role === "admin") && (
-            <Link
-              href="/teacher"
-              className="rounded-md bg-sky-100 px-3 py-1.5 text-sm font-medium text-sky-800 hover:bg-sky-200"
-            >
-              Учительская
-            </Link>
-          )}
+    <main className="premium-shell">
+      <Header user={user} title={user ? `AI Tutor · ${user.display_name}` : "AI Tutor"} />
+      <section className="premium-container px-2 py-8 sm:px-4 sm:py-10">
+        <div className="premium-hero p-6 sm:p-9 lg:p-12">
+          <div className="grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
+            <div>
+              <div className="premium-kicker">Neon Coast Learning · Pilot MVP</div>
+              <h1 className="premium-title mt-5 max-w-4xl text-5xl font-black sm:text-6xl lg:text-7xl">
+                Учёба, которая выглядит как продукт будущего.
+              </h1>
+              <p className="premium-copy mt-5 max-w-2xl text-lg sm:text-xl">
+                Выбери предмет, начни тему и двигайся по маршруту: объяснение, практика, обратная связь, прогресс для взрослого.
+              </p>
+              <div className="premium-chip-row mt-7 flex flex-wrap gap-3 text-sm">
+                <Link href="/diagnostic">Диагностика</Link>
+                <Link href="/link-parent">Привязать родителя</Link>
+                {user?.role === "parent" && <Link href="/parents">Родительский кабинет</Link>}
+                {user?.role === "admin" && <Link href="/admin">Админ-панель</Link>}
+                {(user?.role === "teacher" || user?.role === "admin") && <Link href="/teacher">Учительская</Link>}
+              </div>
+            </div>
+
+            <aside className="premium-panel p-5 text-white">
+              <div className="text-xs uppercase tracking-[0.24em] text-white/55">System Pulse</div>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <Metric label="Предметов" value={subjects.length || "—"} />
+                <Metric label="MVP-ready" value={readyCount || "—"} />
+                <Metric label="Preview" value={previewCount || "—"} />
+                <Metric label="AI" value={aiOk === null ? "…" : aiOk ? "ON" : "OFF"} tone={aiOk ? "good" : "warn"} />
+              </div>
+              {aiOk === true && aiModel && <p className="mt-4 text-xs text-white/60">Модель: {aiModel}</p>}
+            </aside>
+          </div>
         </div>
 
-      {dueReview.length > 0 && (
-        <section className="mt-6 rounded-xl border border-violet-200 bg-violet-50 p-4">
-          <h2 className="text-base font-semibold text-violet-900">🔄 Сегодня к повторению</h2>
-          <p className="mt-1 text-sm text-violet-800">
-            Интервальное повторение помогает закрепить тему надолго. Не обязательно
-            все сразу — начни с просроченных.
-          </p>
-          <ul className="mt-2 space-y-1 text-sm">
-            {dueReview.slice(0, 5).map((d) => (
-              <li key={d.topic_id}>
-                <Link
-                  href={`/topics/${d.topic_id}`}
-                  className="flex items-center justify-between rounded-md px-2 py-1 hover:bg-violet-100"
-                >
-                  <span>
-                    <span className="text-violet-700">{d.subject_name}:</span>{" "}
-                    {d.topic_name}
-                  </span>
-                  <span className="text-xs text-violet-700">
-                    {d.days_overdue > 0
-                      ? `просрочено на ${d.days_overdue}д`
-                      : d.days_overdue === 0
-                        ? "сегодня"
-                        : `через ${-d.days_overdue}д`}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+        {(dueReview.length > 0 || review.length > 0) && (
+          <section className="mt-7 grid gap-4 lg:grid-cols-2">
+            {dueReview.length > 0 && (
+              <ActionPanel title="Сегодня к повторению" tone="violet" items={dueReview.slice(0, 4).map((d) => ({ href: `/topics/${d.topic_id}`, title: d.topic_name, meta: `${d.subject_name} · ${d.days_overdue > 0 ? `просрочено ${d.days_overdue}д` : "сегодня"}` }))} />
+            )}
+            {review.length > 0 && (
+              <ActionPanel title="Стоит повторить" tone="amber" items={review.slice(0, 4).map((r) => ({ href: `/topics/${r.topic_id}`, title: r.topic_name, meta: `${r.subject_name} · уверенность ${Math.round(r.mastery_score * 100)}%` }))} />
+            )}
+          </section>
+        )}
 
-      {review.length > 0 && (
-        <section className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <h2 className="text-base font-semibold text-amber-900">Стоит повторить</h2>
-          <p className="mt-1 text-sm text-amber-800">
-            Эти темы давались труднее всего. Пара упражнений — и будет лучше.
-          </p>
-          <ul className="mt-2 space-y-1 text-sm">
-            {review.slice(0, 5).map((r) => (
-              <li key={r.topic_id}>
-                <Link
-                  href={`/topics/${r.topic_id}`}
-                  className="flex items-center justify-between rounded-md px-2 py-1 hover:bg-amber-100"
-                >
-                  <span>
-                    <span className="text-amber-700">{r.subject_name}:</span> {r.topic_name}
-                  </span>
-                  <span className="text-xs text-amber-700">
-                    уверенность {Math.round(r.mastery_score * 100)}%
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* Sprint 13: quick search filter для предметов.
-          - Без IFFE: filteredSubjects = subjects.filter(...) inline.
-          - Пустое состояние если ничего не найдено. */}
-      {(() => {
-        const q = searchQuery.trim().toLowerCase();
-        const filtered = q
-          ? subjects.filter(
-              (s) =>
-                s.name.toLowerCase().includes(q) ||
-                s.description?.toLowerCase().includes(q),
-            )
-          : subjects;
-        return (
-          filtered.length > 0 && (
-            <section className="mt-6">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-lg font-semibold">Предметы</h2>
-                <span className="text-xs text-slate-500">
-                  {q
-                    ? `${filtered.length} из ${subjects.length} найдено`
-                    : `${subjects.length} предмета`}
-                </span>
+        <section className="mt-8">
+          <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="premium-kicker">Subject Grid</div>
+              <h2 className="premium-title mt-3 text-3xl font-black sm:text-5xl">Выбери направление</h2>
+              <p className="premium-copy mt-2 max-w-xl">Готовые темы помечены как MVP-ready. Остальные предметы открыты как preview, чтобы не обещать качество раньше времени.</p>
+            </div>
+            <div className="w-full lg:w-[420px]">
+              <label htmlFor="subject-search" className="sr-only">Поиск предмета</label>
+              <Input
+                id="subject-search"
+                type="search"
+                inputMode="search"
+                placeholder="Поиск: математика, русский, физика…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-12 rounded-2xl border-white/30 bg-white/95 px-5 shadow-glow"
+              />
+              <div className="mt-2 text-right text-xs text-white/55">
+                {q ? `${filtered.length} из ${subjects.length} найдено` : `${subjects.length} предметов`}
               </div>
+            </div>
+          </div>
 
-              {/* Sprint 13: quick search filter.
-                  Большой плюс для детей — позволяет быстро найти предмет.
-                  Input имеет label для screen-reader, placeholder объясняет. */}
-              <div className="mt-3">
-                <label htmlFor="subject-search" className="sr-only">
-                  Поиск предмета
-                </label>
-                <Input
-                  id="subject-search"
-                  type="search"
-                  inputMode="search"
-                  placeholder="🔍 Поиск предмета (математика, русский...)"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                {filtered.map((s: Subject, idx: number) => (
-                  <Link
-                    key={s.id}
-                    href={`/subjects/${s.id}`}
-                    className="group block animate-slide-up"
-                    style={{ animationDelay: `${Math.min(idx * 30, 300)}ms` }}
-                  >
-                    <Card
-                      variant="elevated"
-                      padding="md"
-                      interactive
-                      className="h-full"
-                    >
-                      <div
-                        className="mb-3 flex size-12 items-center justify-center rounded-lg text-2xl"
-                        style={{
-                          background: `linear-gradient(135deg, ${s.color || "#6366f1"}20, ${s.color || "#6366f1"}05)`,
-                        }}
-                        aria-hidden="true"
-                      >
+          {filtered.length > 0 ? (
+            <div className="grid auto-rows-fr gap-5 md:grid-cols-2 xl:grid-cols-4">
+              {filtered.map((s, idx) => (
+                <Link key={s.id} href={`/subjects/${s.id}`} className="group block animate-slide-up" style={{ animationDelay: `${Math.min(idx * 35, 350)}ms` }}>
+                  <article className={`premium-tile h-full p-5 transition-modern ${s.mvp_status === "mvp_ready" ? "premium-tile-featured md:col-span-2" : ""}`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex size-14 items-center justify-center rounded-2xl brand-gradient text-3xl text-white shadow-glow">
                         {s.icon || "📘"}
                       </div>
-                      <h3 className="font-semibold text-fg group-hover:text-brand-500 transition-modern">
-                        {s.name}
-                      </h3>
-                      {s.description && (
-                        <p className="mt-1 line-clamp-2 text-sm text-fg-muted">
-                          {s.description}
-                        </p>
-                      )}
-                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-fg-subtle">
-                        <Badge variant="outline" size="sm">
-                          7 класс
-                        </Badge>
-                        <Badge variant={s.mvp_status === "mvp_ready" ? "success" : "warning"} size="sm">
-                          {s.mvp_status === "mvp_ready" ? "MVP-ready" : "Preview"}
-                        </Badge>
-                      </div>
-                      {s.support_note && (
-                        <p className="mt-2 text-xs text-fg-subtle">{s.support_note}</p>
-                      )}
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-
-              {/* Sprint 13: пустое состояние когда ничего не найдено */}
-              {q && filtered.length === 0 && (
-                <EmptyState
-                  icon="🔍"
-                  title={`Ничего не найдено по «${searchQuery}»`}
-                  description="Попробуй другой запрос, например: матем, русск, физика"
-                  variant="neutral"
-                />
-              )}
-            </section>
-          )
-        );
-      })()}
+                      <Badge variant={s.mvp_status === "mvp_ready" ? "success" : "warning"} size="sm">
+                        {s.mvp_status === "mvp_ready" ? "MVP-ready" : "Preview"}
+                      </Badge>
+                    </div>
+                    <h3 className="mt-5 text-2xl font-black tracking-tight text-[#171022] transition-modern group-hover:text-brand-600">
+                      {s.name}
+                    </h3>
+                    {s.description && <p className="mt-2 line-clamp-3 text-sm text-[#4a3d5d]">{s.description}</p>}
+                    <p className="mt-4 text-xs leading-relaxed text-[#6b5a80]">{s.support_note}</p>
+                    <div className="mt-5 flex items-center justify-between border-t border-brand-200/60 pt-4 text-xs font-bold uppercase tracking-[0.16em] text-brand-700">
+                      <span>7 класс</span>
+                      <span>Открыть →</span>
+                    </div>
+                  </article>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <EmptyState icon="🔍" title={`Ничего не найдено по «${searchQuery}»`} description="Попробуй другой запрос, например: матем, русск, физика" variant="neutral" />
+          )}
+        </section>
       </section>
     </main>
+  );
+}
+
+function Metric({ label, value, tone = "neutral" }: { label: string; value: string | number; tone?: "neutral" | "good" | "warn" }) {
+  return (
+    <div className="rounded-2xl border border-white/12 bg-white/8 p-4 backdrop-blur">
+      <div className="text-[11px] uppercase tracking-[0.18em] text-white/50">{label}</div>
+      <div className={`mt-1 text-2xl font-black ${tone === "good" ? "text-[#14d87a]" : tone === "warn" ? "text-[#ffb000]" : "text-white"}`}>{value}</div>
+    </div>
+  );
+}
+
+function ActionPanel({ title, items, tone }: { title: string; tone: "violet" | "amber"; items: Array<{ href: string; title: string; meta: string }> }) {
+  const accent = tone === "violet" ? "text-[#c7b7ff]" : "text-[#ffd28a]";
+  return (
+    <div className="premium-panel p-5 text-white">
+      <h2 className={`text-lg font-black ${accent}`}>{title}</h2>
+      <div className="mt-3 space-y-2">
+        {items.map((item) => (
+          <Link key={item.href} href={item.href} className="block rounded-2xl border border-white/10 bg-white/8 p-3 transition-modern hover:bg-white/14">
+            <div className="font-bold text-white">{item.title}</div>
+            <div className="mt-1 text-xs text-white/55">{item.meta}</div>
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }

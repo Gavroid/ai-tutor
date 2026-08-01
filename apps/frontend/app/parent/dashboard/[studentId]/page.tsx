@@ -140,15 +140,15 @@ export default function ParentDashboardPage() {
   const s = dash.student;
 
   return (
-    <main className="mx-auto max-w-5xl p-6">
-      <header className="border-b border-slate-200 pb-3">
-        <Link href="/parents" className="text-sm text-sky-600 hover:underline">
+    <main className="premium-shell min-h-screen p-4 sm:p-8">
+      <header className="premium-hero p-6 text-white sm:p-9">
+        <Link href="/parents" className="text-sm font-bold text-white/70 hover:text-white">
           ← К списку детей
         </Link>
         <div className="mt-1 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Дашборд: {s.display_name}</h1>
-            <p className="mt-1 text-sm text-slate-600">
+            <h1 className="premium-title text-4xl font-black sm:text-6xl">Дашборд: {s.display_name}</h1>
+            <p className="premium-copy mt-2 text-sm">
               Обновлено:{" "}
               {new Date(dash.generated_at).toLocaleString("ru-RU", {
                 day: "2-digit",
@@ -162,15 +162,15 @@ export default function ParentDashboardPage() {
         </div>
       </header>
 
-      <section className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-4 shadow-sm">
-        <div className="text-xs uppercase tracking-wide text-sky-700">Что важно сейчас</div>
-        <p className="mt-1 text-sm font-medium text-sky-950">{dash.summary}</p>
+      <section className="premium-panel mt-4 p-5 text-white shadow-glow">
+        <div className="text-xs uppercase tracking-[0.18em] text-white/55">Что важно сейчас</div>
+        <p className="mt-2 text-base font-semibold text-white">{dash.summary}</p>
         <div className="mt-3 grid gap-2 md:grid-cols-3">
           {dash.recommendations.map((rec, idx) => (
             <RecommendationCard key={`${rec.title}-${idx}`} rec={rec} />
           ))}
         </div>
-        <div className="mt-3 text-xs text-sky-800">Последняя активность: {dash.last_activity_label}</div>
+        <div className="mt-3 text-xs text-white/60">Последняя активность: {dash.last_activity_label}</div>
       </section>
 
       {/* KPI карточки */}
