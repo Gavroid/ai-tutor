@@ -62,12 +62,12 @@ export default function SubjectPage() {
     <main className="premium-shell">
       <Header user={user} backHref="/subjects" backLabel="Все предметы" title={subject ? `${subject.icon || "📘"} ${subject.name}` : "Предмет"} />
 
-      <section className="premium-container px-2 py-8 sm:px-4 sm:py-10">
-        <div className="premium-hero p-6 sm:p-9 lg:p-12">
+      <section className="premium-container px-1 py-5 sm:px-4 sm:py-10">
+        <div className="premium-hero p-5 sm:p-9 lg:p-12">
           <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
             <div>
               <div className="premium-kicker">Learning Route</div>
-              <h1 className="premium-title mt-5 text-5xl font-black sm:text-6xl lg:text-7xl">
+              <h1 className="premium-title mt-5 text-4xl font-black sm:text-6xl lg:text-7xl">
                 {subject?.name || "Загружаем предмет…"}
               </h1>
               {subject?.description && <p className="premium-copy mt-5 max-w-2xl text-lg">{subject.description}</p>}
@@ -93,7 +93,7 @@ export default function SubjectPage() {
         {!loading && !error && topics.length === 0 && <Card variant="flat" padding="lg" className="mt-6 text-sm text-[#4a3d5d]">В этом предмете пока нет тем.</Card>}
 
         <section className="mt-8">
-          <div className="mb-4 flex items-end justify-between gap-4">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <div className="premium-kicker">Topic Deck</div>
               <h2 className="premium-title mt-3 text-3xl font-black sm:text-5xl">Маршрут тем</h2>
@@ -107,7 +107,7 @@ export default function SubjectPage() {
             {topics.map((topic, index) => (
               <li key={topic.id}>
                 <Link href={`/topics/${topic.id}`} className="group block">
-                  <article className="premium-tile flex h-full items-center justify-between gap-5 p-5 transition-modern">
+                  <article className="premium-tile flex h-full flex-col gap-4 p-5 transition-modern sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-start gap-4">
                       <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl brand-gradient text-sm font-black text-white shadow-glow">
                         {String(index + 1).padStart(2, "0")}

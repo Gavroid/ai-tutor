@@ -389,7 +389,7 @@ html.dark .lesson-readable {
 .premium-shell {
   position: relative;
   min-height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at 14% 12%, rgba(255, 47, 179, 0.36), transparent 30rem),
     radial-gradient(circle at 88% 10%, rgba(25, 246, 255, 0.22), transparent 28rem),
@@ -534,4 +534,72 @@ html.dark .lesson-readable {
   .no-print { display: none !important; }
   body { font-size: 12pt; line-height: 1.4; color: black; background: white; }
   a::after { content: " (" attr(href) ")"; font-size: 90%; }
+}
+
+
+/* ============================================================ */
+/* 12. Mobile comfort pass */
+/* ============================================================ */
+
+.mobile-scroll-safe {
+  min-height: calc(100dvh - 65px);
+  height: calc(100dvh - 65px);
+}
+
+@media (max-width: 640px) {
+  html, body {
+    font-size: 16px;
+  }
+
+  .premium-shell {
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  .premium-shell::before {
+    opacity: 0.25;
+    background-size: 48px 48px;
+  }
+
+  .premium-container {
+    width: min(100% - 18px, 1480px);
+  }
+
+  .premium-hero {
+    border-radius: 26px;
+    box-shadow: 0 28px 80px -56px rgba(0,0,0,0.86), inset 0 1px 0 rgba(255,255,255,0.16);
+  }
+
+  .premium-title {
+    letter-spacing: -0.04em;
+    line-height: 0.98;
+  }
+
+  .premium-copy {
+    font-size: 0.98rem;
+    line-height: 1.55;
+  }
+
+  .premium-panel,
+  .premium-tile {
+    border-radius: 24px;
+  }
+
+  .premium-chip-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .premium-chip-row a,
+  .premium-chip-row button,
+  .premium-chip {
+    min-height: 44px;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .lesson-stage {
+    border-radius: 24px;
+  }
 }

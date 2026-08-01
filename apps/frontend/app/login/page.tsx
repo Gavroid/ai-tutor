@@ -58,16 +58,16 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="premium-shell flex min-h-screen items-center justify-center p-4 sm:p-8">
-      <section className="premium-container grid min-h-[82vh] overflow-hidden rounded-[44px] border border-white/12 bg-white/8 shadow-glow backdrop-blur-2xl lg:grid-cols-[1.08fr_0.92fr]">
-        <div className="relative flex flex-col justify-between overflow-hidden p-7 text-white sm:p-10 lg:p-14">
+    <main className="premium-shell flex min-h-dvh items-center justify-center p-3 sm:p-8">
+      <section className="premium-container grid overflow-hidden rounded-[28px] border border-white/12 bg-white/8 shadow-glow backdrop-blur-2xl sm:min-h-[82vh] sm:rounded-[44px] lg:grid-cols-[1.08fr_0.92fr]">
+        <div className="relative flex min-h-[40dvh] flex-col justify-between overflow-hidden p-6 text-white sm:p-10 lg:min-h-0 lg:p-14">
           <div className="absolute inset-0 -z-10 bg-vice-city opacity-90" />
           <div className="premium-kicker w-fit">AI Tutor · Pilot Console</div>
           <div>
-            <h1 className="premium-title max-w-3xl text-6xl font-black sm:text-7xl lg:text-8xl">
+            <h1 className="premium-title max-w-3xl text-4xl font-black sm:text-7xl lg:text-8xl">
               Вход в учебный неон.
             </h1>
-            <p className="premium-copy mt-6 max-w-xl text-xl">
+            <p className="premium-copy mt-4 max-w-xl text-base sm:mt-6 sm:text-xl">
               Одна точка входа для ученика, родителя, учителя и администратора. Стильно, но без потери учебной ясности.
             </p>
           </div>
@@ -78,7 +78,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="lesson-readable flex items-center justify-center p-6 sm:p-10">
+        <div className="lesson-readable flex items-center justify-center p-5 sm:p-10">
           <div className="w-full max-w-md">
             <div className="mb-7">
               <div className="inline-flex size-14 items-center justify-center rounded-2xl brand-gradient text-3xl text-white shadow-glow">🎓</div>

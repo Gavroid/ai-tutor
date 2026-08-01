@@ -369,16 +369,16 @@ export default function TopicPage() {
   }
 
   return (
-    <main className="min-h-screen bg-app">
+    <main className="min-h-dvh bg-app">
       <Header user={user} backHref="/subjects" backLabel="Все предметы" title={topic?.name || "Тема"} />
 
       <div
         onCopy={(event) => event.preventDefault()}
         onCut={(event) => event.preventDefault()}
-        className="mx-auto flex h-[calc(100vh-65px)] max-w-4xl select-none flex-col px-3 py-4 sm:px-4"
+        className="mobile-scroll-safe mx-auto flex max-w-4xl select-none flex-col px-2 py-3 sm:px-4 sm:py-4"
       >
       <Card variant="flat" padding="md" className="mb-3">
-      <section className="flex flex-wrap items-center gap-2">
+      <section className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <Button
           type="button"
           onClick={explain}
@@ -386,6 +386,7 @@ export default function TopicPage() {
           loading={busy && !exercise}
           variant="primary"
           size="sm"
+          className="min-h-11 w-full sm:w-auto"
         >
           Объяснить
         </Button>
@@ -399,6 +400,7 @@ export default function TopicPage() {
           disabled={busy}
           variant="secondary"
           size="sm"
+          className="min-h-11 w-full sm:w-auto"
         >
           Практика
         </Button>
@@ -411,7 +413,7 @@ export default function TopicPage() {
             type="button"
             onClick={() => setShowClearConfirm(true)}
             aria-label="Очистить чат"
-            className="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+            className="min-h-11 rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-50 sm:min-h-0 sm:py-1.5"
           >
             🧹 Очистить
           </button>
@@ -547,7 +549,7 @@ export default function TopicPage() {
       {/* Sprint 42 recovery data remains available via API, but the banner is hidden in MVP lesson flow.
           It was visually noisy during pilot walkthroughs and did not require user action. */}
 
-      <section ref={scrollRef} className="mt-4 flex-1 space-y-3 overflow-y-auto rounded-xl bg-slate-50 p-4">
+      <section ref={scrollRef} className="mt-3 flex-1 space-y-3 overflow-y-auto rounded-[24px] bg-white/92 p-3 shadow-soft sm:mt-4 sm:rounded-xl sm:p-4">
         {msgs.length === 0 && (
           <p className="text-sm text-slate-500">
             Напиши вопрос репетитору или нажми «Объясни тему» / «Дай задание».
@@ -560,7 +562,7 @@ export default function TopicPage() {
           <div
             key={i}
             data-testid={`chat-message-${m.role}`}
-            className={`max-w-[85%] overflow-hidden rounded-2xl px-4 py-2 text-sm shadow-sm ${
+            className={`max-w-[94%] overflow-hidden rounded-2xl px-4 py-3 text-sm shadow-sm sm:max-w-[85%] ${
               m.role === "user"
                 ? "ml-auto bg-sky-600 text-white"
                 : "mr-auto bg-white text-slate-900"
@@ -625,9 +627,9 @@ export default function TopicPage() {
           e.preventDefault();
           send();
         }}
-        className="mt-3 flex flex-col gap-1"
+        className="mt-3 flex flex-col gap-2 pb-[env(safe-area-inset-bottom)]"
       >
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -636,7 +638,7 @@ export default function TopicPage() {
             placeholder="Задай вопрос репетитору…"
             maxLength={500}
             aria-describedby="input-hint"
-            className="flex-1 rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+            className="min-h-12 flex-1 rounded-2xl border border-slate-300 px-4 py-3 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
             disabled={busy}
           />
           {voiceEnabled && (
@@ -649,7 +651,7 @@ export default function TopicPage() {
           <button
             type="submit"
             disabled={busy || !input.trim()}
-            className="rounded-lg bg-sky-600 px-4 py-2 font-semibold text-white hover:bg-sky-500 disabled:opacity-50"
+            className="min-h-12 rounded-2xl bg-sky-600 px-5 py-3 font-semibold text-white hover:bg-sky-500 disabled:opacity-50 sm:min-h-0 sm:py-2"
           >
             {/* Sprint 15.1: визуальный feedback для disabled состояния */}
             {busy ? "⏳" : "Отправить"}

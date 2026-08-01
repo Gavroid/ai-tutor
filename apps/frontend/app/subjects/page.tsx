@@ -65,12 +65,12 @@ export default function HomePage() {
   return (
     <main className="premium-shell">
       <Header user={user} title={user ? `AI Tutor · ${user.display_name}` : "AI Tutor"} />
-      <section className="premium-container px-2 py-8 sm:px-4 sm:py-10">
-        <div className="premium-hero p-6 sm:p-9 lg:p-12">
+      <section className="premium-container px-1 py-5 sm:px-4 sm:py-10">
+        <div className="premium-hero p-5 sm:p-9 lg:p-12">
           <div className="grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
             <div>
               <div className="premium-kicker">Neon Coast Learning · Pilot MVP</div>
-              <h1 className="premium-title mt-5 max-w-4xl text-5xl font-black sm:text-6xl lg:text-7xl">
+              <h1 className="premium-title mt-5 max-w-4xl text-4xl font-black sm:text-6xl lg:text-7xl">
                 Учёба, которая выглядит как продукт будущего.
               </h1>
               <p className="premium-copy mt-5 max-w-2xl text-lg sm:text-xl">
@@ -134,7 +134,7 @@ export default function HomePage() {
           </div>
 
           {filtered.length > 0 ? (
-            <div className="grid auto-rows-fr gap-5 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid auto-rows-fr gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {filtered.map((s, idx) => (
                 <Link key={s.id} href={`/subjects/${s.id}`} className="group block animate-slide-up" style={{ animationDelay: `${Math.min(idx * 35, 350)}ms` }}>
                   <article className={`premium-tile h-full p-5 transition-modern ${s.mvp_status === "mvp_ready" ? "premium-tile-featured md:col-span-2" : ""}`}>
