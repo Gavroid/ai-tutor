@@ -484,8 +484,8 @@ export default function TopicPage() {
                       }}
                       className={`min-h-12 rounded-2xl border px-4 py-3 text-left text-sm font-bold ${
                         userAnswer === opt
-                          ? "border-emerald-500 bg-emerald-50 text-emerald-950"
-                          : "border-slate-300 bg-white text-slate-900 hover:border-emerald-300"
+                          ? "prism-option-button-active"
+                          : "prism-option-button hover:border-[color:var(--prism-accent)]"
                       }`}
                     >
                       {opt}
@@ -502,7 +502,7 @@ export default function TopicPage() {
                     setActionError(null);
                   }}
                   placeholder={exercise.type === "numeric" ? "Числовой ответ" : "Текстовый ответ"}
-                  className="mt-4 min-h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900"
+                  className="prism-input mt-4"
                 />
               ) : null}
               <button
@@ -519,7 +519,7 @@ export default function TopicPage() {
                   {checkResult.first_error && <div className="mt-1">Шаг ошибки: {checkResult.first_error}</div>}
                   <SafeMarkdown text={checkResult.explanation} className="mt-2" />
                   {!checkResult.is_correct && checkResult.score < 0.6 && (
-                    <div className="mt-3 rounded-2xl bg-white/70 p-3 text-xs text-rose-900">Попроси подсказку или попробуй ещё раз — репетитор поможет без раскрытия ответа.</div>
+                    <div className="mt-3 rounded-2xl bg-[color:var(--prism-panel-solid)]/70 p-3 text-xs text-[color:var(--prism-ink)]">Попроси подсказку или попробуй ещё раз — репетитор поможет без раскрытия ответа.</div>
                   )}
                   {checkResult.is_correct && (
                     <button
@@ -543,7 +543,7 @@ export default function TopicPage() {
 
         <aside className="prism-card pad flex min-h-[420px] flex-col">
           <div className="prism-kicker">Tutor Chat</div>
-          <section ref={scrollRef} className="prism-scroll mt-4 flex-1 space-y-3 rounded-[28px] border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-3">
+          <section ref={scrollRef} className="prism-chat-surface prism-scroll mt-4 flex-1 space-y-3 rounded-[28px] border border-[color:var(--prism-line)] p-3">
             {msgs.length === 0 && <p className="text-sm text-[color:var(--prism-muted)]">Напиши вопрос репетитору или нажми «Объяснить» / «Практика».</p>}
             {msgs.map((m, i) => {
               const isLastAssistant = i === msgs.length - 1 && m.role === "assistant";
@@ -552,7 +552,7 @@ export default function TopicPage() {
                 <div
                   key={i}
                   data-testid={`chat-message-${m.role}`}
-                  className={`max-w-[96%] overflow-hidden rounded-3xl px-4 py-3 text-sm shadow-sm ${m.role === "user" ? "ml-auto bg-[color:var(--prism-accent)] text-white" : "mr-auto bg-white text-slate-900"}`}
+                  className={`max-w-[96%] overflow-hidden rounded-3xl px-4 py-3 text-sm shadow-sm ${m.role === "user" ? "ml-auto bg-[color:var(--prism-accent)] text-white" : "prism-chat-bubble-assistant mr-auto"}`}
                 >
                   {m.role === "user" ? (
                     <span className="whitespace-pre-wrap break-words">{m.content}</span>
@@ -581,7 +581,7 @@ export default function TopicPage() {
                 </div>
               );
             })}
-            {busy && <div className="mr-auto rounded-3xl bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">AI думает…</div>}
+            {busy && <div className="prism-chat-bubble-assistant mr-auto rounded-3xl px-4 py-3 text-sm shadow-sm">AI думает…</div>}
           </section>
 
           <form onSubmit={(e) => { e.preventDefault(); send(); }} className="mt-3 pb-[env(safe-area-inset-bottom)]">

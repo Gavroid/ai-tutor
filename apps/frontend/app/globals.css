@@ -979,7 +979,7 @@ html.dark {
 
 .prism-lesson-grid {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 340px;
+  grid-template-columns: 260px minmax(0, 1fr) minmax(460px, 0.86fr);
   gap: 16px;
   height: calc(100dvh - 94px);
   padding: 16px;
@@ -997,4 +997,59 @@ html.dark {
   .prism-bento { grid-template-columns: 1fr; }
   .prism-lesson-grid { grid-template-columns: 1fr; height: auto; min-height: calc(100dvh - 78px); padding: 8px; }
   .prism-card.pad { padding: 16px; }
+}
+
+
+/* ============================================================ */
+/* 15. Prism V3 lesson/dark readability hotfix */
+/* ============================================================ */
+
+.prism-chat-surface {
+  background: color-mix(in srgb, var(--prism-panel-solid) 72%, transparent);
+}
+.prism-chat-bubble-assistant {
+  background: color-mix(in srgb, var(--prism-panel-solid) 92%, white 8%);
+  color: var(--prism-ink);
+}
+.prism-option-button {
+  background: color-mix(in srgb, var(--prism-panel-solid) 90%, transparent);
+  color: var(--prism-ink);
+  border-color: var(--prism-line);
+}
+.prism-option-button-active {
+  background: color-mix(in srgb, var(--prism-green) 16%, var(--prism-panel-solid));
+  color: var(--prism-ink);
+  border-color: var(--prism-green);
+}
+
+html.dark .lesson-readable {
+  background: color-mix(in srgb, var(--prism-panel-solid) 88%, #050711 12%);
+  color: var(--prism-ink);
+  border-color: var(--prism-line);
+}
+html.dark .prism-chat-surface {
+  background: color-mix(in srgb, var(--prism-panel-solid) 82%, transparent);
+}
+html.dark .prism-chat-bubble-assistant {
+  background: color-mix(in srgb, var(--prism-panel-solid) 92%, #1f2945 8%);
+  color: var(--prism-ink);
+}
+html.dark .prism-option-button {
+  background: color-mix(in srgb, var(--prism-panel-solid) 88%, #050711 12%);
+  color: var(--prism-ink);
+  border-color: var(--prism-line);
+}
+html.dark .prism-option-button-active {
+  background: color-mix(in srgb, var(--prism-green) 18%, var(--prism-panel-solid));
+  color: var(--prism-ink);
+}
+
+@media (min-width: 1280px) {
+  .prism-lesson-grid { grid-template-columns: 260px minmax(0, 1fr) minmax(500px, 0.9fr); }
+}
+@media (min-width: 1600px) {
+  .prism-lesson-grid { grid-template-columns: 280px minmax(0, 1fr) minmax(600px, 0.92fr); }
+}
+@media (max-width: 980px) {
+  .prism-lesson-grid { grid-template-columns: 1fr; }
 }
