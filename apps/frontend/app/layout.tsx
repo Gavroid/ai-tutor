@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import ThemeToggle from "@/components/ThemeToggle";
 
 export const metadata: Metadata = {
   title: "AI-репетитор 7 класса",
@@ -64,10 +63,6 @@ export default function RootLayout({
           Перейти к содержимому
         </a>
         <div id="main-content">{children}</div>
-        {/* Sprint 5.3: переключатель темы в правом нижнем углу (фиксированный). */}
-        <div className="fixed bottom-4 right-4 z-50">
-          <ThemeToggle />
-        </div>
         {/* Sprint 98: register service worker для PWA offline support. */}
         <script
           dangerouslySetInnerHTML={{
