@@ -2,64 +2,64 @@
 
 import { useEffect, useState } from "react";
 
-/**
- * Sprint 5.3 — переключатель темы (светлая / тёмная).
- * Хранит выбор в localStorage + применяет class="dark" на <html>.
- */
+type Theme = "light" | "dark" | "system";
+
+function systemPrefersDark(): boolean {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+function applyTheme(theme: Theme) {
+  if (typeof document === "undefined") return;
+  const resolved = theme === "system" ? (systemPrefersDark() ? "dark" : "light") : theme;
+  document.documentElement.classList.toggle("dark", resolved === "dark");
+  document.documentElement.dataset.theme = theme;
+  try {
+    localStorage.setItem("ai-tutor:theme", theme);
+  } catch {}
+}
+
+/** Premium theme switcher: light / dark / system. */
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<Theme>("system");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const saved = (typeof window !== "undefined" && localStorage.getItem("ai-tutor:theme")) as
-      | "light"
-      | "dark"
-      | null;
-    const initial: "light" | "dark" = saved ?? "light";
-    setTheme(initial);
-    applyTheme(initial);
+    const saved = (localStorage.getItem("ai-tutor:theme") as Theme | null) ?? "system";
+    setTheme(saved);
+    applyTheme(saved);
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const listener = () => {
+      const current = (localStorage.getItem("ai-tutor:theme") as Theme | null) ?? "system";
+      if (current === "system") applyTheme("system");
+    };
+    mq.addEventListener?.("change", listener);
+    return () => mq.removeEventListener?.("change", listener);
   }, []);
 
-  function applyTheme(t: "light" | "dark") {
-    if (typeof document !== "undefined") {
-      document.documentElement.classList.toggle("dark", t === "dark");
-    }
-    try {
-      localStorage.setItem("ai-tutor:theme", t);
-    } catch {
-      // localStorage может быть недоступен (приватный режим).
-    }
+  function nextTheme(): Theme {
+    if (theme === "system") return "dark";
+    if (theme === "dark") return "light";
+    return "system";
   }
 
   function toggle() {
-    const next = theme === "dark" ? "light" : "dark";
+    const next = nextTheme();
     setTheme(next);
     applyTheme(next);
   }
 
-  // До mount избегаем рендера чтобы не было flicker (light->dark jump).
-  if (!mounted) {
-    return (
-      <button
-        type="button"
-        aria-label="Переключить тему"
-        className="rounded-md bg-slate-200 px-3 py-1 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-500"
-      >
-        …
-      </button>
-    );
-  }
+  const label = theme === "system" ? "🌓 Авто" : theme === "dark" ? "☀️ Светлая" : "🌙 Тёмная";
 
   return (
     <button
       type="button"
-      onClick={toggle}
+      onClick={mounted ? toggle : undefined}
       aria-label="Переключить тему"
       data-testid="theme-toggle"
-      className="rounded-md bg-slate-200 px-3 py-1 text-xs font-medium text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+      className="rounded-full border border-white/20 bg-white/80 px-3 py-2 text-xs font-black text-[#171022] shadow-glow backdrop-blur hover:bg-white dark:bg-[#181033]/85 dark:text-white"
     >
-      {theme === "dark" ? "☀️ Светлая" : "🌙 Тёмная"}
+      {mounted ? label : "…"}
     </button>
   );
 }

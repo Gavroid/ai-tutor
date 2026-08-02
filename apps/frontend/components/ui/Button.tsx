@@ -61,10 +61,10 @@ const buttonVariants = cva(
         ].join(" "),
       },
       size: {
-        sm: "h-8 px-3 text-sm rounded",
-        md: "h-10 px-4 text-base rounded-md",
+        sm: "min-h-11 px-3 text-sm rounded-xl",
+        md: "min-h-11 px-4 text-base rounded-2xl",
         lg: "h-12 px-6 text-lg rounded-lg",
-        icon: "h-10 w-10 rounded-md",
+        icon: "h-11 w-11 rounded-2xl",
       },
       fullWidth: {
         true: "w-full",

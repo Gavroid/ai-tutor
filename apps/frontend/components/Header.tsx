@@ -35,8 +35,8 @@ export default function Header({ user, backHref, title, backLabel = "Назад"
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-brand-300/25 bg-[#120725]/82 text-white shadow-glow backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+    <header className="sticky top-0 z-30 border-b border-white/15 bg-[color-mix(in_srgb,var(--color-bg)_82%,transparent)] text-white shadow-glow backdrop-blur-xl">
+      <div className="mx-auto flex w-[min(1720px,calc(100vw-24px))] items-center justify-between px-2 py-3 sm:px-4">
         <div className="flex items-center gap-3">
           {backHref && (
             <Link

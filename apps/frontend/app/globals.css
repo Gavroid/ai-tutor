@@ -603,3 +603,126 @@ html.dark .lesson-readable {
     border-radius: 24px;
   }
 }
+
+
+/* ============================================================ */
+/* 13. Theme v2: real light/dark rendering + wide modern shell */
+/* ============================================================ */
+
+:root {
+  color-scheme: light;
+  --theme-bg-page:
+    radial-gradient(circle at 8% 5%, rgba(255, 47, 179, 0.16), transparent 30rem),
+    radial-gradient(circle at 94% 8%, rgba(25, 246, 255, 0.15), transparent 28rem),
+    linear-gradient(135deg, #fff7fb 0%, #f7fbff 36%, #fff1f7 74%, #fff8ef 100%);
+  --theme-shell-bg:
+    radial-gradient(circle at 10% 8%, rgba(255, 47, 179, 0.20), transparent 32rem),
+    radial-gradient(circle at 92% 4%, rgba(25, 246, 255, 0.16), transparent 30rem),
+    linear-gradient(135deg, #fff7fb 0%, #f5f8ff 42%, #fff1f8 100%);
+  --theme-hero-bg:
+    linear-gradient(135deg, rgba(31, 8, 58, 0.96), rgba(79, 23, 91, 0.92)),
+    radial-gradient(circle at 15% 15%, rgba(255,47,179,0.34), transparent 28rem),
+    radial-gradient(circle at 90% 18%, rgba(25,246,255,0.24), transparent 25rem);
+  --theme-hero-border: rgba(32, 18, 56, 0.12);
+  --theme-title: #fff7fb;
+  --theme-copy: rgba(255,247,251,0.78);
+  --theme-panel-bg: linear-gradient(180deg, rgba(255,255,255,0.74), rgba(255,255,255,0.42));
+  --theme-panel-border: rgba(83, 58, 253, 0.14);
+  --theme-panel-text: #171022;
+  --theme-tile-bg:
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,247,252,0.92)),
+    radial-gradient(circle at 20% 0%, rgba(255,47,179,0.12), transparent 18rem);
+  --theme-tile-border: rgba(83, 58, 253, 0.12);
+  --theme-readable-bg: rgba(255, 255, 255, 0.97);
+  --theme-input-bg: rgba(255,255,255,0.96);
+  --theme-input-text: #171022;
+  --theme-input-border: rgba(83,58,253,0.22);
+}
+
+html.dark {
+  color-scheme: dark;
+  --theme-bg-page:
+    radial-gradient(circle at 12% 8%, rgba(255, 47, 179, 0.34), transparent 28rem),
+    radial-gradient(circle at 88% 4%, rgba(25, 246, 255, 0.22), transparent 26rem),
+    radial-gradient(circle at 72% 92%, rgba(255, 138, 31, 0.20), transparent 28rem),
+    linear-gradient(135deg, #0b0620 0%, #170a36 42%, #2b1248 72%, #3a164b 100%);
+  --theme-shell-bg:
+    radial-gradient(circle at 14% 12%, rgba(255, 47, 179, 0.36), transparent 30rem),
+    radial-gradient(circle at 88% 10%, rgba(25, 246, 255, 0.22), transparent 28rem),
+    radial-gradient(circle at 70% 88%, rgba(255, 138, 31, 0.24), transparent 34rem),
+    linear-gradient(135deg, #070315 0%, #120729 38%, #27124f 70%, #40174e 100%);
+  --theme-hero-bg:
+    linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.055)),
+    radial-gradient(circle at 15% 15%, rgba(255,47,179,0.32), transparent 28rem),
+    radial-gradient(circle at 90% 18%, rgba(25,246,255,0.20), transparent 25rem);
+  --theme-hero-border: rgba(255,255,255,0.13);
+  --theme-title: #fff7fb;
+  --theme-copy: rgba(255,247,251,0.76);
+  --theme-panel-bg: linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0.055));
+  --theme-panel-border: rgba(255,255,255,0.13);
+  --theme-panel-text: #fff7fb;
+  --theme-tile-bg:
+    linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,242,250,0.88)),
+    radial-gradient(circle at 20% 0%, rgba(255,47,179,0.14), transparent 18rem);
+  --theme-tile-border: rgba(255,255,255,0.13);
+  --theme-readable-bg: rgba(255, 255, 255, 0.96);
+  --theme-input-bg: rgba(255,255,255,0.95);
+  --theme-input-text: #171022;
+  --theme-input-border: rgba(255,143,222,0.34);
+}
+
+body { background: var(--theme-bg-page); }
+
+.bg-app { background: var(--theme-shell-bg); }
+
+.premium-shell {
+  background: var(--theme-shell-bg);
+  overflow-x: hidden;
+}
+
+.premium-container {
+  width: min(1720px, calc(100vw - 40px));
+}
+
+.premium-hero {
+  border-color: var(--theme-hero-border);
+  background: var(--theme-hero-bg);
+}
+
+.premium-title { color: var(--theme-title); }
+.premium-copy { color: var(--theme-copy); }
+
+.premium-panel {
+  color: var(--theme-panel-text);
+  border-color: var(--theme-panel-border);
+  background: var(--theme-panel-bg);
+}
+
+.premium-tile {
+  border-color: var(--theme-tile-border);
+  background: var(--theme-tile-bg);
+}
+
+.lesson-readable {
+  background: var(--theme-readable-bg);
+  color: #171022;
+}
+
+input,
+textarea,
+select {
+  color-scheme: light;
+}
+
+.form-surface,
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  background-color: var(--theme-input-bg);
+  color: var(--theme-input-text);
+  border-color: var(--theme-input-border);
+}
+
+@media (max-width: 640px) {
+  .premium-container { width: min(100% - 16px, 1720px); }
+}
