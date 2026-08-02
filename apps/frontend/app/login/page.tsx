@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 
 async function landingForRole(role: string): Promise<string> {
   switch (role) {
@@ -32,9 +30,7 @@ export default function LoginPage() {
     }
   }, [router]);
 
-  function safeParse(raw: string): { role?: string } | null {
-    try { return JSON.parse(raw); } catch { return null; }
-  }
+  function safeParse(raw: string): { role?: string } | null { try { return JSON.parse(raw); } catch { return null; } }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,63 +54,55 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="premium-shell flex min-h-dvh items-center justify-center p-3 sm:p-8">
-      <section className="premium-container grid overflow-hidden rounded-[28px] border border-white/12 bg-white/8 shadow-glow backdrop-blur-2xl sm:min-h-[82vh] sm:rounded-[44px] lg:grid-cols-[1.08fr_0.92fr]">
-        <div className="relative flex min-h-[40dvh] flex-col justify-between overflow-hidden p-6 text-white sm:p-10 lg:min-h-0 lg:p-14">
-          <div className="absolute inset-0 -z-10 bg-vice-city opacity-90" />
-          <div className="premium-kicker w-fit">AI Tutor · Pilot Console</div>
-          <div>
-            <h1 className="premium-title max-w-3xl text-4xl font-black sm:text-7xl lg:text-8xl">
-              Вход в учебный неон.
-            </h1>
-            <p className="premium-copy mt-4 max-w-xl text-base sm:mt-6 sm:text-xl">
-              Одна точка входа для ученика, родителя, учителя и администратора. Стильно, но без потери учебной ясности.
-            </p>
+    <main className="prism-shell flex min-h-dvh items-center justify-center p-3 sm:p-6">
+      <section className="prism-frame grid min-h-[calc(100dvh-32px)] lg:grid-cols-[1.08fr_0.92fr]">
+        <div className="prism-layer flex flex-col justify-between p-6 sm:p-10 lg:p-14">
+          <div className="prism-topbar -mx-2 -mt-2 border-0 p-0">
+            <div className="prism-brand"><span className="prism-mark" /> Prism Tutor</div>
+            <span className="prism-pill active">Secure portal</span>
           </div>
-          <div className="grid gap-3 text-sm sm:grid-cols-3">
-            <LoginMetric label="Контур" value="MVP" />
-            <LoginMetric label="Роли" value="4" />
-            <LoginMetric label="Фокус" value="Учёба" />
+          <div className="py-10">
+            <div className="prism-kicker">Here and now</div>
+            <h1 className="prism-title">Вход в <span className="accent">учебную систему</span></h1>
+            <p className="prism-copy">Один портал для ученика, родителя, учителя и администратора. Светлая и тёмная тема работают как полноценные материалы интерфейса.</p>
+          </div>
+          <div className="prism-bento">
+            <Mini label="Student" value="Learn" />
+            <Mini label="Parent" value="Track" />
+            <Mini label="Teacher" value="Operate" />
           </div>
         </div>
 
-        <div className="lesson-readable flex items-center justify-center p-5 sm:p-10">
-          <div className="w-full max-w-md">
-            <div className="mb-7">
-              <div className="inline-flex size-14 items-center justify-center rounded-2xl brand-gradient text-3xl text-white shadow-glow">🎓</div>
-              <h2 className="mt-5 text-4xl font-black tracking-tight text-[#171022]">С возвращением</h2>
-              <p className="mt-2 text-sm text-[#5b4a6f]">Продолжи маршрут: объяснение → практика → прогресс.</p>
+        <div className="prism-layer flex items-center justify-center p-5 sm:p-10">
+          <form onSubmit={onSubmit} className="prism-card pad w-full max-w-[480px]">
+            <div className="prism-kicker">Authentication</div>
+            <h2 className="mt-4 text-4xl font-black tracking-[-0.05em]">С возвращением</h2>
+            <p className="mt-2 text-sm text-[color:var(--prism-muted)]">Продолжи маршрут: объяснение → практика → прогресс.</p>
+
+            <div className="prism-field mt-7 space-y-4">
+              <label className="block text-sm font-black" htmlFor="email">Email</label>
+              <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" placeholder="your@email.com" />
+              <label className="block text-sm font-black" htmlFor="password">Пароль</label>
+              <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" placeholder="••••••••" />
             </div>
 
-            <form className="space-y-4" onSubmit={onSubmit}>
-              <label className="block text-sm font-bold text-[#2b1248]" htmlFor="email">Email</label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" placeholder="your@email.com" />
-              <label className="block text-sm font-bold text-[#2b1248]" htmlFor="password">Пароль</label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" placeholder="••••••••" />
+            {error && <div role="alert" className="mt-4 rounded-3xl border border-red-400/30 bg-red-500/10 p-4 text-sm font-bold text-red-500">{error}</div>}
 
-              {error && <div role="alert" className="rounded-2xl border border-danger/20 bg-danger/10 px-4 py-3 text-sm font-semibold text-danger">{error}</div>}
+            <button type="submit" disabled={loading} className="prism-action primary mt-6 w-full">
+              {loading ? "Входим…" : "Войти"}
+            </button>
 
-              <Button type="submit" variant="primary" size="lg" fullWidth loading={loading}>
-                {loading ? "Входим…" : "Войти"}
-              </Button>
-            </form>
-
-            <div className="mt-7 space-y-2 text-center text-sm text-[#5b4a6f]">
-              <p>Нет аккаунта? <Link className="font-bold text-brand-600 hover:underline" href="/register">Зарегистрироваться</Link></p>
-              <p>Забыли пароль? <Link className="font-bold text-brand-600 hover:underline" href="/forgot-password">Восстановить</Link></p>
+            <div className="mt-7 space-y-2 text-center text-sm text-[color:var(--prism-muted)]">
+              <p>Нет аккаунта? <Link className="font-black text-[color:var(--prism-accent)]" href="/register">Зарегистрироваться</Link></p>
+              <p>Забыли пароль? <Link className="font-black text-[color:var(--prism-accent)]" href="/forgot-password">Восстановить</Link></p>
             </div>
-          </div>
+          </form>
         </div>
       </section>
     </main>
   );
 }
 
-function LoginMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-white/12 bg-white/10 p-4 backdrop-blur">
-      <div className="text-[11px] uppercase tracking-[0.2em] text-white/50">{label}</div>
-      <div className="mt-1 text-2xl font-black text-white">{value}</div>
-    </div>
-  );
+function Mini({ label, value }: { label: string; value: string }) {
+  return <div className="prism-card pad col-span-12 sm:col-span-4"><div className="text-[10px] font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">{label}</div><div className="mt-1 text-2xl font-black">{value}</div></div>;
 }

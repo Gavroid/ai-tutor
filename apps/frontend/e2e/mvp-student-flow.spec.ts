@@ -112,7 +112,7 @@ test.describe("MVP student learning flow", () => {
     const answer = answerForMvpQuestion(questionText, parsedGenerate.options);
     const wrongOption = parsedGenerate.options?.find((opt) => opt !== answer);
     if (wrongOption) {
-      await page.getByRole("button", { name: wrongOption }).click();
+      await page.getByRole("button", { name: wrongOption, exact: true }).click();
       const wrongResponsePromise = page.waitForResponse(
         (response) => response.url().includes("/api/v2/exercises/") && response.url().includes("/answer"),
         { timeout: 30_000 },

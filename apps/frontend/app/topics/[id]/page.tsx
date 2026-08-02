@@ -369,325 +369,242 @@ export default function TopicPage() {
   }
 
   return (
-    <main className="min-h-dvh bg-app">
+    <main className="prism-shell min-h-dvh">
       <Header user={user} backHref="/subjects" backLabel="Все предметы" title={topic?.name || "Тема"} />
 
-      <div
+      <section
         onCopy={(event) => event.preventDefault()}
         onCut={(event) => event.preventDefault()}
-        className="mobile-scroll-safe mx-auto flex max-w-4xl select-none flex-col px-2 py-3 sm:px-4 sm:py-4"
+        className="prism-lesson-grid select-none"
       >
-      <Card variant="flat" padding="md" className="mb-3">
-      <section className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <Button
-          type="button"
-          onClick={explain}
-          disabled={busy}
-          loading={busy && !exercise}
-          variant="primary"
-          size="sm"
-          className="min-h-11 w-full sm:w-auto"
-        >
-          Объяснить
-        </Button>
-        <Button
-          type="button"
-          onClick={() => {
-            const nextSeed = practiceSeed + 1;
-            setPracticeSeed(nextSeed);
-            generate(nextSeed);
-          }}
-          disabled={busy}
-          variant="secondary"
-          size="sm"
-          className="min-h-11 w-full sm:w-auto"
-        >
-          Практика
-        </Button>
+        <aside className="prism-card pad flex flex-col gap-3">
+          <div className="prism-kicker">Lesson Cockpit</div>
+          <h1 className="text-3xl font-black tracking-[-0.05em]">{topic?.name || "Тема"}</h1>
+          <p className="text-sm text-[color:var(--prism-muted)]">Объяснение, практика и чат собраны как рабочая панель занятия.</p>
 
-        {/* Sprint 15.5: кнопка Clear chat (с confirm для safety).
-            T1D-friendly: показываем вторичную кнопку сначала — очистить чат,
-            не send. Confirm dialog перед очисткой. */}
-        {msgs.length > 0 && !showClearConfirm && (
           <button
             type="button"
-            onClick={() => setShowClearConfirm(true)}
-            aria-label="Очистить чат"
-            className="min-h-11 rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-50 sm:min-h-0 sm:py-1.5"
+            onClick={explain}
+            disabled={busy}
+            className="prism-action primary w-full"
           >
-            🧹 Очистить
+            {busy && !exercise ? "AI думает…" : "Объяснить"}
           </button>
-        )}
-        {showClearConfirm && (
-          <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5">
-            <span className="text-xs text-amber-800">Удалить всю историю?</span>
-            <button
-              type="button"
-              onClick={() => {
-                setMsgs([]);
-                setExercise(null);
-                setUserAnswer("");
-                setCheckResult(null);
-                setInput("");
-                setActionError(null);
-                localStorage.removeItem(draftKey(topicId));
-                api.topicDraftClear(topicId).catch(() => {});
-                setShowClearConfirm(false);
-              }}
-              className="rounded bg-amber-600 px-2 py-0.5 text-xs font-semibold text-white hover:bg-amber-700"
-            >
-              Да, удалить
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowClearConfirm(false)}
-              className="rounded bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700 hover:bg-slate-300"
-            >
-              Отмена
-            </button>
-          </div>
-        )}
-      </section>
-      {actionError && (
-        <div role="alert" className="mt-3 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-          {actionError}
-        </div>
-      )}
-      </Card>
+          <button
+            type="button"
+            onClick={() => {
+              const nextSeed = practiceSeed + 1;
+              setPracticeSeed(nextSeed);
+              generate(nextSeed);
+            }}
+            disabled={busy}
+            className="prism-action w-full"
+          >
+            Практика
+          </button>
 
-      {exercise && (
-        <section data-testid="exercise-card" className="lesson-readable mt-4 rounded-[28px] p-5 shadow-glow">
-          <div className="text-xs uppercase tracking-wide text-emerald-700">Задание</div>
-          <SafeMarkdown text={exercise.question_text} className="mt-1" />
-          {exercise.options && exercise.options.length > 0 && (
-            <div className="mt-3 space-y-1">
-              {exercise.options.map((opt) => (
+          {msgs.length > 0 && !showClearConfirm && (
+            <button
+              type="button"
+              onClick={() => setShowClearConfirm(true)}
+              aria-label="Очистить чат"
+              className="prism-action w-full"
+            >
+              🧹 Очистить
+            </button>
+          )}
+          {showClearConfirm && (
+            <div className="rounded-3xl border border-amber-300/40 bg-amber-500/10 p-3 text-sm">
+              <div className="font-black text-amber-700 dark:text-amber-200">Удалить всю историю?</div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
                 <button
-                  key={opt}
+                  type="button"
                   onClick={() => {
-                    setUserAnswer(opt);
+                    setMsgs([]);
+                    setExercise(null);
+                    setUserAnswer("");
+                    setCheckResult(null);
+                    setInput("");
+                    setActionError(null);
+                    localStorage.removeItem(draftKey(topicId));
+                    api.topicDraftClear(topicId).catch(() => {});
+                    setShowClearConfirm(false);
+                  }}
+                  className="prism-action primary"
+                >
+                  Да, удалить
+                </button>
+                <button type="button" onClick={() => setShowClearConfirm(false)} className="prism-action">Отмена</button>
+              </div>
+            </div>
+          )}
+
+          {actionError && (
+            <div role="alert" className="rounded-3xl border border-red-400/30 bg-red-500/10 p-3 text-sm font-bold text-red-500">
+              {actionError}
+            </div>
+          )}
+
+          <div className="mt-auto space-y-3">
+            <SessionTimer />
+            <CGMStatus />
+            <PauseButton
+              onPause={(reason) => {
+                api.sessionsPause(reason, Number(topicId)).catch((e) => {
+                  console.error("Pause logging failed:", e);
+                });
+              }}
+            />
+          </div>
+        </aside>
+
+        <section className="prism-card pad prism-scroll">
+          <div className="prism-kicker">Learning Stage</div>
+          {!exercise && msgs.length === 0 && (
+            <div className="mt-8 grid place-items-center rounded-[32px] border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-8 text-center">
+              <div className="prism-orb relative w-full max-w-[520px]" aria-hidden="true" />
+              <h2 className="mt-6 text-3xl font-black tracking-[-0.05em]">Начни с объяснения или практики</h2>
+              <p className="mt-2 max-w-lg text-sm text-[color:var(--prism-muted)]">Здесь появится учебный материал, проверка ответа и подсказки. Текстовые блоки остаются светлыми и читаемыми даже в тёмной теме.</p>
+            </div>
+          )}
+
+          {exercise && (
+            <section data-testid="exercise-card" className="lesson-readable mt-5 rounded-[30px] p-5 shadow-glow">
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Задание</div>
+              <SafeMarkdown text={exercise.question_text} className="mt-2" />
+              {exercise.options && exercise.options.length > 0 && (
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {exercise.options.map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => {
+                        setUserAnswer(opt);
+                        setCheckResult(null);
+                        setActionError(null);
+                      }}
+                      className={`min-h-12 rounded-2xl border px-4 py-3 text-left text-sm font-bold ${
+                        userAnswer === opt
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-950"
+                          : "border-slate-300 bg-white text-slate-900 hover:border-emerald-300"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {(!exercise.options || exercise.options.length === 0 || exercise.type === "numeric" || exercise.type === "text") ? (
+                <input
+                  value={userAnswer}
+                  onChange={(e) => {
+                    setUserAnswer(e.target.value);
                     setCheckResult(null);
                     setActionError(null);
                   }}
-                  className={`block w-full rounded-md border px-3 py-2 text-left text-sm ${
-                    userAnswer === opt
-                      ? "border-emerald-500 bg-white"
-                      : "border-slate-300 bg-white hover:border-emerald-300"
-                  }`}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          )}
-          {(!exercise.options || exercise.options.length === 0 || exercise.type === "numeric" || exercise.type === "text") ? (
-            <input
-              value={userAnswer}
-              onChange={(e) => {
-                setUserAnswer(e.target.value);
-                setCheckResult(null);
-                setActionError(null);
-              }}
-              placeholder={exercise.type === "numeric" ? "Числовой ответ" : "Текстовый ответ"}
-              className="mt-3 block w-full rounded-md border border-slate-300 bg-white px-3 py-2"
-            />
-          ) : null}
-          <Button
-            type="button"
-            onClick={checkAnswer}
-            disabled={busy || !userAnswer}
-            variant="primary"
-            size="sm"
-            className="mt-3"
-          >
-            Проверить
-          </Button>
-          {checkResult && (
-            <div
-              className={`mt-3 rounded-md p-3 text-sm ${
-                checkResult.is_correct ? "bg-emerald-100 text-emerald-900" : "bg-rose-100 text-rose-900"
-              }`}
-            >
-              <div className="font-semibold">
-                {checkResult.is_correct ? "Верно!" : "Есть ошибка"} (оценка {Math.round(checkResult.score * 100)}%)
-              </div>
-              {checkResult.first_error && <div className="mt-1">Шаг ошибки: {checkResult.first_error}</div>}
-              <SafeMarkdown text={checkResult.explanation} className="mt-1" />
-              {/* MVP rescue: v2 deliberately does not expose correct_answer before/after submit.
-                  Do not show a broken “(недоступен)” answer reveal. */}
-              {!checkResult.is_correct && checkResult.score < 0.6 && (
-                <div className="mt-2 rounded-md bg-white/70 p-2 text-xs text-rose-900">
-                  Попроси подсказку или попробуй ещё раз — репетитор поможет без раскрытия ответа.
+                  placeholder={exercise.type === "numeric" ? "Числовой ответ" : "Текстовый ответ"}
+                  className="mt-4 min-h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-slate-900"
+                />
+              ) : null}
+              <button
+                type="button"
+                onClick={checkAnswer}
+                disabled={busy || !userAnswer}
+                className="prism-action primary mt-4"
+              >
+                Проверить
+              </button>
+              {checkResult && (
+                <div className={`mt-4 rounded-3xl p-4 text-sm ${checkResult.is_correct ? "bg-emerald-100 text-emerald-950" : "bg-rose-100 text-rose-950"}`}>
+                  <div className="font-black">{checkResult.is_correct ? "Верно!" : "Есть ошибка"} (оценка {Math.round(checkResult.score * 100)}%)</div>
+                  {checkResult.first_error && <div className="mt-1">Шаг ошибки: {checkResult.first_error}</div>}
+                  <SafeMarkdown text={checkResult.explanation} className="mt-2" />
+                  {!checkResult.is_correct && checkResult.score < 0.6 && (
+                    <div className="mt-3 rounded-2xl bg-white/70 p-3 text-xs text-rose-900">Попроси подсказку или попробуй ещё раз — репетитор поможет без раскрытия ответа.</div>
+                  )}
+                  {checkResult.is_correct && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextSeed = practiceSeed + 1;
+                        setPracticeSeed(nextSeed);
+                        generate(nextSeed);
+                      }}
+                      disabled={busy}
+                      className="prism-action mt-3"
+                    >
+                      Следующее задание
+                    </button>
+                  )}
                 </div>
               )}
-              {checkResult.is_correct && (
-                <Button
-                  type="button"
-                  onClick={() => {
-                    const nextSeed = practiceSeed + 1;
-                    setPracticeSeed(nextSeed);
-                    generate(nextSeed);
-                  }}
-                  disabled={busy}
-                  variant="secondary"
-                  size="sm"
-                  className="mt-3"
-                >
-                  Следующее задание
-                </Button>
-              )}
-            </div>
+            </section>
           )}
         </section>
-      )}
 
-      <SessionTimer />
+        <aside className="prism-card pad flex min-h-[420px] flex-col">
+          <div className="prism-kicker">Tutor Chat</div>
+          <section ref={scrollRef} className="prism-scroll mt-4 flex-1 space-y-3 rounded-[28px] border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-3">
+            {msgs.length === 0 && <p className="text-sm text-[color:var(--prism-muted)]">Напиши вопрос репетитору или нажми «Объяснить» / «Практика».</p>}
+            {msgs.map((m, i) => {
+              const isLastAssistant = i === msgs.length - 1 && m.role === "assistant";
+              const followUps = isLastAssistant && !busy ? followups : [];
+              return (
+                <div
+                  key={i}
+                  data-testid={`chat-message-${m.role}`}
+                  className={`max-w-[96%] overflow-hidden rounded-3xl px-4 py-3 text-sm shadow-sm ${m.role === "user" ? "ml-auto bg-[color:var(--prism-accent)] text-white" : "mr-auto bg-white text-slate-900"}`}
+                >
+                  {m.role === "user" ? (
+                    <span className="whitespace-pre-wrap break-words">{m.content}</span>
+                  ) : (
+                    <>
+                      {m.sources && m.sources.length > 0 && (
+                        <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs">
+                          <div className="mb-1 font-black text-amber-800">📖 Источник:</div>
+                          <ul className="space-y-1">
+                            {m.sources.map((s, idx) => (
+                              <li key={idx} className="break-words text-amber-900">{s.label || `${s.material_title}${s.page_number != null ? `, стр. ${s.page_number}` : ""}`}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <SafeMarkdown text={m.content} className="break-words [&_*]:break-words [&_*]:max-w-full" />
+                      {followUps.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {followUps.map((action) => (
+                            <button key={action.label} type="button" onClick={() => send(action.prompt)} className="prism-pill" disabled={busy}>{action.label}</button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+            {busy && <div className="mr-auto rounded-3xl bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">AI думает…</div>}
+          </section>
 
-      {/* Sprint 40: CGM badge (T1D-friendly, opt-in). */}
-      <CGMStatus />
-
-      {/* Sprint 42 recovery data remains available via API, but the banner is hidden in MVP lesson flow.
-          It was visually noisy during pilot walkthroughs and did not require user action. */}
-
-      <section ref={scrollRef} className="mt-3 flex-1 space-y-3 overflow-y-auto rounded-[24px] bg-white/92 p-3 shadow-soft sm:mt-4 sm:rounded-xl sm:p-4">
-        {msgs.length === 0 && (
-          <p className="text-sm text-slate-500">
-            Напиши вопрос репетитору или нажми «Объясни тему» / «Дай задание».
-          </p>
-        )}
-        {msgs.map((m, i) => {
-          const isLastAssistant = i === msgs.length - 1 && m.role === "assistant";
-          const followUps = isLastAssistant && !busy ? followups : [];
-          return (
-          <div
-            key={i}
-            data-testid={`chat-message-${m.role}`}
-            className={`max-w-[94%] overflow-hidden rounded-2xl px-4 py-3 text-sm shadow-sm sm:max-w-[85%] ${
-              m.role === "user"
-                ? "ml-auto bg-sky-600 text-white"
-                : "mr-auto bg-white text-slate-900"
-            }`}
-          >
-            {m.role === "user" ? (
-              <span className="whitespace-pre-wrap break-words">{m.content}</span>
-            ) : (
-              // Sprint 7.1: AI-сообщения рендерим Markdown → безопасный HTML.
-              // streaming=true только для последнего ассистентского сообщения, которое
-              // ещё не подтверждено `done` — даёт typewriter-эффект.
-              <>
-                {/* Sprint 4.1.3: verified RAG source label goes before explanation text. */}
-                {m.sources && m.sources.length > 0 && (
-                  <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs">
-                    <div className="mb-1 font-semibold text-amber-800">📖 Источник:</div>
-                    <ul className="space-y-1">
-                      {m.sources.map((s, idx) => (
-                        <li key={idx} className="break-words text-amber-900">
-                          {s.label || `${s.material_title}${s.page_number != null ? `, стр. ${s.page_number}` : ""}`}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                <SafeMarkdown
-                  text={m.content}
-                  className="break-words [&_*]:break-words [&_*]:max-w-full"
-                />
-                {followUps.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {followUps.map((action) => (
-                      <button
-                        key={action.label}
-                        type="button"
-                        onClick={() => send(action.prompt)}
-                        className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800 hover:bg-sky-100 disabled:opacity-50"
-                        disabled={busy}
-                      >
-                        {action.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-          );
-        })}
-        {busy && (
-          <div className="mr-auto flex items-center gap-1 rounded-2xl bg-white px-4 py-2 text-sm text-slate-500 shadow-sm">
-            <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: "0ms" }} />
-            <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: "150ms" }} />
-            <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: "300ms" }} />
-            <span className="ml-1">AI думает…</span>
-          </div>
-        )}
+          <form onSubmit={(e) => { e.preventDefault(); send(); }} className="mt-3 pb-[env(safe-area-inset-bottom)]">
+            <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Задай вопрос репетитору…"
+                maxLength={500}
+                aria-describedby="input-hint"
+                className="prism-input"
+                disabled={busy}
+              />
+              {voiceEnabled && <VoiceMicButton disabled={busy} onTranscript={(text) => setInput((prev) => (prev ? prev + " " : "") + text)} onError={(msg) => setActionError("Микрофон: " + msg)} />}
+              <button type="submit" disabled={busy || !input.trim()} className="prism-action primary">{busy ? "⏳" : "Отправить"}</button>
+            </div>
+            <div id="input-hint" className="mt-2 flex items-center justify-between text-xs text-[color:var(--prism-muted)]">
+              <span>Enter — отправить</span>
+              <span className={input.length > 400 ? "font-black text-amber-600" : ""}>{input.length}/500</span>
+            </div>
+          </form>
+        </aside>
       </section>
-
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          send();
-        }}
-        className="mt-3 flex flex-col gap-2 pb-[env(safe-area-inset-bottom)]"
-      >
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            // Sprint 15.1: Enter отправляет, Shift+Enter новая строка.
-            // Для plain input Enter просто submit формы — это OK.
-            placeholder="Задай вопрос репетитору…"
-            maxLength={500}
-            aria-describedby="input-hint"
-            className="min-h-12 flex-1 rounded-2xl border border-slate-300 px-4 py-3 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
-            disabled={busy}
-          />
-          {voiceEnabled && (
-            <VoiceMicButton
-              disabled={busy}
-              onTranscript={(text) => setInput((prev) => (prev ? prev + " " : "") + text)}
-              onError={(msg) => setActionError("Микрофон: " + msg)}
-            />
-          )}
-          <button
-            type="submit"
-            disabled={busy || !input.trim()}
-            className="min-h-12 rounded-2xl bg-sky-600 px-5 py-3 font-semibold text-white hover:bg-sky-500 disabled:opacity-50 sm:min-h-0 sm:py-2"
-          >
-            {/* Sprint 15.1: визуальный feedback для disabled состояния */}
-            {busy ? "⏳" : "Отправить"}
-          </button>
-        </div>
-        {/* Sprint 15.1: counter для длины input — помогает детям контролировать.
-            Большинство сообщений должны быть короткими вопросами. */}
-        <div
-          id="input-hint"
-          className="flex items-center justify-between text-xs text-slate-500"
-        >
-          <span>Enter — отправить, Shift+Enter — новая строка</span>
-          <span
-            className={
-              input.length > 400 ? "font-bold text-amber-600" : ""
-            }
-          >
-            {input.length}/500
-          </span>
-        </div>
-
-        {/* Sprint 23: T1D-friendly кнопка паузы. 48px tap target,
-            4 причины, streak сохраняется. */}
-        <div className="mt-2 flex justify-end">
-          <PauseButton
-            onPause={(reason) => {
-              // Sprint 34: записываем pause в БД (для parent dashboard).
-              // T1D-friendly: НЕ интерпретируем reason, НЕ шлём в Telegram.
-              api.sessionsPause(reason, Number(topicId)).catch((e) => {
-                console.error("Pause logging failed:", e);
-              });
-            }}
-          />
-        </div>
-      </form>
-      </div>
     </main>
   );
 }

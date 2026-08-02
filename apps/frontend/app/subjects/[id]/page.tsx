@@ -6,8 +6,6 @@ import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import type { Subject, Topic, User } from "@/types";
 import Header from "@/components/Header";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 
 export default function SubjectPage() {
   const params = useParams<{ id: string }>();
@@ -22,129 +20,89 @@ export default function SubjectPage() {
 
   useEffect(() => {
     if (!subjectId || Number.isNaN(subjectId)) return;
-
     let cancelled = false;
     (async () => {
       try {
         const me = await api.me();
         if (cancelled) return;
         setUser(me);
-
         const all = await api.subjects();
         if (cancelled) return;
         const currentSubject = all.find((x) => x.id === subjectId) ?? null;
         setSubject(currentSubject);
-        if (!currentSubject) {
-          setError("Предмет не найден");
-          return;
-        }
-
+        if (!currentSubject) { setError("Предмет не найден"); return; }
         const loadedTopics = await api.subjectTopics(subjectId);
         if (!cancelled) setTopics(loadedTopics);
       } catch (e: unknown) {
         if (cancelled) return;
-        if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
-          router.push("/login");
-          return;
-        }
+        if (e instanceof ApiError && (e.status === 401 || e.status === 403)) { router.push("/login"); return; }
         setError("Не удалось загрузить темы. Проверь соединение и попробуй ещё раз.");
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [subjectId, router]);
 
   return (
-    <main className="premium-shell">
+    <main className="prism-shell">
       <Header user={user} backHref="/subjects" backLabel="Все предметы" title={subject ? `${subject.icon || "📘"} ${subject.name}` : "Предмет"} />
-
-      <section className="premium-container px-1 py-5 sm:px-4 sm:py-10">
-        <div className="premium-hero p-5 sm:p-9 lg:p-12">
-          <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
-            <div>
-              <div className="premium-kicker">Learning Route</div>
-              <h1 className="premium-title mt-5 text-4xl font-black sm:text-6xl lg:text-7xl">
-                {subject?.name || "Загружаем предмет…"}
-              </h1>
-              {subject?.description && <p className="premium-copy mt-5 max-w-2xl text-lg">{subject.description}</p>}
-            </div>
-            <div className="premium-panel p-5 text-white">
-              <div className="grid grid-cols-2 gap-3">
-                <StatusMetric label="Тем" value={topics.length || "—"} />
-                <StatusMetric label="Статус" value={subject?.mvp_status === "mvp_ready" ? "Ready" : "Preview"} />
-                <StatusMetric label="RAG" value={subject?.rag_ready ? "ON" : "OFF"} tone={subject?.rag_ready ? "good" : "warn"} />
-                <StatusMetric label="Practice" value={subject?.practice_ready ? "ON" : "Preview"} tone={subject?.practice_ready ? "good" : "warn"} />
+      <section className="py-4 sm:py-7">
+        <div className="prism-frame min-h-[calc(100dvh-110px)]">
+          <div className="prism-layer prism-hero-grid">
+            <section>
+              <div className="prism-kicker">Subject Object · Route Map</div>
+              <h1 className="prism-title"><span className="accent">{subject?.icon || "📘"}</span> {subject?.name || "Загружаем"}</h1>
+              {subject?.description && <p className="prism-copy">{subject.description}</p>}
+            </section>
+            <aside className="prism-card pad glow">
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">Readiness Panel</div>
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <Readiness label="Тем" value={topics.length || "—"} />
+                <Readiness label="Статус" value={subject?.mvp_status === "mvp_ready" ? "Ready" : "Preview"} />
+                <Readiness label="RAG" value={subject?.rag_ready ? "ON" : "OFF"} hot={!!subject?.rag_ready} />
+                <Readiness label="Practice" value={subject?.practice_ready ? "ON" : "Preview"} hot={!!subject?.practice_ready} />
               </div>
-              {subject && (
-                <div className={`mt-4 rounded-2xl border p-4 text-sm ${subject.mvp_status === "mvp_ready" ? "border-emerald-300/30 bg-emerald-300/10 text-emerald-100" : "border-amber-300/30 bg-amber-300/10 text-amber-100"}`}>
-                  <b>{subject.mvp_status === "mvp_ready" ? "MVP-ready." : "Preview-предмет."}</b> {subject.support_note}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {loading && <Card variant="flat" padding="lg" className="mt-6 text-sm text-[#4a3d5d]">Загружаем темы…</Card>}
-        {error && !loading && <Card variant="flat" padding="lg" className="mt-6 border-danger/30 bg-danger/5 text-sm text-danger">{error}</Card>}
-        {!loading && !error && topics.length === 0 && <Card variant="flat" padding="lg" className="mt-6 text-sm text-[#4a3d5d]">В этом предмете пока нет тем.</Card>}
-
-        <section className="mt-8">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <div className="premium-kicker">Topic Deck</div>
-              <h2 className="premium-title mt-3 text-3xl font-black sm:text-5xl">Маршрут тем</h2>
-            </div>
-            <Badge variant={subject?.mvp_status === "mvp_ready" ? "success" : "warning"} size="lg">
-              {subject?.mvp_status === "mvp_ready" ? "MVP-ready" : "Preview"}
-            </Badge>
+              {subject && <p className="mt-5 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-4 text-sm text-[color:var(--prism-muted)]"><b>{subject.mvp_status === "mvp_ready" ? "MVP-ready." : "Preview-предмет."}</b> {subject.support_note}</p>}
+            </aside>
           </div>
 
-          <ol className="grid gap-4 lg:grid-cols-2">
-            {topics.map((topic, index) => (
-              <li key={topic.id}>
-                <Link href={`/topics/${topic.id}`} className="group block">
-                  <article className="premium-tile flex h-full flex-col gap-4 p-5 transition-modern sm:flex-row sm:items-center sm:justify-between">
+          <section className="prism-layer px-5 pb-7 lg:px-10 lg:pb-10">
+            {loading && <div className="prism-card pad">Загружаем темы…</div>}
+            {error && !loading && <div className="prism-card pad text-danger">{error}</div>}
+            {!loading && !error && topics.length === 0 && <div className="prism-card pad">В этом предмете пока нет тем.</div>}
+
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <div className="prism-kicker">Timeline</div>
+                <h2 className="mt-3 text-4xl font-black tracking-[-0.05em] sm:text-6xl">Маршрут тем</h2>
+              </div>
+              <span className={`prism-pill ${subject?.mvp_status === "mvp_ready" ? "active" : ""}`}>{subject?.mvp_status === "mvp_ready" ? "MVP-ready" : "Preview"}</span>
+            </div>
+
+            <ol className="grid gap-4 xl:grid-cols-2">
+              {topics.map((topic, index) => (
+                <li key={topic.id}>
+                  <Link href={`/topics/${topic.id}`} className="prism-card pad flex min-h-[148px] flex-col gap-4 hover:border-[color:var(--prism-accent)] sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-start gap-4">
-                      <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl brand-gradient text-sm font-black text-white shadow-glow">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
+                      <span className="prism-mark flex shrink-0 items-center justify-center text-sm font-black text-white">{String(index + 1).padStart(2, "0")}</span>
                       <div>
-                        <h3 className="text-xl font-black tracking-tight text-[#171022] transition-modern group-hover:text-brand-600">
-                          {topic.name}
-                        </h3>
-                        {topic.description && <p className="mt-1 line-clamp-2 text-sm text-[#4a3d5d]">{topic.description}</p>}
+                        <h3 className="text-2xl font-black tracking-[-0.04em]">{topic.name}</h3>
+                        {topic.description && <p className="mt-1 line-clamp-2 text-sm text-[color:var(--prism-muted)]">{topic.description}</p>}
                       </div>
                     </div>
-                    <Badge variant={difficultyVariant(topic.difficulty)} size="sm">
-                      {topic.difficulty}/5
-                    </Badge>
-                  </article>
-                </Link>
-              </li>
-            ))}
-          </ol>
-        </section>
+                    <span className="prism-pill">{topic.difficulty}/5</span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          </section>
+        </div>
       </section>
     </main>
   );
 }
 
-function StatusMetric({ label, value, tone = "neutral" }: { label: string; value: string | number; tone?: "neutral" | "good" | "warn" }) {
-  return (
-    <div className="rounded-2xl border border-white/12 bg-white/8 p-4">
-      <div className="text-[11px] uppercase tracking-[0.18em] text-white/50">{label}</div>
-      <div className={`mt-1 text-xl font-black ${tone === "good" ? "text-[#14d87a]" : tone === "warn" ? "text-[#ffb000]" : "text-white"}`}>{value}</div>
-    </div>
-  );
-}
-
-function difficultyVariant(difficulty: number): "success" | "info" | "warning" | "danger" {
-  if (difficulty <= 2) return "success";
-  if (difficulty <= 3) return "info";
-  if (difficulty <= 4) return "warning";
-  return "danger";
+function Readiness({ label, value, hot = false }: { label: string; value: string | number; hot?: boolean }) {
+  return <div className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/50 p-4"><div className="text-[10px] font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">{label}</div><div className={`mt-1 text-2xl font-black ${hot ? "text-[color:var(--prism-green)]" : ""}`}>{value}</div></div>;
 }

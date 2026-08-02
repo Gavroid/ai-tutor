@@ -6,8 +6,6 @@ import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import type { Subject, User } from "@/types";
 import EmptyState from "@/components/EmptyState";
-import { Input } from "@/components/ui/Input";
-import { Badge } from "@/components/ui/Badge";
 import Header from "@/components/Header";
 
 type RecItem = {
@@ -27,28 +25,14 @@ export default function HomePage() {
   const [aiOk, setAiOk] = useState<boolean | null>(null);
   const [aiModel, setAiModel] = useState<string | null>(null);
   const [review, setReview] = useState<RecItem[]>([]);
-  const [dueReview, setDueReview] = useState<
-    Array<{
-      topic_id: number;
-      topic_name: string;
-      subject_name: string;
-      mastery_score: number;
-      days_overdue: number;
-    }>
-  >([]);
+  const [dueReview, setDueReview] = useState<Array<{ topic_id: number; topic_name: string; subject_name: string; mastery_score: number; days_overdue: number }>>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    api
-      .me()
-      .then(setUser)
-      .catch((err: unknown) => {
-        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
-          router.push("/login");
-        } else {
-          console.warn("api.me() failed (non-auth):", err);
-        }
-      });
+    api.me().then(setUser).catch((err: unknown) => {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) router.push("/login");
+      else console.warn("api.me() failed (non-auth):", err);
+    });
     api.subjects().then(setSubjects).catch(() => {});
     api.aiPing().then((r) => { setAiOk(r.ok); setAiModel(r.model); }).catch(() => setAiOk(false));
     api.recommendReview().then(setReview).catch(() => {});
@@ -56,137 +40,113 @@ export default function HomePage() {
   }, [router]);
 
   const q = searchQuery.trim().toLowerCase();
-  const filtered = q
-    ? subjects.filter((s) => s.name.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q))
-    : subjects;
+  const filtered = q ? subjects.filter((s) => s.name.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q)) : subjects;
   const readyCount = subjects.filter((s) => s.mvp_status === "mvp_ready").length;
   const previewCount = Math.max(subjects.length - readyCount, 0);
 
   return (
-    <main className="premium-shell">
-      <Header user={user} title={user ? `AI Tutor · ${user.display_name}` : "AI Tutor"} />
-      <section className="premium-container px-1 py-5 sm:px-4 sm:py-10">
-        <div className="premium-hero p-5 sm:p-9 lg:p-12">
-          <div className="grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
-            <div>
-              <div className="premium-kicker">Neon Coast Learning · Pilot MVP</div>
-              <h1 className="premium-title mt-5 max-w-4xl text-4xl font-black sm:text-6xl lg:text-7xl">
-                Учёба, которая выглядит как продукт будущего.
-              </h1>
-              <p className="premium-copy mt-5 max-w-2xl text-lg sm:text-xl">
-                Выбери предмет, начни тему и двигайся по маршруту: объяснение, практика, обратная связь, прогресс для взрослого.
+    <main className="prism-shell">
+      <Header user={user} title="Prism Learning OS" />
+      <section className="py-4 sm:py-7">
+        <div className="prism-frame min-h-[calc(100dvh-110px)]">
+          <div className="prism-layer prism-hero-grid">
+            <section>
+              <div className="prism-kicker">Explore · Student Mission Control</div>
+              <h1 className="prism-title">Выбери <span className="accent">траекторию</span> обучения</h1>
+              <p className="prism-copy">
+                Не лента предметов, а рабочая карта: готовые темы, повторение, слабые места и понятный следующий шаг в одном экране.
               </p>
-              <div className="premium-chip-row mt-7 flex flex-wrap gap-3 text-sm">
-                <Link href="/diagnostic">Диагностика</Link>
-                <Link href="/link-parent">Привязать родителя</Link>
-                {user?.role === "parent" && <Link href="/parents">Родительский кабинет</Link>}
-                {user?.role === "admin" && <Link href="/admin">Админ-панель</Link>}
-                {(user?.role === "teacher" || user?.role === "admin") && <Link href="/teacher">Учительская</Link>}
+              <div className="mt-7 flex flex-wrap gap-3">
+                <Link href="/diagnostic" className="prism-action primary">Диагностика</Link>
+                <Link href="/link-parent" className="prism-action">Привязать родителя</Link>
+                {user?.role === "parent" && <Link href="/parents" className="prism-action">Родительский кабинет</Link>}
+                {(user?.role === "teacher" || user?.role === "admin") && <Link href="/teacher" className="prism-action">Учительская</Link>}
+                {user?.role === "admin" && <Link href="/admin" className="prism-action">Админ</Link>}
               </div>
-            </div>
+            </section>
 
-            <aside className="premium-panel p-5 text-white">
-              <div className="text-xs uppercase tracking-[0.24em] text-white/55">System Pulse</div>
-              <div className="mt-4 grid grid-cols-2 gap-3">
+            <aside className="prism-card pad glow">
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">Live System</div>
+              <div className="mt-5 grid grid-cols-2 gap-3">
                 <Metric label="Предметов" value={subjects.length || "—"} />
                 <Metric label="MVP-ready" value={readyCount || "—"} />
                 <Metric label="Preview" value={previewCount || "—"} />
-                <Metric label="AI" value={aiOk === null ? "…" : aiOk ? "ON" : "OFF"} tone={aiOk ? "good" : "warn"} />
+                <Metric label="AI" value={aiOk === null ? "…" : aiOk ? "ON" : "OFF"} hot={!!aiOk} />
               </div>
-              {aiOk === true && aiModel && <p className="mt-4 text-xs text-white/60">Модель: {aiModel}</p>}
+              {aiOk === true && aiModel && <p className="mt-4 text-xs text-[color:var(--prism-muted)]">Модель: {aiModel}</p>}
+              <div className="prism-orb relative mt-6 min-h-[220px]" aria-hidden="true" />
             </aside>
           </div>
-        </div>
 
-        {(dueReview.length > 0 || review.length > 0) && (
-          <section className="mt-7 grid gap-4 lg:grid-cols-2">
-            {dueReview.length > 0 && (
-              <ActionPanel title="Сегодня к повторению" tone="violet" items={dueReview.slice(0, 4).map((d) => ({ href: `/topics/${d.topic_id}`, title: d.topic_name, meta: `${d.subject_name} · ${d.days_overdue > 0 ? `просрочено ${d.days_overdue}д` : "сегодня"}` }))} />
-            )}
-            {review.length > 0 && (
-              <ActionPanel title="Стоит повторить" tone="amber" items={review.slice(0, 4).map((r) => ({ href: `/topics/${r.topic_id}`, title: r.topic_name, meta: `${r.subject_name} · уверенность ${Math.round(r.mastery_score * 100)}%` }))} />
-            )}
-          </section>
-        )}
-
-        <section className="mt-8">
-          <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <div className="premium-kicker">Subject Grid</div>
-              <h2 className="premium-title mt-3 text-3xl font-black sm:text-5xl">Выбери направление</h2>
-              <p className="premium-copy mt-2 max-w-xl">Готовые темы помечены как MVP-ready. Остальные предметы открыты как preview, чтобы не обещать качество раньше времени.</p>
+          {(dueReview.length > 0 || review.length > 0) && (
+            <div className="prism-layer grid gap-4 px-5 pb-5 lg:grid-cols-2 lg:px-10">
+              {dueReview.length > 0 && <ActionPanel title="Сегодня к повторению" items={dueReview.slice(0, 4).map((d) => ({ href: `/topics/${d.topic_id}`, title: d.topic_name, meta: `${d.subject_name} · ${d.days_overdue > 0 ? `просрочено ${d.days_overdue}д` : "сегодня"}` }))} />}
+              {review.length > 0 && <ActionPanel title="Стоит повторить" items={review.slice(0, 4).map((r) => ({ href: `/topics/${r.topic_id}`, title: r.topic_name, meta: `${r.subject_name} · уверенность ${Math.round(r.mastery_score * 100)}%` }))} />}
             </div>
-            <div className="w-full lg:w-[420px]">
-              <label htmlFor="subject-search" className="sr-only">Поиск предмета</label>
-              <Input
-                id="subject-search"
+          )}
+
+          <section className="prism-layer px-5 pb-7 lg:px-10 lg:pb-10">
+            <div className="mb-5 grid gap-4 lg:grid-cols-[1fr_420px] lg:items-end">
+              <div>
+                <div className="prism-kicker">Subject Gallery</div>
+                <h2 className="mt-3 text-4xl font-black tracking-[-0.05em] sm:text-6xl">Каталог предметов</h2>
+                <p className="mt-3 max-w-2xl text-[color:var(--prism-muted)]">MVP-ready — можно тестировать полноценно. Preview — виден в системе, но без обещания качества источников и практики.</p>
+              </div>
+              <input
                 type="search"
                 inputMode="search"
-                placeholder="Поиск: математика, русский, физика…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-12 rounded-2xl border-white/30 bg-white/95 px-5 shadow-glow"
+                placeholder="Поиск: математика, русский, физика…"
+                className="prism-input"
               />
-              <div className="mt-2 text-right text-xs text-white/55">
-                {q ? `${filtered.length} из ${subjects.length} найдено` : `${subjects.length} предметов`}
-              </div>
             </div>
-          </div>
 
-          {filtered.length > 0 ? (
-            <div className="grid auto-rows-fr gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {filtered.map((s, idx) => (
-                <Link key={s.id} href={`/subjects/${s.id}`} className="group block animate-slide-up" style={{ animationDelay: `${Math.min(idx * 35, 350)}ms` }}>
-                  <article className={`premium-tile h-full p-5 transition-modern ${s.mvp_status === "mvp_ready" ? "premium-tile-featured md:col-span-2" : ""}`}>
+            {filtered.length > 0 ? (
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {filtered.map((s) => (
+                  <Link key={s.id} href={`/subjects/${s.id}`} className={`prism-card prism-subject-card ${s.mvp_status === "mvp_ready" ? "xl:col-span-2" : ""}`}>
                     <div className="flex items-start justify-between gap-4">
-                      <div className="flex size-14 items-center justify-center rounded-2xl brand-gradient text-3xl text-white shadow-glow">
-                        {s.icon || "📘"}
-                      </div>
-                      <Badge variant={s.mvp_status === "mvp_ready" ? "success" : "warning"} size="sm">
-                        {s.mvp_status === "mvp_ready" ? "MVP-ready" : "Preview"}
-                      </Badge>
+                      <div className="prism-mark flex items-center justify-center text-2xl text-white">{s.icon || "📘"}</div>
+                      <span className={`prism-pill ${s.mvp_status === "mvp_ready" ? "active" : ""}`}>{s.mvp_status === "mvp_ready" ? "MVP-ready" : "Preview"}</span>
                     </div>
-                    <h3 className="mt-5 text-2xl font-black tracking-tight text-[#171022] transition-modern group-hover:text-brand-600">
-                      {s.name}
-                    </h3>
-                    {s.description && <p className="mt-2 line-clamp-3 text-sm text-[#4a3d5d]">{s.description}</p>}
-                    <p className="mt-4 text-xs leading-relaxed text-[#6b5a80]">{s.support_note}</p>
-                    <div className="mt-5 flex items-center justify-between border-t border-brand-200/60 pt-4 text-xs font-bold uppercase tracking-[0.16em] text-brand-700">
-                      <span>7 класс</span>
-                      <span>Открыть →</span>
+                    <h3 className="mt-6 text-3xl font-black tracking-[-0.04em]">{s.name}</h3>
+                    {s.description && <p className="mt-3 line-clamp-3 text-sm text-[color:var(--prism-muted)]">{s.description}</p>}
+                    <p className="mt-5 text-xs leading-relaxed text-[color:var(--prism-muted)]">{s.support_note}</p>
+                    <div className="mt-6 flex items-center justify-between border-t border-[color:var(--prism-line)] pt-4 text-xs font-black uppercase tracking-[0.16em]">
+                      <span>7 класс</span><span>Открыть →</span>
                     </div>
-                  </article>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <EmptyState icon="🔍" title={`Ничего не найдено по «${searchQuery}»`} description="Попробуй другой запрос, например: матем, русск, физика" variant="neutral" />
-          )}
-        </section>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <EmptyState icon="🔍" title={`Ничего не найдено по «${searchQuery}»`} description="Попробуй другой запрос, например: матем, русск, физика" variant="neutral" />
+            )}
+          </section>
+        </div>
       </section>
     </main>
   );
 }
 
-function Metric({ label, value, tone = "neutral" }: { label: string; value: string | number; tone?: "neutral" | "good" | "warn" }) {
+function Metric({ label, value, hot = false }: { label: string; value: string | number; hot?: boolean }) {
   return (
-    <div className="rounded-2xl border border-white/12 bg-white/8 p-4 backdrop-blur">
-      <div className="text-[11px] uppercase tracking-[0.18em] text-white/50">{label}</div>
-      <div className={`mt-1 text-2xl font-black ${tone === "good" ? "text-[#14d87a]" : tone === "warn" ? "text-[#ffb000]" : "text-white"}`}>{value}</div>
+    <div className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/50 p-4">
+      <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">{label}</div>
+      <div className={`mt-1 text-3xl font-black ${hot ? "text-[color:var(--prism-green)]" : ""}`}>{value}</div>
     </div>
   );
 }
 
-function ActionPanel({ title, items, tone }: { title: string; tone: "violet" | "amber"; items: Array<{ href: string; title: string; meta: string }> }) {
-  const accent = tone === "violet" ? "text-[#c7b7ff]" : "text-[#ffd28a]";
+function ActionPanel({ title, items }: { title: string; items: Array<{ href: string; title: string; meta: string }> }) {
   return (
-    <div className="premium-panel p-5 text-white">
-      <h2 className={`text-lg font-black ${accent}`}>{title}</h2>
-      <div className="mt-3 space-y-2">
+    <div className="prism-card pad">
+      <h2 className="text-xl font-black">{title}</h2>
+      <div className="mt-4 grid gap-2">
         {items.map((item) => (
-          <Link key={item.href} href={item.href} className="block rounded-2xl border border-white/10 bg-white/8 p-3 transition-modern hover:bg-white/14">
-            <div className="font-bold text-white">{item.title}</div>
-            <div className="mt-1 text-xs text-white/55">{item.meta}</div>
+          <Link key={item.href} href={item.href} className="rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-3 hover:border-[color:var(--prism-accent)]">
+            <div className="font-black">{item.title}</div>
+            <div className="mt-1 text-xs text-[color:var(--prism-muted)]">{item.meta}</div>
           </Link>
         ))}
       </div>
