@@ -378,7 +378,7 @@ export default function TopicPage() {
         className="prism-lesson-grid select-none"
       >
         <aside className="prism-card pad prism-practice-column flex flex-col gap-3">
-          <div className="prism-kicker">Lesson Cockpit</div>
+          <div className="prism-kicker">Панель урока</div>
           <h1 className="text-3xl font-black tracking-[-0.05em]">{topic?.name || "Тема"}</h1>
           <p className="text-sm text-[color:var(--prism-muted)]">Объяснение, практика и чат собраны как рабочая панель занятия.</p>
 
@@ -459,7 +459,7 @@ export default function TopicPage() {
         </aside>
 
         <section className="prism-card pad prism-scroll prism-explain-column">
-          <div className="prism-kicker">Learning Stage</div>
+          <div className="prism-kicker">Объяснение</div>
           {!exercise && msgs.length === 0 && (
             <div className="mt-8 grid place-items-center rounded-[32px] border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-8 text-center">
               <div className="prism-orb relative w-full max-w-[520px]" aria-hidden="true" />
@@ -542,7 +542,7 @@ export default function TopicPage() {
         </section>
 
         <aside className="prism-card pad prism-chat-column flex min-h-[420px] flex-col">
-          <div className="prism-kicker">Tutor Chat</div>
+          <div className="prism-kicker">Чат с репетитором</div>
           <section ref={scrollRef} className="prism-chat-surface prism-scroll mt-4 flex-1 space-y-3 rounded-[28px] border border-[color:var(--prism-line)] p-3">
             {msgs.length === 0 && <p className="text-sm text-[color:var(--prism-muted)]">Напиши вопрос репетитору или нажми «Объяснить» / «Практика».</p>}
             {msgs.map((m, i) => {

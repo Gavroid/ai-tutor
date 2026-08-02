@@ -979,7 +979,7 @@ html.dark {
 
 .prism-lesson-grid {
   display: grid;
-  grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.12fr) minmax(320px, 0.78fr);
+  grid-template-columns: minmax(160px, 10fr) minmax(0, 60fr) minmax(260px, 20fr);
   gap: 16px;
   height: calc(100dvh - 94px);
   padding: 16px;
@@ -1045,10 +1045,10 @@ html.dark .prism-option-button-active {
 }
 
 @media (min-width: 1280px) {
-  .prism-lesson-grid { grid-template-columns: minmax(420px, 0.9fr) minmax(0, 1.14fr) minmax(340px, 0.78fr); }
+  .prism-lesson-grid { grid-template-columns: minmax(170px, 10fr) minmax(0, 60fr) minmax(280px, 20fr); }
 }
 @media (min-width: 1600px) {
-  .prism-lesson-grid { grid-template-columns: minmax(500px, 0.92fr) minmax(0, 1.18fr) minmax(380px, 0.78fr); }
+  .prism-lesson-grid { grid-template-columns: minmax(190px, 10fr) minmax(0, 60fr) minmax(320px, 20fr); }
 }
 @media (max-width: 980px) {
   .prism-lesson-grid { grid-template-columns: 1fr; }
@@ -1105,9 +1105,9 @@ html.dark .prism-card .prism-pill.active {
 /* ============================================================ */
 /* 17. Lesson V3 layout contrast + column roles */
 /* ============================================================ */
-.prism-chat-column { order: 1; }
-.prism-explain-column { order: 2; }
-.prism-practice-column { order: 3; }
+.prism-chat-column { order: 2; }
+.prism-explain-column { order: 3; }
+.prism-practice-column { order: 1; }
 
 html.dark .prism-shell {
   --prism-muted: #e2e8ff;
