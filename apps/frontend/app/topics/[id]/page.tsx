@@ -115,6 +115,7 @@ export default function TopicPage() {
   }>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const voiceEnabled = process.env.NEXT_PUBLIC_VOICE_ENABLED === "1";
+  const [activePane, setActivePane] = useState<"chat" | "lesson" | "practice">("chat");
 
   useEffect(() => {
     // Sprint 27: cookie auth.
@@ -368,54 +369,73 @@ export default function TopicPage() {
     }
   }
 
+  const paneButton = (pane: "chat" | "lesson" | "practice", label: string) => (
+    <button
+      type="button"
+      onClick={() => setActivePane(pane)}
+      className={`split-tab ${activePane === pane ? "split-tab-active" : ""}`}
+    >
+      {label}
+    </button>
+  );
+
   return (
-    <main className="prism-shell min-h-dvh">
+    <main className="split-shell min-h-dvh">
       <Header user={user} backHref="/subjects" backLabel="Все предметы" title={topic?.name || "Тема"} />
+
+      <nav className="split-mobile-tabs" aria-label="Разделы урока">
+        {paneButton("chat", "Чат")}
+        {paneButton("lesson", "Урок")}
+        {paneButton("practice", "Практика")}
+      </nav>
 
       <section
         onCopy={(event) => event.preventDefault()}
         onCut={(event) => event.preventDefault()}
-        className="prism-lesson-grid select-none"
+        className="split-desktop-grid select-none"
       >
-        <aside className="prism-card pad prism-practice-column flex flex-col gap-3">
-          <div className="prism-kicker">Панель урока</div>
-          <h1 className="text-3xl font-black tracking-[-0.05em]">{topic?.name || "Тема"}</h1>
-          <p className="text-sm text-[color:var(--prism-muted)]">Объяснение, практика и чат собраны как рабочая панель занятия.</p>
+        <aside className={`split-panel split-lesson ${activePane === "lesson" ? "flex" : "hidden xl:flex"}`}>
+          <div className="split-kicker">Урок</div>
+          <h1 className="split-title">{topic?.name || "Тема"}</h1>
+          <p className="split-muted">Сначала попроси объяснение, затем переходи к практике. Чат остаётся главным рабочим пространством.</p>
 
-          <button
-            type="button"
-            onClick={explain}
-            disabled={busy}
-            className="prism-action primary w-full"
-          >
-            {busy && !exercise ? "AI думает…" : "Объяснить"}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const nextSeed = practiceSeed + 1;
-              setPracticeSeed(nextSeed);
-              generate(nextSeed);
-            }}
-            disabled={busy}
-            className="prism-action w-full"
-          >
-            Практика
-          </button>
-
-          {msgs.length > 0 && !showClearConfirm && (
+          <div className="split-actions">
             <button
               type="button"
-              onClick={() => setShowClearConfirm(true)}
-              aria-label="Очистить чат"
-              className="prism-action w-full"
+              onClick={explain}
+              disabled={busy}
+              className="split-button split-button-primary"
             >
-              🧹 Очистить
+              {busy && !exercise ? "AI думает…" : "Объяснить"}
             </button>
-          )}
+            <button
+              type="button"
+              onClick={() => {
+                const nextSeed = practiceSeed + 1;
+                setPracticeSeed(nextSeed);
+                generate(nextSeed);
+                setActivePane("practice");
+              }}
+              disabled={busy}
+              className="split-button"
+            >
+              Практика
+            </button>
+            {msgs.length > 0 && !showClearConfirm && (
+              <button
+                type="button"
+                onClick={() => setShowClearConfirm(true)}
+                aria-label="Очистить чат"
+                className="split-button"
+              >
+                🧹 Очистить
+              </button>
+            )}
+          </div>
+
           {showClearConfirm && (
-            <div className="rounded-3xl border border-amber-300/40 bg-amber-500/10 p-3 text-sm">
-              <div className="font-black text-amber-700 dark:text-amber-200">Удалить всю историю?</div>
+            <div className="split-callout warn">
+              <div className="font-black">Удалить всю историю?</div>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -430,20 +450,16 @@ export default function TopicPage() {
                     api.topicDraftClear(topicId).catch(() => {});
                     setShowClearConfirm(false);
                   }}
-                  className="prism-action primary"
+                  className="split-button split-button-primary"
                 >
-                  Да, удалить
+                  Да
                 </button>
-                <button type="button" onClick={() => setShowClearConfirm(false)} className="prism-action">Отмена</button>
+                <button type="button" onClick={() => setShowClearConfirm(false)} className="split-button">Нет</button>
               </div>
             </div>
           )}
 
-          {actionError && (
-            <div role="alert" className="rounded-3xl border border-red-400/30 bg-red-500/10 p-3 text-sm font-bold text-red-500">
-              {actionError}
-            </div>
-          )}
+          {actionError && <div role="alert" className="split-callout danger">{actionError}</div>}
 
           <div className="mt-auto space-y-3">
             <SessionTimer />
@@ -458,22 +474,85 @@ export default function TopicPage() {
           </div>
         </aside>
 
-        <section className="prism-card pad prism-scroll prism-explain-column">
-          <div className="prism-kicker">Объяснение</div>
-          {!exercise && msgs.length === 0 && (
-            <div className="mt-8 grid place-items-center rounded-[32px] border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-8 text-center">
-              <div className="prism-orb relative w-full max-w-[520px]" aria-hidden="true" />
-              <h2 className="mt-6 text-3xl font-black tracking-[-0.05em]">Начни с объяснения или практики</h2>
-              <p className="mt-2 max-w-lg text-sm text-[color:var(--prism-muted)]">Здесь появится учебный материал, проверка ответа и подсказки. Текстовые блоки остаются светлыми и читаемыми даже в тёмной теме.</p>
+        <section className={`split-panel split-chat ${activePane === "chat" ? "flex" : "hidden xl:flex"}`}>
+          <div className="split-kicker">Чат с репетитором</div>
+          <section ref={scrollRef} className="split-chat-scroll">
+            {msgs.length === 0 && (
+              <div className="split-empty">
+                <div className="split-orb" aria-hidden="true" />
+                <h2>Спроси репетитора</h2>
+                <p>Например: «Объясни среднее арифметическое проще» или нажми «Объяснить» в разделе урока.</p>
+              </div>
+            )}
+            {msgs.map((m, i) => {
+              const isLastAssistant = i === msgs.length - 1 && m.role === "assistant";
+              const followUps = isLastAssistant && !busy ? followups : [];
+              return (
+                <div
+                  key={i}
+                  data-testid={`chat-message-${m.role}`}
+                  className={`split-bubble ${m.role === "user" ? "split-bubble-user" : "split-bubble-assistant"}`}
+                >
+                  {m.role === "user" ? (
+                    <span className="whitespace-pre-wrap break-words">{m.content}</span>
+                  ) : (
+                    <>
+                      {m.sources && m.sources.length > 0 && (
+                        <div className="split-source">
+                          <div className="font-black">Источник</div>
+                          <ul className="mt-1 space-y-1">
+                            {m.sources.map((source, idx) => (
+                              <li key={idx}>{source.label || `${source.material_title}${source.page_number != null ? `, стр. ${source.page_number}` : ""}`}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <SafeMarkdown text={m.content} className="split-markdown" />
+                      {followUps.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {followUps.map((action) => (
+                            <button key={action.label} type="button" onClick={() => send(action.prompt)} className="split-chip" disabled={busy}>{action.label}</button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+            {busy && <div className="split-bubble split-bubble-assistant">AI думает…</div>}
+          </section>
+
+          <form onSubmit={(event) => { event.preventDefault(); send(); }} className="split-chat-form">
+            <input
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder="Задай вопрос репетитору…"
+              maxLength={500}
+              aria-describedby="input-hint"
+              className="split-input"
+              disabled={busy}
+            />
+            {voiceEnabled && <VoiceMicButton disabled={busy} onTranscript={(text) => setInput((prev) => (prev ? prev + " " : "") + text)} onError={(msg) => setActionError("Микрофон: " + msg)} />}
+            <button type="submit" disabled={busy || !input.trim()} className="split-send">{busy ? "⏳" : "Отправить"}</button>
+          </form>
+          <div id="input-hint" className="split-hint"><span>Enter — отправить</span><span>{input.length}/500</span></div>
+        </section>
+
+        <aside className={`split-panel split-practice ${activePane === "practice" ? "block" : "hidden xl:block"}`}>
+          <div className="split-kicker">Практика</div>
+          {!exercise && (
+            <div className="split-empty compact">
+              <h2>Практика появится здесь</h2>
+              <p>Нажми «Практика» в разделе урока, чтобы получить новое задание.</p>
             </div>
           )}
-
           {exercise && (
-            <section data-testid="exercise-card" className="lesson-readable mt-5 rounded-[30px] p-5 shadow-glow">
-              <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Задание</div>
-              <SafeMarkdown text={exercise.question_text} className="mt-2" />
+            <section data-testid="exercise-card" className="split-task-card">
+              <div className="split-kicker green">Задание</div>
+              <SafeMarkdown text={exercise.question_text} className="split-task-text" />
               {exercise.options && exercise.options.length > 0 && (
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                <div className="mt-4 grid gap-2">
                   {exercise.options.map((opt) => (
                     <button
                       key={opt}
@@ -482,11 +561,7 @@ export default function TopicPage() {
                         setCheckResult(null);
                         setActionError(null);
                       }}
-                      className={`min-h-12 rounded-2xl border px-4 py-3 text-left text-sm font-bold ${
-                        userAnswer === opt
-                          ? "prism-option-button-active"
-                          : "prism-option-button hover:border-[color:var(--prism-accent)]"
-                      }`}
+                      className={`split-answer ${userAnswer === opt ? "active" : ""}`}
                     >
                       {opt}
                     </button>
@@ -496,31 +571,29 @@ export default function TopicPage() {
               {(!exercise.options || exercise.options.length === 0 || exercise.type === "numeric" || exercise.type === "text") ? (
                 <input
                   value={userAnswer}
-                  onChange={(e) => {
-                    setUserAnswer(e.target.value);
+                  onChange={(event) => {
+                    setUserAnswer(event.target.value);
                     setCheckResult(null);
                     setActionError(null);
                   }}
                   placeholder={exercise.type === "numeric" ? "Числовой ответ" : "Текстовый ответ"}
-                  className="prism-input mt-4"
+                  className="split-input mt-4"
                 />
               ) : null}
               <button
                 type="button"
                 onClick={checkAnswer}
                 disabled={busy || !userAnswer}
-                className="prism-action primary mt-4"
+                className="split-button split-button-primary mt-4 w-full"
               >
                 Проверить
               </button>
               {checkResult && (
-                <div className={`mt-4 rounded-3xl p-4 text-sm ${checkResult.is_correct ? "bg-emerald-100 text-emerald-950" : "bg-rose-100 text-rose-950"}`}>
-                  <div className="font-black">{checkResult.is_correct ? "Верно!" : "Есть ошибка"} (оценка {Math.round(checkResult.score * 100)}%)</div>
+                <div className={`split-result ${checkResult.is_correct ? "ok" : "bad"}`}>
+                  <div className="font-black">{checkResult.is_correct ? "Верно!" : "Есть ошибка"} ({Math.round(checkResult.score * 100)}%)</div>
                   {checkResult.first_error && <div className="mt-1">Шаг ошибки: {checkResult.first_error}</div>}
                   <SafeMarkdown text={checkResult.explanation} className="mt-2" />
-                  {!checkResult.is_correct && checkResult.score < 0.6 && (
-                    <div className="mt-3 rounded-2xl bg-[color:var(--prism-panel-solid)]/70 p-3 text-xs text-[color:var(--prism-ink)]">Попроси подсказку или попробуй ещё раз — репетитор поможет без раскрытия ответа.</div>
-                  )}
+                  {!checkResult.is_correct && checkResult.score < 0.6 && <div className="mt-3 rounded-2xl bg-white/10 p-3 text-xs">Попробуй ещё раз — репетитор поможет без раскрытия ответа.</div>}
                   {checkResult.is_correct && (
                     <button
                       type="button"
@@ -530,7 +603,7 @@ export default function TopicPage() {
                         generate(nextSeed);
                       }}
                       disabled={busy}
-                      className="prism-action mt-3"
+                      className="split-button mt-3 w-full"
                     >
                       Следующее задание
                     </button>
@@ -539,70 +612,6 @@ export default function TopicPage() {
               )}
             </section>
           )}
-        </section>
-
-        <aside className="prism-card pad prism-chat-column flex min-h-[420px] flex-col">
-          <div className="prism-kicker">Чат с репетитором</div>
-          <section ref={scrollRef} className="prism-chat-surface prism-scroll mt-4 flex-1 space-y-3 rounded-[28px] border border-[color:var(--prism-line)] p-3">
-            {msgs.length === 0 && <p className="text-sm text-[color:var(--prism-muted)]">Напиши вопрос репетитору или нажми «Объяснить» / «Практика».</p>}
-            {msgs.map((m, i) => {
-              const isLastAssistant = i === msgs.length - 1 && m.role === "assistant";
-              const followUps = isLastAssistant && !busy ? followups : [];
-              return (
-                <div
-                  key={i}
-                  data-testid={`chat-message-${m.role}`}
-                  className={`max-w-[96%] overflow-hidden rounded-3xl px-4 py-3 text-sm shadow-sm ${m.role === "user" ? "ml-auto bg-[color:var(--prism-accent)] text-white" : "prism-chat-bubble-assistant mr-auto"}`}
-                >
-                  {m.role === "user" ? (
-                    <span className="whitespace-pre-wrap break-words">{m.content}</span>
-                  ) : (
-                    <>
-                      {m.sources && m.sources.length > 0 && (
-                        <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs">
-                          <div className="mb-1 font-black text-amber-800">📖 Источник:</div>
-                          <ul className="space-y-1">
-                            {m.sources.map((s, idx) => (
-                              <li key={idx} className="break-words text-amber-900">{s.label || `${s.material_title}${s.page_number != null ? `, стр. ${s.page_number}` : ""}`}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      <SafeMarkdown text={m.content} className="break-words [&_*]:break-words [&_*]:max-w-full" />
-                      {followUps.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {followUps.map((action) => (
-                            <button key={action.label} type="button" onClick={() => send(action.prompt)} className="prism-pill" disabled={busy}>{action.label}</button>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              );
-            })}
-            {busy && <div className="prism-chat-bubble-assistant mr-auto rounded-3xl px-4 py-3 text-sm shadow-sm">AI думает…</div>}
-          </section>
-
-          <form onSubmit={(e) => { e.preventDefault(); send(); }} className="mt-3 pb-[env(safe-area-inset-bottom)]">
-            <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Задай вопрос репетитору…"
-                maxLength={500}
-                aria-describedby="input-hint"
-                className="prism-input"
-                disabled={busy}
-              />
-              {voiceEnabled && <VoiceMicButton disabled={busy} onTranscript={(text) => setInput((prev) => (prev ? prev + " " : "") + text)} onError={(msg) => setActionError("Микрофон: " + msg)} />}
-              <button type="submit" disabled={busy || !input.trim()} className="prism-action primary">{busy ? "⏳" : "Отправить"}</button>
-            </div>
-            <div id="input-hint" className="mt-2 flex items-center justify-between text-xs text-[color:var(--prism-muted)]">
-              <span>Enter — отправить</span>
-              <span className={input.length > 400 ? "font-black text-amber-600" : ""}>{input.length}/500</span>
-            </div>
-          </form>
         </aside>
       </section>
     </main>

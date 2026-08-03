@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import type { User } from "@/types";
-import ThemeToggle from "@/components/ThemeToggle";
 
 interface HeaderProps {
   user: User | null;
@@ -37,7 +36,6 @@ export default function Header({ user, backHref, title, backLabel = "Назад"
 
         <div className="flex shrink-0 items-center gap-2">
           {user && <span className="prism-pill hidden md:inline-flex">{user.role}</span>}
-          <ThemeToggle />
           {user && <button onClick={logout} className="prism-action">Выйти</button>}
         </div>
       </div>

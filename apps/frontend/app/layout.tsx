@@ -31,17 +31,12 @@ export const viewport: Viewport = {
 const themeInitScript = `
 (function() {
   try {
-    var saved = localStorage.getItem('ai-tutor:theme');
-    var theme = saved || 'system';
-    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var resolved = theme === 'system' ? (prefersDark ? 'dark' : 'light') : theme;
-    if (resolved === 'dark') {
-      document.documentElement.classList.add('dark');
-    }
-    document.documentElement.dataset.theme = theme;
+    document.documentElement.classList.add('dark');
+    document.documentElement.dataset.theme = 'dark';
+    localStorage.setItem('ai-tutor:theme', 'dark');
   } catch (e) {
-    // localStorage может быть недоступен (приватный режим, sandbox).
-    // MVP testing default: stay in readable light mode unless user explicitly toggles.
+    document.documentElement.classList.add('dark');
+    document.documentElement.dataset.theme = 'dark';
   }
 })();
 `;
@@ -52,7 +47,7 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <head>
-        <meta name="color-scheme" content="light dark" />
+        <meta name="color-scheme" content="dark" />
         {/* Sprint 33: FOUC prevention — выполняется до hydration */}
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
