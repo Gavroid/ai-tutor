@@ -452,7 +452,7 @@ export default function TopicPage() {
                   }}
                   className="split-button split-button-primary"
                 >
-                  Да
+                  Да, удалить
                 </button>
                 <button type="button" onClick={() => setShowClearConfirm(false)} className="split-button">Нет</button>
               </div>

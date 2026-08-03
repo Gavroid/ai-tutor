@@ -1239,7 +1239,7 @@ body { background: var(--split-bg-0); color: var(--split-ink); }
 }
 
 .split-chat,
-.split-lesson { display: flex; flex-direction: column; }
+.split-lesson { flex-direction: column; }
 .split-practice { overflow: auto; }
 
 .split-kicker {
@@ -1458,4 +1458,25 @@ body { background: var(--split-bg-0); color: var(--split-ink); }
   .split-panel { min-height: 0; height: 100%; border-radius: 26px; padding: 16px; }
   .split-chat-form > div { grid-template-columns: 1fr; }
   .split-send { width: 100%; }
+}
+
+
+/* Split Coach bugfix: legacy pause button + mobile visibility */
+.split-shell .text-slate-400,
+.split-shell .text-slate-500,
+.split-shell .text-slate-600,
+.split-shell .text-slate-700 {
+  color: var(--split-muted) !important;
+}
+.split-shell .hover\:text-slate-700:hover {
+  color: var(--split-ink) !important;
+}
+.split-shell .hover\:bg-slate-100:hover,
+.split-shell .bg-slate-100 {
+  background-color: rgba(255,255,255,.10) !important;
+}
+@media (max-width: 1279px) {
+  .split-desktop-grid > .hidden { display: none !important; }
+  .split-desktop-grid > .flex { display: flex !important; }
+  .split-desktop-grid > .block { display: block !important; }
 }
