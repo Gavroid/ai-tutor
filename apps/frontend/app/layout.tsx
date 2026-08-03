@@ -52,11 +52,6 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="min-h-screen bg-app text-fg">
-        {/* Sprint 11.2: a11y — skip-link для screen-reader / keyboard users.
-           Tab → переход к основному контенту без tab через всю навигацию. */}
-        <a href="#main-content" className="skip-link">
-          Перейти к содержимому
-        </a>
         <div id="main-content">{children}</div>
         {/* Sprint 98: register service worker для PWA offline support. */}
         <script
