@@ -1826,3 +1826,71 @@ a.prism-card:hover {
   .split-composer-row.has-voice { grid-template-columns: 1fr; }
   .split-composer-row .split-send { width: 100%; }
 }
+
+
+/* ============================================================ */
+/* 24. Buttons idle-dark hover-gradient + lesson copy scale */
+/* ============================================================ */
+.prism-action,
+.prism-action.primary,
+.split-button,
+.split-button-primary,
+.split-send,
+.prism-pill,
+.split-chip,
+.split-tab {
+  background: rgba(255,255,255,.10) !important;
+  background-image: none !important;
+  border-color: rgba(226,232,255,.18) !important;
+  color: var(--split-ink, var(--prism-ink)) !important;
+  box-shadow: 0 0 0 1px rgba(75,131,255,.10), 0 12px 34px -28px rgba(75,131,255,.55), inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+.prism-action:hover,
+.prism-action.primary:hover,
+.split-button:hover,
+.split-button-primary:hover,
+.split-send:hover,
+.prism-pill:hover,
+.split-chip:hover,
+.split-tab:hover,
+.prism-action:focus-visible,
+.prism-action.primary:focus-visible,
+.split-button:focus-visible,
+.split-button-primary:focus-visible,
+.split-send:focus-visible,
+.prism-pill:focus-visible,
+.split-chip:focus-visible,
+.split-tab:focus-visible {
+  background: linear-gradient(135deg, var(--split-accent, var(--prism-accent)), var(--split-accent-2, var(--prism-accent-2)) 58%, var(--prism-pink, #ff4dc4)) !important;
+  border-color: rgba(75,131,255,.72) !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 1px rgba(75,131,255,.32), 0 0 42px rgba(75,131,255,.24), 0 18px 64px -40px rgba(139,92,255,.70), inset 0 1px 0 rgba(255,255,255,.14) !important;
+}
+.prism-action:disabled,
+.split-button:disabled,
+.split-send:disabled,
+.split-chip:disabled {
+  background: rgba(255,255,255,.07) !important;
+  background-image: none !important;
+  color: rgba(248,251,255,.52) !important;
+  border-color: rgba(226,232,255,.12) !important;
+  box-shadow: none !important;
+}
+/* Status chips and selected answer states are not action buttons. */
+.prism-pill.active {
+  background: linear-gradient(135deg, var(--prism-accent), var(--prism-accent-2) 55%, var(--prism-pink)) !important;
+  color: #fff !important;
+}
+.split-answer.active {
+  border-color: var(--split-good) !important;
+  background: rgba(127,255,209,.14) !important;
+}
+.split-tab-active {
+  border-color: rgba(75,131,255,.72) !important;
+  background: rgba(255,255,255,.16) !important;
+  color: #fff !important;
+}
+.split-lesson-note p {
+  font-size: 13.5px;
+  line-height: 1.55;
+}
