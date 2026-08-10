@@ -316,7 +316,6 @@ export default function TopicPage() {
   }
 
   async function generate(nextSeed?: number) {
-    if (busy) return;
     const seed = nextSeed ?? practiceSeed;
     setActionError(null);
     setBusy(true);
@@ -416,7 +415,6 @@ export default function TopicPage() {
                 generate(nextSeed);
                 setActivePane("practice");
               }}
-              disabled={busy}
               className="split-button"
             >
               Практика

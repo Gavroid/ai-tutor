@@ -47,8 +47,8 @@ export default function HomePage() {
   return (
     <main className="prism-shell">
       <Header user={user} title="Prism Learning OS" />
-      <section className="py-4 sm:py-7">
-        <div className="prism-frame min-h-[calc(100dvh-110px)]">
+      <section className="py-3 sm:py-5">
+        <div className="prism-frame">
           <div className="prism-layer prism-hero-grid">
             <section>
               <div className="prism-kicker">Explore · Student Mission Control</div>
@@ -56,7 +56,7 @@ export default function HomePage() {
               <p className="prism-copy">
                 Не лента предметов, а рабочая карта: готовые темы, повторение, слабые места и понятный следующий шаг в одном экране.
               </p>
-              <div className="mt-7 flex flex-wrap gap-3">
+              <div className="mt-5 flex flex-wrap gap-3">
                 <Link href="/diagnostic" className="prism-action primary">Диагностика</Link>
                 <Link href="/link-parent" className="prism-action">Привязать родителя</Link>
                 {user?.role === "parent" && <Link href="/parents" className="prism-action">Родительский кабинет</Link>}
@@ -67,30 +67,30 @@ export default function HomePage() {
 
             <aside className="prism-card pad glow">
               <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">Live System</div>
-              <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="mt-4 grid grid-cols-2 gap-2">
                 <Metric label="Предметов" value={subjects.length || "—"} />
                 <Metric label="MVP-ready" value={readyCount || "—"} />
                 <Metric label="Preview" value={previewCount || "—"} />
                 <Metric label="AI" value={aiOk === null ? "…" : aiOk ? "ON" : "OFF"} hot={!!aiOk} />
               </div>
               {aiOk === true && aiModel && <p className="mt-4 text-xs text-[color:var(--prism-muted)]">Модель: {aiModel}</p>}
-              <div className="prism-orb relative mt-6 min-h-[220px]" aria-hidden="true" />
+              <div className="prism-orb relative mt-4 min-h-[160px]" aria-hidden="true" />
             </aside>
           </div>
 
           {(dueReview.length > 0 || review.length > 0) && (
-            <div className="prism-layer grid gap-4 px-5 pb-5 lg:grid-cols-2 lg:px-10">
+            <div className="prism-layer grid gap-3 px-4 pb-4 lg:grid-cols-2 lg:px-7">
               {dueReview.length > 0 && <ActionPanel title="Сегодня к повторению" items={dueReview.slice(0, 4).map((d) => ({ href: `/topics/${d.topic_id}`, title: d.topic_name, meta: `${d.subject_name} · ${d.days_overdue > 0 ? `просрочено ${d.days_overdue}д` : "сегодня"}` }))} />}
               {review.length > 0 && <ActionPanel title="Стоит повторить" items={review.slice(0, 4).map((r) => ({ href: `/topics/${r.topic_id}`, title: r.topic_name, meta: `${r.subject_name} · уверенность ${Math.round(r.mastery_score * 100)}%` }))} />}
             </div>
           )}
 
-          <section className="prism-layer px-5 pb-7 lg:px-10 lg:pb-10">
-            <div className="mb-5 grid gap-4 lg:grid-cols-[1fr_420px] lg:items-end">
+          <section className="prism-layer px-4 pb-5 lg:px-7 lg:pb-7">
+            <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_360px] lg:items-end">
               <div>
                 <div className="prism-kicker">Subject Gallery</div>
-                <h2 className="mt-3 text-4xl font-black tracking-[-0.05em] sm:text-6xl">Каталог предметов</h2>
-                <p className="mt-3 max-w-2xl text-[color:var(--prism-muted)]">MVP-ready — можно тестировать полноценно. Preview — виден в системе, но без обещания качества источников и практики.</p>
+                <h2 className="mt-2 text-3xl font-black tracking-[-0.05em] sm:text-5xl">Каталог предметов</h2>
+                <p className="mt-2 max-w-2xl text-sm text-[color:var(--prism-muted)]">MVP-ready — можно тестировать полноценно. Preview — виден в системе, но без обещания качества источников и практики.</p>
               </div>
               <input
                 type="search"
@@ -103,7 +103,7 @@ export default function HomePage() {
             </div>
 
             {filtered.length > 0 ? (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {filtered.map((s) => (
                   <Link key={s.id} href={`/subjects/${s.id}`} className={`prism-card prism-subject-card ${s.mvp_status === "mvp_ready" ? "xl:col-span-2" : ""}`}>
                     <div className="flex items-start justify-between gap-4">
