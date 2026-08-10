@@ -1664,3 +1664,92 @@ input.prism-input {
   .prism-subject-card { min-height: auto; }
   .subject-compact-hero .prism-title { font-size: clamp(30px, 9vw, 48px); }
 }
+
+
+/* ============================================================ */
+/* 22. Unified button glow + pause redesign */
+/* ============================================================ */
+.prism-action,
+.split-button,
+.split-chip,
+.split-tab,
+.split-send,
+.prism-pill,
+button,
+a.prism-card,
+a.prism-pill {
+  cursor: pointer;
+}
+.prism-action,
+.split-button,
+.split-chip,
+.split-tab,
+.split-send,
+.prism-pill {
+  box-shadow: 0 0 0 1px rgba(75,131,255,.10), 0 12px 34px -28px rgba(75,131,255,.55), inset 0 1px 0 rgba(255,255,255,.08);
+}
+.prism-action:hover,
+.split-button:hover,
+.split-chip:hover,
+.split-tab:hover,
+.split-send:hover,
+.prism-pill:hover,
+a.prism-card:hover {
+  border-color: rgba(75,131,255,.58) !important;
+  box-shadow: 0 0 0 1px rgba(75,131,255,.25), 0 0 36px rgba(75,131,255,.18), 0 18px 60px -44px rgba(139,92,255,.60), inset 0 1px 0 rgba(255,255,255,.12);
+}
+.prism-action:focus-visible,
+.split-button:focus-visible,
+.split-chip:focus-visible,
+.split-tab:focus-visible,
+.split-send:focus-visible,
+.prism-pill:focus-visible,
+.prism-input:focus,
+.split-input:focus {
+  outline: none;
+  border-color: rgba(75,131,255,.75) !important;
+  box-shadow: 0 0 0 4px rgba(75,131,255,.22), 0 0 38px rgba(75,131,255,.18) !important;
+}
+.split-lesson .split-title { display: none; }
+.split-chat-form {
+  border-top: 1px solid rgba(226,232,255,.10);
+  padding-top: 10px;
+}
+.split-chat-form > div {
+  grid-template-columns: minmax(0, 1fr) 132px;
+  align-items: stretch;
+}
+.split-chat-form .split-input {
+  min-height: 46px;
+  border-radius: 18px;
+}
+.split-chat-form .split-send {
+  height: 46px;
+  min-height: 46px;
+  border-radius: 18px;
+  padding-inline: 18px;
+}
+.split-pause-panel {
+  border: 1px solid var(--split-line);
+  border-radius: 24px;
+  background: rgba(255,255,255,.075);
+  color: var(--split-ink);
+  padding: 14px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+}
+.split-pause-option {
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  border-radius: 18px;
+  text-align: left;
+}
+.split-pause-option span:last-child {
+  color: var(--split-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+@media (max-width: 1279px) {
+  .split-chat-form > div { grid-template-columns: 1fr; }
+  .split-chat-form .split-send { width: 100%; }
+}

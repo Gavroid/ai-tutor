@@ -1,37 +1,22 @@
 "use client";
 
-/**
- * Sprint 106: Register page (2026 design).
- */
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Card } from "@/components/ui/Card";
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<RegisterPageSkeleton />}>
+    <Suspense fallback={<RegisterSkeleton />}>
       <RegisterPageInner />
     </Suspense>
   );
 }
 
-function RegisterPageSkeleton() {
+function RegisterSkeleton() {
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg p-6">
-      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-aurora" />
-      <Card variant="glass" padding="xl" className="w-full max-w-md">
-        <div className="mb-6 text-center">
-          <div className="mb-4 inline-flex size-12 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-purple-500 text-2xl">
-            🎓
-          </div>
-          <h1 className="text-display-sm font-bold tracking-tight text-fg">Регистрация</h1>
-          <p className="mt-1 text-sm text-fg-muted">Загрузка...</p>
-        </div>
-      </Card>
+    <main className="prism-shell grid min-h-dvh place-items-center p-4">
+      <section className="prism-card pad w-full max-w-xl">Загрузка…</section>
     </main>
   );
 }
@@ -71,11 +56,11 @@ function RegisterPageInner() {
             ? detail.map((d: any) => d.msg || d).join("; ")
             : typeof detail === "string"
               ? detail
-              : "Проверьте правильность данных";
+              : "Проверь правильность данных";
           setError(msg);
         } else setError("Не удалось зарегистрироваться");
       } else {
-        setError("Не удалось зарегистрироваться. Проверьте соединение.");
+        setError("Не удалось зарегистрироваться. Проверь соединение.");
       }
     } finally {
       setLoading(false);
@@ -83,116 +68,47 @@ function RegisterPageInner() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg p-6">
-      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-aurora" />
-      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-grid opacity-30" />
+    <main className="prism-shell min-h-dvh">
+      <section className="mx-auto grid min-h-dvh w-[min(1180px,calc(100vw-24px))] place-items-center py-6">
+        <div className="grid w-full overflow-hidden rounded-[34px] border border-[color:var(--prism-line)] bg-[color:var(--prism-elevated)] shadow-glow lg:grid-cols-[0.9fr_1.1fr]">
+          <aside className="relative min-h-[300px] overflow-hidden border-b border-[color:var(--prism-line)] p-6 lg:border-b-0 lg:border-r lg:p-9">
+            <Link href="/login" className="prism-pill">← Войти</Link>
+            <div className="prism-kicker mt-9">Новый ученик</div>
+            <h1 className="mt-4 text-4xl font-black tracking-[-0.06em] text-[color:var(--prism-ink)] sm:text-6xl">Создай аккаунт</h1>
+            <p className="mt-4 max-w-md text-sm leading-6 text-[color:var(--prism-muted)]">Имя, почта, пароль и класс — после регистрации сразу откроется карта обучения.</p>
+            {inviteCode && <div className="mt-5 rounded-2xl border border-[color:var(--prism-line)] bg-black/10 px-4 py-3 text-sm text-[color:var(--prism-muted)]">Регистрация по приглашению: <b className="text-[color:var(--prism-ink)]">{inviteCode}</b></div>}
+            <div className="prism-orb pointer-events-none absolute -bottom-28 right-0 h-60 w-60 min-h-0 opacity-55" aria-hidden="true" />
+          </aside>
 
-      <Card
-        variant="glass"
-        padding="xl"
-        className="w-full max-w-md animate-scale-in"
-      >
-        <div className="mb-6 text-center">
-          <div className="mb-4 inline-flex size-12 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-purple-500 text-2xl">
-            🎓
-          </div>
-          <h1 className="text-display-sm font-bold tracking-tight text-fg">
-            Создай аккаунт
-          </h1>
-          <p className="mt-1 text-sm text-fg-muted">И начни заниматься за 2 минуты</p>
+          <section className="p-6 sm:p-9">
+            <form className="grid gap-4" onSubmit={onSubmit}>
+              <label className="grid gap-2">
+                <span className="text-sm font-black text-[color:var(--prism-muted)]">Имя или псевдоним</span>
+                <input className="prism-input" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required placeholder="Кирилл" />
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-black text-[color:var(--prism-muted)]">Email</span>
+                <input className="prism-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" placeholder="your@email.com" />
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-black text-[color:var(--prism-muted)]">Пароль</span>
+                <input className="prism-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} autoComplete="new-password" placeholder="Минимум 8 символов" />
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-black text-[color:var(--prism-muted)]">Класс</span>
+                <select className="prism-input" value={grade} onChange={(e) => setGrade(Number(e.target.value))}>
+                  {[5, 6, 7, 8, 9].map((g) => <option key={g} value={g}>{g} класс</option>)}
+                </select>
+              </label>
+              {error && <div role="alert" className="rounded-2xl border border-rose-300/30 bg-rose-400/10 px-4 py-3 text-sm font-bold text-rose-200">{error}</div>}
+              <button type="submit" className="prism-action primary w-full" disabled={loading}>
+                {loading ? "Создаём аккаунт…" : "Зарегистрироваться"}
+              </button>
+            </form>
+            <p className="mt-5 text-center text-sm text-[color:var(--prism-muted)]">Уже есть аккаунт? <Link className="font-black text-[color:var(--prism-cyan)] hover:underline" href="/login">Войти</Link></p>
+          </section>
         </div>
-
-        {inviteCode && (
-          <div
-            className="mb-4 rounded-md border border-brand-200 bg-brand-50 p-3 text-sm text-brand-700 dark:border-brand-800 dark:bg-brand-900/20 dark:text-brand-300"
-            data-testid="invite-banner"
-          >
-            🎁 <strong>Приглашение:</strong> ты регистрируешься по коду.
-          </div>
-        )}
-
-        <form className="space-y-4" onSubmit={onSubmit}>
-          <div>
-            <label htmlFor="display-name" className="mb-1.5 block text-sm font-medium text-fg">
-              Имя или псевдоним
-            </label>
-            <Input
-              id="display-name"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              required
-              placeholder="Кирилл"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-fg">
-              Email
-            </label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              placeholder="your@email.com"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-fg">
-              Пароль (от 8 символов)
-            </label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
-              autoComplete="new-password"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="grade" className="mb-1.5 block text-sm font-medium text-fg">
-              Класс
-            </label>
-            <select
-              id="grade"
-              value={grade}
-              onChange={(e) => setGrade(Number(e.target.value))}
-              className="flex w-full rounded-md border border-border bg-surface px-3 h-10 text-base text-fg transition-modern focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
-            >
-              {[5, 6, 7, 8, 9].map((g) => (
-                <option key={g} value={g}>{g} класс</option>
-              ))}
-            </select>
-          </div>
-
-          {error && (
-            <div
-              role="alert"
-              className="rounded-md border border-danger/20 bg-danger/10 px-3 py-2 text-sm text-danger"
-            >
-              {error}
-            </div>
-          )}
-
-          <Button type="submit" variant="primary" size="lg" fullWidth loading={loading}>
-            {loading ? "Создаём аккаунт…" : "Зарегистрироваться"}
-          </Button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-fg-muted">
-          Уже есть аккаунт?{" "}
-          <Link className="font-medium text-brand-500 hover:underline" href="/login">
-            Войти
-          </Link>
-        </p>
-      </Card>
+      </section>
     </main>
   );
 }

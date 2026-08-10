@@ -395,8 +395,7 @@ export default function TopicPage() {
       >
         <aside className={`split-panel split-lesson ${activePane === "lesson" ? "flex" : "hidden xl:flex"}`}>
           <div className="split-kicker">Урок</div>
-          <h1 className="split-title">{topic?.name || "Тема"}</h1>
-          <p className="split-muted">Сначала попроси объяснение, затем переходи к практике. Чат остаётся главным рабочим пространством.</p>
+          <p className="split-muted mt-3">Сначала попроси объяснение, затем переходи к практике. Чат остаётся главным рабочим пространством.</p>
 
           <div className="split-actions">
             <button
