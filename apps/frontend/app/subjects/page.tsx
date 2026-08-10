@@ -79,7 +79,7 @@ export default function HomePage() {
                 {review.length > 0 ? (
                   <div className="mt-2 grid gap-2">
                     {review.slice(0, 3).map((r) => (
-                      <Link key={r.topic_id} href={`/topics/${r.topic_id}`} className="block rounded-2xl border border-[color:var(--prism-line)] bg-black/10 px-3 py-2 hover:border-[color:var(--prism-accent)]">
+                      <Link key={r.topic_id} href={`/topics/${r.topic_id}`} className="prism-review-row block rounded-2xl border border-[color:var(--prism-line)] px-3 py-2">
                         <div className="truncate text-sm font-black">{r.topic_name}</div>
                         <div className="mt-0.5 text-xs text-[color:var(--prism-muted)]">Уверенность {Math.round(r.mastery_score * 100)}%</div>
                       </Link>

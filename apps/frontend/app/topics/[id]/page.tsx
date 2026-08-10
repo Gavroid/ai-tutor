@@ -395,7 +395,9 @@ export default function TopicPage() {
       >
         <aside className={`split-panel split-lesson ${activePane === "lesson" ? "flex" : "hidden xl:flex"}`}>
           <div className="split-kicker">Урок</div>
-          <p className="split-muted mt-3">Сначала попроси объяснение, затем переходи к практике. Чат остаётся главным рабочим пространством.</p>
+          <div className="split-lesson-note">
+            <p>Сначала попроси объяснение, затем переходи к практике. Чат остаётся главным рабочим пространством.</p>
+          </div>
 
           <div className="split-actions">
             <button
@@ -521,17 +523,19 @@ export default function TopicPage() {
           </section>
 
           <form onSubmit={(event) => { event.preventDefault(); send(); }} className="split-chat-form">
-            <input
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              placeholder="Задай вопрос репетитору…"
-              maxLength={500}
-              aria-describedby="input-hint"
-              className="split-input"
-              disabled={busy}
-            />
-            {voiceEnabled && <VoiceMicButton disabled={busy} onTranscript={(text) => setInput((prev) => (prev ? prev + " " : "") + text)} onError={(msg) => setActionError("Микрофон: " + msg)} />}
-            <button type="submit" disabled={busy || !input.trim()} className="split-send">{busy ? "⏳" : "Отправить"}</button>
+            <div className={`split-composer-row ${voiceEnabled ? "has-voice" : ""}`}>
+              <input
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                placeholder="Задай вопрос репетитору…"
+                maxLength={500}
+                aria-describedby="input-hint"
+                className="split-input"
+                disabled={busy}
+              />
+              {voiceEnabled && <VoiceMicButton disabled={busy} onTranscript={(text) => setInput((prev) => (prev ? prev + " " : "") + text)} onError={(msg) => setActionError("Микрофон: " + msg)} />}
+              <button type="submit" disabled={busy || !input.trim()} className="split-send">{busy ? "⏳" : "Отправить"}</button>
+            </div>
           </form>
           <div id="input-hint" className="split-hint"><span>Enter — отправить</span><span>{input.length}/500</span></div>
         </section>
