@@ -449,9 +449,10 @@ export default function TopicPage() {
                     api.topicDraftClear(topicId).catch(() => {});
                     setShowClearConfirm(false);
                   }}
+                  aria-label="Да, удалить"
                   className="split-button split-button-primary"
                 >
-                  Да, удалить
+                  Да
                 </button>
                 <button type="button" onClick={() => setShowClearConfirm(false)} className="split-button">Нет</button>
               </div>
