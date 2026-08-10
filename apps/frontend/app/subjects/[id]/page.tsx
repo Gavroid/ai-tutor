@@ -47,9 +47,9 @@ export default function SubjectPage() {
   return (
     <main className="prism-shell">
       <Header user={user} backHref="/subjects" backLabel="Все предметы" title={subject ? `${subject.icon || "📘"} ${subject.name}` : "Предмет"} />
-      <section className="py-4 sm:py-7">
-        <div className="prism-frame min-h-[calc(100dvh-110px)]">
-          <div className="prism-layer prism-hero-grid">
+      <section className="py-3 sm:py-5">
+        <div className="prism-frame">
+          <div className="prism-layer prism-hero-grid subject-compact-hero">
             <section>
               <div className="prism-kicker">Subject Object · Route Map</div>
               <h1 className="prism-title"><span className="accent">{subject?.icon || "📘"}</span> {subject?.name || "Загружаем"}</h1>
@@ -67,27 +67,27 @@ export default function SubjectPage() {
             </aside>
           </div>
 
-          <section className="prism-layer px-5 pb-7 lg:px-10 lg:pb-10">
+          <section className="prism-layer px-4 pb-5 lg:px-7 lg:pb-7">
             {loading && <div className="prism-card pad">Загружаем темы…</div>}
             {error && !loading && <div className="prism-card pad text-danger">{error}</div>}
             {!loading && !error && topics.length === 0 && <div className="prism-card pad">В этом предмете пока нет тем.</div>}
 
-            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <div className="prism-kicker">Timeline</div>
-                <h2 className="mt-3 text-4xl font-black tracking-[-0.05em] sm:text-6xl">Маршрут тем</h2>
+                <h2 className="mt-2 text-3xl font-black tracking-[-0.05em] sm:text-5xl">Маршрут тем</h2>
               </div>
               <span className={`prism-pill ${subject?.mvp_status === "mvp_ready" ? "active" : ""}`}>{subject?.mvp_status === "mvp_ready" ? "MVP-ready" : "Preview"}</span>
             </div>
 
-            <ol className="grid gap-4 xl:grid-cols-2">
+            <ol className="grid gap-3 xl:grid-cols-2">
               {topics.map((topic, index) => (
                 <li key={topic.id}>
-                  <Link href={`/topics/${topic.id}`} className="prism-card pad flex min-h-[148px] flex-col gap-4 hover:border-[color:var(--prism-accent)] sm:flex-row sm:items-center sm:justify-between">
+                  <Link href={`/topics/${topic.id}`} className="prism-card pad flex min-h-[104px] flex-col gap-3 hover:border-[color:var(--prism-accent)] sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-start gap-4">
                       <span className="prism-mark flex shrink-0 items-center justify-center text-sm font-black text-white">{String(index + 1).padStart(2, "0")}</span>
                       <div>
-                        <h3 className="text-2xl font-black tracking-[-0.04em]">{topic.name}</h3>
+                        <h3 className="text-lg font-black tracking-[-0.035em]">{topic.name}</h3>
                         {topic.description && <p className="mt-1 line-clamp-2 text-sm text-[color:var(--prism-muted)]">{topic.description}</p>}
                       </div>
                     </div>

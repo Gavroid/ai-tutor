@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, getToken, setToken } from "@/lib/api";
+import { api } from "@/lib/api";
 import type { Subject } from "@/types";
 
 type Q = {
@@ -37,187 +37,95 @@ export default function DiagnosticPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    api.subjects().then(setSubjects).catch(() => {});
-  }, []);
+  useEffect(() => { api.subjects().then(setSubjects).catch(() => {}); }, []);
 
   async function start(subjectId: number) {
-    setBusy(true);
-    setError(null);
-    setResult(null);
-    setLastResult(null);
+    setBusy(true); setError(null); setResult(null); setLastResult(null);
     try {
       const sess = await api.startDiagnostic(subjectId);
       setSessionId(sess.id);
       const q = await api.nextDiagnosticQuestion(sess.id);
       setQuestion(q);
-    } catch (e) {
-      setError("Не удалось начать диагностику");
-    } finally {
-      setBusy(false);
-    }
+    } catch { setError("Не удалось начать диагностику"); }
+    finally { setBusy(false); }
   }
 
   async function submit() {
     if (!question || !sessionId || !answer.trim()) return;
     setBusy(true);
     try {
-      const r = await api.submitDiagnosticAnswer(sessionId, {
-        topic_id: question.topic_id,
-        question_text: question.question_text,
-        user_answer: answer,
-        correct_answer: question.question_text, // в MVP корректный ответ показывается AI-сгенерированным
-      });
+      const r = await api.submitDiagnosticAnswer(sessionId, { topic_id: question.topic_id, question_text: question.question_text, user_answer: answer, correct_answer: question.question_text });
       setLastResult(r);
-      // Запоминаем эталон (он вернётся в next-question, если AI сохранил)
       setCorrectAnswer(question.question_text);
       setAnswer("");
-      // Следующий вопрос
       const q = await api.nextDiagnosticQuestion(sessionId);
       if (q) setQuestion(q);
-      else {
-        // Закончились вопросы
-        const fin = await api.finishDiagnostic(sessionId);
-        setResult(fin);
-        setSessionId(null);
-      }
-    } catch (e) {
-      setError("Не удалось отправить ответ");
-    } finally {
-      setBusy(false);
-    }
+      else { const fin = await api.finishDiagnostic(sessionId); setResult(fin); setSessionId(null); }
+    } catch { setError("Не удалось отправить ответ"); }
+    finally { setBusy(false); }
   }
 
   async function finishEarly() {
     if (!sessionId) return;
     setBusy(true);
-    try {
-      const fin = await api.finishDiagnostic(sessionId);
-      setResult(fin);
-      setSessionId(null);
-    } catch {
-      setError("Не удалось завершить диагностику");
-    } finally {
-      setBusy(false);
-    }
+    try { const fin = await api.finishDiagnostic(sessionId); setResult(fin); setSessionId(null); }
+    catch { setError("Не удалось завершить диагностику"); }
+    finally { setBusy(false); }
   }
 
-  function reset() {
-    setSessionId(null);
-    setQuestion(null);
-    setResult(null);
-    setLastResult(null);
-    setAnswer("");
-    setCorrectAnswer("");
-  }
+  function reset() { setSessionId(null); setQuestion(null); setResult(null); setLastResult(null); setAnswer(""); setCorrectAnswer(""); }
 
   return (
-    <main className="mx-auto max-w-3xl p-6">
-      <header className="border-b border-slate-200 pb-3">
-        <Link href="/subjects" className="text-sm text-sky-600 hover:underline">
-          ← На главную
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold">Диагностика</h1>
-        <p className="text-sm text-slate-600">
-          Пройди короткий тест — узнаешь, что стоит повторить
-        </p>
-      </header>
+    <main className="prism-shell min-h-dvh">
+      <section className="mx-auto w-[min(1320px,calc(100vw-24px))] py-5 sm:py-8">
+        <Link href="/subjects" className="prism-pill">← На главную</Link>
+        <div className="mt-4 grid gap-5 lg:grid-cols-[0.9fr_1.25fr]">
+          <aside className="prism-card pad glow">
+            <div className="prism-kicker">Диагностика</div>
+            <h1 className="mt-4 text-4xl font-black tracking-[-0.06em] text-[color:var(--prism-ink)] sm:text-6xl">Короткий тест перед маршрутом</h1>
+            <p className="mt-4 text-sm leading-6 text-[color:var(--prism-muted)]">Выбери предмет, ответь на несколько вопросов — система подскажет, что стоит повторить.</p>
+            {error && <div className="mt-5 rounded-2xl border border-rose-300/30 bg-rose-400/10 px-4 py-3 text-sm font-bold text-rose-200">{error}</div>}
+          </aside>
 
-      {error && <div className="mt-4 rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
+          <section className="prism-card pad">
+            {!sessionId && !result && (
+              <>
+                <div className="prism-kicker">Выбери предмет</div>
+                <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
+                  {subjects.map((s) => (
+                    <button key={s.id} disabled={busy} onClick={() => start(s.id)} className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-4 text-left transition hover:border-[color:var(--prism-accent)] disabled:opacity-50">
+                      <div className="prism-mark grid place-items-center text-xl text-white">{s.icon || "📘"}</div>
+                      <div className="mt-3 text-sm font-black text-[color:var(--prism-ink)]">{s.name}</div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
 
-      {!sessionId && !result && (
-        <section className="mt-6">
-          <h2 className="text-lg font-semibold">Выбери предмет</h2>
-          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
-            {subjects.map((s) => (
-              <button
-                key={s.id}
-                disabled={busy}
-                onClick={() => start(s.id)}
-                className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-sky-300 hover:shadow-md disabled:opacity-50"
-              >
-                <div className="text-3xl">{s.icon || "📘"}</div>
-                <div className="mt-2 font-semibold">{s.name}</div>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
+            {question && !result && (
+              <div>
+                <div className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--prism-muted)]">{question.subject_name} · {question.topic_name} · сложность {question.difficulty}/5</div>
+                <div className="mt-3 whitespace-pre-wrap rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-4 text-sm leading-6 text-[color:var(--prism-ink)]">{question.question_text.replace(/<[^>]+>/g, "")}</div>
+                {lastResult && <div className={`mt-3 rounded-2xl border px-4 py-3 text-sm font-bold ${lastResult.is_correct ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-100" : "border-amber-300/30 bg-amber-400/10 text-amber-100"}`}>{lastResult.is_correct ? "Верно" : "Ответ принят"} — следующий вопрос ↓</div>}
+                <textarea value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder="Твой ответ…" rows={4} className="prism-input mt-3 min-h-[120px]" disabled={busy} />
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <button onClick={submit} disabled={busy || !answer.trim()} className="prism-action primary">Ответить</button>
+                  <button onClick={finishEarly} disabled={busy} className="prism-action">Завершить</button>
+                </div>
+              </div>
+            )}
 
-      {question && !result && (
-        <section className="mt-6">
-          <div className="text-xs uppercase tracking-wide text-slate-500">
-            {question.subject_name} · {question.topic_name} · сложность {question.difficulty}/5
-          </div>
-          <div className="mt-3 whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-4 text-slate-900 shadow-sm">
-            {question.question_text.replace(/<[^>]+>/g, "")}
-          </div>
-
-          {lastResult && (
-            <div
-              className={`mt-3 rounded-md p-3 text-sm ${
-                lastResult.is_correct ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"
-              }`}
-            >
-              {lastResult.is_correct ? "Верно" : "Ответ принят"} — следующий вопрос ↓
-            </div>
-          )}
-
-          <textarea
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            placeholder="Твой ответ…"
-            rows={4}
-            className="mt-3 block w-full rounded-md border border-slate-300 bg-white p-3"
-            disabled={busy}
-          />
-          <div className="mt-3 flex gap-2">
-            <button
-              onClick={submit}
-              disabled={busy || !answer.trim()}
-              className="rounded-md bg-sky-600 px-4 py-2 font-semibold text-white hover:bg-sky-500 disabled:opacity-50"
-            >
-              Ответить
-            </button>
-            <button
-              onClick={finishEarly}
-              disabled={busy}
-              className="rounded-md bg-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-300 disabled:opacity-50"
-            >
-              Завершить
-            </button>
-          </div>
-        </section>
-      )}
-
-      {result && (
-        <section className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-6">
-          <h2 className="text-xl font-bold text-emerald-900">Готово!</h2>
-          <p className="mt-2 text-sm text-emerald-800">
-            Правильных ответов: {result.correct_count} из {result.total_questions} (
-            {Math.round(result.overall_score * 100)}%)
-          </p>
-          {result.recommendations && (
-            <div className="mt-4 whitespace-pre-wrap rounded-md bg-white p-4 text-sm text-slate-800 shadow-sm">
-              {result.recommendations}
-            </div>
-          )}
-          <div className="mt-4 flex gap-2">
-            <button
-              onClick={reset}
-              className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
-            >
-              Пройти ещё раз
-            </button>
-            <Link
-              href="/subjects"
-              className="rounded-md bg-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-300"
-            >
-              На главную
-            </Link>
-          </div>
-        </section>
-      )}
+            {result && (
+              <section className="rounded-3xl border border-emerald-300/30 bg-emerald-400/10 p-5">
+                <h2 className="text-3xl font-black text-[color:var(--prism-ink)]">Готово</h2>
+                <p className="mt-2 text-sm text-[color:var(--prism-muted)]">Правильных ответов: {result.correct_count} из {result.total_questions} ({Math.round(result.overall_score * 100)}%)</p>
+                {result.recommendations && <div className="mt-4 whitespace-pre-wrap rounded-2xl bg-black/10 p-4 text-sm text-[color:var(--prism-ink)]">{result.recommendations}</div>}
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row"><button onClick={reset} className="prism-action primary">Пройти ещё раз</button><Link href="/subjects" className="prism-action">На главную</Link></div>
+              </section>
+            )}
+          </section>
+        </div>
+      </section>
     </main>
   );
 }

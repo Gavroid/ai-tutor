@@ -73,17 +73,25 @@ export default function HomePage() {
                 <Metric label="Preview" value={previewCount || "—"} />
                 <Metric label="AI" value={aiOk === null ? "…" : aiOk ? "ON" : "OFF"} hot={!!aiOk} />
               </div>
-              {aiOk === true && aiModel && <p className="mt-4 text-xs text-[color:var(--prism-muted)]">Модель: {aiModel}</p>}
-              <div className="prism-orb relative mt-4 min-h-[160px]" aria-hidden="true" />
+              {aiOk === true && aiModel && <p className="mt-3 text-xs text-[color:var(--prism-muted)]">Модель: {aiModel}</p>}
+              <div className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/40 p-3">
+                <div className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--prism-muted)]">Стоит повторить</div>
+                {review.length > 0 ? (
+                  <div className="mt-2 grid gap-2">
+                    {review.slice(0, 3).map((r) => (
+                      <Link key={r.topic_id} href={`/topics/${r.topic_id}`} className="block rounded-2xl border border-[color:var(--prism-line)] bg-black/10 px-3 py-2 hover:border-[color:var(--prism-accent)]">
+                        <div className="truncate text-sm font-black">{r.topic_name}</div>
+                        <div className="mt-0.5 text-xs text-[color:var(--prism-muted)]">Уверенность {Math.round(r.mastery_score * 100)}%</div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm text-[color:var(--prism-muted)]">Пока нечего повторять — начни урок или диагностику.</p>
+                )}
+              </div>
             </aside>
           </div>
 
-          {(dueReview.length > 0 || review.length > 0) && (
-            <div className="prism-layer grid gap-3 px-4 pb-4 lg:grid-cols-2 lg:px-7">
-              {dueReview.length > 0 && <ActionPanel title="Сегодня к повторению" items={dueReview.slice(0, 4).map((d) => ({ href: `/topics/${d.topic_id}`, title: d.topic_name, meta: `${d.subject_name} · ${d.days_overdue > 0 ? `просрочено ${d.days_overdue}д` : "сегодня"}` }))} />}
-              {review.length > 0 && <ActionPanel title="Стоит повторить" items={review.slice(0, 4).map((r) => ({ href: `/topics/${r.topic_id}`, title: r.topic_name, meta: `${r.subject_name} · уверенность ${Math.round(r.mastery_score * 100)}%` }))} />}
-            </div>
-          )}
 
           <section className="prism-layer px-4 pb-5 lg:px-7 lg:pb-7">
             <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_360px] lg:items-end">
@@ -105,7 +113,7 @@ export default function HomePage() {
             {filtered.length > 0 ? (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {filtered.map((s) => (
-                  <Link key={s.id} href={`/subjects/${s.id}`} className={`prism-card prism-subject-card ${s.mvp_status === "mvp_ready" ? "xl:col-span-2" : ""}`}>
+                  <Link key={s.id} href={`/subjects/${s.id}`} className="prism-card prism-subject-card">
                     <div className="flex items-start justify-between gap-4">
                       <div className="prism-mark flex items-center justify-center text-2xl text-white">{s.icon || "📘"}</div>
                       <span className={`prism-pill ${s.mvp_status === "mvp_ready" ? "active" : ""}`}>{s.mvp_status === "mvp_ready" ? "MVP-ready" : "Preview"}</span>
@@ -114,7 +122,7 @@ export default function HomePage() {
                     {s.description && <p className="mt-3 line-clamp-3 text-sm text-[color:var(--prism-muted)]">{s.description}</p>}
                     <p className="mt-5 text-xs leading-relaxed text-[color:var(--prism-muted)]">{s.support_note}</p>
                     <div className="mt-6 flex items-center justify-between border-t border-[color:var(--prism-line)] pt-4 text-xs font-black uppercase tracking-[0.16em]">
-                      <span>7 класс</span><span>Открыть →</span>
+                      <span>{s.recommended_grade} класс</span><span>Открыть →</span>
                     </div>
                   </Link>
                 ))}
