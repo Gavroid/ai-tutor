@@ -221,6 +221,18 @@ def test_restore_drill_script_uses_lock_and_isolated_temp_files():
 
 # === Тесты: shell script syntax ===
 
+
+def test_nginx_blocks_public_docs_schema_and_metrics_at_edge():
+    """Stage 6 hardening: edge nginx must not expose docs/schema/metrics."""
+    path = DEPLOY_DIR / "nginx" / "nginx.conf"
+    content = path.read_text(encoding="utf-8")
+    assert content.count("Stage 6 hardening: developer docs/schema are not exposed at the edge") == 2
+    assert content.count("Stage 6 hardening: metrics are not exposed at the edge") == 2
+    assert content.count(r"location ~ ^/(openapi\.json|docs|docs/oauth2-redirect|graphql)$") == 2
+    assert content.count("location /metrics") == 2
+    assert content.count("return 404;") >= 4
+    assert "Prometheus scrapes backend:8000/metrics directly inside Docker" in content
+
 def test_monitoring_shell_scripts_have_valid_syntax():
     """Все .sh файлы должны иметь валидный bash syntax."""
     import subprocess

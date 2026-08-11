@@ -162,6 +162,18 @@ def test_metrics_access_from_testclient_allowed(client):
     assert "# HELP" in r.text  # Prometheus format
 
 
+
+def test_metrics_access_from_private_docker_network_allowed(client):
+    """Stage 6 hardening: private Docker/LAN scrapers can access /metrics."""
+    from unittest.mock import patch
+
+    with patch("fastapi.Request.client") as mock_client:
+        mock_client.host = "172.18.0.5"
+        r = client.get("/metrics")
+
+    assert r.status_code == 200
+    assert "# HELP" in r.text
+
 def test_metrics_access_from_blocked_ip_rejected(client):
     """Sprint 69: blocked IP → 403."""
     # Mock client.host чтобы IP не в whitelist
