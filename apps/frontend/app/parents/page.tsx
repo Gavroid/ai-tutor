@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, getToken } from "@/lib/api";
-import EmptyState from "@/components/EmptyState";
+import { api } from "@/lib/api";
 
 type LinkedStudent = {
   student_id: number;
@@ -31,212 +30,182 @@ export default function ParentsPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busyInvite, setBusyInvite] = useState(false);
+  const [loadingChildren, setLoadingChildren] = useState(true);
 
   useEffect(() => {
-    // Sprint 27: cookie auth.
     refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   function refresh() {
+    setLoadingChildren(true);
     api
       .parentsChildren()
-      .then((c) => {
-        setChildren(c);
-        // Sprint 9.2: восстанавливаем выбор из localStorage
+      .then((linkedChildren) => {
+        setChildren(linkedChildren);
         const saved = typeof window !== "undefined" ? localStorage.getItem("ai-tutor:parent:selected") : null;
-        if (saved && c.some((x) => String(x.student_id) === saved)) {
+        if (saved && linkedChildren.some((child) => String(child.student_id) === saved)) {
           setSelectedId(Number(saved));
-        } else if (c.length > 0 && !selectedId) {
-          setSelectedId(c[0].student_id);
+        } else if (linkedChildren.length > 0) {
+          setSelectedId(linkedChildren[0].student_id);
+        } else {
+          setSelectedId(null);
+          setOverview(null);
         }
       })
-      .catch(() => {});
+      .catch(() => setError("Не удалось загрузить список детей"))
+      .finally(() => setLoadingChildren(false));
   }
 
   function pickChild(id: number) {
     setSelectedId(id);
-    // Sprint 9.2: сохраняем выбор
     try {
       localStorage.setItem("ai-tutor:parent:selected", String(id));
     } catch {
-      // quota или SSR
+      // ignore storage issues
     }
   }
 
   useEffect(() => {
-    if (selectedId) {
-      api.parentsOverview(selectedId).then(setOverview).catch(() => setOverview(null));
-    }
+    if (!selectedId) return;
+    api.parentsOverview(selectedId).then(setOverview).catch(() => setOverview(null));
   }, [selectedId]);
 
   async function createInvite() {
+    setBusyInvite(true);
+    setError(null);
     try {
-      const r = await api.parentsInvite();
-      setInvite(r.code);
-    } catch (e) {
+      const response = await api.parentsInvite();
+      setInvite(response.code);
+    } catch {
       setError("Не удалось создать код");
+    } finally {
+      setBusyInvite(false);
     }
   }
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <header className="flex items-center justify-between border-b border-slate-200 pb-3">
-        <div>
-          <Link href="/subjects" className="text-sm text-sky-600 hover:underline">
-            ← На главную
-          </Link>
-          <h1 className="mt-1 text-2xl font-bold">Родительский кабинет</h1>
-          <p className="text-sm text-slate-600">
-            Отчёты по занятиям ребёнка. Переписка с AI остаётся приватной.
-          </p>
-        </div>
-      </header>
+    <main className="prism-shell min-h-dvh py-4 sm:py-7">
+      <section className="prism-frame">
+        <div className="prism-layer p-5 lg:p-10">
+          <Link href="/subjects" className="prism-pill">← На главную</Link>
 
-      {error && <div className="mt-4 rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
+          <div className="mt-7 grid gap-6 xl:grid-cols-[1fr_0.95fr] xl:items-end">
+            <section>
+              <div className="prism-kicker">Parent Console</div>
+              <h1 className="prism-title">Родительский <span className="accent">кабинет</span></h1>
+              <p className="prism-copy">Создай код для ребёнка, выбери привязанный профиль и открой расширенный мониторинг прогресса. Переписка с AI остаётся приватной.</p>
+            </section>
 
-      <section className="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">Привязать ребёнка</h2>
-          <button
-            onClick={createInvite}
-            className="rounded-md bg-sky-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-500"
-          >
-            Создать код
-          </button>
-        </div>
-        {invite && (
-          <div className="mt-3 rounded-md bg-amber-50 p-3 text-sm">
-            <div className="text-amber-900">Код для ребёнка (ввести в его личном кабинете):</div>
-            <div className="mt-1 font-mono text-lg font-bold tracking-wider text-amber-900">{invite}</div>
-          </div>
-        )}
-      </section>
-
-      <section className="mt-6">
-        <h2 className="text-lg font-semibold">Привязанные дети</h2>
-        {children.length === 0 ? (
-          // Sprint 11.3: EmptyState для UX (вместо серой строки текста).
-          <div className="mt-3">
-            <EmptyState
-              icon="👨‍👩‍👧"
-              title="Пока никого нет"
-              description="Создайте код-приглашение выше и попросите ребёнка ввести его в его личном кабинете в разделе «Привязка родителя»."
-              variant="neutral"
-            />
-          </div>
-        ) : (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {children.map((c) => (
-              <div
-                key={c.student_id}
-                className={`flex items-center gap-1 rounded-lg border px-1 py-1 ${
-                  selectedId === c.student_id
-                    ? "border-sky-500 bg-sky-50 text-sky-900"
-                    : "border-slate-200 bg-white hover:border-slate-300"
-                }`}
-              >
-                <button
-                  onClick={() => pickChild(c.student_id)}
-                  className="rounded-md px-2 py-1 text-sm"
-                >
-                  {c.display_name}
-                </button>
-                <Link
-                  href={`/parent/dashboard/${c.student_id}`}
-                  className="rounded-md bg-sky-100 px-2 py-1 text-xs font-medium text-sky-800 hover:bg-sky-200"
-                  title="Расширенный дашборд"
-                >
-                  📊
-                </Link>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {overview && (
-        <section className="mt-6 space-y-4">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Stat label="Решено заданий" value={overview.total_attempts} />
-            <Stat label="Правильных" value={overview.correct_attempts} />
-            <Stat label="Точность" value={`${Math.round(overview.accuracy * 100)}%`} />
-            <Stat label="Средний mastery" value={`${Math.round(overview.average_mastery * 100)}%`} />
+            <aside className="prism-card pad glow">
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">Привязать ребёнка</div>
+              <p className="mt-3 text-sm leading-6 text-[color:var(--prism-muted)]">Код вводится в кабинете ребёнка. После привязки родитель видит прогресс, слабые темы и рекомендации.</p>
+              <button onClick={createInvite} disabled={busyInvite} className="prism-action primary mt-5 w-full">
+                {busyInvite ? "Создаю код…" : "Создать код"}
+              </button>
+              {invite && (
+                <div className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-4">
+                  <div className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--prism-muted)]">Код для ребёнка</div>
+                  <div className="mt-2 break-all font-mono text-2xl font-black tracking-[0.14em] text-[color:var(--prism-ink)]">{invite}</div>
+                  <p className="mt-2 text-xs text-[color:var(--prism-muted)]">Попроси ребёнка открыть “Привязать родителя” и ввести этот код.</p>
+                </div>
+              )}
+            </aside>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h3 className="text-base font-semibold">Слабые темы</h3>
-            {overview.weak_topics.length === 0 ? (
-              // Sprint 11.3: positive empty state (всё хорошо).
-              <div className="mt-3">
-                <EmptyState
-                  icon="🎉"
-                  title="Нет слабых тем — отлично!"
-                  description="Ребёнок отлично справляется со всеми темами."
-                  variant="positive"
-                />
-              </div>
-            ) : (
-              <ul className="mt-2 space-y-1 text-sm">
-                {overview.weak_topics.map((w) => (
-                  <li key={w.topic_id} className="flex items-center justify-between">
-                    <span>
-                      <span className="text-slate-500">{w.subject_name}:</span> {w.topic_name}
-                    </span>
-                    <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-800">
-                      {Math.round(w.mastery * 100)}%
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          {error && <div className="mt-5 rounded-3xl border border-rose-300/30 bg-rose-400/10 p-4 text-sm font-bold text-rose-200">{error}</div>}
 
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h3 className="text-base font-semibold">Активность (последние дни)</h3>
-            {overview.daily_activity.length === 0 ? (
-              // Sprint 11.3: EmptyState для родителя.
-              <div className="mt-3">
-                <EmptyState
-                  icon="🌱"
-                  title="Ребёнок ещё не начинал заниматься"
-                  description="Как только ребёнок сделает первое задание, здесь появится график активности."
-                  variant="neutral"
-                />
-              </div>
-            ) : (
-              <div className="mt-3 flex items-end gap-1">
-                {overview.daily_activity.map((d) => {
-                  const max = Math.max(...overview.daily_activity.map((x) => x.attempts), 1);
-                  const h = Math.max(8, Math.round((d.attempts / max) * 60));
-                  return (
-                    <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
-                      <div
-                        className="w-full rounded-t bg-sky-500"
-                        style={{ height: `${h}px` }}
-                        title={`${d.date}: ${d.attempts}`}
-                      />
-                      <div className="text-[10px] text-slate-500">{d.date.slice(5)}</div>
+          <section className="mt-6 grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
+            <aside className="prism-card pad">
+              <div className="prism-kicker">Дети</div>
+              {loadingChildren ? (
+                <p className="mt-4 text-sm text-[color:var(--prism-muted)]">Загружаю список…</p>
+              ) : children.length === 0 ? (
+                <div className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/40 p-4">
+                  <div className="text-xl font-black text-[color:var(--prism-ink)]">Пока никого нет</div>
+                  <p className="mt-2 text-sm leading-6 text-[color:var(--prism-muted)]">Создай код выше и попроси ребёнка ввести его в разделе “Привязать родителя”.</p>
+                </div>
+              ) : (
+                <div className="mt-4 grid gap-2">
+                  {children.map((child) => (
+                    <div key={child.student_id} className={`rounded-3xl border p-3 ${selectedId === child.student_id ? "border-[color:var(--prism-accent)] bg-[color:var(--prism-panel-solid)]/55 shadow-glow" : "border-[color:var(--prism-line)] bg-black/10"}`}>
+                      <button onClick={() => pickChild(child.student_id)} className="w-full text-left">
+                        <div className="font-black text-[color:var(--prism-ink)]">{child.display_name}</div>
+                        <div className="mt-1 text-xs text-[color:var(--prism-muted)]">Привязан: {new Date(child.linked_at).toLocaleDateString("ru-RU")}</div>
+                      </button>
+                      <Link href={`/parent/dashboard/${child.student_id}`} className="prism-action mt-3 w-full">Открыть дашборд</Link>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </aside>
 
-          <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-600">
-            🔒 {overview.privacy_note}
-          </div>
-        </section>
-      )}
+            <section className="grid gap-4">
+              <div className="prism-card pad">
+                <div className="prism-kicker">Сводка</div>
+                {overview ? (
+                  <>
+                    <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                      <Stat label="Заданий" value={overview.total_attempts} />
+                      <Stat label="Верно" value={overview.correct_attempts} />
+                      <Stat label="Точность" value={`${Math.round(overview.accuracy * 100)}%`} />
+                      <Stat label="Mastery" value={`${Math.round(overview.average_mastery * 100)}%`} />
+                    </div>
+                    <div className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-4 text-sm text-[color:var(--prism-muted)]">🔒 {overview.privacy_note}</div>
+                  </>
+                ) : (
+                  <p className="mt-4 text-sm text-[color:var(--prism-muted)]">Выбери ребёнка слева, чтобы увидеть краткую сводку.</p>
+                )}
+              </div>
+
+              {overview && (
+                <div className="grid gap-4 xl:grid-cols-2">
+                  <div className="prism-card pad">
+                    <div className="prism-kicker">Слабые темы</div>
+                    {overview.weak_topics.length === 0 ? (
+                      <p className="mt-4 text-sm text-[color:var(--prism-muted)]">Нет слабых тем — хороший знак.</p>
+                    ) : (
+                      <div className="mt-4 grid gap-2">
+                        {overview.weak_topics.slice(0, 5).map((topic) => (
+                          <Link key={topic.topic_id} href={`/topics/${topic.topic_id}`} className="prism-review-row block rounded-2xl border border-[color:var(--prism-line)] px-3 py-2">
+                            <div className="font-black text-[color:var(--prism-ink)]">{topic.topic_name}</div>
+                            <div className="mt-1 text-xs text-[color:var(--prism-muted)]">{topic.subject_name} · mastery {Math.round(topic.mastery * 100)}% · попыток {topic.attempts_count}</div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="prism-card pad">
+                    <div className="prism-kicker">Активность</div>
+                    {overview.daily_activity.length === 0 ? (
+                      <p className="mt-4 text-sm text-[color:var(--prism-muted)]">Первые занятия ещё не появились.</p>
+                    ) : (
+                      <div className="mt-5 flex h-32 items-end gap-1.5">
+                        {overview.daily_activity.map((day) => {
+                          const max = Math.max(...overview.daily_activity.map((item) => item.attempts), 1);
+                          const height = Math.max(4, Math.round((day.attempts / max) * 100));
+                          return <div key={day.date} title={`${day.date}: ${day.attempts}`} className={`flex-1 rounded-t-lg ${day.attempts > 0 ? "bg-[color:var(--prism-accent)]" : "bg-[color:var(--prism-line)]"}`} style={{ height: `${height}%` }} />;
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </section>
+          </section>
+        </div>
+      </section>
     </main>
   );
 }
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-1 text-2xl font-bold">{value}</div>
+    <div className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/50 p-4">
+      <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">{label}</div>
+      <div className="mt-1 text-2xl font-black text-[color:var(--prism-ink)]">{value}</div>
     </div>
   );
 }
