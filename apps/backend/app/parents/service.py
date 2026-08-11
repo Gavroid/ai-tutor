@@ -28,9 +28,15 @@ def create_invite_for_parent(db: Session, parent: user_models.User) -> str:
     """
     link = db.scalar(
         select(user_models.ParentStudentLink)
+        .join(
+            user_models.User,
+            user_models.ParentStudentLink.student_id == user_models.User.id,
+        )
         .where(
             user_models.ParentStudentLink.parent_id == parent.id,
             user_models.ParentStudentLink.status == "active",
+            user_models.ParentStudentLink.student_id != parent.id,
+            user_models.User.role == user_models.Role.STUDENT,
         )
     )
     if link is not None:
@@ -91,6 +97,8 @@ def list_linked_students(db: Session, parent: user_models.User) -> list[dict]:
         .where(
             user_models.ParentStudentLink.parent_id == parent.id,
             user_models.ParentStudentLink.status == "active",
+            user_models.ParentStudentLink.student_id != parent.id,
+            user_models.User.role == user_models.Role.STUDENT,
         )
     ).all()
     return [

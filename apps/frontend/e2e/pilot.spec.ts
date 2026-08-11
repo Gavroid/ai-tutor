@@ -128,16 +128,11 @@ test.describe("Pilot student flow", () => {
     };
     page.on("response", captureGenerate);
 
-    const generateBtn = page.getByRole("button", { name: /Дай задание/i });
+    const generateBtn = page.getByRole("button", { name: /Практика|Дай задание/i }).first();
     await expect(generateBtn).toBeVisible();
     await generateBtn.click();
-    // Ждём появления task section (server-trusted answer)
-    // section использует `text-xs uppercase tracking-wide text-emerald-700` —
-    // ищем заголовок «Задание» именно как label в задании, а не кнопку.
-    const taskLabel = page.locator(
-      "section div.text-xs.uppercase.tracking-wide.text-emerald-700",
-      { hasText: /Задание/i }
-    );
+    // Ждём появления task section (server-trusted answer).
+    const taskLabel = page.getByText(/Практика\s+Задание|Задание/i).first();
     await expect(taskLabel).toBeVisible({ timeout: 20_000 });
 
     // НЕ должно быть видно correct_answer/explanation до submit

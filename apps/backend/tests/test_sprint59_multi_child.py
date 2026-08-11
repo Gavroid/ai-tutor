@@ -322,6 +322,88 @@ def test_unlinked_child_not_in_list(client):
     assert len(children) == 0  # unlinked not in list
 
 
+def test_active_links_to_non_student_users_are_ignored(client):
+    """Parent console must not treat corrupted parent→parent links as children."""
+    from sqlalchemy.orm import Session
+    from app.db.session import engine
+    from app.users.models import User, Role, ParentStudentLink
+    from app.auth.security import hash_password
+
+    with Session(engine) as db:
+        parent = User(
+            email="corrupt-parent@example.com",
+            password_hash=hash_password("Kirill2026!"),
+            display_name="Corrupt Parent",
+            role=Role.PARENT,
+            is_active=True,
+        )
+        db.add(parent)
+        db.commit()
+        db.refresh(parent)
+        db.add(
+            ParentStudentLink(
+                parent_id=parent.id,
+                student_id=parent.id,
+                status="active",
+            )
+        )
+        db.commit()
+
+    r = client.post(
+        "/api/v1/auth/login",
+        json={"email": "corrupt-parent@example.com", "password": "Kirill2026!"},
+    )
+    token = r.json()["access_token"]
+
+    r2 = client.get(
+        "/api/v1/parents/children",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r2.status_code == 200
+    assert r2.json() == []
+
+
+def test_parent_invite_does_not_reuse_corrupted_active_self_link(client):
+    """Creating an invite should not reuse an active parent→parent placeholder."""
+    from sqlalchemy.orm import Session
+    from app.db.session import engine
+    from app.users.models import User, Role, ParentStudentLink
+    from app.auth.security import hash_password
+
+    with Session(engine) as db:
+        parent = User(
+            email="reuse-parent@example.com",
+            password_hash=hash_password("Kirill2026!"),
+            display_name="Reuse Parent",
+            role=Role.PARENT,
+            is_active=True,
+        )
+        db.add(parent)
+        db.commit()
+        db.refresh(parent)
+        stale_link = ParentStudentLink(
+            parent_id=parent.id,
+            student_id=parent.id,
+            status="active",
+        )
+        db.add(stale_link)
+        db.commit()
+        stale_id = stale_link.id
+
+    r = client.post(
+        "/api/v1/auth/login",
+        json={"email": "reuse-parent@example.com", "password": "Kirill2026!"},
+    )
+    token = r.json()["access_token"]
+
+    invite = client.post(
+        "/api/v1/parents/invite",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert invite.status_code == 200
+    assert invite.json()["code"].split("-")[1] != f"{stale_id:06d}"
+
+
 def test_me_children_unauthorized(client):
     """Sprint 59: /me/children без auth → 401."""
     r = client.get("/api/v1/parents/me/children")
