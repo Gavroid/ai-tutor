@@ -47,6 +47,9 @@ services:
     env_file: ../.env
     environment:
       REDIS_URL: redis://redis:6379/0
+      # Trust only the Docker external proxy network for X-Forwarded-For.
+      # Without this, login/register rate limits key on the proxy container IP.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.19.0.0/16}
     depends_on:
       db:
         condition: service_healthy
