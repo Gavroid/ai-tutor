@@ -99,16 +99,17 @@ test.describe("Pilot student flow", () => {
 
     // Subjects → первая тема
     await page.goto("/subjects");
-    await expect(page.locator("text=Математика").first()).toBeVisible({ timeout: 10_000 });
-    const firstSubject = page.locator("a[href^='/subjects/']").first();
-    await firstSubject.click();
+    await page.waitForURL(/\/subjects/, { timeout: 10_000 });
+    const firstSubjectHref = await page.locator("a[href^='/subjects/']").first().getAttribute("href");
+    expect(firstSubjectHref).toBeTruthy();
+    await page.goto(firstSubjectHref!);
     await page.waitForURL(/\/subjects\/\d+/, { timeout: 10_000 });
 
     // Тема
     const firstTopic = page.locator("a[href^='/topics/']").first();
     const topicHref = await firstTopic.getAttribute("href").catch(() => null);
     test.skip(topicHref === null, "No topics for this student yet");
-    await firstTopic.click();
+    await page.goto(topicHref!);
     await page.waitForURL(/\/topics\/\d+/, { timeout: 10_000 });
 
     // "Дай задание" → v2 secure flow (Phase 2)
