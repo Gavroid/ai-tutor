@@ -195,6 +195,30 @@ def test_cron_telegram_bot_supervisor_runs_every_5_minutes():
     assert re.search(r"\*/5\s+\*\s+\*\s+\*\s+\*", content)
 
 
+
+def test_restore_drill_cron_runs_first_monday_only():
+    """Stage 6: restore drill cron must not run every day during the first week."""
+    path = DEPLOY_DIR / "monitoring" / "cron" / "ai-tutor-backup-verify.cron"
+    if not path.exists():
+        pytest.skip("File not in repo")
+    content = _read_cron_content(path)
+    assert "30 4 * * 1" in content
+    assert 'test "$(date +\\%d)" -le 07' in content
+    assert "30 4 1-7 * 1" not in content
+
+
+def test_restore_drill_script_uses_lock_and_isolated_temp_files():
+    """Stage 6: restore drill must avoid overlapping runs and shared temp logs."""
+    path = REPO_ROOT / "scripts" / "restore_drill.sh"
+    content = path.read_text(encoding="utf-8")
+    assert "flock -n 9" in content
+    assert "trap cleanup EXIT" in content
+    assert "mktemp -d /tmp/ai-tutor-restore-drill.XXXXXX" in content
+    assert 'RESTORE_LOG="${TEST_RESTORE_DIR}/restore.log"' in content
+    assert ">/tmp/restore_drill.log" not in content
+    assert "docker run -d --rm" in content
+    assert 'psql -U tutor -d "$TEST_DB_NAME" -tA -c "SELECT 1"' in content
+
 # === Тесты: shell script syntax ===
 
 def test_monitoring_shell_scripts_have_valid_syntax():

@@ -1,3 +1,7 @@
 # Sprint 3.6.1 — еженедельная верификация backup через test-restore.
 # Понедельник 04:00 UTC.
 0 4 * * 1 root bash -c "bash /opt/ai-tutor/deploy/backup/weekly-verify.sh" >> /var/log/ai-tutor-backup-verify.log 2>&1
+
+# Sprint 73/Stage 6: monthly restore drill, first Monday only.
+# Cron DOM/DOW semantics are OR, so keep weekday schedule and guard day-of-month in shell.
+30 4 * * 1 root test "$(date +\%d)" -le 07 && /opt/ai-tutor/scripts/restore_drill.sh >/dev/null 2>&1
