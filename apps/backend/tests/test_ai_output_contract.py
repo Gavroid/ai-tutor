@@ -155,6 +155,23 @@ $$\\text{Среднее} = \\frac{\\text{сумма всех чисел}}{\\text
     assert "25% = 25 ÷ 100 = 0,25" in content
 
 
+
+def test_prepare_model_output_removes_dangling_display_math_marker() -> None:
+    content, structured = _prepare_model_output(
+        """
+Формула выглядит так:
+
+$$(16,1 + 16,1 + 16,1 +
+
+Среднее чисел
+"""
+    )
+
+    assert structured is None
+    assert "$$" not in content
+    assert "16,1 + 16,1 + 16,1" in content
+    assert "Среднее чисел" in content
+
 def test_prepare_model_output_normalizes_decimal_latex_frac_with_braced_comma() -> None:
     content, structured = _prepare_model_output(r"vср = \frac{110{,}6}{7} = 15{,}8 км/ч")
 

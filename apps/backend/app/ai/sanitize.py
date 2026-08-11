@@ -29,6 +29,7 @@ def _normalize_latex(text: str) -> str:
     """Convert simple LaTeX fragments into readable student text."""
     text = _DISPLAY_MATH_RE.sub(lambda m: m.group(1).strip(), text)
     text = _INLINE_MATH_RE.sub(lambda m: m.group(1).strip(), text)
+    text = text.replace("$$", "")
     text = _LATEX_TEXT_RE.sub(lambda m: m.group(1), text)
     # Common LLM/PDF artefact for decimal comma inside LaTeX groups: 110{,}6.
     text = text.replace("{,}", ",")
