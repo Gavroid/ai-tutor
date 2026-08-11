@@ -24,9 +24,17 @@ Login as admin and verify:
 - `checks.uploads.ok = true`.
 - `checks.teacher_registry.ok = true`.
 
-Known visibility limitation:
+Expected ops/status checks:
 
-- backup and commit marker paths may be unavailable inside the backend container even when the host deploy marker/cron exist.
+- `checks.database.ok = true`;
+- `checks.redis.ok = true`;
+- `checks.uploads.ok = true`;
+- `checks.teacher_registry.ok = true`;
+- `checks.backup.cron_exists = true`;
+- `checks.backup.script_exists = true`;
+- `checks.commit_marker.ok = true`.
+
+Current production marker at handoff time: `d764115`.
 
 ### 2. Student MVP flow
 
