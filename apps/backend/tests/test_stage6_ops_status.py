@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 os.environ.setdefault("APP_SECRET_KEY", "test-secret-key-for-pytest-only-1234567890")
 os.environ.setdefault("APP_ENV", "development")
@@ -65,3 +66,35 @@ def test_ops_status_returns_required_checks(client: TestClient, admin_token: str
     assert "teacher_registry" in checks
     assert "backup" in checks
     assert "commit_marker" in checks
+
+
+def test_ops_status_uses_configurable_backup_and_marker_paths(
+    client: TestClient,
+    admin_token: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cron_path = tmp_path / "ai-tutor-backup"
+    script_path = tmp_path / "backup.sh"
+    marker_path = tmp_path / ".mvp-rescue-commit"
+    cron_path.write_text("0 3 * * * root backup\n")
+    script_path.write_text("#!/bin/sh\n")
+    marker_path.write_text("abc123\n")
+
+    monkeypatch.setenv("OPS_BACKUP_CRON_PATH", str(cron_path))
+    monkeypatch.setenv("OPS_BACKUP_SCRIPT_PATH", str(script_path))
+    monkeypatch.setenv("OPS_COMMIT_MARKER_PATH", str(marker_path))
+
+    r = client.get("/api/v1/admin/ops/status", headers={"Authorization": f"Bearer {admin_token}"})
+
+    assert r.status_code == 200
+    checks = r.json()["checks"]
+    assert checks["backup"]["cron_exists"] is True
+    assert checks["backup"]["cron_path"] == str(cron_path)
+    assert checks["backup"]["script_exists"] is True
+    assert checks["backup"]["script_path"] == str(script_path)
+    assert checks["commit_marker"] == {
+        "ok": True,
+        "path": str(marker_path),
+        "commit": "abc123",
+    }

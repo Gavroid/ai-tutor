@@ -202,9 +202,9 @@ def admin_ops_status(
 
     upload_dir = Path(settings.upload_dir)
     registry_path = upload_dir / "teacher_content_registry.json"
-    marker_path = Path("/opt/ai-tutor/.mvp-rescue-commit")
-    backup_cron = Path("/opt/ai-tutor/deploy/monitoring/cron/ai-tutor-backup.cron")
-    backup_script = Path("/opt/ai-tutor/deploy/backup/backup.sh")
+    marker_path = Path(os.environ.get("OPS_COMMIT_MARKER_PATH", "/app/.mvp-rescue-commit"))
+    backup_cron = Path(os.environ.get("OPS_BACKUP_CRON_PATH", "/app/ops/ai-tutor-backup"))
+    backup_script = Path(os.environ.get("OPS_BACKUP_SCRIPT_PATH", "/app/ops/backup.sh"))
 
     checks = {
         "database": {"ok": db_ok, "error": db_error},
@@ -217,10 +217,13 @@ def admin_ops_status(
         },
         "backup": {
             "cron_exists": backup_cron.exists(),
+            "cron_path": str(backup_cron),
             "script_exists": backup_script.exists(),
+            "script_path": str(backup_script),
         },
         "commit_marker": {
             "ok": marker_path.exists(),
+            "path": str(marker_path),
             "commit": marker_path.read_text().strip() if marker_path.exists() else None,
         },
     }
