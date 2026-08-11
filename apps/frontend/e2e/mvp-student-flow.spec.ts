@@ -81,9 +81,16 @@ test.describe("MVP student learning flow", () => {
     await firstTopic.click();
     await page.waitForURL(/\/topics\/\d+/, { timeout: 10_000 });
 
+    const explainResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/v1/ai/explain") &&
+        response.request().method() === "POST",
+      { timeout: 45_000 },
+    );
     await page.getByRole("button", { name: /объяснить|объясни тему/i }).click();
     await expect(page.locator("text=AI думает")).toBeVisible({ timeout: 5_000 }).catch(() => undefined);
-    await expect(page.getByRole("button", { name: /практика|дай задание/i })).toBeEnabled({ timeout: 45_000 });
+    const explainResponse = await explainResponsePromise;
+    expect(explainResponse.ok()).toBeTruthy();
     await expect(page.getByRole("button", { name: /среднее чисел/i })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole("button", { name: /средняя скорость/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /средний вес/i })).toBeVisible();
