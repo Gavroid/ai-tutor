@@ -77,10 +77,7 @@ export default function TeacherPage() {
         <div className="prism-frame">
           <div className="prism-layer p-5 lg:p-10">
       <section className="border-b border-[color:var(--prism-line)] pb-5">
-        <Link href="/subjects" className="text-sm text-sky-600 hover:underline">
-          ← На главную
-        </Link>
-        <div className="mt-1 flex items-center justify-between">
+        <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Учительская</h1>
           <div className="flex gap-2">
             <Link

@@ -2631,3 +2631,44 @@ body,
   display: grid;
   place-items: center;
 }
+
+/* Stable console geometry v2: long admin/teacher data scrolls inside the panel, not by resizing it. */
+@media (min-width: 981px) {
+  .admin-console .prism-frame,
+  .teacher-console .prism-frame {
+    height: calc(100dvh - 104px) !important;
+    min-height: 720px !important;
+    max-height: calc(100dvh - 104px) !important;
+  }
+  .admin-console .prism-layer,
+  .teacher-console .prism-layer {
+    height: 100% !important;
+    min-height: 0 !important;
+    display: flex;
+    flex-direction: column;
+  }
+  .admin-console .admin-content-zone,
+  .teacher-console section.mt-5 {
+    flex: 1 1 auto;
+    min-height: 0 !important;
+    overflow: auto;
+    scrollbar-gutter: stable;
+  }
+  .teacher-console section.mt-5 {
+    border: 1px solid rgba(244,247,255,.11);
+    border-radius: 30px;
+    padding: 16px;
+    background:
+      radial-gradient(circle at 14vw 9vh, rgba(255,77,196,.20), transparent 540px),
+      radial-gradient(circle at 88vw 8vh, rgba(34,231,255,.16), transparent 580px),
+      radial-gradient(circle at 50vw 48vh, rgba(107,77,255,.18), transparent 720px),
+      radial-gradient(circle at 70vw 88vh, rgba(255,155,66,.13), transparent 620px),
+      linear-gradient(135deg, rgba(16,20,38,.78), rgba(11,15,30,.78));
+  }
+  .teacher-console .prism-card.pad.text-center {
+    min-height: 100% !important;
+    display: grid;
+    place-items: center;
+  }
+}
+
