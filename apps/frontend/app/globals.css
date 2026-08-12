@@ -2382,8 +2382,15 @@ body,
 .admin-console .prism-card {
   border: 1px solid var(--prism-line) !important;
   border-radius: 28px !important;
-  /* Sprint 12: lighter fill so the prism-shell violet gradient bleeds through, matching invites/stats/tools tone. */
-  background: color-mix(in srgb, var(--prism-panel-solid) 38%, transparent) !important;
+  /* Sprint 12: panel surface — keep the brand violet gradient pinned to viewport so it doesn't
+     disappear when the table grows very tall (audit log). background-attachment: fixed anchors
+     the radial pattern to the viewport instead of the element. */
+  background:
+    radial-gradient(circle at 14% 8%, color-mix(in srgb, var(--prism-pink) 18%, transparent), transparent 28rem),
+    radial-gradient(circle at 90% 7%, color-mix(in srgb, var(--prism-cyan) 18%, transparent), transparent 30rem),
+    radial-gradient(circle at 72% 92%, color-mix(in srgb, var(--prism-warm) 18%, transparent), transparent 34rem),
+    color-mix(in srgb, var(--prism-panel-solid) 22%, transparent) !important;
+  background-attachment: fixed, fixed, fixed, fixed !important;
   box-shadow: 0 22px 70px -52px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.06) !important;
   color: var(--prism-ink) !important;
 }
