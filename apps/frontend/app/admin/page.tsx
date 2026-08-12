@@ -178,10 +178,10 @@ export default function AdminPage() {
           Инструменты
         </Tab>
         {/* Sprint 52: отдельная страница для invites */}
-        <Link href="/admin/invites" className="prism-pill" data-testid="invites-tab-link">
+        <Link href="/admin/invites" className="console-pill" data-testid="invites-tab-link">
           Invites
         </Link>
-        <Link href="/admin/realtime" className="prism-pill">
+        <Link href="/admin/realtime" className="console-pill">
           Realtime
         </Link>
       </nav>
@@ -389,7 +389,7 @@ function Tab({
   children: React.ReactNode;
 }) {
   return (
-    <button onClick={onClick} className={`prism-pill ${active ? "active-tertiary" : ""}`}>
+    <button onClick={onClick} className={`console-pill ${active ? "console-pill-active" : ""}`}>
       {children}
     </button>
   );

@@ -60,7 +60,7 @@ export default function TeacherTopicsReadinessPage() {
           <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-2">
               {PRIORITIES.map((value) => (
-                <button key={value || "all"} type="button" onClick={() => setPriority(value)} className={`prism-pill ${priority === value ? "active-tertiary" : ""}`}>{value || "Все"}</button>
+                <button key={value || "all"} type="button" onClick={() => setPriority(value)} className={`console-pill ${priority === value ? "console-pill-active" : ""}`}>{value || "Все"}</button>
               ))}
             </div>
             <Link href="/teacher/generate" className="prism-action primary">+ Материал</Link>

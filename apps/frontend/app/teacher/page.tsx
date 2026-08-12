@@ -204,7 +204,7 @@ function FilterChip({
   children: React.ReactNode;
 }) {
   return (
-    <button onClick={onClick} className={`prism-pill ${active ? "active-tertiary" : ""}`}>
+    <button onClick={onClick} className={`console-pill ${active ? "console-pill-active" : ""}`}>
       {children}
     </button>
   );

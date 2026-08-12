@@ -2517,3 +2517,50 @@ body,
   border-color: rgba(255, 207, 111, .72) !important;
 }
 
+/* Canonical admin/teacher section controls. Do not reuse prism-pill here: it has legacy cascade conflicts. */
+.admin-console .console-pill,
+.teacher-console .console-pill {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(226, 232, 255, .18) !important;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, .10) !important;
+  background-image: none !important;
+  color: var(--prism-ink) !important;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 0 0 1px rgba(75,131,255,.10), 0 12px 34px -28px rgba(75,131,255,.55), inset 0 1px 0 rgba(255,255,255,.08) !important;
+  transition: border-color .18s ease, color .18s ease, background-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.admin-console .console-pill:hover,
+.teacher-console .console-pill:hover,
+.admin-console .console-pill:focus-visible,
+.teacher-console .console-pill:focus-visible {
+  border-color: rgba(75,131,255,.58) !important;
+  background-color: rgba(255,255,255,.14) !important;
+  background-image: none !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 1px rgba(75,131,255,.24), 0 0 30px rgba(75,131,255,.14), inset 0 1px 0 rgba(255,255,255,.12) !important;
+  outline: none;
+}
+.admin-console .console-pill-active,
+.teacher-console .console-pill-active,
+.admin-console .console-pill-active:hover,
+.teacher-console .console-pill-active:hover,
+.admin-console .console-pill-active:focus-visible,
+.teacher-console .console-pill-active:focus-visible {
+  border-color: rgba(255,207,111,.78) !important;
+  background-color: rgba(255,255,255,.10) !important;
+  background-image: none !important;
+  color: #ffd28a !important;
+  box-shadow: 0 0 0 1px rgba(255,207,111,.22), 0 0 24px -16px rgba(255,155,66,.72), inset 0 1px 0 rgba(255,255,255,.08) !important;
+  transform: none !important;
+}
+

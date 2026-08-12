@@ -151,12 +151,12 @@ export default function InvitesAdminPage() {
       />
       <section className="py-3 sm:py-5"><div className="prism-frame"><div className="prism-layer p-5 lg:p-10">
         <nav className="flex flex-wrap gap-2">
-          <Link href="/admin?tab=audit" className="prism-pill">Audit log</Link>
-          <Link href="/admin?tab=users" className="prism-pill">Пользователи</Link>
-          <Link href="/admin?tab=stats" className="prism-pill">Статистика</Link>
-          <Link href="/admin?tab=tools" className="prism-pill">Инструменты</Link>
-          <span className="prism-pill active-tertiary" data-testid="invites-tab-link">Invites</span>
-          <Link href="/admin/realtime" className="prism-pill">Realtime</Link>
+          <Link href="/admin?tab=audit" className="console-pill">Audit log</Link>
+          <Link href="/admin?tab=users" className="console-pill">Пользователи</Link>
+          <Link href="/admin?tab=stats" className="console-pill">Статистика</Link>
+          <Link href="/admin?tab=tools" className="console-pill">Инструменты</Link>
+          <span className="console-pill console-pill-active" data-testid="invites-tab-link">Invites</span>
+          <Link href="/admin/realtime" className="console-pill">Realtime</Link>
         </nav>
 
         <section className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-5">
@@ -322,7 +322,7 @@ export default function InvitesAdminPage() {
                       <td className="py-2 pr-4 text-right">
                         <button
                           onClick={() => copyToClipboard(inv.code)}
-                          className="prism-pill mr-3 min-h-0 px-3 py-1 text-xs"
+                          className="console-pill mr-3 min-h-0 px-3 py-1 text-xs"
                           data-testid={`copy-${inv.code}`}
                         >
                           Copy
@@ -330,7 +330,7 @@ export default function InvitesAdminPage() {
                         {inv.uses_count === 0 && (
                           <button
                             onClick={() => handleDelete(inv.code)}
-                            className="prism-pill min-h-0 px-3 py-1 text-xs hover-danger"
+                            className="console-pill min-h-0 px-3 py-1 text-xs hover-danger"
                             data-testid={`delete-${inv.code}`}
                           >
                             Delete

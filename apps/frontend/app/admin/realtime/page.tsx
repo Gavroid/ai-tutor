@@ -43,12 +43,12 @@ export default function AdminRealtimePage() {
         <div className="prism-frame">
           <div className="prism-layer p-5 lg:p-10">
         <nav className="flex flex-wrap gap-2">
-          <Link href="/admin?tab=audit" className="prism-pill">Audit log</Link>
-          <Link href="/admin?tab=users" className="prism-pill">Пользователи</Link>
-          <Link href="/admin?tab=stats" className="prism-pill">Статистика</Link>
-          <Link href="/admin?tab=tools" className="prism-pill">Инструменты</Link>
-          <Link href="/admin/invites" className="prism-pill">Invites</Link>
-          <span className="prism-pill active-tertiary">Realtime</span>
+          <Link href="/admin?tab=audit" className="console-pill">Audit log</Link>
+          <Link href="/admin?tab=users" className="console-pill">Пользователи</Link>
+          <Link href="/admin?tab=stats" className="console-pill">Статистика</Link>
+          <Link href="/admin?tab=tools" className="console-pill">Инструменты</Link>
+          <Link href="/admin/invites" className="console-pill">Invites</Link>
+          <span className="console-pill console-pill-active">Realtime</span>
         </nav>
 
       <section className="mt-4 border-b border-[color:var(--prism-line)] pb-5">
