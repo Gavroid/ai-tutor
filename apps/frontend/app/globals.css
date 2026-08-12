@@ -2458,10 +2458,10 @@ body,
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(circle at 14% 8%, rgba(255,77,196,.18), transparent 520px),
-    radial-gradient(circle at 90% 4%, rgba(34,231,255,.14), transparent 560px),
-    radial-gradient(circle at 50% 50%, rgba(107,77,255,.10), transparent 620px),
-    radial-gradient(circle at 70% 88%, rgba(255,155,66,.12), transparent 600px);
+    radial-gradient(circle at 14% 8%, rgba(255,77,196,.22), transparent 540px),
+    radial-gradient(circle at 90% 4%, rgba(34,231,255,.18), transparent 580px),
+    radial-gradient(circle at 50% 50%, rgba(107,77,255,.20), transparent 720px),
+    radial-gradient(circle at 70% 88%, rgba(255,155,66,.16), transparent 620px);
 }
 .admin-console .prism-layer,
 .teacher-console .prism-layer,
