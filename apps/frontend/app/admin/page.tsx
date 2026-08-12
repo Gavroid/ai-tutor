@@ -381,7 +381,7 @@ function Tab({
   children: React.ReactNode;
 }) {
   return (
-    <button onClick={onClick} className={`prism-pill ${active ? "active" : ""}`}>
+    <button onClick={onClick} className={`prism-pill ${active ? "active-tertiary" : ""}`}>
       {children}
     </button>
   );

@@ -2347,3 +2347,32 @@ body,
   color: var(--prism-ink) !important;
 }
 
+/* Teacher/Admin selected section + teacher topic hover match main page cards. */
+.prism-pill.active-tertiary {
+  color: #07111b !important;
+  border-color: color-mix(in srgb, var(--prism-warm) 78%, #ffffff 10%) !important;
+  background: linear-gradient(135deg, #ffcf6f, var(--prism-warm) 58%, #ff6aa7) !important;
+  box-shadow: 0 0 0 1px rgba(255,207,111,.28), 0 18px 54px -34px rgba(255,155,66,.95), inset 0 1px 0 rgba(255,255,255,.36) !important;
+}
+.prism-pill.active-tertiary:hover {
+  filter: brightness(1.07) saturate(1.08);
+  transform: translateY(-1px);
+}
+.teacher-console .prism-topic-card {
+  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease, background .22s ease;
+}
+.teacher-console .prism-topic-card:hover,
+.teacher-console .prism-topic-card:focus-visible {
+  transform: translateY(-5px);
+  border-color: var(--prism-accent) !important;
+  background: color-mix(in srgb, var(--prism-panel-solid) 68%, var(--prism-accent) 10%) !important;
+  box-shadow: var(--prism-glow) !important;
+  outline: none;
+}
+.teacher-console .prism-topic-card:hover h3,
+.teacher-console .prism-topic-card:focus-visible h3,
+.teacher-console .prism-topic-card:hover [class*="font-black"],
+.teacher-console .prism-topic-card:focus-visible [class*="font-black"] {
+  color: #ffffff !important;
+}
+

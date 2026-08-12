@@ -60,7 +60,7 @@ export default function TeacherTopicsReadinessPage() {
           <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-2">
               {PRIORITIES.map((value) => (
-                <button key={value || "all"} type="button" onClick={() => setPriority(value)} className={`prism-pill ${priority === value ? "active" : ""}`}>{value || "Все"}</button>
+                <button key={value || "all"} type="button" onClick={() => setPriority(value)} className={`prism-pill ${priority === value ? "active-tertiary" : ""}`}>{value || "Все"}</button>
               ))}
             </div>
             <Link href="/teacher/generate" className="prism-action primary">+ Материал</Link>
@@ -114,7 +114,7 @@ function Metric({ label, value }: { label: string; value: number }) {
 
 function ReadinessCard({ row }: { row: TopicReadiness }) {
   return (
-    <Link href={`/teacher/topics/${row.topic_id}`} className="prism-card pad block">
+    <Link href={`/teacher/topics/${row.topic_id}`} className="prism-card prism-topic-card pad block">
       <div className="flex items-start justify-between gap-3">
         <div><div className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--prism-accent)]">#{row.topic_id} · {row.priority}</div><div className="mt-1 text-lg font-black">{row.topic_name}</div><div className="mt-1 text-xs text-[color:var(--prism-muted)]">{row.section_name}</div></div>
         <Pill value={row.manual_qa_status} />

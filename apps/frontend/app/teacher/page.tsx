@@ -157,7 +157,7 @@ export default function TeacherPage() {
               <Link
                 key={m.id}
                 href={`/teacher/materials/${m.id}`}
-                className="block rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-300 hover:shadow"
+                className="prism-card prism-topic-card block p-4"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -204,7 +204,7 @@ function FilterChip({
   children: React.ReactNode;
 }) {
   return (
-    <button onClick={onClick} className={`prism-pill ${active ? "active" : ""}`}>
+    <button onClick={onClick} className={`prism-pill ${active ? "active-tertiary" : ""}`}>
       {children}
     </button>
   );
