@@ -25,6 +25,8 @@ type Stats = {
   by_role: { student: number; parent: number; teacher: number; admin: number };
 };
 
+type AdminTab = "audit" | "users" | "stats" | "tools";
+
 type UserItem = {
   id: number;
   email: string;
@@ -35,7 +37,7 @@ type UserItem = {
 };
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"audit" | "users" | "stats" | "tools">("audit");
+  const [tab, setTab] = useState<AdminTab>("audit");
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -61,6 +63,13 @@ export default function AdminPage() {
   } | null>(null);
 
   useEffect(() => {
+    const requestedTab = new URLSearchParams(window.location.search).get("tab");
+    if (requestedTab === "audit" || requestedTab === "users" || requestedTab === "stats" || requestedTab === "tools") {
+      setTab(requestedTab);
+    }
+  }, []);
+
+  useEffect(() => {
     // Sprint 27: cookie auth.
     // Sprint 5.1: загружаем текущего юзера для Header.
     api.me().then(setCurrent).catch(() => {});
@@ -77,7 +86,7 @@ export default function AdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, current?.role]);
 
-  async function refresh(which: typeof tab) {
+  async function refresh(which: AdminTab) {
     setBusy(true);
     setError(null);
     try {

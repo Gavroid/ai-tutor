@@ -151,10 +151,10 @@ export default function InvitesAdminPage() {
       />
       <section className="py-3 sm:py-5"><div className="prism-frame"><div className="prism-layer p-5 lg:p-10">
         <nav className="flex flex-wrap gap-2">
-          <Link href="/admin" className="prism-pill">Audit log</Link>
-          <Link href="/admin" className="prism-pill">Пользователи</Link>
-          <Link href="/admin" className="prism-pill">Статистика</Link>
-          <Link href="/admin" className="prism-pill">Инструменты</Link>
+          <Link href="/admin?tab=audit" className="prism-pill">Audit log</Link>
+          <Link href="/admin?tab=users" className="prism-pill">Пользователи</Link>
+          <Link href="/admin?tab=stats" className="prism-pill">Статистика</Link>
+          <Link href="/admin?tab=tools" className="prism-pill">Инструменты</Link>
           <span className="prism-pill active-tertiary" data-testid="invites-tab-link">Invites</span>
           <Link href="/admin/realtime" className="prism-pill">Realtime</Link>
         </nav>

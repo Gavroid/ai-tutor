@@ -2505,3 +2505,15 @@ body,
   background: rgba(255,255,255,.14) !important;
   color: #ffe4a8 !important;
 }
+
+/* Browser-visible active pills: same neutral fill as inactive, only amber outline/text. */
+.teacher-console button.prism-pill.active-tertiary,
+.teacher-console .prism-pill.active-tertiary,
+.admin-console button.prism-pill.active-tertiary,
+.admin-console .prism-pill.active-tertiary {
+  background-color: rgba(255, 255, 255, .10) !important;
+  background-image: none !important;
+  color: #ffd28a !important;
+  border-color: rgba(255, 207, 111, .72) !important;
+}
+
