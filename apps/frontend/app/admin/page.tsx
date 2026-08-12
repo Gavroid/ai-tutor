@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api, getToken } from "@/lib/api";
-import { AdminWSConnection, type AdminSnapshot, type AdminWSState } from "@/lib/admin-ws";
+import { api } from "@/lib/api";
+import type { AdminSnapshot, AdminWSState } from "@/lib/admin-ws";
 import Header from "@/components/Header";
 import AddStudentModal from "@/components/AddStudentModal";
 import EngagementCard from "@/components/EngagementCard";
@@ -101,7 +101,7 @@ export default function AdminPage() {
     // Sprint 9: load engagement (admin only).
     if (current?.role === "admin") {
       fetch("/api/v1/admin/engagement?days=30", {
-        headers: { Authorization: `Bearer ${getToken()}` },
+        credentials: "include",
       })
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => setEngagement(d))
@@ -112,16 +112,34 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (tab !== "realtime") return;
-    const conn = new AdminWSConnection(getToken, setRealtimeState);
-    conn.start();
-    return () => conn.close();
-  }, [tab]);
+    let cancelled = false;
+    let timer: number | null = null;
 
-  useEffect(() => {
-    if (realtimeState.status === "open") {
-      setRealtimeSnapshot(realtimeState.last);
+    async function loadSnapshot() {
+      try {
+        setRealtimeState((current) =>
+          current.status === "open" ? current : { status: "connecting" },
+        );
+        const response = await fetch("/api/v1/admin/realtime/snapshot", { credentials: "include" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const snapshot = (await response.json()) as AdminSnapshot;
+        if (cancelled) return;
+        setRealtimeSnapshot(snapshot);
+        setRealtimeState({ status: "open", last: snapshot });
+      } catch (error) {
+        if (!cancelled) {
+          setRealtimeState({ status: "error", error: error instanceof Error ? error.message : "Polling error" });
+        }
+      }
     }
-  }, [realtimeState]);
+
+    void loadSnapshot();
+    timer = window.setInterval(loadSnapshot, 3000);
+    return () => {
+      cancelled = true;
+      if (timer) window.clearInterval(timer);
+    };
+  }, [tab]);
 
   async function refresh(which: AdminTab) {
     setBusy(true);

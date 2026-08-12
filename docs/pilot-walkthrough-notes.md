@@ -105,7 +105,7 @@ Scope: incorporated Igor's latest manual testing results and fixed the actionabl
 | 2 | Mobile Student Flow | Not run | Deferred; no result claimed. |
 | 3 | Parent Flow | Fixed follow-ups | Parent console buttons compacted; parent console now prefers a linked child with real attempts so `Сводка` is not stuck on an empty E2E child; parent dashboard top spacing reduced. |
 | 4 | Teacher Flow | OK | Manual pass confirmed. |
-| 5 | Admin Flow | Fixed follow-up | Prometheus scrape was healthy; UI realtime issue was WebSocket auth using the `cookie` sentinel as a JWT. Backend WS now falls back to httpOnly access cookie. |
+| 5 | Admin Flow | Fixed follow-up | Prometheus scrape was healthy; UI realtime issue was WebSocket handshake/proxy/auth mismatch: public nginx returned 404 for `/api/v1/admin/ws` upgrade while Prometheus itself was healthy. Admin Realtime now uses cookie-authenticated HTTP polling via `/api/v1/admin/realtime/snapshot`, while the legacy WS remains available for direct/internal callers. |
 | 6 | Multi-Subject Smoke | OK | Manual pass confirmed. |
 | 7 | Visual / UX Sweep | Desktop OK | Manual desktop sweep confirmed after final dark Prism palette pass. |
 
@@ -115,7 +115,7 @@ Scope: incorporated Igor's latest manual testing results and fixed the actionabl
 - `/parents`: overview data is prefetched for linked children and the default selection prefers the child with activity (`total_attempts > 0`) over a persisted empty E2E selection.
 - `/parents`: child list now shows attempt count next to linked date when overview data is available.
 - `/parent/dashboard/[studentId]`: reduced top spacing in hero/KPI/recommendation blocks to make the dashboard more compact above the fold.
-- `/admin` Realtime: production Prometheus itself was healthy and scraping `backend:8000/metrics`; the UI showed disconnected because WebSocket auth expected a JWT query token while frontend cookie auth sends the sentinel `cookie`. WS now reads `ai_tutor_access` from the WebSocket handshake when token is omitted or equals `cookie`.
+- `/admin` Realtime: production Prometheus itself was healthy and scraping `backend:8000/metrics`; the UI showed disconnected because the public WebSocket upgrade returned 404 at nginx. Added cookie-authenticated HTTP polling endpoint `/api/v1/admin/realtime/snapshot` and switched the admin UI to poll it every 3s.
 
 ### Verification before deploy
 

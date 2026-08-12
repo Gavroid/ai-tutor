@@ -19,8 +19,9 @@ import os
 import subprocess
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from app.auth.security import ACCESS_COOKIE
+from app.common.deps import require_admin
 
 from app.ai.budget import get_usage
 from app.observability import (
@@ -127,6 +128,19 @@ def _system_health() -> dict:
     except Exception:
         pass
     return result
+
+
+@router.get("/realtime/snapshot")
+def admin_realtime_snapshot(current: User = Depends(require_admin())) -> dict:
+    """Cookie-authenticated one-shot realtime snapshot for the admin UI.
+
+    The WebSocket route remains for legacy callers, but production nginx does not
+    reliably pass WS upgrade for /api/v1/admin/ws. HTTP polling is enough for the
+    MVP admin panel and uses the same cookie auth path as the rest of the app.
+    """
+    snap = _metrics_snapshot()
+    snap["admin_id"] = current.id
+    return snap
 
 
 async def _metrics_stream(ws: WebSocket, principal: User) -> None:
