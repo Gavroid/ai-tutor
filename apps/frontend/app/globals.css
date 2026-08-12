@@ -1978,3 +1978,115 @@ a.prism-card:hover {
 .split-lesson .session-warning-button {
   display: block;
 }
+
+/* Parent dashboard: readable activity instead of raw date tooltip chart. */
+.parent-activity-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.parent-activity-track {
+  min-width: 0;
+  flex: 1;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1px solid rgba(226,232,255,.14);
+  background: rgba(255,255,255,.08);
+}
+.parent-activity-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--prism-accent), var(--prism-accent-2));
+  box-shadow: 0 0 22px rgba(75,131,255,.26);
+}
+
+/* Teacher/Admin Prism completion: remove legacy white cards without rewriting workflows. */
+.teacher-console,
+.admin-console {
+  color: var(--prism-ink);
+}
+.teacher-console .bg-white,
+.admin-console .bg-white,
+.teacher-console .bg-slate-50,
+.admin-console .bg-slate-50,
+.teacher-console .bg-slate-100,
+.admin-console .bg-slate-100,
+.teacher-console .bg-sky-50,
+.admin-console .bg-sky-50,
+.teacher-console .bg-emerald-50,
+.admin-console .bg-emerald-50 {
+  background: color-mix(in srgb, var(--prism-panel-solid) 76%, #050711 24%) !important;
+  color: var(--prism-ink) !important;
+}
+.teacher-console .border-slate-200,
+.teacher-console .border-slate-300,
+.admin-console .border-slate-200,
+.admin-console .border-slate-300 {
+  border-color: var(--prism-line) !important;
+}
+.teacher-console .text-slate-900,
+.teacher-console .text-slate-800,
+.teacher-console .text-slate-700,
+.admin-console .text-slate-900,
+.admin-console .text-slate-800,
+.admin-console .text-slate-700 {
+  color: var(--prism-ink) !important;
+}
+.teacher-console .text-slate-600,
+.teacher-console .text-slate-500,
+.teacher-console .text-slate-400,
+.admin-console .text-slate-600,
+.admin-console .text-slate-500,
+.admin-console .text-slate-400 {
+  color: var(--prism-muted) !important;
+}
+.teacher-console input,
+.teacher-console select,
+.teacher-console textarea,
+.admin-console input,
+.admin-console select,
+.admin-console textarea {
+  background: rgba(255,255,255,.075) !important;
+  border-color: rgba(226,232,255,.18) !important;
+  color: var(--prism-ink) !important;
+}
+.teacher-console option,
+.admin-console option {
+  background: #10162a;
+  color: var(--prism-ink);
+}
+.teacher-console table,
+.admin-console table {
+  color: var(--prism-ink);
+}
+.teacher-console thead,
+.admin-console thead {
+  background: rgba(255,255,255,.08) !important;
+}
+.teacher-console tr,
+.admin-console tr {
+  border-color: rgba(226,232,255,.12) !important;
+}
+.teacher-console pre,
+.admin-console pre {
+  color: var(--prism-muted) !important;
+}
+.teacher-console .shadow-sm,
+.admin-console .shadow-sm {
+  box-shadow: 0 22px 70px -52px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+.teacher-console a[class*="bg-white"],
+.admin-console a[class*="bg-white"],
+.teacher-console button[class*="bg-white"],
+.admin-console button[class*="bg-white"] {
+  background: rgba(255,255,255,.10) !important;
+}
+.teacher-console a[class*="bg-sky-600"],
+.teacher-console button[class*="bg-sky-600"],
+.admin-console a[class*="bg-sky-600"],
+.admin-console button[class*="bg-sky-600"] {
+  background: linear-gradient(135deg, var(--prism-accent), var(--prism-accent-2)) !important;
+  color: #fff !important;
+}
+

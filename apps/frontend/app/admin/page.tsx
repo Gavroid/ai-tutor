@@ -146,7 +146,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl p-6">
+    <main className="prism-shell admin-console min-h-dvh py-4 sm:py-7"><section className="prism-frame"><div className="prism-layer p-5 lg:p-10">
       {/* Sprint 5.1: общий Header с logout button */}
       <Header
         user={current}
@@ -366,7 +366,7 @@ export default function AdminPage() {
 
         {tab === "tools" && !busy && <ToolsTab />}
       </section>
-    </main>
+    </div></section></main>
   );
 }
 

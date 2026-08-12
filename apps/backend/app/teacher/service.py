@@ -512,7 +512,8 @@ def list_materials_for_teacher(
 ) -> list[subj_models.LearningMaterial]:
     """Список материалов для учителя.
 
-    Admin видит все; teacher — только свои (по generated_by).
+    Admin видит все. Teacher видит свои черновики/AI-generated материалы и
+    общую опубликованную библиотеку, включая legacy published rows без owner.
     Sprint 35: добавлен search по title (ILIKE).
     """
     from sqlalchemy import func, select  # noqa: F401
@@ -521,7 +522,10 @@ def list_materials_for_teacher(
         subj_models.LearningMaterial.id.desc()
     )
     if user.role == user_models.Role.TEACHER:
-        q = q.where(subj_models.LearningMaterial.generated_by == user.id)
+        q = q.where(
+            (subj_models.LearningMaterial.generated_by == user.id)
+            | (subj_models.LearningMaterial.status == "published")
+        )
     if status_filter:
         q = q.where(subj_models.LearningMaterial.status == status_filter)
     if topic_id:

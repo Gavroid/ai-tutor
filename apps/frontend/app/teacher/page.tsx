@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { api, getToken, setToken } from "@/lib/api";
+import { api } from "@/lib/api";
 import type { MaterialListItem, MaterialStatus, User } from "@/types";
 
 const STATUS_LABEL: Record<MaterialStatus, string> = {
@@ -66,9 +66,14 @@ export default function TeacherPage() {
     });
   }
 
+  const visiblePublished = items.filter((item) => item.status === "published").length;
+  const ownDrafts = items.filter((item) => item.generated_by === user?.id && item.status !== "published").length;
+
   return (
-    <main className="mx-auto max-w-6xl p-6">
-      <header className="border-b border-slate-200 pb-3">
+    <main className="prism-shell teacher-console min-h-dvh py-4 sm:py-7">
+      <section className="prism-frame">
+        <div className="prism-layer p-5 lg:p-10">
+      <header className="border-b border-[color:var(--prism-line)] pb-5">
         <Link href="/subjects" className="text-sm text-sky-600 hover:underline">
           ← На главную
         </Link>
@@ -90,14 +95,22 @@ export default function TeacherPage() {
           </div>
         </div>
         {user && (
-          <p className="mt-1 text-sm text-slate-600">
-            Здравствуйте, {user.display_name}. Здесь вы можете создавать и
-            модерировать учебные материалы.
-          </p>
+          <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
+            <p className="prism-copy max-w-3xl">
+              {user.role === "admin"
+                ? `Админ-режим: ${user.display_name} видит всю библиотеку и может модерировать материалы.`
+                : `Здравствуйте, ${user.display_name}. Здесь видна опубликованная библиотека и ваши черновики.`}
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <MiniMetric label="Материалов" value={items.length} />
+              <MiniMetric label="Опубликовано" value={visiblePublished} />
+              <MiniMetric label="Моих черновиков" value={ownDrafts} />
+            </div>
+          </div>
         )}
       </header>
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-5 flex flex-wrap gap-2">
         <FilterChip active={statusFilter === ""} onClick={() => setStatusFilter("")}>
           Все
         </FilterChip>
@@ -118,7 +131,7 @@ export default function TeacherPage() {
         </div>
       )}
 
-      <section className="mt-4">
+      <section className="mt-5">
         {busy && <div className="text-sm text-slate-500">Загрузка…</div>}
 
         {!busy && items.length === 0 && (
@@ -171,6 +184,8 @@ export default function TeacherPage() {
           </div>
         )}
       </section>
+        </div>
+      </section>
     </main>
   );
 }
@@ -195,5 +210,14 @@ function FilterChip({
     >
       {children}
     </button>
+  );
+}
+
+function MiniMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-3">
+      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-[color:var(--prism-muted)]">{label}</div>
+      <div className="mt-1 text-xl font-black text-[color:var(--prism-ink)]">{value}</div>
+    </div>
   );
 }

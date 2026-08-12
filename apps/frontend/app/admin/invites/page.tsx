@@ -143,13 +143,13 @@ export default function InvitesAdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="prism-shell admin-console admin-invites-console min-h-dvh py-4 sm:py-7">
       <Header
         user={current}
         backHref="/admin"
         title="Invite codes"
       />
-      <div className="max-w-4xl mx-auto p-6">
+      <section className="prism-frame"><div className="prism-layer mx-auto max-w-5xl p-5 lg:p-10">
         <div className="flex items-center gap-3 mb-6">
           <Link href="/admin" className="text-sky-600 hover:underline text-sm">
             ← К админ-панели
@@ -340,6 +340,7 @@ export default function InvitesAdminPage() {
           )}
         </section>
       </div>
+    </section>
     </main>
   );
 }

@@ -535,16 +535,17 @@ def test_edit_material_rolls_back_approval(client):
 # ============================================================
 
 
-def test_list_materials_teacher_sees_only_own(client):
-    """Учитель1 видит только свои; Учитель2 — только свои; Admin — все."""
-    # Генерим 1 материал от teacher
-    _create_material(client, "teacher@example.com")
-    # И ещё один от teacher2
-    _create_material(client, "teacher2@example.com")
+def test_list_materials_teacher_sees_own_and_published_library(client):
+    """Teacher sees own drafts plus the shared published library; admin sees all."""
+    t1_mat = _create_material(client, "teacher@example.com")
+    t2_mat = _create_material(client, "teacher2@example.com")
 
     t1 = _token(client, "teacher@example.com")
     t2 = _token(client, "teacher2@example.com")
     admin = _token(client, "admin@example.com")
+
+    client.post(f"/api/v1/teacher/materials/{t1_mat}/approve", headers=_h(t1))
+    client.post(f"/api/v1/teacher/materials/{t1_mat}/publish", headers=_h(t1))
 
     r1 = client.get("/api/v1/teacher/materials", headers=_h(t1))
     r2 = client.get("/api/v1/teacher/materials", headers=_h(t2))
@@ -554,13 +555,40 @@ def test_list_materials_teacher_sees_only_own(client):
     assert r2.status_code == 200
     assert ra.status_code == 200
 
-    t1_items = r1.json()
-    t2_items = r2.json()
-    a_items = ra.json()
+    t1_ids = {item["id"] for item in r1.json()}
+    t2_ids = {item["id"] for item in r2.json()}
+    admin_ids = {item["id"] for item in ra.json()}
 
-    assert len(t1_items) == 1
-    assert len(t2_items) == 1
-    assert len(a_items) == 2
+    assert t1_ids == {t1_mat}
+    assert t2_ids == {t1_mat, t2_mat}
+    assert admin_ids == {t1_mat, t2_mat}
+
+
+def test_list_materials_teacher_sees_legacy_published_materials(client):
+    """Legacy published materials without generated_by remain visible to teachers."""
+    from app.db.session import SessionLocal
+    from app.subjects.models import LearningMaterial
+
+    with SessionLocal() as db:
+        material = LearningMaterial(
+            topic_id=client.topic_id,
+            title="Legacy published lesson",
+            content="legacy",
+            status="published",
+            generated_by=None,
+            source_type="text",
+        )
+        db.add(material)
+        db.commit()
+        db.refresh(material)
+        material_id = material.id
+
+    teacher = _token(client, "teacher@example.com")
+    r = client.get("/api/v1/teacher/materials", headers=_h(teacher))
+
+    assert r.status_code == 200
+    ids = {item["id"] for item in r.json()}
+    assert material_id in ids
 
 
 def test_list_materials_blocks_student(client):
@@ -634,6 +662,32 @@ def test_get_material_blocks_other_teacher(client):
         headers=_h(teacher2),
     )
     assert r.status_code == 403
+
+
+def test_get_material_teacher_can_view_published_library_item(client):
+    """Teacher can open shared published library items even if generated_by is empty."""
+    from app.db.session import SessionLocal
+    from app.subjects.models import LearningMaterial
+
+    with SessionLocal() as db:
+        material = LearningMaterial(
+            topic_id=client.topic_id,
+            title="Published library item",
+            content="legacy",
+            status="published",
+            generated_by=None,
+            source_type="text",
+        )
+        db.add(material)
+        db.commit()
+        db.refresh(material)
+        material_id = material.id
+
+    teacher = _token(client, "teacher@example.com")
+    r = client.get(f"/api/v1/teacher/materials/{material_id}", headers=_h(teacher))
+
+    assert r.status_code == 200
+    assert r.json()["title"] == "Published library item"
 
 
 def test_get_material_admin_can_view_any(client):

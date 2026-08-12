@@ -23,6 +23,29 @@ type Overview = {
   privacy_note: string;
 };
 
+function formatActivityDay(value: string): string {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+}
+
+function summarizeActivity(days: Array<{ date: string; attempts: number }>) {
+  const activeDays = days.filter((day) => day.attempts > 0);
+  const total = activeDays.reduce((sum, day) => sum + day.attempts, 0);
+  const peak = activeDays.reduce<{ date: string; attempts: number } | null>(
+    (best, day) => (!best || day.attempts > best.attempts ? day : best),
+    null,
+  );
+  const last = activeDays.at(-1) ?? null;
+  return {
+    activeDays: activeDays.length,
+    total,
+    average: activeDays.length ? Math.round(total / activeDays.length) : 0,
+    peak,
+    last,
+  };
+}
+
 export default function ParentsPage() {
   const router = useRouter();
   const [children, setChildren] = useState<LinkedStudent[]>([]);
@@ -177,19 +200,47 @@ export default function ParentsPage() {
                     )}
                   </div>
 
-                  <div className="prism-card pad">
+                  <div className="prism-card pad parent-activity-card">
                     <div className="prism-kicker">Активность</div>
                     {overview.daily_activity.length === 0 ? (
                       <p className="mt-4 text-sm text-[color:var(--prism-muted)]">Первые занятия ещё не появились.</p>
-                    ) : (
-                      <div className="mt-5 flex h-32 items-end gap-1.5">
-                        {overview.daily_activity.map((day) => {
-                          const max = Math.max(...overview.daily_activity.map((item) => item.attempts), 1);
-                          const height = Math.max(4, Math.round((day.attempts / max) * 100));
-                          return <div key={day.date} title={`${day.date}: ${day.attempts}`} className={`flex-1 rounded-t-lg ${day.attempts > 0 ? "bg-[color:var(--prism-accent)]" : "bg-[color:var(--prism-line)]"}`} style={{ height: `${height}%` }} />;
-                        })}
-                      </div>
-                    )}
+                    ) : (() => {
+                      const summary = summarizeActivity(overview.daily_activity);
+                      const max = Math.max(...overview.daily_activity.map((item) => item.attempts), 1);
+                      const recentDays = overview.daily_activity.slice(-14);
+                      return (
+                        <div className="mt-4 space-y-4">
+                          <div className="grid grid-cols-2 gap-2">
+                            <ActivityStat label="За период" value={summary.total} note="попыток" />
+                            <ActivityStat label="Активных дней" value={summary.activeDays} note="с занятиями" />
+                            <ActivityStat label="Средний темп" value={summary.average} note="попыток / день" />
+                            <ActivityStat label="Пик" value={summary.peak ? summary.peak.attempts : 0} note={summary.peak ? formatActivityDay(summary.peak.date) : "—"} />
+                          </div>
+                          <div className="rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-4">
+                            <div className="text-sm font-black text-[color:var(--prism-ink)]">
+                              {summary.last
+                                ? `Последняя активность: ${formatActivityDay(summary.last.date)} · ${summary.last.attempts} попыток`
+                                : "За период активных занятий не было"}
+                            </div>
+                            <p className="mt-1 text-xs leading-5 text-[color:var(--prism-muted)]">График ниже показывает последние дни без технических дат: подпись — день, длина — сколько было попыток.</p>
+                          </div>
+                          <div className="space-y-2">
+                            {recentDays.map((day) => {
+                              const width = Math.max(5, Math.round((day.attempts / max) * 100));
+                              return (
+                                <div key={day.date} className="parent-activity-row">
+                                  <div className="w-16 shrink-0 text-xs font-black text-[color:var(--prism-muted)]">{formatActivityDay(day.date)}</div>
+                                  <div className="parent-activity-track" aria-hidden="true">
+                                    <div className="parent-activity-bar" style={{ width: `${width}%` }} />
+                                  </div>
+                                  <div className="w-20 text-right text-xs font-black text-[color:var(--prism-ink)]">{day.attempts} попыток</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
@@ -206,6 +257,17 @@ function Stat({ label, value }: { label: string; value: string | number }) {
     <div className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/50 p-4">
       <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">{label}</div>
       <div className="mt-1 text-2xl font-black text-[color:var(--prism-ink)]">{value}</div>
+    </div>
+  );
+}
+
+
+function ActivityStat({ label, value, note }: { label: string; value: string | number; note: string }) {
+  return (
+    <div className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/50 p-3">
+      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-[color:var(--prism-muted)]">{label}</div>
+      <div className="mt-1 text-xl font-black text-[color:var(--prism-ink)]">{value}</div>
+      <div className="mt-1 text-xs text-[color:var(--prism-muted)]">{note}</div>
     </div>
   );
 }

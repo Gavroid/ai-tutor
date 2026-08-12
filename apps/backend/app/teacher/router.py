@@ -430,12 +430,13 @@ def get_material(
     material = db.get(subj_models.LearningMaterial, material_id)
     if material is None:
         raise HTTPException(404, "Материал не найден")
-    # Teacher видит только свои
+    # Teacher may view own materials and shared published library items.
     if (
         current.role.value == "teacher"
         and material.generated_by != current.id
+        and material.status != "published"
     ):
-        raise HTTPException(403, "Можно просматривать только свои материалы")
+        raise HTTPException(403, "Можно просматривать только свои материалы и опубликованную библиотеку")
     return teacher_service.material_to_draft_out(material)
 
 
