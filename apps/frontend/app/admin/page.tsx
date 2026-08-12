@@ -146,15 +146,16 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="prism-shell admin-console min-h-dvh py-4 sm:py-7"><section className="prism-frame"><div className="prism-layer p-5 lg:p-10">
-      {/* Sprint 5.1: общий Header с logout button */}
+    <main className="prism-shell admin-console min-h-dvh">
       <Header
         user={current}
         backHref="/subjects"
         title="Админ-панель"
       />
-
-      <nav className="mt-4 flex gap-2">
+      <section className="py-3 sm:py-5">
+        <div className="prism-frame">
+          <div className="prism-layer p-5 lg:p-10">
+      <nav className="flex gap-2">
         <Tab active={tab === "audit"} onClick={() => setTab("audit")}>
           Audit log
         </Tab>
@@ -366,7 +367,7 @@ export default function AdminPage() {
 
         {tab === "tools" && !busy && <ToolsTab />}
       </section>
-    </div></section></main>
+    </div></div></section></main>
   );
 }
 

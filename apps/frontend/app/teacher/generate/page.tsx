@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import Header from "@/components/Header";
 import type { MaterialDraftOut, Subject, Topic, User } from "@/types";
 
 type SourceType = "text" | "file" | "topic";
@@ -93,7 +94,7 @@ export default function TeacherGeneratePage() {
   }
 
   return (
-    <main className="prism-shell teacher-console teacher-generate-console min-h-dvh py-4 sm:py-7"><section className="prism-frame"><div className="prism-layer mx-auto max-w-5xl p-5 lg:p-10">
+    <main className="prism-shell teacher-console teacher-generate-console min-h-dvh"><Header user={user} backHref="/teacher" title="Генерация материала" /><section className="py-3 sm:py-5"><div className="prism-frame"><div className="prism-layer mx-auto max-w-5xl p-5 lg:p-10">
       <header className="border-b border-slate-200 pb-3">
         <Link href="/teacher" className="text-sm text-sky-600 hover:underline">
           ← К списку материалов
@@ -247,7 +248,7 @@ export default function TeacherGeneratePage() {
           onClose={() => router.push(`/teacher/materials/${result.id}`)}
         />
       )}
-    </div></section></main>
+    </div></div></section></main>
   );
 }
 

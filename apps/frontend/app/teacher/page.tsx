@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import Header from "@/components/Header";
 import type { MaterialListItem, MaterialStatus, User } from "@/types";
 
 const STATUS_LABEL: Record<MaterialStatus, string> = {
@@ -70,9 +71,11 @@ export default function TeacherPage() {
   const ownDrafts = items.filter((item) => item.generated_by === user?.id && item.status !== "published").length;
 
   return (
-    <main className="prism-shell teacher-console min-h-dvh py-4 sm:py-7">
-      <section className="prism-frame">
-        <div className="prism-layer p-5 lg:p-10">
+    <main className="prism-shell teacher-console min-h-dvh">
+      <Header user={user} backHref="/subjects" title="Учительская" />
+      <section className="py-3 sm:py-5">
+        <div className="prism-frame">
+          <div className="prism-layer p-5 lg:p-10">
       <header className="border-b border-[color:var(--prism-line)] pb-5">
         <Link href="/subjects" className="text-sm text-sky-600 hover:underline">
           ← На главную
@@ -184,6 +187,7 @@ export default function TeacherPage() {
           </div>
         )}
       </section>
+        </div>
         </div>
       </section>
     </main>

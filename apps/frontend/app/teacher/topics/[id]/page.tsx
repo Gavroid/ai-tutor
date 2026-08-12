@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import Header from "@/components/Header";
 import type { RagRebuildJob, Topic, TopicFollowup, TopicPracticeFallback, User } from "@/types";
 
 const DEFAULT_FALLBACK: TopicPracticeFallback = {
@@ -134,9 +135,11 @@ export default function TeacherTopicDetailPage() {
   }
 
   return (
-    <main className="prism-shell teacher-console teacher-topic-editor min-h-dvh py-4 sm:py-7">
-      <section className="prism-frame">
-        <div className="prism-layer p-5 lg:p-10">
+    <main className="prism-shell teacher-console teacher-topic-editor min-h-dvh">
+      <Header user={user} backHref="/teacher/topics" title={`Тема #${topicId}`} />
+      <section className="py-3 sm:py-5">
+        <div className="prism-frame">
+          <div className="prism-layer p-5 lg:p-10">
       <header className="border-b border-[color:var(--prism-line)] pb-5">
         <Link href="/teacher/topics" className="text-sm text-sky-600 hover:underline">← Готовность тем</Link>
         <h1 className="mt-1 text-2xl font-bold">Тема #{topicId}{topic ? ` · ${topic.name}` : ""}</h1>
@@ -178,6 +181,7 @@ export default function TeacherTopicDetailPage() {
         <button onClick={rebuildRag} disabled={busy} className="mt-3 rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Запустить safe rebuild</button>
         {job && <pre className="mt-3 overflow-auto rounded-md bg-slate-100 p-3 text-xs">{JSON.stringify(job, null, 2)}</pre>}
       </section>
+        </div>
         </div>
       </section>
     </main>

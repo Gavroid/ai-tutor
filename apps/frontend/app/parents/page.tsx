@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import Header from "@/components/Header";
+import type { User } from "@/types";
 
 type LinkedStudent = {
   student_id: number;
@@ -48,6 +50,7 @@ function summarizeActivity(days: Array<{ date: string; attempts: number }>) {
 
 export default function ParentsPage() {
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
   const [children, setChildren] = useState<LinkedStudent[]>([]);
   const [invite, setInvite] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -57,6 +60,7 @@ export default function ParentsPage() {
   const [loadingChildren, setLoadingChildren] = useState(true);
 
   useEffect(() => {
+    api.me().then(setUser).catch(() => router.push("/login"));
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
@@ -109,9 +113,11 @@ export default function ParentsPage() {
   }
 
   return (
-    <main className="prism-shell min-h-dvh py-4 sm:py-7">
-      <section className="prism-frame">
-        <div className="prism-layer p-5 lg:p-10">
+    <main className="prism-shell parents-console min-h-dvh">
+      <Header user={user} backHref="/subjects" title="Родительский кабинет" />
+      <section className="py-3 sm:py-5">
+        <div className="prism-frame">
+          <div className="prism-layer p-5 lg:p-10">
           <Link href="/subjects" className="prism-pill">← На главную</Link>
 
           <div className="mt-7 grid gap-6 xl:grid-cols-[1fr_0.95fr] xl:items-end">
@@ -246,6 +252,7 @@ export default function ParentsPage() {
               )}
             </section>
           </section>
+        </div>
         </div>
       </section>
     </main>

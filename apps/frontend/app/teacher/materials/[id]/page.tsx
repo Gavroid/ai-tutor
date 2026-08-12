@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import Header from "@/components/Header";
 import type { MaterialDraftOut, MaterialStatus, User } from "@/types";
 
 const STATUS_LABEL: Record<MaterialStatus, string> = {
@@ -85,14 +86,14 @@ export default function TeacherMaterialDetailPage() {
 
   if (!user || busy || !material) {
     return (
-      <main className="prism-shell teacher-console teacher-material-detail min-h-dvh py-4 sm:py-7"><section className="prism-frame"><div className="prism-layer mx-auto max-w-5xl p-5 lg:p-10">
+      <main className="prism-shell teacher-console teacher-material-detail min-h-dvh"><Header user={user} backHref="/teacher" title="Материал" /><section className="py-3 sm:py-5"><div className="prism-frame"><div className="prism-layer mx-auto max-w-5xl p-5 lg:p-10">
         {error && (
           <div className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">
             {error}
           </div>
         )}
         <div className="mt-4 text-sm text-slate-500">Загрузка…</div>
-      </div></section></main>
+      </div></div></section></main>
     );
   }
 
@@ -105,9 +106,11 @@ export default function TeacherMaterialDetailPage() {
     material.status !== "published" && material.status !== "teacher_approved";
 
   return (
-    <main className="prism-shell teacher-console teacher-material-detail min-h-dvh py-4 sm:py-7">
-      <section className="prism-frame">
-        <div className="prism-layer mx-auto max-w-5xl p-5 lg:p-10">
+    <main className="prism-shell teacher-console teacher-material-detail min-h-dvh">
+      <Header user={user} backHref="/teacher" title="Материал" />
+      <section className="py-3 sm:py-5">
+        <div className="prism-frame">
+          <div className="prism-layer mx-auto max-w-5xl p-5 lg:p-10">
       <header className="border-b border-[color:var(--prism-line)] pb-5">
         <Link href="/teacher" className="text-sm text-sky-600 hover:underline">
           ← К списку материалов
@@ -339,6 +342,7 @@ export default function TeacherMaterialDetailPage() {
           </Block>
         )}
       </section>
+        </div>
         </div>
       </section>
     </main>

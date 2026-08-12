@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import Header from "@/components/Header";
 import type { TopicReadiness, User } from "@/types";
 
 const PRIORITIES = ["", "P0", "P1", "P2"] as const;
@@ -35,9 +36,11 @@ export default function TeacherTopicsReadinessPage() {
   }, { topics: 0, materials: 0, chunks: 0, fallbacks: 0, followups: 0 });
 
   return (
-    <main className="prism-shell min-h-dvh py-4 sm:py-7">
-      <section className="prism-frame">
-        <div className="prism-layer p-5 lg:p-10">
+    <main className="prism-shell teacher-console min-h-dvh">
+      <Header user={user} backHref="/teacher" title="Готовность тем" />
+      <section className="py-3 sm:py-5">
+        <div className="prism-frame">
+          <div className="prism-layer p-5 lg:p-10">
           <Link href="/teacher" className="prism-pill">← Учительская</Link>
           <div className="mt-7 grid gap-6 lg:grid-cols-[1fr_620px] lg:items-end">
             <div>
@@ -98,6 +101,7 @@ export default function TeacherTopicsReadinessPage() {
               </div>
             </>
           )}
+        </div>
         </div>
       </section>
     </main>

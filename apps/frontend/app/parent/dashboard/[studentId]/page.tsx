@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
+import Header from "@/components/Header";
+import type { User } from "@/types";
 
 type SubjectMastery = {
   subject_id: number;
@@ -77,11 +79,13 @@ export default function ParentDashboardPage() {
   const router = useRouter();
   const params = useParams<{ studentId: string }>();
   const studentId = Number(params.studentId);
+  const [user, setUser] = useState<User | null>(null);
   const [dash, setDash] = useState<Dashboard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    api.me().then(setUser).catch(() => router.push("/login"));
     if (!studentId || Number.isNaN(studentId)) return;
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,13 +110,16 @@ export default function ParentDashboardPage() {
 
   if (!dash) {
     return (
-      <main className="prism-shell grid min-h-dvh place-items-center p-4">
-        <section className="prism-card pad w-full max-w-xl text-center">
+      <main className="prism-shell parent-dashboard-console min-h-dvh">
+        <Header user={user} backHref="/parents" title="Родительский дашборд" />
+        <section className="grid min-h-[calc(100dvh-80px)] place-items-center p-4">
+        <div className="prism-card pad w-full max-w-xl text-center">
           <div className="prism-kicker mx-auto w-fit">Parent Monitor</div>
           <h1 className="mt-4 text-4xl font-black tracking-[-0.05em]">Родительский дашборд</h1>
           {error && <div className="mt-5 rounded-3xl border border-red-400/30 bg-red-500/10 p-4 text-sm font-bold text-red-500">{error}</div>}
           <p className="mt-5 text-[color:var(--prism-muted)]">{busy ? "Загрузка дашборда…" : "Нет данных"}</p>
           <Link href="/parents" className="prism-action mt-6">← К списку детей</Link>
+        </div>
         </section>
       </main>
     );
@@ -127,9 +134,11 @@ export default function ParentDashboardPage() {
   });
 
   return (
-    <main className="prism-shell min-h-dvh py-4 sm:py-7">
-      <section className="prism-frame">
-        <div className="prism-layer p-5 lg:p-10">
+    <main className="prism-shell parent-dashboard-console min-h-dvh">
+      <Header user={user} backHref="/parents" title="Родительский дашборд" />
+      <section className="py-3 sm:py-5">
+        <div className="prism-frame">
+          <div className="prism-layer p-5 lg:p-10">
           <Link href="/parents" className="prism-pill">← К списку детей</Link>
           <div className="mt-7 grid gap-6 xl:grid-cols-[1.05fr_0.95fr] xl:items-end">
             <div>
@@ -230,6 +239,7 @@ export default function ParentDashboardPage() {
           <section className="prism-card pad mt-6 text-sm text-[color:var(--prism-muted)]">
             🔒 {dash.privacy_note}
           </section>
+        </div>
         </div>
       </section>
     </main>
