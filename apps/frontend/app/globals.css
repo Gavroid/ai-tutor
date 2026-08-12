@@ -2376,3 +2376,39 @@ body,
   color: #ffffff !important;
 }
 
+/* Stable admin/teacher content surfaces: tab/filter switches should not change page background. */
+.admin-panel-surface,
+.teacher-console .prism-card,
+.admin-console .prism-card {
+  border: 1px solid var(--prism-line) !important;
+  border-radius: 28px !important;
+  background: color-mix(in srgb, var(--prism-panel-solid) 74%, #050711 26%) !important;
+  box-shadow: 0 22px 70px -52px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.06) !important;
+  color: var(--prism-ink) !important;
+}
+.admin-panel-surface table {
+  color: var(--prism-ink);
+}
+.admin-panel-surface thead,
+.admin-panel-surface tbody,
+.admin-panel-surface tr,
+.admin-panel-surface td,
+.admin-panel-surface th {
+  background: transparent !important;
+  border-color: var(--prism-line) !important;
+}
+.teacher-console .prism-pill.active-tertiary,
+.admin-console .prism-pill.active-tertiary {
+  color: var(--prism-ink) !important;
+  border-color: color-mix(in srgb, var(--prism-warm) 72%, transparent) !important;
+  background:
+    linear-gradient(135deg, rgba(255,207,111,.20), rgba(255,106,167,.14)),
+    rgba(255,255,255,.10) !important;
+  box-shadow: 0 0 0 1px rgba(255,207,111,.16), inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+.teacher-console .prism-pill.active-tertiary:hover,
+.admin-console .prism-pill.active-tertiary:hover {
+  background: linear-gradient(135deg, #ffcf6f, var(--prism-warm) 58%, #ff6aa7) !important;
+  color: #07111b !important;
+}
+

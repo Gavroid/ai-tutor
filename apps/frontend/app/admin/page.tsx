@@ -186,7 +186,7 @@ export default function AdminPage() {
         {busy && <div className="text-sm text-slate-500">Загрузка…</div>}
 
         {tab === "audit" && !busy && (
-          <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:grid-cols-5">
+          <div className="admin-panel-surface mb-4 grid grid-cols-1 gap-3 p-3 md:grid-cols-5">
             <input
               type="text"
               placeholder="Действие (action)"
@@ -218,7 +218,7 @@ export default function AdminPage() {
             />
             <button
               onClick={() => refresh("audit")}
-              className="rounded-md bg-sky-600 px-3 py-1 text-sm text-white hover:bg-sky-700"
+              className="prism-action primary min-h-0 px-4 py-2 text-sm"
             >
               Применить
             </button>
@@ -226,9 +226,9 @@ export default function AdminPage() {
         )}
 
         {tab === "audit" && !busy && (
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="admin-panel-surface prism-scroll overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+              <thead className="text-left text-xs uppercase text-[color:var(--prism-muted)]">
                 <tr>
                   <th className="px-3 py-2">Когда</th>
                   <th className="px-3 py-2">Действие</th>
@@ -241,27 +241,27 @@ export default function AdminPage() {
               <tbody>
                 {entries.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-3 py-4 text-center text-slate-500">
+                    <td colSpan={6} className="px-3 py-4 text-center text-[color:var(--prism-muted)]">
                       Нет событий
                     </td>
                   </tr>
                 )}
                 {entries.map((e) => (
-                  <tr key={e.id} className="border-t border-slate-100">
+                  <tr key={e.id} className="border-t border-[color:var(--prism-line)]">
                     <td className="px-3 py-2 font-mono text-xs">{fmtDate(e.created_at)}</td>
                     <td className="px-3 py-2">
-                      <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">
+                      <span className="rounded-full border border-[color:var(--prism-line)] bg-black/10 px-2 py-0.5 font-mono text-xs text-[color:var(--prism-ink)]">
                         {e.action}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-xs text-slate-600">
+                    <td className="px-3 py-2 text-xs text-[color:var(--prism-muted)]">
                       {e.entity}#{e.entity_id ?? "-"}
                     </td>
                     <td className="px-3 py-2 text-xs">{e.user_id ?? "-"}</td>
-                    <td className="px-3 py-2 font-mono text-xs text-slate-500">
+                    <td className="px-3 py-2 font-mono text-xs text-[color:var(--prism-muted)]">
                       {e.ip_address ?? "-"}
                     </td>
-                    <td className="px-3 py-2 font-mono text-xs text-slate-600">
+                    <td className="px-3 py-2 font-mono text-xs text-[color:var(--prism-muted)]">
                       <pre className="max-w-md overflow-x-auto whitespace-pre-wrap">
                         {fmtDetails(e.details)}
                       </pre>
@@ -280,14 +280,14 @@ export default function AdminPage() {
               <button
                 onClick={() => setShowAddStudent(true)}
                 data-testid="add-student-button"
-                className="rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-500"
+                className="prism-action primary text-sm"
               >
                 + Создать ученика
               </button>
             </div>
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="admin-panel-surface prism-scroll overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+              <thead className="text-left text-xs uppercase text-[color:var(--prism-muted)]">
                 <tr>
                   <th className="px-3 py-2">ID</th>
                   <th className="px-3 py-2">Email</th>
@@ -300,34 +300,34 @@ export default function AdminPage() {
               </thead>
               <tbody>
                 {users.map((u) => (
-                  <tr key={u.id} className="border-t border-slate-100">
+                  <tr key={u.id} className="border-t border-[color:var(--prism-line)]">
                     <td className="px-3 py-2 font-mono text-xs">{u.id}</td>
                     <td className="px-3 py-2">{u.email}</td>
                     <td className="px-3 py-2">{u.display_name}</td>
                     <td className="px-3 py-2">
-                      <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">
+                      <span className="rounded-full border border-[color:var(--prism-line)] bg-black/10 px-2 py-0.5 font-mono text-xs text-[color:var(--prism-ink)]">
                         {u.role}
                       </span>
                     </td>
                     <td className="px-3 py-2">
                       {u.is_active ? (
-                        <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-xs text-emerald-800">
+                        <span className="rounded-full border border-[color:var(--prism-line)] bg-black/10 px-2 py-0.5 text-xs text-[color:var(--prism-green)]">
                           да
                         </span>
                       ) : (
-                        <span className="rounded bg-rose-100 px-1.5 py-0.5 text-xs text-rose-800">
+                        <span className="rounded-full border border-[color:var(--prism-line)] bg-black/10 px-2 py-0.5 text-xs text-rose-200">
                           нет
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-xs text-slate-500">
+                    <td className="px-3 py-2 text-xs text-[color:var(--prism-muted)]">
                       {fmtDate(u.created_at)}
                     </td>
                     <td className="px-3 py-2">
                       {u.is_active && (
                         <button
                           onClick={() => deactivateUser(u.id)}
-                          className="rounded bg-rose-100 px-2 py-1 text-xs text-rose-800 hover:bg-rose-200"
+                          className="prism-pill hover-danger min-h-0 px-3 py-1 text-xs"
                         >
                           Деактивировать
                         </button>

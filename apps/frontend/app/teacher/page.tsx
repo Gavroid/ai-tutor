@@ -138,12 +138,12 @@ export default function TeacherPage() {
         {busy && <div className="text-sm text-slate-500">Загрузка…</div>}
 
         {!busy && items.length === 0 && (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
-            <p className="text-slate-500">
+          <div className="prism-card pad text-center">
+            <p className="text-[color:var(--prism-muted)]">
               Пока нет материалов.{" "}
               <Link
                 href="/teacher/generate"
-                className="text-sky-600 hover:underline"
+                className="text-[color:var(--prism-accent)] hover:underline"
               >
                 Сгенерировать первый →
               </Link>
