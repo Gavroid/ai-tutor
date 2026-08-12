@@ -156,6 +156,7 @@ export default function InvitesAdminPage() {
           <Link href="/admin" className="prism-pill">Статистика</Link>
           <Link href="/admin" className="prism-pill">Инструменты</Link>
           <span className="prism-pill active-tertiary" data-testid="invites-tab-link">Invites</span>
+          <Link href="/admin/realtime" className="prism-pill">Realtime</Link>
         </nav>
 
         <section className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-5">

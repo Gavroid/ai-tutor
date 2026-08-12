@@ -2470,3 +2470,21 @@ body,
   position: relative;
   z-index: 1;
 }
+
+/* Active admin/teacher section: highlighted border/ring only, no dark fill jump. */
+.teacher-console .prism-pill.active-tertiary,
+.admin-console .prism-pill.active-tertiary {
+  color: #ffd28a !important;
+  border-color: rgba(255, 207, 111, .72) !important;
+  background: transparent !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 207, 111, .18),
+    0 0 26px -14px rgba(255, 155, 66, .75),
+    inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+.teacher-console .prism-pill.active-tertiary:hover,
+.admin-console .prism-pill.active-tertiary:hover {
+  background: rgba(255, 207, 111, .12) !important;
+  color: #ffe4a8 !important;
+}
+

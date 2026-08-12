@@ -169,13 +169,12 @@ export default function AdminPage() {
           Инструменты
         </Tab>
         {/* Sprint 52: отдельная страница для invites */}
-        <a
-          href="/admin/invites"
-          className="prism-pill"
-          data-testid="invites-tab-link"
-        >
+        <Link href="/admin/invites" className="prism-pill" data-testid="invites-tab-link">
           Invites
-        </a>
+        </Link>
+        <Link href="/admin/realtime" className="prism-pill">
+          Realtime
+        </Link>
       </nav>
 
       {error && (

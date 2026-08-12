@@ -38,14 +38,20 @@ export default function AdminRealtimePage() {
 
   return (
     <main className="prism-shell admin-console min-h-dvh">
-      <Header user={null} backHref="/admin" title="Realtime" />
+      <Header user={null} backHref="/subjects" title="Админ-панель" />
       <section className="py-3 sm:py-5">
         <div className="prism-frame">
-          <div className="prism-layer mx-auto max-w-5xl p-5 lg:p-10">
-      <section className="border-b border-[color:var(--prism-line)] pb-5">
-        <Link href="/admin" className="text-sm text-sky-600 hover:underline">
-          ← Админ-панель
-        </Link>
+          <div className="prism-layer p-5 lg:p-10">
+        <nav className="flex flex-wrap gap-2">
+          <Link href="/admin" className="prism-pill">Audit log</Link>
+          <Link href="/admin" className="prism-pill">Пользователи</Link>
+          <Link href="/admin" className="prism-pill">Статистика</Link>
+          <Link href="/admin" className="prism-pill">Инструменты</Link>
+          <Link href="/admin/invites" className="prism-pill">Invites</Link>
+          <span className="prism-pill active-tertiary">Realtime</span>
+        </nav>
+
+      <section className="mt-4 border-b border-[color:var(--prism-line)] pb-5">
         <h1 className="mt-1 text-2xl font-bold">Real-time метрики</h1>
         <ConnectionStatus state={state} />
       </section>
