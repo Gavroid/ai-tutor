@@ -146,26 +146,30 @@ export default function InvitesAdminPage() {
     <main className="prism-shell admin-console admin-invites-console min-h-dvh">
       <Header
         user={current}
-        backHref="/admin"
-        title="Invite codes"
+        backHref="/subjects"
+        title="Админ-панель"
       />
-      <section className="py-3 sm:py-5"><div className="prism-frame"><div className="prism-layer mx-auto max-w-5xl p-5 lg:p-10">
-        <div className="flex items-center gap-3 mb-6">
-          <Link href="/admin" className="text-sky-600 hover:underline text-sm">
-            ← К админ-панели
-          </Link>
-          <h1 className="text-2xl font-bold text-slate-900">Invite codes</h1>
-        </div>
+      <section className="py-3 sm:py-5"><div className="prism-frame"><div className="prism-layer p-5 lg:p-10">
+        <nav className="flex flex-wrap gap-2">
+          <Link href="/admin" className="prism-pill">Audit log</Link>
+          <Link href="/admin" className="prism-pill">Пользователи</Link>
+          <Link href="/admin" className="prism-pill">Статистика</Link>
+          <Link href="/admin" className="prism-pill">Инструменты</Link>
+          <span className="prism-pill active-tertiary" data-testid="invites-tab-link">Invites</span>
+        </nav>
 
-        <p className="text-sm text-slate-600 mb-6">
-          Создавайте invite codes для друзей/одноклассников Кирилла.
-          Codes можно использовать при регистрации (/register?code=...).
-        </p>
+        <section className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-5">
+          <div className="prism-kicker">Invite codes</div>
+          <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] text-[color:var(--prism-ink)]">Управление invite-кодами</h1>
+          <p className="mt-2 text-sm leading-6 text-[color:var(--prism-muted)]">
+            Создавайте invite codes для друзей/одноклассников Кирилла. Codes можно использовать при регистрации (/register?code=...).
+          </p>
+        </section>
 
         {error && (
           <div
             role="alert"
-            className="bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-lg p-3 mb-4"
+            className="mt-4 rounded-2xl border border-rose-300/30 bg-rose-400/10 p-3 text-sm font-bold text-rose-200"
             data-testid="invites-error"
           >
             {error}
@@ -175,7 +179,7 @@ export default function InvitesAdminPage() {
         {copiedCode && (
           <div
             role="status"
-            className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-lg p-3 mb-4"
+            className="mt-4 rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-3 text-sm font-bold text-[color:var(--prism-ink)]"
             data-testid="copied-code-status"
           >
             ✓ Code {copiedCode} скопирован в clipboard
@@ -183,21 +187,21 @@ export default function InvitesAdminPage() {
         )}
 
         {/* Create form */}
-        <section className="bg-white rounded-2xl border border-slate-200 p-6 mb-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">
+        <section className="mt-6 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-6">
+          <h2 className="mb-4 text-lg font-semibold text-[color:var(--prism-ink)]">
             Создать invite
           </h2>
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="invite-role" className="block text-sm font-medium text-slate-700 mb-1">
+                <label htmlFor="invite-role" className="mb-1 block text-sm font-medium text-[color:var(--prism-muted)]">
                   Роль
                 </label>
                 <select
                   id="invite-role"
                   value={role}
                   onChange={(e) => setRole(e.target.value as typeof role)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="prism-input text-sm"
                   data-testid="invite-role-select"
                 >
                   <option value="student">Student</option>
@@ -206,7 +210,7 @@ export default function InvitesAdminPage() {
                 </select>
               </div>
               <div>
-                <label htmlFor="invite-max-uses" className="block text-sm font-medium text-slate-700 mb-1">
+                <label htmlFor="invite-max-uses" className="mb-1 block text-sm font-medium text-[color:var(--prism-muted)]">
                   Max uses
                 </label>
                 <input
@@ -216,14 +220,14 @@ export default function InvitesAdminPage() {
                   max="100"
                   value={maxUses}
                   onChange={(e) => setMaxUses(parseInt(e.target.value) || 1)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="prism-input text-sm"
                   data-testid="invite-max-uses-input"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="invite-note" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="invite-note" className="mb-1 block text-sm font-medium text-[color:var(--prism-muted)]">
                 Note (опционально)
               </label>
               <input
@@ -233,13 +237,13 @@ export default function InvitesAdminPage() {
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Friend of Kirill"
                 maxLength={255}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="prism-input text-sm"
                 data-testid="invite-note-input"
               />
             </div>
 
             <div>
-              <label htmlFor="invite-expires" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="invite-expires" className="mb-1 block text-sm font-medium text-[color:var(--prism-muted)]">
                 Истекает через (дней, опционально)
               </label>
               <input
@@ -250,7 +254,7 @@ export default function InvitesAdminPage() {
                 value={expiresInDays}
                 onChange={(e) => setExpiresInDays(e.target.value)}
                 placeholder="30"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="prism-input text-sm"
                 data-testid="invite-expires-input"
               />
             </div>
@@ -258,7 +262,7 @@ export default function InvitesAdminPage() {
             <button
               type="submit"
               disabled={creating}
-              className="w-full bg-sky-600 text-white rounded-lg px-4 py-2 font-medium hover:bg-sky-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-sky-500"
+              className="prism-action primary w-full disabled:opacity-50"
               data-testid="invite-submit-button"
             >
               {creating ? "Создание..." : "Создать invite"}
@@ -267,18 +271,18 @@ export default function InvitesAdminPage() {
         </section>
 
         {/* List invites */}
-        <section className="bg-white rounded-2xl border border-slate-200 p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">
+        <section className="mt-6 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-6">
+          <h2 className="mb-4 text-lg font-semibold text-[color:var(--prism-ink)]">
             Существующие invites ({invites.length})
           </h2>
           {loading ? (
-            <p className="text-sm text-slate-500">Загрузка...</p>
+            <p className="text-sm text-[color:var(--prism-muted)]">Загрузка...</p>
           ) : invites.length === 0 ? (
-            <p className="text-sm text-slate-500">No invites yet.</p>
+            <p className="text-sm text-[color:var(--prism-muted)]">No invites yet.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm" data-testid="invites-table">
-                <thead className="text-left text-slate-500 border-b border-slate-200">
+            <div className="prism-scroll overflow-x-auto rounded-2xl border border-[color:var(--prism-line)] bg-black/10 p-1">
+              <table className="w-full text-sm text-[color:var(--prism-ink)]" data-testid="invites-table">
+                <thead className="border-b border-[color:var(--prism-line)] text-left text-[color:var(--prism-muted)]">
                   <tr>
                     <th className="py-2 pr-4">Code</th>
                     <th className="py-2 pr-4">Role</th>
@@ -292,24 +296,24 @@ export default function InvitesAdminPage() {
                   {invites.map((inv) => (
                     <tr
                       key={inv.code}
-                      className="border-b border-slate-100"
+                      className="border-b border-[color:var(--prism-line)]"
                       data-testid={`invite-row-${inv.code}`}
                     >
-                      <td className="py-2 pr-4 font-mono text-slate-800">{inv.code}</td>
-                      <td className="py-2 pr-4 text-slate-700">{inv.role}</td>
-                      <td className="py-2 pr-4 text-slate-700">
+                      <td className="py-2 pr-4 font-mono text-[color:var(--prism-ink)]">{inv.code}</td>
+                      <td className="py-2 pr-4 text-[color:var(--prism-muted)]">{inv.role}</td>
+                      <td className="py-2 pr-4 text-[color:var(--prism-muted)]">
                         {inv.uses_count} / {inv.max_uses}
                       </td>
-                      <td className="py-2 pr-4 text-slate-700">
+                      <td className="py-2 pr-4 text-[color:var(--prism-muted)]">
                         {inv.expires_at
                           ? new Date(inv.expires_at).toLocaleDateString("ru-RU")
                           : "∞"}
                       </td>
                       <td className="py-2 pr-4">
                         {inv.is_valid ? (
-                          <span className="text-emerald-700">✓ valid</span>
+                          <span className="text-[color:var(--prism-green)]">✓ valid</span>
                         ) : (
-                          <span className="text-rose-700">
+                          <span className="text-rose-200">
                             ✗ {inv.is_expired ? "expired" : "used"}
                           </span>
                         )}
@@ -317,7 +321,7 @@ export default function InvitesAdminPage() {
                       <td className="py-2 pr-4 text-right">
                         <button
                           onClick={() => copyToClipboard(inv.code)}
-                          className="text-sky-600 hover:underline mr-3"
+                          className="prism-pill mr-3 min-h-0 px-3 py-1 text-xs"
                           data-testid={`copy-${inv.code}`}
                         >
                           Copy
@@ -325,7 +329,7 @@ export default function InvitesAdminPage() {
                         {inv.uses_count === 0 && (
                           <button
                             onClick={() => handleDelete(inv.code)}
-                            className="text-rose-600 hover:underline"
+                            className="prism-pill min-h-0 px-3 py-1 text-xs hover-danger"
                             data-testid={`delete-${inv.code}`}
                           >
                             Delete
