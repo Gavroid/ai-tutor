@@ -111,7 +111,7 @@ export default function TeacherMaterialDetailPage() {
       <section className="py-3 sm:py-5">
         <div className="prism-frame">
           <div className="prism-layer mx-auto max-w-5xl p-5 lg:p-10">
-      <header className="border-b border-[color:var(--prism-line)] pb-5">
+      <section className="border-b border-[color:var(--prism-line)] pb-5">
         <Link href="/teacher" className="text-sm text-sky-600 hover:underline">
           ← К списку материалов
         </Link>
@@ -167,7 +167,7 @@ export default function TeacherMaterialDetailPage() {
             )}
           </div>
         </div>
-      </header>
+      </section>
 
       <section className="mt-4 space-y-6">
         {/* Зачем */}

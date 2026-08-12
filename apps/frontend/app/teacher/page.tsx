@@ -76,7 +76,7 @@ export default function TeacherPage() {
       <section className="py-3 sm:py-5">
         <div className="prism-frame">
           <div className="prism-layer p-5 lg:p-10">
-      <header className="border-b border-[color:var(--prism-line)] pb-5">
+      <section className="border-b border-[color:var(--prism-line)] pb-5">
         <Link href="/subjects" className="text-sm text-sky-600 hover:underline">
           ← На главную
         </Link>
@@ -111,7 +111,7 @@ export default function TeacherPage() {
             </div>
           </div>
         )}
-      </header>
+      </section>
 
       <div className="mt-5 flex flex-wrap gap-2">
         <FilterChip active={statusFilter === ""} onClick={() => setStatusFilter("")}>

@@ -114,7 +114,7 @@ export default function ParentsPage() {
 
   return (
     <main className="prism-shell parents-console min-h-dvh">
-      <Header user={user} backHref="/subjects" title="Родительский кабинет" />
+      <Header user={user} backHref="/subjects" title="Parent Console" />
       <section className="py-3 sm:py-5">
         <div className="prism-frame">
           <div className="prism-layer p-5 lg:p-10">

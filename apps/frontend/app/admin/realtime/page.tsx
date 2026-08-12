@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Header from "@/components/Header";
 import { getToken } from "@/lib/api";
 import { AdminWSConnection, type AdminSnapshot, type AdminWSState } from "@/lib/admin-ws";
 
@@ -36,14 +37,18 @@ export default function AdminRealtimePage() {
   }, [state]);
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <header className="border-b border-slate-200 pb-4">
+    <main className="prism-shell admin-console min-h-dvh">
+      <Header user={null} backHref="/admin" title="Realtime" />
+      <section className="py-3 sm:py-5">
+        <div className="prism-frame">
+          <div className="prism-layer mx-auto max-w-5xl p-5 lg:p-10">
+      <section className="border-b border-[color:var(--prism-line)] pb-5">
         <Link href="/admin" className="text-sm text-sky-600 hover:underline">
           ← Админ-панель
         </Link>
         <h1 className="mt-1 text-2xl font-bold">Real-time метрики</h1>
         <ConnectionStatus state={state} />
-      </header>
+      </section>
 
       {snap === null ? (
         <p className="mt-6 text-sm text-slate-500">
@@ -141,6 +146,9 @@ export default function AdminRealtimePage() {
           Последний snapshot: {new Date(snap.ts).toLocaleString("ru")}
         </p>
       )}
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

@@ -140,11 +140,11 @@ export default function TeacherTopicDetailPage() {
       <section className="py-3 sm:py-5">
         <div className="prism-frame">
           <div className="prism-layer p-5 lg:p-10">
-      <header className="border-b border-[color:var(--prism-line)] pb-5">
+      <section className="border-b border-[color:var(--prism-line)] pb-5">
         <Link href="/teacher/topics" className="text-sm text-sky-600 hover:underline">← Готовность тем</Link>
         <h1 className="mt-1 text-2xl font-bold">Тема #{topicId}{topic ? ` · ${topic.name}` : ""}</h1>
         <p className="mt-1 text-sm text-slate-600">Stage 4 MVP: followups, fallback-задания, status и safe RAG job.</p>
-      </header>
+      </section>
 
       {error && <div className="mt-4 rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
       {message && <div className="mt-4 rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{message}</div>}
