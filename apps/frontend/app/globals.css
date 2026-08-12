@@ -2488,3 +2488,20 @@ body,
   color: #ffe4a8 !important;
 }
 
+
+/* Final active pill correction: active keeps the same fill as inactive, only border/text changes. */
+.teacher-console .prism-pill.active-tertiary,
+.admin-console .prism-pill.active-tertiary {
+  background: rgba(255,255,255,.10) !important;
+  color: #ffd28a !important;
+  border-color: rgba(255,207,111,.72) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,207,111,.18),
+    0 0 24px -16px rgba(255,155,66,.72),
+    inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+.teacher-console .prism-pill.active-tertiary:hover,
+.admin-console .prism-pill.active-tertiary:hover {
+  background: rgba(255,255,255,.14) !important;
+  color: #ffe4a8 !important;
+}
