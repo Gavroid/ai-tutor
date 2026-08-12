@@ -1894,3 +1894,87 @@ a.prism-card:hover {
   font-size: 13.5px;
   line-height: 1.55;
 }
+
+/* Session timer card must fit the narrow lesson rail. */
+.session-warning-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 12px !important;
+}
+.session-warning-card,
+.session-warning-card * {
+  box-sizing: border-box;
+  min-width: 0;
+}
+.session-warning-content {
+  min-width: 0;
+  max-width: 100%;
+  gap: 9px;
+}
+.session-warning-icon {
+  width: 28px;
+  font-size: 20px;
+  line-height: 1;
+}
+.session-warning-body {
+  min-width: 0;
+  max-width: 100%;
+}
+.session-warning-title,
+.session-warning-description {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.session-warning-title {
+  font-size: 13px;
+  line-height: 1.2;
+}
+.session-warning-description {
+  font-size: 12px;
+  line-height: 1.35;
+}
+.session-warning-actions {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  gap: 8px;
+}
+.session-warning-button {
+  width: 100%;
+  max-width: 100%;
+  min-height: 44px !important;
+  padding: 8px 10px !important;
+  border-radius: 14px !important;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+  text-align: center;
+}
+.session-warning-primary-short { display: none; }
+@container (max-width: 180px) {
+  .session-warning-primary-full { display: none; }
+  .session-warning-primary-short { display: inline; }
+}
+@media (max-width: 1320px) {
+  .split-lesson .session-warning-primary-full { display: none; }
+  .split-lesson .session-warning-primary-short { display: inline; }
+}
+
+.split-lesson .session-warning-content {
+  display: block !important;
+}
+.split-lesson .session-warning-icon {
+  display: block;
+  width: auto;
+  margin-bottom: 8px;
+}
+.split-lesson .session-warning-body {
+  width: 100%;
+}
+.split-lesson .session-warning-button {
+  display: block;
+}

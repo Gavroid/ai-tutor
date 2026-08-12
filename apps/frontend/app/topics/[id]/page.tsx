@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, getToken, ApiError } from "@/lib/api";
 import Header from "@/components/Header";
@@ -65,6 +65,7 @@ interface SavedDraft {
 export default function TopicPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const topicId = Number(params?.id);
 
   const [user, setUser] = useState<User | null>(null);
@@ -462,7 +463,7 @@ export default function TopicPage() {
           {actionError && <div role="alert" className="split-callout danger">{actionError}</div>}
 
           <div className="mt-auto space-y-3">
-            <SessionTimer />
+            <SessionTimer initialMinutesElapsed={process.env.NODE_ENV !== "production" ? Number(searchParams.get("timerMinutes") || 0) : 0} />
             <CGMStatus />
             <PauseButton
               onPause={(reason) => {

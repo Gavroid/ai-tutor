@@ -30,6 +30,8 @@ interface SessionTimerProps {
   onWarn?: (level: 1 | 2 | 3, minutes: number) => void;
   /** Запомнить dismissed level (default true). */
   persistDismissal?: boolean;
+  /** Test-only deterministic initial elapsed minutes. */
+  initialMinutesElapsed?: number;
 }
 
 type WarningLevel = 0 | 1 | 2 | 3;
@@ -112,18 +114,20 @@ const BUTTON_SECONDARY: Record<WarningTier["color"], string> = {
 export default function SessionTimer({
   onWarn,
   persistDismissal = true,
+  initialMinutesElapsed = 0,
 }: SessionTimerProps) {
-  const [minutesElapsed, setMinutesElapsed] = useState(0);
+  const [minutesElapsed, setMinutesElapsed] = useState(initialMinutesElapsed);
   const [dismissedLevel, setDismissedLevel] = useState<WarningLevel>(0);
 
   useEffect(() => {
+    if (initialMinutesElapsed > 0) return;
     const startTime = Date.now();
     const interval = setInterval(() => {
       const elapsed = (Date.now() - startTime) / 60000;
       setMinutesElapsed(elapsed);
     }, 60000); // обновляем каждую минуту
     return () => clearInterval(interval);
-  }, []);
+  }, [initialMinutesElapsed]);
 
   // Определяем текущий уровень (какой tier активен)
   const currentLevel: WarningLevel = (() => {
@@ -160,30 +164,33 @@ export default function SessionTimer({
     <div
       role="status"
       aria-live="polite"
-      className={`rounded-2xl border-2 p-4 mb-4 ${colors}`}
+      className={`session-warning-card rounded-2xl border-2 p-4 mb-4 ${colors}`}
       data-warning-level={activeLevel}
     >
-      <div className="flex items-start gap-3">
-        <div className="text-2xl flex-shrink-0" aria-hidden="true">
+      <div className="session-warning-content flex items-start gap-3">
+        <div className="session-warning-icon text-2xl flex-shrink-0" aria-hidden="true">
           {tier.emoji}
         </div>
-        <div className="flex-1">
-          <p className="font-medium mb-1">
+        <div className="session-warning-body flex-1">
+          <p className="session-warning-title font-medium mb-1">
             {tier.title(Math.floor(minutesElapsed))}
           </p>
-          <p className="text-sm mb-3 leading-relaxed opacity-90">
+          <p className="session-warning-description text-sm mb-3 leading-relaxed opacity-90">
             {tier.description}
           </p>
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="session-warning-actions flex flex-col sm:flex-row gap-2">
             <button
               onClick={handleDismiss}
-              className={`min-h-[48px] px-4 py-2 text-white rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-3 ${buttonClasses}`}
+              aria-label={tier.primary}
+              title={tier.primary}
+              className={`session-warning-button session-warning-primary min-h-[48px] px-4 py-2 text-white rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-3 ${buttonClasses}`}
             >
-              {tier.primary}
+              <span className="session-warning-primary-full">{tier.primary}</span>
+              <span className="session-warning-primary-short" aria-hidden="true">Понял</span>
             </button>
             <button
               onClick={handleDismiss}
-              className={`min-h-[48px] px-4 py-2 bg-white rounded-lg border text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-3 ${buttonSecondary}`}
+              className={`session-warning-button min-h-[48px] px-4 py-2 bg-white rounded-lg border text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-3 ${buttonSecondary}`}
             >
               Продолжить
             </button>
