@@ -55,6 +55,7 @@ export default function ParentsPage() {
   const [invite, setInvite] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [overview, setOverview] = useState<Overview | null>(null);
+  const [overviewByChild, setOverviewByChild] = useState<Record<number, Overview>>({});
   const [error, setError] = useState<string | null>(null);
   const [busyInvite, setBusyInvite] = useState(false);
   const [loadingChildren, setLoadingChildren] = useState(true);
@@ -69,16 +70,35 @@ export default function ParentsPage() {
     setLoadingChildren(true);
     api
       .parentsChildren()
-      .then((linkedChildren) => {
+      .then(async (linkedChildren) => {
         setChildren(linkedChildren);
-        const saved = typeof window !== "undefined" ? localStorage.getItem("ai-tutor:parent:selected") : null;
-        if (saved && linkedChildren.some((child) => String(child.student_id) === saved)) {
-          setSelectedId(Number(saved));
-        } else if (linkedChildren.length > 0) {
-          setSelectedId(linkedChildren[0].student_id);
-        } else {
+        if (linkedChildren.length === 0) {
           setSelectedId(null);
           setOverview(null);
+          setOverviewByChild({});
+          return;
+        }
+
+        const results = await Promise.allSettled(
+          linkedChildren.map(async (child) => [child.student_id, await api.parentsOverview(child.student_id)] as const),
+        );
+        const loaded = Object.fromEntries(
+          results
+            .filter((result): result is PromiseFulfilledResult<readonly [number, Overview]> => result.status === "fulfilled")
+            .map((result) => result.value),
+        );
+        setOverviewByChild(loaded);
+
+        const saved = typeof window !== "undefined" ? Number(localStorage.getItem("ai-tutor:parent:selected")) : 0;
+        const savedChild = linkedChildren.find((child) => child.student_id === saved);
+        const childWithData = linkedChildren.find((child) => (loaded[child.student_id]?.total_attempts ?? 0) > 0);
+        const nextId = childWithData?.student_id ?? savedChild?.student_id ?? linkedChildren[0].student_id;
+        setSelectedId(nextId);
+        setOverview(loaded[nextId] ?? null);
+        try {
+          localStorage.setItem("ai-tutor:parent:selected", String(nextId));
+        } catch {
+          // ignore storage issues
         }
       })
       .catch(() => setError("Не удалось загрузить список детей"))
@@ -87,6 +107,7 @@ export default function ParentsPage() {
 
   function pickChild(id: number) {
     setSelectedId(id);
+    setOverview(overviewByChild[id] ?? null);
     try {
       localStorage.setItem("ai-tutor:parent:selected", String(id));
     } catch {
@@ -95,9 +116,9 @@ export default function ParentsPage() {
   }
 
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId || overviewByChild[selectedId]) return;
     api.parentsOverview(selectedId).then(setOverview).catch(() => setOverview(null));
-  }, [selectedId]);
+  }, [selectedId, overviewByChild]);
 
   async function createInvite() {
     setBusyInvite(true);
@@ -159,11 +180,16 @@ export default function ParentsPage() {
                 <div className="mt-4 grid gap-2">
                   {children.map((child) => (
                     <div key={child.student_id} className={`rounded-3xl border p-3 ${selectedId === child.student_id ? "border-[color:var(--prism-accent)] bg-[color:var(--prism-panel-solid)]/55 shadow-glow" : "border-[color:var(--prism-line)] bg-black/10"}`}>
-                      <button onClick={() => pickChild(child.student_id)} className="w-full text-left">
-                        <div className="font-black text-[color:var(--prism-ink)]">{child.display_name}</div>
-                        <div className="mt-1 text-xs text-[color:var(--prism-muted)]">Привязан: {new Date(child.linked_at).toLocaleDateString("ru-RU")}</div>
-                      </button>
-                      <Link href={`/parent/dashboard/${child.student_id}`} className="prism-action mt-3 w-full">Открыть дашборд</Link>
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <button onClick={() => pickChild(child.student_id)} className="min-w-0 flex-1 text-left">
+                          <div className="font-black text-[color:var(--prism-ink)]">{child.display_name}</div>
+                          <div className="mt-1 text-xs text-[color:var(--prism-muted)]">
+                            Привязан: {new Date(child.linked_at).toLocaleDateString("ru-RU")}
+                            {overviewByChild[child.student_id] && ` · попыток ${overviewByChild[child.student_id].total_attempts}`}
+                          </div>
+                        </button>
+                        <Link href={`/parent/dashboard/${child.student_id}`} className="prism-action shrink-0 px-4 py-2 text-sm">Дашборд</Link>
+                      </div>
                     </div>
                   ))}
                 </div>

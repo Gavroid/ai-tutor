@@ -92,3 +92,37 @@ Scope: prepared the pilot environment for Igor's manual testing after the QA bug
 - Parent UI can now be tested with `parent-e2e@example.com`; it should show linked child `Student E2E` and open `/parent/dashboard/20`.
 - Historical pending self-link rows are intentionally not deleted; they are harmless after the service fix and retained for auditability unless a separate cleanup is requested.
 
+## 2026-08-12 19:30 MSK — Manual QA status update after user walkthrough
+
+Scope: incorporated Igor's latest manual testing results and fixed the actionable blockers found in Parent/Admin surfaces.
+
+### Manual testing status
+
+| # | Area | Status | Notes |
+|---:|---|---|---|
+| 0 | Быстрый Smoke | OK | Manual pass confirmed. |
+| 1 | Student Flow | OK | Manual pass confirmed. |
+| 2 | Mobile Student Flow | Not run | Deferred; no result claimed. |
+| 3 | Parent Flow | Fixed follow-ups | Parent console buttons compacted; parent console now prefers a linked child with real attempts so `Сводка` is not stuck on an empty E2E child; parent dashboard top spacing reduced. |
+| 4 | Teacher Flow | OK | Manual pass confirmed. |
+| 5 | Admin Flow | Fixed follow-up | Prometheus scrape was healthy; UI realtime issue was WebSocket auth using the `cookie` sentinel as a JWT. Backend WS now falls back to httpOnly access cookie. |
+| 6 | Multi-Subject Smoke | OK | Manual pass confirmed. |
+| 7 | Visual / UX Sweep | Desktop OK | Manual desktop sweep confirmed after final dark Prism palette pass. |
+
+### Fixes applied
+
+- `/parents`: child cards no longer use full-width long dashboard buttons; action is compact (`Дашборд`) and aligned to the right on desktop.
+- `/parents`: overview data is prefetched for linked children and the default selection prefers the child with activity (`total_attempts > 0`) over a persisted empty E2E selection.
+- `/parents`: child list now shows attempt count next to linked date when overview data is available.
+- `/parent/dashboard/[studentId]`: reduced top spacing in hero/KPI/recommendation blocks to make the dashboard more compact above the fold.
+- `/admin` Realtime: production Prometheus itself was healthy and scraping `backend:8000/metrics`; the UI showed disconnected because WebSocket auth expected a JWT query token while frontend cookie auth sends the sentinel `cookie`. WS now reads `ai_tutor_access` from the WebSocket handshake when token is omitted or equals `cookie`.
+
+### Verification before deploy
+
+- Frontend typecheck: `npm run typecheck` passed.
+- Frontend build: `npm run build` passed.
+- Backend slice: `.venv/bin/pytest tests/test_parent_dashboard.py tests/test_health.py -q` -> `21 passed, 23 warnings`.
+- Production Prometheus health checked read-only before code change:
+  - `prometheus /-/healthy` returned healthy;
+  - internal scrape `http://backend:8000/metrics` returned Prometheus text metrics.
+

@@ -20,6 +20,7 @@ import subprocess
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from app.auth.security import ACCESS_COOKIE
 
 from app.ai.budget import get_usage
 from app.observability import (
@@ -148,20 +149,22 @@ async def _metrics_stream(ws: WebSocket, principal: User) -> None:
 
 
 @router.websocket("/ws")
-async def admin_ws(ws: WebSocket, token: str = Query(...)) -> None:
+async def admin_ws(ws: WebSocket, token: str | None = Query(None)) -> None:
     """WS endpoint для real-time метрик (admin only).
 
-    Args:
-        ws: WebSocket-соединение.
-        token: JWT в query (?token=...). Чтобы client мог открыть
-            нативный WebSocket (cookies в WS браузера передаёт не всегда).
+    Supports legacy JWT query tokens and the current cookie-based auth flow.
+    The frontend's deprecated getToken() returns the sentinel "cookie"; in that
+    case we read the httpOnly access cookie from the WebSocket handshake.
     """
-    # Auth — проверяем токен ДО accept
     try:
         from app.auth.security import decode_token
 
-        payload = decode_token(token)
-        if not payload:
+        raw_token = token if token and token != "cookie" else ws.cookies.get(ACCESS_COOKIE)
+        if not raw_token:
+            await ws.close(code=1008, reason="missing token")
+            return
+        payload = decode_token(raw_token)
+        if not payload or payload.get("type") != "access":
             await ws.close(code=1008, reason="invalid token")
             return
         role = payload.get("role")

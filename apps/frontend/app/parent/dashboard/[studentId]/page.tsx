@@ -140,7 +140,7 @@ export default function ParentDashboardPage() {
         <div className="prism-frame">
           <div className="prism-layer p-5 lg:p-10">
           <Link href="/parents" className="prism-pill">← К списку детей</Link>
-          <div className="mt-7 grid gap-6 xl:grid-cols-[1.05fr_0.95fr] xl:items-end">
+          <div className="mt-4 grid gap-4 xl:grid-cols-[1.05fr_0.95fr] xl:items-end">
             <div>
               <div className="prism-kicker">Monitor · Parent View</div>
               <h1 className="prism-title">Прогресс <span className="accent">{dash.student.display_name}</span></h1>
@@ -155,14 +155,14 @@ export default function ParentDashboardPage() {
             </aside>
           </div>
 
-          <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <section className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Metric label="Попыток всего" value={dash.total_attempts} />
             <Metric label="Точность" value={`${Math.round(dash.accuracy * 100)}%`} hot={dash.accuracy >= 0.7} />
             <Metric label="Средний mastery" value={`${Math.round(dash.average_mastery * 100)}%`} />
             <Metric label="К повторению" value={dash.due_for_review_count} hot={dash.due_for_review_count === 0} />
           </section>
 
-          <section className="mt-6 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+          <section className="mt-4 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
             <div className="prism-card pad">
               <div className="prism-kicker">Recommendations</div>
               <div className="mt-4 grid gap-3">
