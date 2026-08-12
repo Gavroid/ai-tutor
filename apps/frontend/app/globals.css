@@ -2382,10 +2382,10 @@ body,
 .admin-console .prism-card {
   border: 1px solid var(--prism-line) !important;
   border-radius: 28px !important;
-  /* Sprint 12: lighter fill so the prism-shell violet gradient bleeds through.
-     The brand glow itself is rendered by prism-frame::after with position:fixed,
-     so the violet stays visible even when the panel grows very tall (audit log). */
-  background: color-mix(in srgb, var(--prism-panel-solid) 28%, transparent) !important;
+  /* Sprint 12: fully transparent so the prism-frame::after glow (position:fixed)
+     shows through every row of the audit log table. The glow is bright enough
+     to be visible without a backing fill. */
+  background: transparent !important;
   box-shadow: 0 22px 70px -52px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.06) !important;
   color: var(--prism-ink) !important;
 }
@@ -2458,9 +2458,10 @@ body,
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(circle at 14% 8%, rgba(255,77,196,.12), transparent 480px),
-    radial-gradient(circle at 90% 4%, rgba(34,231,255,.10), transparent 520px),
-    radial-gradient(circle at 70% 88%, rgba(255,155,66,.08), transparent 580px);
+    radial-gradient(circle at 14% 8%, rgba(255,77,196,.18), transparent 520px),
+    radial-gradient(circle at 90% 4%, rgba(34,231,255,.14), transparent 560px),
+    radial-gradient(circle at 50% 50%, rgba(107,77,255,.10), transparent 620px),
+    radial-gradient(circle at 70% 88%, rgba(255,155,66,.12), transparent 600px);
 }
 .admin-console .prism-layer,
 .teacher-console .prism-layer,
