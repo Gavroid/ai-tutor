@@ -293,8 +293,8 @@ export default function AdminPage() {
         <div className="mt-4 rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</div>
       )}
 
-      <section className="mt-4">
-        {busy && <div className="text-sm text-slate-500">Загрузка…</div>}
+      <section className="admin-content-zone mt-4">
+        {busy && <div className="text-sm text-[color:var(--prism-muted)]">Загрузка…</div>}
 
         {tab === "audit" && !busy && (
           <div className="admin-panel-surface mb-4 grid grid-cols-1 gap-3 p-3 md:grid-cols-5">
