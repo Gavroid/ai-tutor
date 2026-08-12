@@ -2703,3 +2703,45 @@ body,
   color: #ffd28a !important;
   border-color: rgba(255,207,111,.78) !important;
 }
+
+/* Return console pages to the darker original Prism palette. */
+.admin-console.prism-shell,
+.teacher-console.prism-shell,
+.admin-invites-console.prism-shell,
+.teacher-generate-console.prism-shell,
+.teacher-topic-editor.prism-shell,
+.teacher-material-detail.prism-shell {
+  background:
+    radial-gradient(circle at 14% 10%, rgba(255,77,196,.10), transparent 28rem),
+    radial-gradient(circle at 90% 7%, rgba(34,231,255,.10), transparent 30rem),
+    radial-gradient(circle at 72% 92%, rgba(255,155,66,.08), transparent 34rem),
+    linear-gradient(135deg, var(--prism-bg) 0%, var(--prism-bg-soft) 100%) !important;
+}
+.admin-console .prism-frame::after,
+.teacher-console .prism-frame::after,
+.admin-invites-console .prism-frame::after,
+.teacher-generate-console .prism-frame::after,
+.teacher-topic-editor .prism-frame::after,
+.teacher-material-detail .prism-frame::after {
+  background:
+    radial-gradient(circle at 14% 8%, rgba(255,77,196,.10), transparent 500px),
+    radial-gradient(circle at 90% 4%, rgba(34,231,255,.09), transparent 540px),
+    radial-gradient(circle at 50% 50%, rgba(107,77,255,.08), transparent 680px),
+    radial-gradient(circle at 70% 88%, rgba(255,155,66,.06), transparent 560px) !important;
+}
+.admin-console .admin-content-zone,
+.teacher-console section.mt-5 {
+  background:
+    radial-gradient(circle at 14vw 9vh, rgba(255,77,196,.08), transparent 500px),
+    radial-gradient(circle at 88vw 8vh, rgba(34,231,255,.08), transparent 540px),
+    radial-gradient(circle at 50vw 48vh, rgba(107,77,255,.07), transparent 640px),
+    radial-gradient(circle at 70vw 88vh, rgba(255,155,66,.055), transparent 560px),
+    linear-gradient(135deg, rgba(12,16,31,.78), rgba(8,11,22,.82)) !important;
+}
+.admin-console .admin-content-zone > div,
+.admin-console .admin-content-zone > section,
+.admin-console .admin-panel-surface,
+.teacher-console .prism-card {
+  background: rgba(8,11,22,.28) !important;
+}
+
