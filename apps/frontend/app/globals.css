@@ -2290,3 +2290,60 @@ body,
 .prism-shell .rounded-2xl:has(> div.text-\[10px\]:first-child) > div:last-child {
   text-align: center;
 }
+
+/* Admin/Teacher final control normalization: neutral by default, colored on hover. */
+.admin-console .prism-pill,
+.teacher-console .prism-pill {
+  border-radius: 999px;
+}
+.admin-console .prism-pill.active,
+.teacher-console .prism-pill.active {
+  background: rgba(255,255,255,.12) !important;
+  color: var(--prism-ink) !important;
+  border-color: rgba(226,232,255,.28) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+.admin-console .prism-pill.active:hover,
+.teacher-console .prism-pill.active:hover {
+  background: linear-gradient(135deg, var(--prism-accent), var(--prism-accent-2)) !important;
+  color: #fff !important;
+}
+.admin-console .hover-warn:hover,
+.teacher-console .hover-warn:hover {
+  background: linear-gradient(135deg, #d97706, #f59e0b) !important;
+  color: #fff !important;
+}
+.admin-console .hover-danger:hover,
+.teacher-console .hover-danger:hover {
+  background: linear-gradient(135deg, #be123c, #f43f5e) !important;
+  color: #fff !important;
+}
+.admin-console .bg-red-50,
+.admin-console .bg-white,
+.teacher-console .bg-white,
+.admin-console [class*="bg-emerald"],
+.teacher-console [class*="bg-emerald"],
+.admin-console [class*="bg-green"],
+.teacher-console [class*="bg-green"],
+.admin-console [class*="bg-sky-100"],
+.teacher-console [class*="bg-sky-100"] {
+  background: color-mix(in srgb, var(--prism-panel-solid) 78%, #050711 22%) !important;
+  color: var(--prism-ink) !important;
+}
+.admin-console table,
+.admin-console thead,
+.admin-console tbody,
+.admin-console tr,
+.teacher-console table,
+.teacher-console thead,
+.teacher-console tbody,
+.teacher-console tr {
+  background: transparent !important;
+}
+.admin-console .text-red-900,
+.admin-console .text-red-700,
+.admin-console .text-sky-800,
+.teacher-console .text-sky-800 {
+  color: var(--prism-ink) !important;
+}
+

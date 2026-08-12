@@ -171,7 +171,7 @@ export default function AdminPage() {
         {/* Sprint 52: отдельная страница для invites */}
         <a
           href="/admin/invites"
-          className="px-3 py-1.5 text-sm rounded-md bg-sky-100 text-sky-800 hover:bg-sky-200"
+          className="prism-pill"
           data-testid="invites-tab-link"
         >
           Invites
@@ -381,14 +381,7 @@ function Tab({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className={`rounded-lg px-4 py-2 text-sm font-medium ${
-        active
-          ? "bg-sky-600 text-white"
-          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-      }`}
-    >
+    <button onClick={onClick} className={`prism-pill ${active ? "active" : ""}`}>
       {children}
     </button>
   );
@@ -396,7 +389,7 @@ function Tab({
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/50 p-4">
       <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
       <div className="mt-1 text-2xl font-bold">{value}</div>
     </div>
@@ -408,7 +401,7 @@ function ToolsTab() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-6">
         <h3 className="text-lg font-semibold text-slate-900">🔧 Диагностика</h3>
         <p className="mt-1 text-sm text-slate-600">
           Завершает диагностические сессии старше TTL (по умолчанию 24ч).
@@ -428,7 +421,7 @@ function ToolsTab() {
               }
             }}
             disabled={busy}
-            className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+            className="prism-action hover-warn disabled:opacity-50"
           >
             Завершить старые сессии
           </button>
@@ -436,9 +429,9 @@ function ToolsTab() {
       </div>
 
       {/* Sprint 3.6.3: AI Kill Switch — emergency stop AI для user */}
-      <div className="rounded-xl border border-red-200 bg-red-50 p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-red-900">🚨 AI Kill Switch</h3>
-        <p className="mt-1 text-sm text-red-700">
+      <div className="rounded-3xl border border-rose-300/30 bg-[color:var(--prism-panel-solid)]/55 p-6">
+        <h3 className="text-lg font-semibold text-[color:var(--prism-ink)]">🚨 AI Kill Switch</h3>
+        <p className="mt-1 text-sm text-[color:var(--prism-muted)]">
           Экстренно отключает AI для пользователя. Используй если ребёнок попал в AI-loop
           или AI выдаёт нежелательный контент. После отключения AI endpoints возвращают 503.
         </p>
@@ -450,7 +443,7 @@ function ToolsTab() {
               type="number"
               min="1"
               placeholder="user_id (например, 4 для Кирилла)"
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="prism-input text-sm"
               style={{ width: 220 }}
             />
             <button
@@ -473,7 +466,7 @@ function ToolsTab() {
                 }
               }}
               disabled={busy}
-              className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              className="prism-action hover-danger disabled:opacity-50"
             >
               Kill AI
             </button>
@@ -490,7 +483,7 @@ function ToolsTab() {
                 }
               }}
               disabled={busy}
-              className="rounded-md bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+              className="prism-action disabled:opacity-50"
             >
               Показать список
             </button>
