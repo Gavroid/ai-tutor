@@ -2672,3 +2672,34 @@ body,
   }
 }
 
+
+/* Unified admin/teacher hover color: one cyan-violet treatment for every button. */
+.admin-console .console-pill:hover,
+.teacher-console .console-pill:hover,
+.admin-console .console-pill:focus-visible,
+.teacher-console .console-pill:focus-visible,
+.admin-console .console-pill-active:hover,
+.teacher-console .console-pill-active:hover,
+.admin-console .console-pill-active:focus-visible,
+.teacher-console .console-pill-active:focus-visible,
+.admin-console .prism-action:hover,
+.teacher-console .prism-action:hover,
+.admin-console .prism-action:focus-visible,
+.teacher-console .prism-action:focus-visible,
+.admin-console .hover-warn:hover,
+.teacher-console .hover-warn:hover,
+.admin-console .hover-danger:hover,
+.teacher-console .hover-danger:hover {
+  background: linear-gradient(135deg, var(--prism-accent), var(--prism-accent-2) 58%, var(--prism-pink)) !important;
+  background-color: transparent !important;
+  border-color: rgba(75,131,255,.72) !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 1px rgba(75,131,255,.32), 0 0 42px rgba(75,131,255,.24), 0 18px 64px -40px rgba(139,92,255,.70), inset 0 1px 0 rgba(255,255,255,.14) !important;
+}
+.admin-console .console-pill-active,
+.teacher-console .console-pill-active {
+  background: rgba(255,255,255,.10) !important;
+  background-image: none !important;
+  color: #ffd28a !important;
+  border-color: rgba(255,207,111,.78) !important;
+}
