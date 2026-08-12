@@ -2174,3 +2174,96 @@ body,
   align-self: start;
 }
 
+/* Final correction: neutral idle controls + dense parent dashboard layout. */
+.teacher-console .bg-emerald-100,
+.teacher-console .bg-emerald-50,
+.admin-console .bg-emerald-100,
+.admin-console .bg-emerald-50,
+.teacher-console .bg-amber-100,
+.teacher-console .bg-amber-50,
+.admin-console .bg-amber-100,
+.admin-console .bg-amber-50,
+.teacher-console .bg-rose-100,
+.teacher-console .bg-rose-50,
+.admin-console .bg-rose-100,
+.admin-console .bg-rose-50,
+.prism-shell .bg-emerald-100,
+.prism-shell .bg-emerald-50,
+.prism-shell .bg-amber-100,
+.prism-shell .bg-amber-50,
+.prism-shell .bg-rose-100,
+.prism-shell .bg-rose-50 {
+  background: rgba(255,255,255,.10) !important;
+  color: var(--prism-ink) !important;
+  border-color: rgba(226,232,255,.18) !important;
+}
+.teacher-console .text-emerald-800,
+.teacher-console .text-emerald-700,
+.admin-console .text-emerald-800,
+.admin-console .text-emerald-700,
+.prism-shell .text-emerald-800,
+.prism-shell .text-emerald-700 { color: #8ff7c2 !important; }
+.teacher-console .text-amber-800,
+.teacher-console .text-amber-700,
+.admin-console .text-amber-800,
+.admin-console .text-amber-700,
+.prism-shell .text-amber-800,
+.prism-shell .text-amber-700 { color: #ffd28a !important; }
+.teacher-console .text-rose-800,
+.teacher-console .text-rose-700,
+.admin-console .text-rose-800,
+.admin-console .text-rose-700,
+.prism-shell .text-rose-800,
+.prism-shell .text-rose-700 { color: #ffb4c4 !important; }
+
+.teacher-console button[class*="bg-emerald"],
+.teacher-console button[class*="bg-amber"],
+.teacher-console button[class*="bg-rose"],
+.teacher-console a[class*="bg-emerald"],
+.teacher-console a[class*="bg-amber"],
+.teacher-console a[class*="bg-rose"],
+.admin-console button[class*="bg-emerald"],
+.admin-console button[class*="bg-amber"],
+.admin-console button[class*="bg-rose"] {
+  background: rgba(255,255,255,.10) !important;
+  color: var(--prism-ink) !important;
+  border: 1px solid rgba(226,232,255,.18) !important;
+  box-shadow: 0 0 0 1px rgba(75,131,255,.10), inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+.teacher-console button[class*="bg-emerald"]:hover,
+.teacher-console a[class*="bg-emerald"]:hover,
+.admin-console button[class*="bg-emerald"]:hover {
+  background: linear-gradient(135deg, #16a34a, #22c55e) !important;
+  color: #fff !important;
+}
+.teacher-console button[class*="bg-amber"]:hover,
+.teacher-console a[class*="bg-amber"]:hover,
+.admin-console button[class*="bg-amber"]:hover {
+  background: linear-gradient(135deg, #d97706, #f59e0b) !important;
+  color: #fff !important;
+}
+.teacher-console button[class*="bg-rose"]:hover,
+.teacher-console a[class*="bg-rose"]:hover,
+.admin-console button[class*="bg-rose"]:hover {
+  background: linear-gradient(135deg, #be123c, #f43f5e) !important;
+  color: #fff !important;
+}
+
+.parent-dashboard-grid {
+  display: grid;
+  align-items: start;
+  gap: 16px;
+  grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr);
+}
+.parent-dashboard-stack {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+.parent-mastery-card {
+  align-self: start;
+}
+@media (max-width: 1279px) {
+  .parent-dashboard-grid { grid-template-columns: 1fr; }
+}
+
