@@ -2412,3 +2412,61 @@ body,
   color: #07111b !important;
 }
 
+
+/* Stable console frame background: tab switches must not shift perceived panel color/gradient. */
+.admin-console .prism-frame,
+.teacher-console .prism-frame,
+.admin-invites-console .prism-frame,
+.teacher-generate-console .prism-frame,
+.teacher-topic-editor .prism-frame,
+.teacher-material-detail .prism-frame,
+.parent-dashboard-console .prism-frame,
+.parents-console .prism-frame {
+  background:
+    linear-gradient(135deg, rgba(16,20,38,.965), rgba(11,15,30,.965)) !important;
+  isolation: isolate;
+}
+.admin-console .prism-frame::before,
+.teacher-console .prism-frame::before,
+.admin-invites-console .prism-frame::before,
+.teacher-generate-console .prism-frame::before,
+.teacher-topic-editor .prism-frame::before,
+.teacher-material-detail .prism-frame::before,
+.parent-dashboard-console .prism-frame::before,
+.parents-console .prism-frame::before {
+  background-image:
+    linear-gradient(to right, rgba(244,247,255,.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(244,247,255,.04) 1px, transparent 1px) !important;
+  background-size: 78px 78px !important;
+  mask-image: none !important;
+  opacity: .34 !important;
+}
+.admin-console .prism-frame::after,
+.teacher-console .prism-frame::after,
+.admin-invites-console .prism-frame::after,
+.teacher-generate-console .prism-frame::after,
+.teacher-topic-editor .prism-frame::after,
+.teacher-material-detail .prism-frame::after,
+.parent-dashboard-console .prism-frame::after,
+.parents-console .prism-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 14% 8%, rgba(255,77,196,.075), transparent 420px),
+    radial-gradient(circle at 92% 4%, rgba(34,231,255,.075), transparent 460px),
+    radial-gradient(circle at 70% 98%, rgba(255,155,66,.055), transparent 520px);
+}
+.admin-console .prism-layer,
+.teacher-console .prism-layer,
+.admin-invites-console .prism-layer,
+.teacher-generate-console .prism-layer,
+.teacher-topic-editor .prism-layer,
+.teacher-material-detail .prism-layer,
+.parent-dashboard-console .prism-layer,
+.parents-console .prism-layer {
+  position: relative;
+  z-index: 1;
+}
