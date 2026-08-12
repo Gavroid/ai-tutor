@@ -1,6 +1,6 @@
 # MVP Manual Testing Handoff — Stages 4–7
 
-Date: 2026-07-31
+Date: 2026-08-12
 Branch: `mvp-rescue`
 
 ## Scope Ready For Manual Testing
@@ -34,7 +34,7 @@ Expected ops/status checks:
 - `checks.backup.script_exists = true`;
 - `checks.commit_marker.ok = true`.
 
-Current production marker at handoff time: `d764115`.
+Current production marker at handoff time: `8f39609`; backend runtime includes parent-link fix from `68aeef2`, with final invite-flow patch pending deploy in the current closeout commit.
 
 ### 2. Student MVP flow
 
@@ -83,6 +83,15 @@ Check:
 - weak topic recommendation links to topic if present;
 - privacy note remains visible;
 - no AI chat content is exposed to parent.
+
+
+
+Current parent test account for manual QA:
+
+- `parent-e2e@example.com` has linked child `Student E2E`;
+- `/parent/dashboard/20` is expected to load;
+- parent dashboard API returned HTTP 200 and included `privacy_note`;
+- pre-mutation DB backup: `/opt/ai-tutor/deploy/backup/_manual/qa-parent-link-pre-20260811.sql`.
 
 ### 5. Multi-subject scope
 

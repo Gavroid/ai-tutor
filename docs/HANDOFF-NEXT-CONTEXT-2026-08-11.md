@@ -1,13 +1,13 @@
 # AI-Tutor Current Handoff — MVP pilot manual QA ready
 
-Date: 2026-08-11 18:39 MSK
+Date: 2026-08-12 09:39 MSK
 Workspace: `/root/workspace/ai-tutor`
 Branch: `mvp-rescue`
 Remote: `git@github.com:Gavroid/ai-tutor.git`
 Production: `https://school.431a.ru` / LAN `https://192.168.1.86`
 Prod SSH: `root@192.168.1.86` with key `/root/.ssh/id_ed25519_kirill_ai`
-Current deployed app commit: `d764115`
-Current prod marker: `d764115`
+Current deployed app commit: `8f39609`
+Current prod marker: `8f39609`
 Note: this handoff may be followed by a docs-only commit that does not change production runtime.
 
 > Prompt for the next agent/window: **Continue from this handoff. Do not ask Igor for context unless a command is blocked. Do not expose secrets. Verify every claim with commands. The remaining work is manual QA follow-up and bug fixing, not broad redesign.**
@@ -46,7 +46,7 @@ git log --oneline -12
 Expected at handoff time:
 
 ```text
-HEAD d764115
+HEAD 8f39609
 tracked working tree clean
 only this handoff file may be untracked/changed until committed
 ```
@@ -60,7 +60,7 @@ ssh -i /root/.ssh/id_ed25519_kirill_ai -o BatchMode=yes root@192.168.1.86 'hostn
 Expected marker:
 
 ```text
-d764115
+8f39609
 ```
 
 ### Production Health
@@ -178,9 +178,10 @@ Verified earlier:
 
 Known limitation:
 
-- `parent-e2e@example.com` has no linked children in production;
-- linked Stage 5 pair exists in DB from prior audit;
-- service-level read-only audit confirmed dashboard data exists and is actionable.
+- `parent-e2e@example.com` is linked to `student-e2e@example.com` for manual QA;
+- `/parent/dashboard/20` is expected to load for that account;
+- pre-mutation backup exists at `/opt/ai-tutor/deploy/backup/_manual/qa-parent-link-pre-20260811.sql`;
+- historical `parent-e2e -> parent-e2e` rows remain pending and are ignored by service logic.
 
 ### Stage 6 Reliability / Ops
 
@@ -205,7 +206,7 @@ Verified current production facts:
 - `/health` HTTP 200;
 - `/api/v1/admin/ops/status` returns `ok=true`;
 - ops endpoint sees DB, Redis, backup paths, and commit marker;
-- current marker: `d764115`;
+- current marker: `8f39609`;
 - disk after cleanup: about `49G 29G 18G 62% /`;
 - restore drill passed on `2026-08-11T15:12:01+00:00`:
   - backup `db-20260811T030001Z.sql.gz`;
@@ -278,7 +279,7 @@ Latest production smoke after deploy:
 prod marker: d764115
 /ready HTTP=200
 /health HTTP=200
-ops status ok=true, database_ok=true, redis_ok=true, commit_marker.ok=true, commit=d764115
+ops status ok=true, database_ok=true, redis_ok=true, commit_marker.ok=true, commit=8f39609
 ```
 
 ## 5. Remaining Work

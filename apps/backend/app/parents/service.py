@@ -28,19 +28,15 @@ def create_invite_for_parent(db: Session, parent: user_models.User) -> str:
     """
     link = db.scalar(
         select(user_models.ParentStudentLink)
-        .join(
-            user_models.User,
-            user_models.ParentStudentLink.student_id == user_models.User.id,
-        )
         .where(
             user_models.ParentStudentLink.parent_id == parent.id,
-            user_models.ParentStudentLink.status == "active",
-            user_models.ParentStudentLink.student_id != parent.id,
-            user_models.User.role == user_models.Role.STUDENT,
+            user_models.ParentStudentLink.status == "pending",
+            user_models.ParentStudentLink.student_id == parent.id,
         )
+        .order_by(user_models.ParentStudentLink.id.desc())
     )
     if link is not None:
-        # Возвращаем существующий код (стабильный для одного родителя)
+        # Возвращаем существующий pending-код, пока ребёнок его не принял.
         return _invite_code(link.id)
 
     # Создаём новую link (без student_id) — заполнится когда ребёнок примет

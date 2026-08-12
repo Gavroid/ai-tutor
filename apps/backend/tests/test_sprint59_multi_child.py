@@ -404,6 +404,64 @@ def test_parent_invite_does_not_reuse_corrupted_active_self_link(client):
     assert invite.json()["code"].split("-")[1] != f"{stale_id:06d}"
 
 
+def test_parent_with_existing_child_gets_pending_invite_for_another_child(client):
+    """Creating an invite for a parent with children must return a pending link code."""
+    from sqlalchemy.orm import Session
+    from app.db.session import engine
+    from app.users.models import User, Role, ParentStudentLink
+    from app.auth.security import hash_password
+
+    with Session(engine) as db:
+        parent = User(
+            email="multi-invite-parent@example.com",
+            password_hash=hash_password("Kirill2026!"),
+            display_name="Multi Invite Parent",
+            role=Role.PARENT,
+            is_active=True,
+        )
+        child = User(
+            email="multi-invite-child@example.com",
+            password_hash=hash_password("Kirill2026!"),
+            display_name="Existing Child",
+            role=Role.STUDENT,
+            is_active=True,
+        )
+        db.add_all([parent, child])
+        db.commit()
+        db.refresh(parent)
+        db.refresh(child)
+        active_link = ParentStudentLink(
+            parent_id=parent.id,
+            student_id=child.id,
+            status="active",
+        )
+        db.add(active_link)
+        db.commit()
+        active_id = active_link.id
+        parent_id = parent.id
+
+    r = client.post(
+        "/api/v1/auth/login",
+        json={"email": "multi-invite-parent@example.com", "password": "Kirill2026!"},
+    )
+    token = r.json()["access_token"]
+
+    invite = client.post(
+        "/api/v1/parents/invite",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert invite.status_code == 200
+    invite_id = int(invite.json()["code"].split("-")[1])
+    assert invite_id != active_id
+
+    with Session(engine) as db:
+        invite_link = db.get(ParentStudentLink, invite_id)
+        assert invite_link is not None
+        assert invite_link.parent_id == parent_id
+        assert invite_link.student_id == parent_id
+        assert invite_link.status == "pending"
+
+
 def test_me_children_unauthorized(client):
     """Sprint 59: /me/children без auth → 401."""
     r = client.get("/api/v1/parents/me/children")

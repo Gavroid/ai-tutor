@@ -58,3 +58,37 @@ Scope: continued `docs/HANDOFF-QA-BUGFIX-NEXT-CONTEXT-2026-08-11.md` from top to
 
 - Local backend/frontend fixes are verified but still need commit/deploy verification in this session.
 - Production DB still contains historical corrupted `parent-e2e` self-link rows. The code fix prevents reuse/exposure, but cleaning those rows would be a production data mutation and was not performed during this QA pass.
+
+## 2026-08-12 09:39 MSK — Final pilot-test readiness closeout
+
+Scope: prepared the pilot environment for Igor's manual testing after the QA bugfix pass.
+
+### Parent test account readiness
+
+- Verified `parent-e2e@example.com` has a known test password slot and role `parent` without printing the password.
+- Verified `stage5-parent-1785514575@example.com` remains a valid linked data pair but has no known UI-login password slot.
+- Created a narrow production DB backup before parent-link mutation: `/opt/ai-tutor/deploy/backup/_manual/qa-parent-link-pre-20260811.sql` (`4.1K`).
+- Used the app's parent invite service flow to link `parent-e2e@example.com` to `student-e2e@example.com`.
+- Post-link DB check shows `parent-e2e@example.com -> student-e2e@example.com` as `active`; older `parent-e2e -> parent-e2e` rows remain `pending` and are ignored by the fixed code.
+- Parent API verification for `parent-e2e@example.com`:
+  - `/api/v1/parents/children` -> HTTP 200 with `Student E2E`;
+  - `/api/v1/parents/children/20` -> HTTP 200;
+  - `/api/v1/parents/students/20/dashboard` -> HTTP 200;
+  - dashboard response includes `privacy_note`;
+  - dashboard recommendations count: `1`.
+
+### Additional invite-flow bugfix
+
+- Found another concrete edge-case before manual testing: when a parent already had an active child, `/api/v1/parents/invite` could return a code for the active child link, which cannot be accepted by another child because `accept_invite()` only accepts `pending` links.
+- Added regression test: `test_parent_with_existing_child_gets_pending_invite_for_another_child`.
+- Fixed `create_invite_for_parent()` to reuse only existing pending placeholder links, otherwise create a fresh pending placeholder.
+
+### Verification
+
+- Backend parent/health slice: `.venv/bin/pytest tests/test_sprint59_multi_child.py tests/test_parents_materials.py tests/test_parent_dashboard.py tests/test_health.py -q` -> `43 passed, 56 warnings`.
+
+### Manual test notes for Igor
+
+- Parent UI can now be tested with `parent-e2e@example.com`; it should show linked child `Student E2E` and open `/parent/dashboard/20`.
+- Historical pending self-link rows are intentionally not deleted; they are harmless after the service fix and retained for auditability unless a separate cleanup is requested.
+

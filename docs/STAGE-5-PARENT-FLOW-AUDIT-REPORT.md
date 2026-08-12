@@ -2,7 +2,7 @@
 
 Date: 2026-08-11
 Branch: `mvp-rescue`
-Prod marker during audit: `0371bbf`
+Prod marker during audit: `8f39609`
 
 ## Scope
 
@@ -107,9 +107,10 @@ Added `apps/frontend/e2e/parent-console.spec.ts`:
 
 ## Known limitations
 
-- `parent-e2e@example.com` currently has no linked children in production, so UI-level overview/dashboard data is not visible for that account.
-- Linked Stage 5 parent/student pair exists in production DB, but the password for that parent account was not verified via UI login during this audit.
-- Service-level dashboard data is valid and actionable, but a full browser walk of `/parent/dashboard/[studentId]` with a linked parent account still needs either a known linked parent login or a seeded linked parent test account.
+- `parent-e2e@example.com` is now linked to `student-e2e@example.com` for manual QA.
+- `/api/v1/parents/children` returns `Student E2E` for `parent-e2e@example.com`.
+- `/api/v1/parents/students/20/dashboard` returns HTTP 200 with `privacy_note` and recommendations.
+- Historical `parent-e2e -> parent-e2e` rows remain pending for auditability and are ignored by the fixed parent service logic.
 
 ## Status
 
@@ -117,6 +118,6 @@ Stage 5 parent console UI is complete for MVP purposes.
 
 Remaining follow-up:
 
-1. Seed or document a stable linked parent E2E account.
-2. Add full browser E2E for `/parent/dashboard/[studentId]` using that account.
+1. Use `parent-e2e@example.com` for manual `/parents` and `/parent/dashboard/20` smoke.
+2. Add/extend full browser E2E for `/parent/dashboard/[studentId]` using that account if desired.
 3. Keep privacy boundary test: parent dashboard must not expose child AI chat messages.
