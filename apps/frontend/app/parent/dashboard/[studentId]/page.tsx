@@ -174,14 +174,18 @@ export default function ParentDashboardPage() {
             </div>
           </section>
 
-          <section className="mt-6 grid gap-4 xl:grid-cols-2">
-            <div className="prism-card pad">
+          <section className="mt-6 grid items-start gap-4 xl:grid-cols-2">
+            <div className="prism-card pad parent-streak-card">
               <div className="prism-kicker">Streak</div>
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <Metric label="Сегодняшняя серия" value={`${dash.streak.current_streak_days}д`} />
                 <Metric label="Лучшая серия" value={`${dash.streak.longest_streak_days}д`} />
                 <Metric label="Активных дней" value={dash.streak.total_active_days} />
                 <Metric label="7 дней" value={`${dash.time_stats.last_7_days} попыток`} />
+              </div>
+              <div className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-4 text-sm text-[color:var(--prism-muted)]">
+                <div className="font-black text-[color:var(--prism-ink)]">Последний активный день: {dash.streak.last_active_date ?? "пока нет"}</div>
+                <div className="mt-1">Средний темп: {dash.time_stats.avg_per_active_day} попыток за активный день · 30 дней: {dash.time_stats.last_30_days} попыток.</div>
               </div>
             </div>
 

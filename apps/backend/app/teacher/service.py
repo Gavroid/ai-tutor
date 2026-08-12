@@ -460,11 +460,23 @@ def material_to_draft_out(
         content_data = json.loads(material.content)
         content = teacher_schemas.MaterialContent(**content_data)
     except Exception:
-        # Если контент не парсится — отдаём минимальную структуру
+        # Legacy imported/published rows may contain an empty JSON shell (e.g. {}).
+        # Show a product-friendly library placeholder instead of exposing DB internals.
         content = teacher_schemas.MaterialContent(
             title=material.title,
-            purpose="Не удалось разобрать сохранённый контент.",
-            ai_uncertainty_notes=["Битый JSON в БД"],
+            purpose=(
+                "Материал импортирован из библиотеки и опубликован для использования в уроках. "
+                "Структурированный конспект пока не заполнен."
+            ),
+            key_ideas=[
+                teacher_schemas.KeyIdea(
+                    idea="Проверьте тему в учебной библиотеке и используйте её как опубликованный источник.",
+                    terms=[],
+                )
+            ],
+            ai_uncertainty_notes=[
+                "Для этого legacy-материала нет структурированного JSON-конспекта; это не ошибка ученика."
+            ],
         )
     return teacher_schemas.MaterialDraftOut(
         id=material.id,

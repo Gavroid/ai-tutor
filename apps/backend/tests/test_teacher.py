@@ -664,6 +664,36 @@ def test_get_material_blocks_other_teacher(client):
     assert r.status_code == 403
 
 
+def test_material_detail_legacy_empty_json_is_product_friendly(client):
+    """Legacy empty JSON materials should not expose DB-internal broken JSON wording."""
+    from app.db.session import SessionLocal
+    from app.subjects.models import LearningMaterial
+
+    with SessionLocal() as db:
+        material = LearningMaterial(
+            topic_id=client.topic_id,
+            title="Legacy empty JSON",
+            content="{}",
+            status="published",
+            generated_by=None,
+            source_type="pdf",
+        )
+        db.add(material)
+        db.commit()
+        db.refresh(material)
+        material_id = material.id
+
+    teacher = _token(client, "teacher@example.com")
+    r = client.get(f"/api/v1/teacher/materials/{material_id}", headers=_h(teacher))
+
+    assert r.status_code == 200
+    body = r.json()
+    rendered = str(body["content"])
+    assert "Битый JSON" not in rendered
+    assert "Не удалось разобрать" not in rendered
+    assert "Материал импортирован" in body["content"]["purpose"]
+
+
 def test_get_material_teacher_can_view_published_library_item(client):
     """Teacher can open shared published library items even if generated_by is empty."""
     from app.db.session import SessionLocal

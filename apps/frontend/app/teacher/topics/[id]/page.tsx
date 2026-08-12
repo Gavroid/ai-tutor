@@ -134,8 +134,10 @@ export default function TeacherTopicDetailPage() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl p-6">
-      <header className="border-b border-slate-200 pb-3">
+    <main className="prism-shell teacher-console teacher-topic-editor min-h-dvh py-4 sm:py-7">
+      <section className="prism-frame">
+        <div className="prism-layer p-5 lg:p-10">
+      <header className="border-b border-[color:var(--prism-line)] pb-5">
         <Link href="/teacher/topics" className="text-sm text-sky-600 hover:underline">← Готовность тем</Link>
         <h1 className="mt-1 text-2xl font-bold">Тема #{topicId}{topic ? ` · ${topic.name}` : ""}</h1>
         <p className="mt-1 text-sm text-slate-600">Stage 4 MVP: followups, fallback-задания, status и safe RAG job.</p>
@@ -175,6 +177,8 @@ export default function TeacherTopicDetailPage() {
         <p className="mt-1 text-sm text-slate-600">MVP safe mode: dry-run verification, без удаления chunks.</p>
         <button onClick={rebuildRag} disabled={busy} className="mt-3 rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Запустить safe rebuild</button>
         {job && <pre className="mt-3 overflow-auto rounded-md bg-slate-100 p-3 text-xs">{JSON.stringify(job, null, 2)}</pre>}
+      </section>
+        </div>
       </section>
     </main>
   );

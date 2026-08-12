@@ -22,8 +22,8 @@ export default function Header({ user, backHref, title, backLabel = "Назад"
 
   return (
     <header className="sticky top-0 z-40 border-b border-[color:var(--prism-line)] bg-[color-mix(in_srgb,var(--prism-panel-solid)_76%,transparent)] backdrop-blur-2xl">
-      <div className="mx-auto flex min-h-[68px] w-[min(1840px,calc(100vw-20px))] items-center justify-between gap-3 px-2 py-3 sm:px-4">
-        <div className="flex min-w-0 items-center gap-3">
+      <div className="mx-auto flex min-h-[68px] w-full max-w-[1840px] items-center justify-between gap-3 px-3 py-3 sm:px-4">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <Link href="/subjects" className="prism-brand shrink-0">
             <span className="prism-mark" />
             <span className="hidden sm:inline">Prism Tutor</span>
@@ -34,7 +34,7 @@ export default function Header({ user, backHref, title, backLabel = "Назад"
           {title && <h1 className="truncate text-sm font-black tracking-[-0.02em] text-[color:var(--prism-ink)] sm:text-base">{title}</h1>}
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center justify-end gap-2">
           {user && <span className="prism-pill hidden md:inline-flex">{user.role} · {user.display_name || user.email}</span>}
           {user && <button onClick={logout} className="prism-action">Выйти</button>}
         </div>
