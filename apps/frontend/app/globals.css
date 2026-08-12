@@ -2423,8 +2423,8 @@ body,
 .teacher-material-detail .prism-frame,
 .parent-dashboard-console .prism-frame,
 .parents-console .prism-frame {
-  background:
-    linear-gradient(135deg, rgba(16,20,38,.965), rgba(11,15,30,.965)) !important;
+  /* Sprint 12: transparent so the prism-shell violet gradient bleeds through. */
+  background: transparent !important;
   isolation: isolate;
 }
 .admin-console .prism-frame::before,
