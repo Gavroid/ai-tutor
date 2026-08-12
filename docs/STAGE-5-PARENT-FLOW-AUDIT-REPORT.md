@@ -2,7 +2,7 @@
 
 Date: 2026-08-11
 Branch: `mvp-rescue`
-Prod marker during audit: `8f39609`
+Prod marker during audit: `8674981`
 
 ## Scope
 

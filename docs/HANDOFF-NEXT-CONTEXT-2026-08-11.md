@@ -6,8 +6,8 @@ Branch: `mvp-rescue`
 Remote: `git@github.com:Gavroid/ai-tutor.git`
 Production: `https://school.431a.ru` / LAN `https://192.168.1.86`
 Prod SSH: `root@192.168.1.86` with key `/root/.ssh/id_ed25519_kirill_ai`
-Current deployed app commit: `8f39609`
-Current prod marker: `8f39609`
+Current deployed app commit: `8674981`
+Current prod marker: `8674981`
 Note: this handoff may be followed by a docs-only commit that does not change production runtime.
 
 > Prompt for the next agent/window: **Continue from this handoff. Do not ask Igor for context unless a command is blocked. Do not expose secrets. Verify every claim with commands. The remaining work is manual QA follow-up and bug fixing, not broad redesign.**
@@ -46,7 +46,7 @@ git log --oneline -12
 Expected at handoff time:
 
 ```text
-HEAD 8f39609
+HEAD 8674981
 tracked working tree clean
 only this handoff file may be untracked/changed until committed
 ```
@@ -60,7 +60,7 @@ ssh -i /root/.ssh/id_ed25519_kirill_ai -o BatchMode=yes root@192.168.1.86 'hostn
 Expected marker:
 
 ```text
-8f39609
+8674981
 ```
 
 ### Production Health
@@ -206,7 +206,7 @@ Verified current production facts:
 - `/health` HTTP 200;
 - `/api/v1/admin/ops/status` returns `ok=true`;
 - ops endpoint sees DB, Redis, backup paths, and commit marker;
-- current marker: `8f39609`;
+- current marker: `8674981`;
 - disk after cleanup: about `49G 29G 18G 62% /`;
 - restore drill passed on `2026-08-11T15:12:01+00:00`:
   - backup `db-20260811T030001Z.sql.gz`;
@@ -279,7 +279,7 @@ Latest production smoke after deploy:
 prod marker: d764115
 /ready HTTP=200
 /health HTTP=200
-ops status ok=true, database_ok=true, redis_ok=true, commit_marker.ok=true, commit=8f39609
+ops status ok=true, database_ok=true, redis_ok=true, commit_marker.ok=true, commit=8674981
 ```
 
 ## 5. Remaining Work

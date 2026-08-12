@@ -34,7 +34,7 @@ Expected ops/status checks:
 - `checks.backup.script_exists = true`;
 - `checks.commit_marker.ok = true`.
 
-Current production marker at handoff time: `8f39609`; backend runtime includes parent-link fix from `68aeef2`, with final invite-flow patch pending deploy in the current closeout commit.
+Current production marker at handoff time: `8674981`; backend runtime includes parent-link and pending-invite fixes through `8674981`.
 
 ### 2. Student MVP flow
 
