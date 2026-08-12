@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import type { Subject } from "@/types";
+import Header from "@/components/Header";
+import type { Subject, User } from "@/types";
 
 type Q = {
   session_id: number;
@@ -27,6 +28,7 @@ type Result = {
 
 export default function DiagnosticPage() {
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [question, setQuestion] = useState<Q | null>(null);
@@ -37,7 +39,10 @@ export default function DiagnosticPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { api.subjects().then(setSubjects).catch(() => {}); }, []);
+  useEffect(() => {
+    api.me().then(setUser).catch(() => router.push("/login"));
+    api.subjects().then(setSubjects).catch(() => {});
+  }, [router]);
 
   async function start(subjectId: number) {
     setBusy(true); setError(null); setResult(null); setLastResult(null);
@@ -76,10 +81,12 @@ export default function DiagnosticPage() {
   function reset() { setSessionId(null); setQuestion(null); setResult(null); setLastResult(null); setAnswer(""); setCorrectAnswer(""); }
 
   return (
-    <main className="prism-shell min-h-dvh">
-      <section className="mx-auto w-[min(1320px,calc(100vw-24px))] py-5 sm:py-8">
-        <Link href="/subjects" className="prism-pill">← На главную</Link>
-        <div className="mt-4 grid gap-5 lg:grid-cols-[0.9fr_1.25fr]">
+    <main className="prism-shell diagnostic-console min-h-dvh">
+      <Header user={user} backHref="/subjects" title="Диагностика" />
+      <section className="py-3 sm:py-5">
+        <div className="prism-frame">
+          <div className="prism-layer p-5 lg:p-10">
+        <div className="grid gap-5 lg:grid-cols-[0.9fr_1.25fr]">
           <aside className="prism-card pad glow">
             <div className="prism-kicker">Диагностика</div>
             <h1 className="mt-4 text-4xl font-black tracking-[-0.06em] text-[color:var(--prism-ink)] sm:text-6xl">Короткий тест перед маршрутом</h1>
@@ -124,6 +131,8 @@ export default function DiagnosticPage() {
               </section>
             )}
           </section>
+        </div>
+          </div>
         </div>
       </section>
     </main>

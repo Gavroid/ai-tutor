@@ -1,21 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, getToken } from "@/lib/api";
+import { api } from "@/lib/api";
+import Header from "@/components/Header";
+import type { User } from "@/types";
 
 export default function LinkParentPage() {
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
-  if (!getToken()) {
-    if (typeof window !== "undefined") router.push("/login");
-    return null;
-  }
+  useEffect(() => {
+    api.me().then(setUser).catch(() => router.push("/login"));
+  }, [router]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,12 +34,13 @@ export default function LinkParentPage() {
   }
 
   return (
-    <main className="prism-shell min-h-dvh">
-      <section className="mx-auto grid min-h-dvh w-[min(1180px,calc(100vw-24px))] place-items-center py-6">
-        <div className="grid w-full overflow-hidden rounded-[34px] border border-[color:var(--prism-line)] bg-[color:var(--prism-elevated)] shadow-glow lg:grid-cols-[0.9fr_1.1fr]">
+    <main className="prism-shell link-parent-console min-h-dvh">
+      <Header user={user} backHref="/subjects" title="Привязать родителя" />
+      <section className="py-3 sm:py-5">
+        <div className="prism-frame">
+          <div className="prism-layer grid overflow-hidden lg:grid-cols-[0.9fr_1.1fr]">
           <aside className="relative min-h-[260px] overflow-hidden border-b border-[color:var(--prism-line)] p-6 lg:border-b-0 lg:border-r lg:p-9">
-            <Link href="/subjects" className="prism-pill">← На главную</Link>
-            <div className="prism-kicker mt-9">Parent Link</div>
+            <div className="prism-kicker">Parent Link</div>
             <h1 className="mt-4 text-4xl font-black tracking-[-0.06em] text-[color:var(--prism-ink)] sm:text-6xl">Привязать родителя</h1>
             <p className="mt-4 max-w-md text-sm leading-6 text-[color:var(--prism-muted)]">Родитель создаёт код в своём кабинете. Ты вводишь его здесь — после этого он увидит прогресс и рекомендации без доступа к личному чату.</p>
             <div className="prism-orb pointer-events-none absolute -bottom-24 right-4 h-56 w-56 min-h-0 opacity-60" aria-hidden="true" />
@@ -71,6 +74,7 @@ export default function LinkParentPage() {
               </form>
             )}
           </section>
+          </div>
         </div>
       </section>
     </main>
