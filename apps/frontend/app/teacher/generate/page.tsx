@@ -198,15 +198,23 @@ export default function TeacherGeneratePage() {
               <label className="block text-sm font-medium text-[color:var(--prism-muted)]">
                 Файл
               </label>
-              <input
-                type="file"
-                accept=".pdf,.docx,.txt,.md"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                className="mt-1 block w-full text-sm text-[color:var(--prism-muted)]"
-              />
-              <p className="mt-1 text-xs text-[color:var(--prism-muted)]">
-                PDF / DOCX / TXT. До 20 МБ.
-              </p>
+              <label className="mt-2 flex cursor-pointer flex-col gap-3 rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-4 transition hover:border-[color:var(--prism-accent)] sm:flex-row sm:items-center sm:justify-between">
+                <span className="min-w-0">
+                  <span className="block text-sm font-black text-[color:var(--prism-ink)]">
+                    {file ? file.name : "Файл не выбран"}
+                  </span>
+                  <span className="mt-1 block text-xs text-[color:var(--prism-muted)]">
+                    PDF / DOCX / TXT · до 20 МБ
+                  </span>
+                </span>
+                <span className="prism-action min-h-0 shrink-0 px-4 py-2 text-sm">Выбрать файл</span>
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.txt,.md"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  className="sr-only"
+                />
+              </label>
             </div>
           )}
 

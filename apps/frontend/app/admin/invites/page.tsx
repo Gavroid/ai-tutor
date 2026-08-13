@@ -263,7 +263,7 @@ export default function InvitesAdminPage() {
             <button
               type="submit"
               disabled={creating}
-              className="prism-action primary w-full disabled:opacity-50"
+              className="prism-action primary w-fit px-6 disabled:opacity-50"
               data-testid="invite-submit-button"
             >
               {creating ? "Создание..." : "Создать invite"}

@@ -68,7 +68,7 @@ export default function LinkParentPage() {
                   <span className="text-xs text-[color:var(--prism-muted)]">Формат обычно похож на P-000123-ABC.</span>
                 </label>
                 {error && <div className="rounded-2xl border border-rose-300/30 bg-rose-400/10 px-4 py-3 text-sm font-bold text-rose-200">{error}</div>}
-                <button type="submit" disabled={busy || !code.trim()} className="prism-action primary w-full">
+                <button type="submit" disabled={busy || !code.trim()} className="prism-action primary w-fit px-6">
                   {busy ? "Привязываю…" : "Привязать"}
                 </button>
               </form>

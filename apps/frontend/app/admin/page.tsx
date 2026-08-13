@@ -607,7 +607,7 @@ function InvitesTab({
           <label className="grid gap-1 text-sm font-medium text-[color:var(--prism-muted)]">Истекает через (дней, опционально)
             <input type="number" min="1" max="365" value={expiresInDays} onChange={(e) => onExpiresChange(e.target.value)} placeholder="30" className="prism-input text-sm" />
           </label>
-          <button type="submit" disabled={creating} className="prism-action primary w-full disabled:opacity-50">{creating ? "Создание..." : "Создать invite"}</button>
+          <button type="submit" disabled={creating} className="prism-action primary w-fit px-6 disabled:opacity-50">{creating ? "Создание..." : "Создать invite"}</button>
         </form>
       </section>
       <section className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-6">

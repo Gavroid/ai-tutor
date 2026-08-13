@@ -151,7 +151,7 @@ export default function ParentsPage() {
             <aside className="prism-card pad glow">
               <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">Привязать ребёнка</div>
               <p className="mt-3 text-sm leading-6 text-[color:var(--prism-muted)]">Код вводится в кабинете ребёнка. После привязки родитель видит прогресс, слабые темы и рекомендации.</p>
-              <button onClick={createInvite} disabled={busyInvite} className="prism-action primary mt-5 w-full">
+              <button onClick={createInvite} disabled={busyInvite} className="prism-action primary mt-5 w-fit px-6">
                 {busyInvite ? "Создаю код…" : "Создать код"}
               </button>
               {invite && (
