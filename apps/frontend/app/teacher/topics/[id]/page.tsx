@@ -7,6 +7,29 @@ import { api } from "@/lib/api";
 import Header from "@/components/Header";
 import type { RagRebuildJob, Topic, TopicFollowup, TopicPracticeFallback, User } from "@/types";
 
+
+function safeJsonArray<T>(value: string): T[] {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed as T[] : [];
+  } catch {
+    return [];
+  }
+}
+
+function topicCompleteness(followupsText: string, fallbacksText: string) {
+  const followups = safeJsonArray<TopicFollowup>(followupsText);
+  const fallbacks = safeJsonArray<TopicPracticeFallback>(fallbacksText);
+  const activeFallbacks = fallbacks.filter((item) => item.is_active !== false && item.question_text && item.correct_answer);
+  const checks = [
+    { label: "Follow-up кнопки", ok: followups.length >= 3, note: `${followups.length}/3+` },
+    { label: "Fallback-задания", ok: activeFallbacks.length >= 1, note: `${activeFallbacks.length}/1+` },
+    { label: "Пояснение ответа", ok: activeFallbacks.every((item) => Boolean(item.explanation)), note: "у активных задач" },
+    { label: "Типичные ошибки", ok: activeFallbacks.some((item) => (item.typical_mistakes || []).length > 0), note: "минимум у одной задачи" },
+  ];
+  return { checks, ready: checks.every((item) => item.ok) };
+}
+
 const DEFAULT_FALLBACK: TopicPracticeFallback = {
   question_text: "",
   type: "single",
@@ -119,6 +142,8 @@ export default function TeacherTopicDetailPage() {
     }
   }
 
+  const completeness = topicCompleteness(followupsText, fallbacksText);
+
   async function rebuildRag() {
     setBusy(true);
     setError(null);
@@ -149,6 +174,20 @@ export default function TeacherTopicDetailPage() {
       {error && <div className="mt-4 rounded-2xl border border-rose-300/30 bg-rose-400/10 p-3 text-sm text-rose-200">{error}</div>}
       {message && <div className="mt-4 rounded-2xl border border-emerald-300/30 bg-emerald-400/10 p-3 text-sm text-[color:var(--prism-green)]">{message}</div>}
       {busy && <div className="mt-4 text-sm text-[color:var(--prism-muted)]">Загрузка…</div>}
+
+
+      <section className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-4 shadow-glow">
+        <div className="prism-kicker">Готовность публикации</div>
+        <h2 className="mt-1 text-lg font-semibold">{completeness.ready ? "Тема выглядит готовой" : "Нужно закрыть пробелы"}</h2>
+        <div className="mt-3 grid gap-2 md:grid-cols-2">
+          {completeness.checks.map((check) => (
+            <div key={check.label} className="rounded-2xl border border-[color:var(--prism-line)] bg-black/10 p-3 text-sm">
+              <div className={check.ok ? "text-[color:var(--prism-green)]" : "text-amber-200"}>{check.ok ? "✓" : "•"} {check.label}</div>
+              <div className="mt-1 text-xs text-[color:var(--prism-muted)]">{check.note}</div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <section className="mt-4 grid gap-4 lg:grid-cols-2">
         <EditorCard title="Follow-up кнопки" value={followupsText} onChange={setFollowupsText} onSave={saveFollowups} disabled={busy} />

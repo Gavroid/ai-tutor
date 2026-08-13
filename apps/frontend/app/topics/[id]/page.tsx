@@ -245,6 +245,22 @@ export default function TopicPage() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [msgs]);
 
+  const nextStep = (() => {
+    if (checkResult?.is_correct) {
+      return { title: "Закрепи навык", body: "Ответ верный. Возьми следующее задание или коротко объясни правило своими словами.", tone: "practice" as const };
+    }
+    if (checkResult && !checkResult.is_correct) {
+      return { title: "Разбери ошибку", body: "Посмотри объяснение ошибки, исправь ответ и только потом бери новое задание.", tone: "review" as const };
+    }
+    if (exercise) {
+      return { title: "Реши практику", body: "Сначала выбери или введи ответ, затем нажми “Проверить”.", tone: "practice" as const };
+    }
+    if (msgs.some((message) => message.role === "assistant")) {
+      return { title: "Переходи к практике", body: "Объяснение уже есть. Нажми “Практика”, чтобы проверить понимание на задаче.", tone: "practice" as const };
+    }
+    return { title: "Начни с объяснения", body: "Нажми “Объяснить”: репетитор даст правило, пример и вопрос для самопроверки.", tone: "focus" as const };
+  })();
+
   async function send(textOverride?: string) {
     const text = (textOverride ?? input).trim();
     if (!text || busy) return;
@@ -373,6 +389,7 @@ export default function TopicPage() {
           showClearConfirm={showClearConfirm}
           actionError={actionError}
           timerMinutes={process.env.NODE_ENV !== "production" ? Number(searchParams.get("timerMinutes") || 0) : 0}
+          nextStep={nextStep}
           onExplain={explain}
           onGeneratePractice={() => {
             const nextSeed = practiceSeed + 1;

@@ -67,6 +67,7 @@ export function LessonRail({
   onShowClearConfirm,
   onCancelClear,
   onConfirmClear,
+  nextStep,
   onPause,
 }: {
   activePane: LessonPane;
@@ -81,6 +82,7 @@ export function LessonRail({
   onShowClearConfirm: () => void;
   onCancelClear: () => void;
   onConfirmClear: () => void;
+  nextStep: { title: string; body: string; tone: "focus" | "practice" | "review" };
   onPause: (reason: "hypo" | "hyper" | "break" | "other") => void;
 }) {
   return (
@@ -117,6 +119,12 @@ export function LessonRail({
       )}
 
       {actionError && <div role="alert" className="split-callout danger">{actionError}</div>}
+
+      <div className={`split-callout ${nextStep.tone === "review" ? "warn" : ""}`}>
+        <div className="split-kicker">Следующий шаг</div>
+        <div className="mt-2 text-base font-black text-[color:var(--split-ink)]">{nextStep.title}</div>
+        <p className="mt-1 text-xs leading-5 text-[color:var(--split-muted)]">{nextStep.body}</p>
+      </div>
 
       <div className="mt-auto space-y-3">
         <SessionTimer initialMinutesElapsed={timerMinutes} />

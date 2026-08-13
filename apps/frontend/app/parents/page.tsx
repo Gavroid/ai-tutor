@@ -31,6 +31,28 @@ function formatActivityDay(value: string): string {
   return date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
 }
 
+
+function buildParentRecommendations(overview: Overview): string[] {
+  const recommendations: string[] = [];
+  if (overview.total_attempts === 0) {
+    return ["Начните с одного короткого занятия: открыть тему, попросить объяснение и решить 1 задачу."];
+  }
+  if (overview.accuracy < 0.6) {
+    recommendations.push("Сделайте короткое повторение: пусть ребёнок объяснит правило своими словами перед новой задачей.");
+  }
+  if (overview.weak_topics.length > 0) {
+    recommendations.push(`Вернитесь к теме «${overview.weak_topics[0].topic_name}» и решите 2–3 простые задачи.`);
+  }
+  const recentActive = overview.daily_activity.slice(-7).some((day) => day.attempts > 0);
+  if (!recentActive) {
+    recommendations.push("Запланируйте мягкий возврат: 10 минут практики сегодня без длинной сессии.");
+  }
+  if (recommendations.length === 0) {
+    recommendations.push("Темп нормальный: продолжайте короткие регулярные занятия и добавьте одну задачу на закрепление.");
+  }
+  return recommendations.slice(0, 3);
+}
+
 function summarizeActivity(days: Array<{ date: string; attempts: number }>) {
   const activeDays = days.filter((day) => day.attempts > 0);
   const total = activeDays.reduce((sum, day) => sum + day.attempts, 0);
@@ -208,6 +230,12 @@ export default function ParentsPage() {
                       <Stat label="Mastery" value={`${Math.round(overview.average_mastery * 100)}%`} />
                     </div>
                     <div className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-4 text-sm text-[color:var(--prism-muted)]">🔒 {overview.privacy_note}</div>
+                    <div className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-4">
+                      <div className="prism-kicker">Что делать дальше</div>
+                      <ul className="mt-3 grid gap-2 text-sm leading-6 text-[color:var(--prism-ink)]">
+                        {buildParentRecommendations(overview).map((item) => <li key={item}>• {item}</li>)}
+                      </ul>
+                    </div>
                   </>
                 ) : (
                   <p className="mt-4 text-sm text-[color:var(--prism-muted)]">Выбери ребёнка слева, чтобы увидеть краткую сводку.</p>
