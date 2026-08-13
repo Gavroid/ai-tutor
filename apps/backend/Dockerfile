@@ -45,7 +45,6 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD curl -fsS http://localhost:8000/health || exit 1
 
-# MVP note: keep a single worker until Prometheus multiprocess mode is wired.
-# In-process prometheus_client counters are per-process; multiple workers make
-# /admin Realtime alternate between different metric snapshots.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+# Prometheus multiprocess mode: clear worker metric shards before each container start.
+# UVICORN_WORKERS defaults to 4; Realtime reads aggregated /metrics, not per-worker counters.
+CMD ["sh", "-c", "rm -rf $PROMETHEUS_MULTIPROC_DIR && mkdir -p $PROMETHEUS_MULTIPROC_DIR && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${UVICORN_WORKERS:-4}"]
