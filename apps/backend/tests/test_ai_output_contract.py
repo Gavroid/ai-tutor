@@ -82,10 +82,11 @@ def test_extract_structured_json_handles_fenced_json() -> None:
     assert structured == {"question_text": "Сколько будет 2+2?", "type": "numeric"}
 
 
-def test_rag_sources_only_enabled_for_math_repeat_subject() -> None:
+def test_rag_sources_enabled_for_math_like_subjects_only() -> None:
     assert _rag_enabled_for_subject("Математика (6 класс - повторение пройденного материала)")
+    assert _rag_enabled_for_subject("Алгебра")
+    assert _rag_enabled_for_subject("Геометрия")
     assert not _rag_enabled_for_subject("Русский язык")
-    assert not _rag_enabled_for_subject("Алгебра")
 
 
 def test_rag_sources_are_deduplicated() -> None:

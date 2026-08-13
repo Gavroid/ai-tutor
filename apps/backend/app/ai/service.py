@@ -47,9 +47,13 @@ class GeneratedExercise:
 
 
 def _rag_enabled_for_subject(subject_name: str) -> bool:
-    """MVP: RAG materials are currently indexed only for 6th-grade math repeat subject."""
+    """Return whether RAG should be attempted for a subject.
+
+    Persistent RAG is currently populated for math-like curriculum materials.
+    Non-math subjects stay disabled until they have citation-safe indexed sources.
+    """
     normalized = subject_name.lower()
-    return "математика" in normalized and "6" in normalized and "повтор" in normalized
+    return any(marker in normalized for marker in ("математика", "алгебра", "геометр"))
 
 
 def _dedupe_rag_sources(sources: list[dict]) -> list[dict]:
@@ -801,19 +805,31 @@ class AIService:
             from app.subjects.models import LearningMaterial
 
             with SessionLocal() as db:
-                material_ids = [
-                    row[0]
-                    for row in db.query(LearningMaterial.id)
-                    .filter(LearningMaterial.topic_id == topic.id)
-                    .all()
-                ]
+                topic_id = getattr(topic, "id", None)
+                material_ids = []
+                if topic_id is not None:
+                    material_ids = [
+                        row[0]
+                        for row in db.query(LearningMaterial.id)
+                        .filter(LearningMaterial.topic_id == topic_id)
+                        .all()
+                    ]
                 chunks = []
-                for material_id in material_ids:
-                    chunks.extend(search_persistent(db, query_emb, top_k=top_k, material_id=material_id))
-                chunks = [
-                    c for c in chunks
-                    if (getattr(c, "metadata", {}) or {}).get("topic_id") == topic.id
-                ][:top_k]
+                if material_ids:
+                    for material_id in material_ids:
+                        chunks.extend(search_persistent(db, query_emb, top_k=top_k, material_id=material_id))
+                else:
+                    # Persistent RAG can hold imported/book chunks without a LearningMaterial row.
+                    # Search globally, then trust metadata when present.
+                    chunks.extend(search_persistent(db, query_emb, top_k=top_k))
+                filtered = []
+                for chunk in chunks:
+                    metadata = getattr(chunk, "metadata", {}) or {}
+                    chunk_topic_id = metadata.get("topic_id")
+                    if topic_id is not None and chunk_topic_id is not None and chunk_topic_id != topic_id:
+                        continue
+                    filtered.append(chunk)
+                chunks = filtered[:top_k]
         except Exception as e:
             logger.warning("RAG search failed: %s", e)
             return None, []

@@ -135,6 +135,13 @@ def _compute_embedding(text: str) -> list[float]:
     try:
         import asyncio
 
+        try:
+            asyncio.get_running_loop()
+            logger.debug("Embedding API skipped inside running event loop; fallback to hash")
+            return _hash_embedding(text, dim=EMBEDDING_DIM)
+        except RuntimeError:
+            pass
+
         async def _fetch():
             async with httpx.AsyncClient(timeout=30) as client:
                 r = await client.post(f"{base_url}/embeddings", headers=headers, json=payload)
