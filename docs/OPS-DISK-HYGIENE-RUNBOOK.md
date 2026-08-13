@@ -102,3 +102,24 @@ Expected:
 ## Restore Boundary
 
 If cleanup accidentally removes required runtime data, restore from the latest verified DB/uploads backup and matching code marker. Do not attempt manual reconstruction of Docker volumes.
+
+
+## Read-Only Disk Report
+
+Use this before cleanup to inspect disk state without deleting anything:
+
+```bash
+/opt/ai-tutor/deploy/ops/disk-report.sh
+```
+
+It reports:
+
+- filesystem usage;
+- Docker reclaimable space;
+- largest `/opt` entries;
+- local backup directory size and latest manifests;
+- dangling Docker volumes to inspect before prune;
+- journald usage;
+- AI-Tutor service status.
+
+This script is safe to run anytime: it performs no deletion and no service restart.

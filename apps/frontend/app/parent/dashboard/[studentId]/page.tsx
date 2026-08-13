@@ -83,6 +83,11 @@ export default function ParentDashboardPage() {
   const [dash, setDash] = useState<Dashboard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [displaySettings, setDisplaySettings] = useState({
+    showMistakes: true,
+    showWeakTopics: true,
+    showActivity: true,
+  });
 
   useEffect(() => {
     api.me().then(setUser).catch(() => router.push("/login"));
@@ -133,6 +138,16 @@ export default function ParentDashboardPage() {
     minute: "2-digit",
   });
 
+  const weeklyAttempts = dash.daily_activity_30d.slice(-7).reduce((sum, day) => sum + day.attempts, 0);
+  const weeklyActiveDays = dash.daily_activity_30d.slice(-7).filter((day) => day.attempts > 0).length;
+  const weeklySummary = (() => {
+    if (weeklyAttempts === 0) return "За неделю занятий не было — лучше начать с 10 минут лёгкой практики.";
+    if (dash.accuracy < 0.6) return "Неделя была активной, но точность просела — сначала повторить правило, потом решать новые задачи.";
+    if (dash.weak_topics.length > 0) return `Главный фокус недели: «${dash.weak_topics[0].topic_name}». Достаточно 2–3 коротких задач.`;
+    return "Неделя выглядит ровно: можно продолжать текущий темп и брать одну задачу на закрепление.";
+  })();
+  const exportHref = `/api/v1/parents/students/${studentId}/dashboard.pdf`;
+
   return (
     <main className="prism-shell parent-dashboard-console min-h-dvh">
       <Header user={user} backHref="/parents" title="Родительский дашборд" />
@@ -152,6 +167,18 @@ export default function ParentDashboardPage() {
               <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">Что важно сейчас</div>
               <p className="mt-3 text-xl font-black leading-snug">{dash.summary}</p>
               <p className="mt-3 text-sm text-[color:var(--prism-muted)]">Последняя активность: {dash.last_activity_label}</p>
+              <div className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-4">
+                <div className="prism-kicker">Weekly Summary</div>
+                <p className="mt-2 text-sm leading-6 text-[color:var(--prism-ink)]">{weeklySummary}</p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <Metric label="7 дней" value={weeklyAttempts} />
+                  <Metric label="Активных дней" value={weeklyActiveDays} />
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a href={exportHref} target="_blank" rel="noreferrer" className="prism-action px-4 py-2 text-sm">Экспорт HTML/PDF</a>
+                <button type="button" onClick={refresh} disabled={busy} className="prism-action px-4 py-2 text-sm disabled:opacity-50">Обновить</button>
+              </div>
             </aside>
           </div>
 
@@ -170,7 +197,7 @@ export default function ParentDashboardPage() {
               </div>
             </div>
 
-            <div className="prism-card pad">
+            {displaySettings.showActivity && <div className="prism-card pad">
               <div className="prism-kicker">30 Day Pulse</div>
               <div className="mt-5 flex h-36 items-end gap-1.5">
                 {dash.daily_activity_30d.map((d) => {
@@ -180,7 +207,7 @@ export default function ParentDashboardPage() {
                 })}
               </div>
               <div className="mt-2 flex justify-between text-[10px] text-[color:var(--prism-muted)]"><span>{dash.daily_activity_30d[0]?.date.slice(5)}</span><span>сегодня: {dash.daily_activity_30d.at(-1)?.date.slice(5)}</span></div>
-            </div>
+            </div>}
           </section>
 
           <section className="parent-dashboard-grid mt-6">
@@ -199,7 +226,7 @@ export default function ParentDashboardPage() {
                 </div>
               </div>
 
-              {dash.weak_topics.length > 0 && (
+              {displaySettings.showWeakTopics && dash.weak_topics.length > 0 && (
                 <div className="prism-card pad">
                   <div className="prism-kicker">Weak Signals</div>
                   <div className="mt-4 grid gap-2">
@@ -213,7 +240,7 @@ export default function ParentDashboardPage() {
                 </div>
               )}
 
-              {dash.top_mistakes.length > 0 && (
+              {displaySettings.showMistakes && dash.top_mistakes.length > 0 && (
                 <div className="prism-card pad">
                   <div className="prism-kicker">Mistake Pattern</div>
                   <div className="mt-4 grid gap-2">
@@ -233,6 +260,28 @@ export default function ParentDashboardPage() {
               <div className="mt-4 space-y-4">
                 {dash.subject_mastery.length > 0 ? dash.subject_mastery.map((sm) => <SubjectBar key={sm.subject_id} sm={sm} />) : <p className="text-sm text-[color:var(--prism-muted)]">Нет данных</p>}
               </div>
+            </div>
+          </section>
+
+          <section className="prism-card pad mt-6">
+            <div className="prism-kicker">Parent Display Settings</div>
+            <p className="mt-2 text-sm text-[color:var(--prism-muted)]">Локальные настройки вида: меняют только этот экран, не раскрывают чат ребёнка.</p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+              {[
+                ["showWeakTopics", "Слабые темы"],
+                ["showMistakes", "Типичные ошибки"],
+                ["showActivity", "Активность"],
+              ].map(([key, label]) => (
+                <label key={key} className="console-pill justify-center">
+                  <input
+                    type="checkbox"
+                    checked={displaySettings[key as keyof typeof displaySettings]}
+                    onChange={(event) => setDisplaySettings((prev) => ({ ...prev, [key]: event.target.checked }))}
+                    className="mr-2 accent-[color:var(--prism-accent)]"
+                  />
+                  {label}
+                </label>
+              ))}
             </div>
           </section>
 

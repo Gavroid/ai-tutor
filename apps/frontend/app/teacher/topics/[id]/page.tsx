@@ -98,6 +98,42 @@ export default function TeacherTopicDetailPage() {
     return parsed as TopicPracticeFallback[];
   }
 
+  const followups = safeJsonArray<TopicFollowup>(followupsText);
+  const fallbacks = safeJsonArray<TopicPracticeFallback>(fallbacksText);
+
+  function updateFollowup(index: number, patch: Partial<TopicFollowup>) {
+    const next = [...followups];
+    next[index] = { ...next[index], ...patch };
+    setFollowupsText(JSON.stringify(next, null, 2));
+  }
+
+  function addFollowup() {
+    const next = [
+      ...followups,
+      { label: "Новая кнопка", prompt: "Сформулируй следующий вопрос по теме", kind: "choice", order_index: followups.length + 1 },
+    ];
+    setFollowupsText(JSON.stringify(next, null, 2));
+  }
+
+  function removeFollowup(index: number) {
+    setFollowupsText(JSON.stringify(followups.filter((_, idx) => idx !== index), null, 2));
+  }
+
+  function updateFallback(index: number, patch: Partial<TopicPracticeFallback>) {
+    const next = [...fallbacks];
+    next[index] = { ...next[index], ...patch };
+    setFallbacksText(JSON.stringify(next, null, 2));
+  }
+
+  function addFallback() {
+    const next = [...fallbacks, { ...DEFAULT_FALLBACK, order_index: fallbacks.length + 1 }];
+    setFallbacksText(JSON.stringify(next, null, 2));
+  }
+
+  function removeFallback(index: number) {
+    setFallbacksText(JSON.stringify(fallbacks.filter((_, idx) => idx !== index), null, 2));
+  }
+
   async function saveFollowups() {
     setBusy(true);
     setError(null);
@@ -190,8 +226,26 @@ export default function TeacherTopicDetailPage() {
       </section>
 
       <section className="mt-4 grid gap-4 lg:grid-cols-2">
-        <EditorCard title="Follow-up кнопки" value={followupsText} onChange={setFollowupsText} onSave={saveFollowups} disabled={busy} />
-        <EditorCard title="Fallback-задания" value={fallbacksText} onChange={setFallbacksText} onSave={saveFallbacks} disabled={busy} rows={18} />
+        <FollowupsEditor
+          value={followups}
+          rawValue={followupsText}
+          disabled={busy}
+          onChange={updateFollowup}
+          onAdd={addFollowup}
+          onRemove={removeFollowup}
+          onRawChange={setFollowupsText}
+          onSave={saveFollowups}
+        />
+        <FallbacksEditor
+          value={fallbacks}
+          rawValue={fallbacksText}
+          disabled={busy}
+          onChange={updateFallback}
+          onAdd={addFallback}
+          onRemove={removeFallback}
+          onRawChange={setFallbacksText}
+          onSave={saveFallbacks}
+        />
       </section>
 
       <section className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-4 shadow-glow">
@@ -227,12 +281,124 @@ export default function TeacherTopicDetailPage() {
   );
 }
 
-function EditorCard({ title, value, onChange, onSave, disabled, rows = 12 }: { title: string; value: string; onChange: (value: string) => void; onSave: () => void; disabled: boolean; rows?: number }) {
+function FollowupsEditor({
+  value,
+  rawValue,
+  disabled,
+  onChange,
+  onAdd,
+  onRemove,
+  onRawChange,
+  onSave,
+}: {
+  value: TopicFollowup[];
+  rawValue: string;
+  disabled: boolean;
+  onChange: (index: number, patch: Partial<TopicFollowup>) => void;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+  onRawChange: (value: string) => void;
+  onSave: () => void;
+}) {
   return (
     <section className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-4 shadow-glow">
-      <h2 className="text-lg font-semibold">{title}</h2>
-      <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} className="prism-input mt-3 min-h-[280px] w-full resize-y p-3 font-mono text-xs" />
-      <button onClick={onSave} disabled={disabled} className="mt-3 prism-action primary px-4 py-2 text-sm disabled:opacity-50">Сохранить</button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">Follow-up кнопки</h2>
+        <button type="button" onClick={onAdd} disabled={disabled} className="prism-action px-4 py-2 text-sm">Добавить</button>
+      </div>
+      <div className="mt-4 grid gap-3">
+        {value.length === 0 && <p className="text-sm text-[color:var(--prism-muted)]">Кнопок пока нет.</p>}
+        {value.map((item, index) => (
+          <div key={index} className="rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-3">
+            <div className="grid gap-2 md:grid-cols-[0.8fr_1.2fr]">
+              <label className="text-xs text-[color:var(--prism-muted)]">Label
+                <input value={item.label} onChange={(event) => onChange(index, { label: event.target.value })} className="prism-input mt-1 w-full text-sm" />
+              </label>
+              <label className="text-xs text-[color:var(--prism-muted)]">Prompt
+                <input value={item.prompt} onChange={(event) => onChange(index, { prompt: event.target.value })} className="prism-input mt-1 w-full text-sm" />
+              </label>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <select value={item.kind} onChange={(event) => onChange(index, { kind: event.target.value })} className="prism-input w-fit text-sm">
+                <option value="choice">choice</option>
+                <option value="next">next</option>
+                <option value="review">review</option>
+              </select>
+              <button type="button" onClick={() => onRemove(index)} disabled={disabled} className="prism-action hover-danger px-3 py-2 text-xs">Удалить</button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button onClick={onSave} disabled={disabled} className="mt-3 prism-action primary px-4 py-2 text-sm disabled:opacity-50">Сохранить followups</button>
+      <details className="mt-4 rounded-2xl border border-[color:var(--prism-line)] bg-black/10 p-3">
+        <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-[color:var(--prism-muted)]">Raw JSON fallback</summary>
+        <textarea value={rawValue} onChange={(event) => onRawChange(event.target.value)} rows={10} className="prism-input mt-3 w-full resize-y p-3 font-mono text-xs" />
+      </details>
+    </section>
+  );
+}
+
+function FallbacksEditor({
+  value,
+  rawValue,
+  disabled,
+  onChange,
+  onAdd,
+  onRemove,
+  onRawChange,
+  onSave,
+}: {
+  value: TopicPracticeFallback[];
+  rawValue: string;
+  disabled: boolean;
+  onChange: (index: number, patch: Partial<TopicPracticeFallback>) => void;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+  onRawChange: (value: string) => void;
+  onSave: () => void;
+}) {
+  return (
+    <section className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-4 shadow-glow">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">Fallback-задания</h2>
+        <button type="button" onClick={onAdd} disabled={disabled} className="prism-action px-4 py-2 text-sm">Добавить</button>
+      </div>
+      <div className="mt-4 grid gap-3">
+        {value.map((item, index) => (
+          <div key={index} className="rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-3">
+            <label className="text-xs text-[color:var(--prism-muted)]">Вопрос
+              <textarea value={item.question_text} onChange={(event) => onChange(index, { question_text: event.target.value })} rows={3} className="prism-input mt-1 w-full resize-y p-3 text-sm" />
+            </label>
+            <div className="mt-2 grid gap-2 md:grid-cols-2">
+              <label className="text-xs text-[color:var(--prism-muted)]">Правильный ответ
+                <input value={item.correct_answer} onChange={(event) => onChange(index, { correct_answer: event.target.value })} className="prism-input mt-1 w-full text-sm" />
+              </label>
+              <label className="text-xs text-[color:var(--prism-muted)]">Тип
+                <select value={item.type} onChange={(event) => onChange(index, { type: event.target.value })} className="prism-input mt-1 w-full text-sm">
+                  <option value="single">single</option>
+                  <option value="numeric">numeric</option>
+                  <option value="text">text</option>
+                </select>
+              </label>
+            </div>
+            <label className="mt-2 block text-xs text-[color:var(--prism-muted)]">Варианты ответа, через `|`
+              <input value={(item.options || []).join(" | ")} onChange={(event) => onChange(index, { options: event.target.value.split("|").map((x) => x.trim()).filter(Boolean) })} className="prism-input mt-1 w-full text-sm" />
+            </label>
+            <label className="mt-2 block text-xs text-[color:var(--prism-muted)]">Объяснение
+              <textarea value={item.explanation} onChange={(event) => onChange(index, { explanation: event.target.value })} rows={3} className="prism-input mt-1 w-full resize-y p-3 text-sm" />
+            </label>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <label className="console-pill min-h-0 px-3 py-2 text-xs"><input type="checkbox" checked={item.is_active !== false} onChange={(event) => onChange(index, { is_active: event.target.checked })} className="mr-2" /> active</label>
+              <button type="button" onClick={() => onRemove(index)} disabled={disabled} className="prism-action hover-danger px-3 py-2 text-xs">Удалить</button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button onClick={onSave} disabled={disabled} className="mt-3 prism-action primary px-4 py-2 text-sm disabled:opacity-50">Сохранить задания</button>
+      <details className="mt-4 rounded-2xl border border-[color:var(--prism-line)] bg-black/10 p-3">
+        <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-[color:var(--prism-muted)]">Raw JSON fallback</summary>
+        <textarea value={rawValue} onChange={(event) => onRawChange(event.target.value)} rows={14} className="prism-input mt-3 w-full resize-y p-3 font-mono text-xs" />
+      </details>
     </section>
   );
 }
