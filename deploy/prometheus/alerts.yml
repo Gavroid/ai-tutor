@@ -1,0 +1,48 @@
+groups:
+  - name: ai_tutor_health
+    interval: 30s
+    rules:
+      - alert: AiTutorBackendDown
+        expr: up{job="ai-tutor-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AI-Tutor backend metrics target is down"
+          description: "Prometheus cannot scrape backend:8000/metrics. Check backend container and /ready."
+
+      - alert: AiTutorBackend5xx
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AI-Tutor backend returns HTTP 5xx"
+          description: "Server errors were observed during the last 5 minutes. Check backend logs and admin Realtime."
+
+      - alert: AiTutorUnexpected4xxSpike
+        expr: sum(rate(http_requests_total{status=~"4..", path!="/api/v1/student/topics/{topic_id}/draft", path!="/api/v1/admin/realtime/snapshot"}[5m])) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Unexpected AI-Tutor 4xx spike"
+          description: "Unexpected client errors are above threshold. Expected draft 404 and unauthenticated snapshot probes are excluded."
+
+      - alert: AiTutorLoginRateLimitSpike
+        expr: sum(rate(http_requests_total{status="429", path="/api/v1/auth/login"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Login rate-limit spike"
+          description: "Repeated login attempts are hitting 429. Check for user lockout or brute-force noise."
+
+      - alert: AiTutorReadyProbeFailing
+        expr: sum(rate(http_requests_total{path="/ready", status!="200"}[5m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AI-Tutor readiness failures"
+          description: "/ready returned non-200 recently. Check DB connectivity and backend startup."

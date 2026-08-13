@@ -1,0 +1,97 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: ai-tutor-core
+    folder: AI Tutor
+    interval: 1m
+    rules:
+      - uid: ai_tutor_backend_down
+        title: Backend metrics target down
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: Prometheus
+            model:
+              expr: up{job="ai-tutor-backend"}
+              instant: true
+              refId: A
+          - refId: C
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator: { params: [1], type: lt }
+                  operator: { type: and }
+                  query: { params: [A] }
+                  reducer: { type: last }
+                  type: query
+              refId: C
+              type: classic_conditions
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: Backend scrape target is down
+
+      - uid: ai_tutor_5xx
+        title: Backend HTTP 5xx observed
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: Prometheus
+            model:
+              expr: sum(rate(http_requests_total{status=~"5.."}[5m]))
+              instant: true
+              refId: A
+          - refId: C
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator: { params: [0], type: gt }
+                  operator: { type: and }
+                  query: { params: [A] }
+                  reducer: { type: last }
+                  type: query
+              refId: C
+              type: classic_conditions
+        noDataState: OK
+        execErrState: Alerting
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: Backend is returning 5xx responses
+
+      - uid: ai_tutor_disk_high
+        title: Disk usage high
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: Prometheus
+            model:
+              expr: 100 - ((node_filesystem_avail_bytes{mountpoint="/"} * 100) / node_filesystem_size_bytes{mountpoint="/"})
+              instant: true
+              refId: A
+          - refId: C
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator: { params: [80], type: gt }
+                  operator: { type: and }
+                  query: { params: [A] }
+                  reducer: { type: last }
+                  type: query
+              refId: C
+              type: classic_conditions
+        noDataState: OK
+        execErrState: OK
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: Disk usage above 80 percent
