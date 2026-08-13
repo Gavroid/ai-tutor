@@ -1,7 +1,7 @@
 # AI-Tutor Prism Design Patterns
 
-_Last updated: 2026-08-12_
-_Production marker at capture: `19a8d52`_
+_Last updated: 2026-08-13_
+_Production marker at latest design capture: `bf0b765`_
 
 This document is the source-of-truth for the MVP visual patterns after the admin/teacher polish pass. Use it before changing any dashboard, console, teacher, admin, or lesson page.
 
@@ -269,3 +269,39 @@ Production marker at backup:
 ```text
 19a8d52
 ```
+
+## 10. Mobile Chat Reading Pattern
+
+Canonical route:
+
+```text
+/topics/[id]
+```
+
+Rules:
+
+- Mobile lesson uses three tabs: `Чат`, `Урок`, `Практика`.
+- `Объяснить` switches to `Чат` after generating an answer.
+- `Практика` switches to `Практика` after generating an exercise.
+- Assistant answers use `SafeMarkdown`; raw markdown tables must render as responsive tables, not literal `| ... |` text.
+- AI answer cards must have readable spacing:
+  - paragraphs separated;
+  - lists have visible markers and spacing;
+  - tables are horizontally scrollable inside the bubble;
+  - follow-up chips wrap into a single column on mobile;
+  - decorative orbs/chips never overflow the viewport.
+- Mobile QA should verify `overflow = 0` on `/topics/[id]` for chat, lesson, and practice panels.
+
+## 11. Current Realtime Pattern
+
+Admin Realtime is not a live stream in the MVP UI.
+
+Rules:
+
+- It displays one fixed snapshot when opening the tab.
+- Values change only on manual `Обновить`.
+- Counters are cumulative since backend start.
+- Backend RAM is cgroup-based MiB; show percent only if a real cgroup memory limit exists.
+- Do not reintroduce 3-second auto-polling unless labels and expected counter movement are redesigned.
+- Keep backend `workers=1` until Prometheus multiprocess mode is implemented.
+

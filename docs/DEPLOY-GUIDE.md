@@ -1,354 +1,235 @@
 # AI-Tutor Production Deployment Guide
 
-**Дата:** 2026-07-26
-**Production:** 192.168.1.86 (LXC, 4GB RAM, Proxmox)
-**Stack:** Docker Compose + self-hosted runner + SMB offsite backups
+_Last updated: 2026-08-13_
 
-Это руководство описывает **production deployment** workflow для AI-Tutor.
+Production target:
 
----
-
-## 🏗️ Architecture overview
-
-```
-Internet → Nginx Proxy Manager (Игорь)
-  ↓
-LAN: 192.168.1.86
-  ↓
-Proxmox LXC "Kirill-AI" (Ubuntu 24.04, 4GB RAM)
-  ├── Docker Compose stack (deploy/)
-  │   ├── backend (FastAPI, 4 workers, 230MiB)
-  │   ├── frontend (Next.js, port 3000)
-  │   ├── db (PostgreSQL 16, 120MiB)
-  │   ├── redis (5.0, 10MiB)
-  │   ├── proxy (Nginx, ports 80/443)
-  │   ├── grafana (10.0, 80MiB)
-  │   └── prometheus (15MiB)
-  │
-  ├── /opt/ai-tutor/ (git clone)
-  ├── /etc/cron.d/ai-tutor-* (9 cron jobs)
-  └── /var/log/ai-tutor/ (logs)
-  ↓
-SMB offsite backup: //192.168.1.91/Kirill-AI/ai-tutor/
+```text
+Public: https://school.431a.ru
+LAN:    https://192.168.1.86
+Path:   /opt/ai-tutor
+Compose:/opt/ai-tutor/deploy
 ```
 
----
+Do not print `.env`, private keys, SMB credentials, JWTs, or passwords.
 
-## 🚀 Initial deployment
+## Current production stack
 
-### 1. Server preparation (LXC)
+```text
+Docker Compose
+  ├── backend     FastAPI / uvicorn workers=1
+  ├── frontend    Next.js 16
+  ├── db          PostgreSQL 16
+  ├── redis       Redis
+  ├── proxy       Nginx
+  ├── prometheus  internal metrics scrape
+  └── grafana     dashboards
+```
+
+Backend is intentionally `workers=1` until Prometheus multiprocess mode is implemented.
+
+## Preflight
+
+Local repo:
 
 ```bash
-# На Proxmox host:
-# - Create LXC: Ubuntu 24.04, 4GB RAM, 20GB disk
-# - Enable nesting, FUSE (для Docker)
-# - Network: 192.168.1.86/24
-
-# SSH to LXC
-ssh root@192.168.1.86
-
-# Update + Docker install
-apt update && apt upgrade -y
-apt install -y curl git docker.io docker-compose
-systemctl enable docker
-```
-
-### 2. Create deploy user (non-root runner)
-
-```bash
-# Self-hosted runner user (Sprint 18)
-useradd -m -s /bin/bash runner
-usermod -aG docker runner
-usermod -aG app-secrets runner
-
-# Create secrets group (mode 640)
-groupadd app-secrets
-chown -R root:app-secrets /opt/ai-tutor
-chmod 640 /opt/ai-tutor/.env
-```
-
-### 3. Clone repository
-
-```bash
-mkdir -p /opt/ai-tutor
-cd /opt/ai-tutor
-git clone https://github.com/Gavroid/ai-tutor.git .
-chown -R runner:runner /opt/ai-tutor
-```
-
-### 4. Create .env file
-
-```bash
-cat > /opt/ai-tutor/.env << 'EOF'
-# Secrets (mode 600, group app-secrets)
-APP_SECRET_KEY=<random-32-chars>
-AI_API_KEY=<sk-...>
-TELEGRAM_BOT_TOKEN=<bot-token>
-TELEGRAM_ALERT_CHAT_ID=432505767
-DATABASE_URL=postgresql+psycopg2://tutor:password@db:5432/tutor
-UPLOAD_DIR=/app/uploads
-APP_ENV=production
-APP_DEBUG=false
-CORS_ORIGINS=https://school.431a.ru,http://localhost:3000
-NEXT_PUBLIC_API_URL=https://school.431a.ru
-EOF
-
-chmod 640 /opt/ai-tutor/.env
-chown root:app-secrets /opt/ai-tutor/.env
-```
-
-### 5. First deploy
-
-```bash
-cd /opt/ai-tutor/deploy
-docker compose up -d db redis  # start dependencies first
-sleep 10  # wait for db
-docker compose up -d backend
-docker compose run --rm backend alembic upgrade head  # run migrations
-docker compose up -d frontend proxy grafana prometheus
-sleep 30
-
-# Verify
-curl http://localhost/health
-bash release/smoke.sh
-```
-
-### 6. Setup self-hosted runner
-
-```bash
-# На GitHub: Settings → Actions → Runners → New self-hosted runner
-# Follow instructions for Linux x64
-
-# Конфигурация:
-# - Labels: self-hosted, ai-tutor, production
-# - Work directory: /opt/actions-runner
-# - User: runner (non-root)
-
-su - runner
-mkdir -p ~/actions-runner && cd ~/actions-runner
-# Download + configure (from GitHub instructions)
-./config.sh --url https://github.com/Gavroid/ai-tutor --token <TOKEN>
-sudo ./svc.sh install runner
-sudo ./svc.sh start
-```
-
-### 7. Setup cron jobs
-
-```bash
-# Backup cron (Sprint 6, daily 02:00)
-cat > /etc/cron.d/ai-tutor-backup << 'EOF'
-0 2 * * * root /opt/ai-tutor/deploy/release/backup.sh >> /var/log/ai-tutor-backup.log 2>&1
-EOF
-
-# Audit log retention (Sprint 4.2, daily 03:00)
-cat > /etc/cron.d/ai-tutor-audit-cleanup << 'EOF'
-0 3 * * * root cd /opt/ai-tutor/apps/backend && .venv/bin/python scripts/audit_cleanup.py >> /var/log/ai-tutor-audit.log 2>&1
-EOF
-
-# Alert worker (continuous)
-cat > /etc/systemd/system/ai-tutor-alert-worker.service << 'EOF'
-[Unit]
-Description=AI Tutor Telegram Alert Worker
-After=network.target redis.service
-
-[Service]
-Type=simple
-User=runner
-WorkingDirectory=/opt/ai-tutor/apps/backend
-Environment="PATH=/opt/ai-tutor/apps/backend/.venv/bin"
-ExecStart=/opt/ai-tutor/apps/backend/.venv/bin/python -m app.bot.alert_worker
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-systemctl enable ai-tutor-alert-worker
-systemctl start ai-tutor-alert-worker
-```
-
-### 8. Setup SMB offsite backup
-
-```bash
-# Install cifs-utils
-apt install -y cifs-utils
-
-# Mount SMB share
-cat > /etc/cifs-credentials << 'EOF'
-username=backup-user
-password=<password>
-EOF
-chmod 600 /etc/cifs-credentials
-
-# /etc/fstab
-//192.168.1.91/Kirill-AI /mnt/smb-offsite cifs credentials=/etc/cifs-credentials,uid=root,gid=root 0 0
-
-mkdir -p /mnt/smb-offsite
-mount /mnt/smb-offsite
-```
-
----
-
-## 🔄 Continuous deployment
-
-### Option A: Manual (recommended for production)
-
-```bash
-# 1. Local development
 cd /root/workspace/ai-tutor
-git pull
-.venv/bin/pytest tests/ -q
-git add -A
-git commit -m "Sprint X: feature"
-git push origin main
-
-# 2. Deploy to production
-ssh root@192.168.1.86
-cd /opt/ai-tutor
-git pull
-rsync -avz --delete --exclude='__pycache__' \
-  /root/workspace/ai-tutor/apps/backend/ /opt/ai-tutor/apps/backend/
-cd deploy
-docker compose build backend
-docker compose up -d backend
-sleep 30
-
-# 3. Verify
-bash release/smoke.sh
-bash release/smoke-extra.sh
+git status --short --branch
+git log --oneline -8
 ```
 
-### Option B: CI/CD via GitHub Actions
-
-⚠️ **Manual approval required** (Sprint 17)
-
-```yaml
-# .github/workflows/deploy.yml (уже настроен)
-on:
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Deploy to environment'
-        required: true
-        default: 'production'
-
-jobs:
-  deploy:
-    runs-on: [self-hosted, ai-tutor]
-    environment: production  # requires manual approval
-    steps:
-      - uses: actions/checkout@v4
-      - name: rsync + rebuild
-        run: ./deploy/release/deploy.sh
-```
-
----
-
-## 📊 Production monitoring
-
-### Prometheus metrics
+Production health:
 
 ```bash
-# All custom metrics
-curl http://localhost:8000/metrics | grep -E "^parent_|^http_requests_|^ai_"
+curl -sk -w '\nHTTP=%{http_code}\n' https://192.168.1.86/ready
+ssh -i /root/.ssh/id_ed25519_kirill_ai -o BatchMode=yes root@192.168.1.86 \
+  'cat /opt/ai-tutor/.mvp-rescue-commit; cd /opt/ai-tutor/deploy && docker compose ps'
 ```
 
-**Custom Sprint 49 metrics:**
-- `parent_streak_current_streak_days{user_id}`
-- `parent_streak_longest_streak_days{user_id}`
-- `parent_attempts_total{user_id, day}`
-- `parent_session_pauses_total{user_id, reason}`
-- `parent_session_duration_seconds_bucket{le}`
+## Backup before deploy
 
-### Grafana dashboards
+Run from production server:
 
-- https://school.431a.ru/grafana (provisioned)
-- 3 dashboards:
-  - ai-tutor-overview (Sprint 9.2)
-  - parent-dashboard (Sprint 39 + 49)
-  - system-overview (Sprint 39)
-
-### OpenTelemetry traces (Sprint 62)
-
-Console exporter → `/var/log/ai-tutor-deploy.log` (Sprint 62)
-OTLP exporter → `OTEL_EXPORTER_OTLP_ENDPOINT=...` (optional)
-
----
-
-## 🔒 Security
-
-### Secrets management
-- `.env` mode 640, group `app-secrets`
-- `runner` user в группе `app-secrets`
-- ВСЕ commits проверяются: `git ls-files | grep -E '^\.env$'`
-
-### SSH keys
-- Self-hosted runner: ed25519 ключ
-- Production: ed25519 ключ для root@192.168.1.86
-
-### Firewall
-- LXC: только 80/443 (Nginx Proxy Manager)
-- Docker internal network: backend/frontend/db/redis/grafana/prometheus
-
-### Audit
-- 5xx → Telegram alerts (Sprint 16.0)
-- Audit log hash chain (Sprint 45)
-- Cookie auth (Sprint 27)
-
----
-
-## 🗄️ Database
-
-### Backups
-- Daily 02:00 (cron)
-- Pre-deploy backup (manual)
-- 30-day retention (rotation script)
-- SMB offsite (//192.168.1.91/Kirill-AI/)
-- Hash verified (SHA-256)
-
-### Migrations
-- Alembic в `apps/backend/alembic/versions/`
-- 21 миграций (Sprint 14-45)
-- Применяются: `docker compose run --rm backend alembic upgrade head`
-
-### Restore from backup
 ```bash
-ssh root@192.168.1.86
-ls /opt/ai-tutor/deploy/backup/_out/  # or /mnt/smb-offsite/
-
-# Restore
-gunzip < db-20260724T120000Z.sql.gz | \
-  docker exec -i deploy-db-1 psql -U tutor -d tutor
+cd /opt/ai-tutor/deploy/backup
+./backup.sh
+./ai-tutor-backup-offsite.sh
 ```
 
----
+Expected local artifacts:
 
-## 🔧 Scaling
+```text
+/opt/ai-tutor/deploy/backup/_out/db-YYYYMMDDTHHMMSSZ.sql.gz
+/opt/ai-tutor/deploy/backup/_out/uploads-YYYYMMDDTHHMMSSZ.tar.gz
+/opt/ai-tutor/deploy/backup/_out/manifest-YYYYMMDDTHHMMSSZ.md5
+```
 
-### Multi-worker uvicorn (Sprint 30)
+Offsite verification must report hash verified. Do not expose SMB credentials.
+
+## Frontend gates
+
 ```bash
-# Current: 4 workers (--workers 4)
-# Memory: ~230MiB / 4GiB (5.6%)
-# p95 latency: 8.3ms (load test 50 concurrent)
-
-# Scale up: 8 workers (need 8GB RAM)
-docker compose up -d --scale backend=2  # 2 containers × 4 workers = 8
+cd /root/workspace/ai-tutor/apps/frontend
+npm run typecheck
+npm run build
 ```
 
-### Vertical scaling (если упёрлись в RAM)
+## Backend gates
+
+Small health gate:
+
 ```bash
-# На Proxmox: LXC memory 4GB → 8GB
-# Стоимость: ~$2-5/мес на Proxmox
-# Позволит: real RAG embeddings (sentence-transformers)
+cd /root/workspace/ai-tutor/apps/backend
+.venv/bin/pytest tests/test_health.py -q
 ```
 
----
+Use targeted tests for changed modules. Examples:
 
-## 📝 См. также
+```bash
+.venv/bin/pytest tests/test_parent_dashboard.py tests/test_health.py -q
+.venv/bin/pytest tests/test_teacher.py -q
+.venv/bin/pytest tests/test_ai_output_contract.py -q
+```
 
-- [docs/ADMIN-GUIDE.md](ADMIN-GUIDE.md) — admin operations
-- [docs/TROUBLESHOOTING.md](TROUBLESHOOTING.md) — common issues
-- [docs/ARCHITECTURE-ADDENDUM.md](ARCHITECTURE-ADDENDUM.md) — Sprint 54 architecture
-- [docs/CHANGELOG-SPRINT-16-56.md](CHANGELOG-SPRINT-16-56.md) — full changelog
-- [docs/security.md](security.md) — security model
+## Deploy frontend-only changes
+
+```bash
+cd /root/workspace/ai-tutor
+COMMIT=$(git rev-parse --short HEAD)
+
+tar -cf - apps/frontend/<changed-files> \
+  | ssh -i /root/.ssh/id_ed25519_kirill_ai -o BatchMode=yes root@192.168.1.86 \
+    'tar -xf - -C /opt/ai-tutor/'
+
+ssh -i /root/.ssh/id_ed25519_kirill_ai -o BatchMode=yes root@192.168.1.86 "
+  set -e
+  cd /opt/ai-tutor
+  echo $COMMIT > .mvp-rescue-commit
+  cd deploy
+  docker compose build frontend
+  docker compose up -d frontend
+  for i in \$(seq 1 30); do
+    code=\$(curl -sk -o /tmp/ready.body -w '%{http_code}' https://localhost/ready || true)
+    body=\$(cat /tmp/ready.body 2>/dev/null || true)
+    echo ready_http=\$code body=\$body
+    if [ \"\$code\" = 200 ] && echo \"\$body\" | grep -q ready; then break; fi
+    sleep 3
+  done
+  docker compose ps frontend
+"
+```
+
+## Deploy backend + frontend changes
+
+```bash
+cd /root/workspace/ai-tutor
+COMMIT=$(git rev-parse --short HEAD)
+
+tar -cf - apps/backend/<changed-files> apps/frontend/<changed-files> \
+  | ssh -i /root/.ssh/id_ed25519_kirill_ai -o BatchMode=yes root@192.168.1.86 \
+    'tar -xf - -C /opt/ai-tutor/'
+
+ssh -i /root/.ssh/id_ed25519_kirill_ai -o BatchMode=yes root@192.168.1.86 "
+  set -e
+  cd /opt/ai-tutor
+  echo $COMMIT > .mvp-rescue-commit
+  cd deploy
+  docker compose build backend frontend
+  docker compose up -d backend frontend
+  for i in \$(seq 1 40); do
+    code=\$(curl -sk -o /tmp/ready.body -w '%{http_code}' https://localhost/ready || true)
+    body=\$(cat /tmp/ready.body 2>/dev/null || true)
+    echo ready_http=\$code body=\$body
+    if [ \"\$code\" = 200 ] && echo \"\$body\" | grep -q ready; then break; fi
+    sleep 3
+  done
+  docker compose ps backend frontend
+"
+```
+
+A short `502` during backend restart is expected only while containers are starting. Final `/ready` must return `HTTP=200`.
+
+## Production smoke
+
+```bash
+curl -sk -w '\nHTTP=%{http_code}\n' https://192.168.1.86/ready
+curl -sk -w '\nHTTP=%{http_code}\n' https://192.168.1.86/health
+ssh -i /root/.ssh/id_ed25519_kirill_ai -o BatchMode=yes root@192.168.1.86 \
+  'cd /opt/ai-tutor/deploy && docker compose ps backend frontend db redis prometheus'
+```
+
+For UI changes, run browser smoke on public domain:
+
+```text
+https://school.431a.ru
+```
+
+Required surfaces:
+
+- `/subjects`
+- `/subjects/[id]`
+- `/topics/[id]`
+- `/admin`
+- `/teacher`
+- `/parents`
+
+## Admin/Reatime notes
+
+Admin visible UI is one route:
+
+```text
+/admin
+```
+
+`/admin/invites` and `/admin/realtime` are compatibility redirects to `/admin`.
+
+Realtime is fixed snapshot + manual refresh. It is not a live WebSocket stream in the current MVP UI. HTTP counters are cumulative since backend start.
+
+## Disk cleanup runbook
+
+Only run after backup.
+
+Stage 1 — Docker build cache:
+
+```bash
+docker builder prune -af
+```
+
+Stage 2 — unused volumes:
+
+```bash
+docker volume ls -qf dangling=true | xargs -r docker volume inspect --format '{{.Name}} {{.Mountpoint}}'
+docker volume prune -f
+```
+
+Stage 3 — unused images:
+
+```bash
+docker image prune -af
+```
+
+Stage 4 — journald:
+
+```bash
+journalctl --vacuum-size=100M
+```
+
+Never manually delete active Docker volumes for DB/uploads/Grafana/Prometheus.
+
+## Rollback
+
+Preferred rollback path:
+
+1. Identify previous good git commit/marker.
+2. Restore code from git or backup artifact.
+3. Rebuild affected containers.
+4. If DB changed, restore DB only from a known backup after explicit approval.
+5. Verify `/ready`, `/health`, and core browser surfaces.
+
+## Current follow-up work
+
+See:
+
+```text
+docs/FURTHER-DEVELOPMENT-PLAN-2026-08-13.md
+```
