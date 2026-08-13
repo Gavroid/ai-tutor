@@ -10,7 +10,7 @@
  *   - Разрешено только наше подмножество markdown:
  *     **жирный**, *курсив*, `код`, # заголовки (h1-h3), - список, 1. нумерованный,
  *     > blockquote, --- hr, ```code block```, переводы строк.
- *   - Запрещены: [ссылки](), ![картинки](), html, tables (overkill для стрима).
+ *   - Запрещены: [ссылки](), ![картинки](), html. Markdown tables are rendered into safe responsive tables.
  */
 
 const ESCAPE_HTML = (s: string): string =>
@@ -102,6 +102,34 @@ function renderInline(text: string): string {
     .join("");
 }
 
+function isTableRow(line: string): boolean {
+  const trimmed = line.trim();
+  return trimmed.startsWith("|") && trimmed.endsWith("|") && trimmed.split("|").length >= 4;
+}
+
+function isTableSeparator(line: string): boolean {
+  return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+}
+
+function splitTableRow(line: string): string[] {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim());
+}
+
+function renderTable(rows: string[][]): string {
+  if (rows.length === 0) return "";
+  const [head, ...body] = rows;
+  return `<div class="md-table-wrap"><table class="md-table"><thead><tr>${head
+    .map((cell) => `<th>${renderInline(cell)}</th>`)
+    .join("")}</tr></thead><tbody>${body
+    .map((row) => `<tr>${row.map((cell) => `<td>${renderInline(cell)}</td>`).join("")}</tr>`)
+    .join("")}</tbody></table></div>`;
+}
+
 /** Парсит Markdown → HTML. Безопасен для dangerouslySetInnerHTML. */
 export function renderMarkdown(md: string): string {
   if (!md) return "";
@@ -133,6 +161,19 @@ export function renderMarkdown(md: string): string {
       i++;
       continue;
     }
+    // Markdown table: header row + optional separator + body rows.
+    if (isTableRow(line) && i + 1 < lines.length && (isTableSeparator(lines[i + 1]) || isTableRow(lines[i + 1]))) {
+      const rows: string[][] = [splitTableRow(line)];
+      i++;
+      if (i < lines.length && isTableSeparator(lines[i])) i++;
+      while (i < lines.length && isTableRow(lines[i])) {
+        rows.push(splitTableRow(lines[i]));
+        i++;
+      }
+      out.push(renderTable(rows));
+      continue;
+    }
+
     // Заголовки
     const hMatch = /^(#{1,3})\s+(.+)$/.exec(line);
     if (hMatch) {
@@ -195,7 +236,7 @@ export function renderMarkdown(md: string): string {
     // Обычный текст (может быть несколько подряд идущих строк)
     const paragraphLines: string[] = [line];
     i++;
-    while (i < lines.length && lines[i].trim() && !/^#{1,3}\s/.test(lines[i]) && !/^\s*[-*]\s/.test(lines[i]) && !/^\s*\d+\.\s/.test(lines[i]) && !lines[i].startsWith("> ") && !lines[i].trim().startsWith("```")) {
+    while (i < lines.length && lines[i].trim() && !isTableRow(lines[i]) && !/^#{1,3}\s/.test(lines[i]) && !/^\s*[-*]\s/.test(lines[i]) && !/^\s*\d+\.\s/.test(lines[i]) && !lines[i].startsWith("> ") && !lines[i].trim().startsWith("```")) {
       paragraphLines.push(lines[i]);
       i++;
     }
