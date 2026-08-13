@@ -10,6 +10,7 @@ export type AdminSnapshot = {
   ai_modes: Record<string, { ok: number; error: number }>;
   ai_tokens: Record<string, number>;
   http_total: { "2xx": number; "4xx": number; "5xx": number };
+  http_breakdown?: Array<{ path: string; status: string; count: number; bucket: string; kind: "ok" | "expected" | "actionable"; reason: string }>;
   system: {
     db: string;
     redis: string;

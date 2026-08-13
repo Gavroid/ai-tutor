@@ -43,6 +43,30 @@ def _safe_int(v: object, default: int = 0) -> int:
         return default
 
 
+def classify_http_status_sample(path: str, status: str, value: object) -> dict[str, object]:
+    """Classify Prometheus HTTP counter samples for admin-facing monitoring.
+
+    Expected 4xx are useful context but should not look like product blockers.
+    Actionable values are candidates for alerts or manual investigation.
+    """
+    code = _safe_int(status)
+    count = _safe_int(value)
+    bucket = "5xx" if 500 <= code < 600 else "4xx" if 400 <= code < 500 else "2xx"
+    kind = "ok"
+    reason = "success"
+    if bucket == "5xx":
+        kind = "actionable"
+        reason = "server_error"
+    elif bucket == "4xx":
+        expected = {
+            ("/api/v1/student/topics/{topic_id}/draft", "404"): "missing_topic_draft",
+            ("/api/v1/admin/realtime/snapshot", "401"): "unauthenticated_snapshot_probe",
+        }
+        reason = expected.get((path, status), "unexpected_4xx")
+        kind = "expected" if reason != "unexpected_4xx" else "actionable"
+    return {"path": path, "status": status, "count": count, "bucket": bucket, "kind": kind, "reason": reason}
+
+
 def _metrics_snapshot() -> dict:
     """Снимок метрик для админ-WS. Не падает при недоступности любой части."""
     # 1) AI запросы по режимам (за всё время)
@@ -75,17 +99,22 @@ def _metrics_snapshot() -> dict:
     # 3) HTTP 5xx rate — это Counter, абсолютное значение (нужно знать baseline)
     try:
         http_total: dict[str, int] = {"2xx": 0, "4xx": 0, "5xx": 0}
+        http_breakdown: list[dict[str, object]] = []
         for metric in HTTP_REQUESTS_TOTAL.collect():
             for sample in metric.samples:
                 if sample.name != "http_requests_total":
                     continue
                 status = sample.labels.get("status", "0")
-                code = int(status) if status.isdigit() else 0
-                bucket = "5xx" if 500 <= code < 600 else "4xx" if 400 <= code < 500 else "2xx"
-                http_total[bucket] += _safe_int(sample.value)
+                path = sample.labels.get("path", "unknown")
+                item = classify_http_status_sample(path, status, sample.value)
+                http_total[str(item["bucket"])] += _safe_int(item["count"])
+                if item["bucket"] in ("4xx", "5xx") and item["count"]:
+                    http_breakdown.append(item)
+        http_breakdown.sort(key=lambda item: (str(item["kind"]), str(item["status"]), str(item["path"])))
     except Exception as e:
         logger.debug("http_total collect failed: %s", e)
         http_total = {"2xx": 0, "4xx": 0, "5xx": 0}
+        http_breakdown = []
 
     # 4) System status (docker-compose ps)
     sys = _system_health()
@@ -94,6 +123,7 @@ def _metrics_snapshot() -> dict:
         "ai_modes": ai_modes,
         "ai_tokens": ai_tokens,
         "http_total": http_total,
+        "http_breakdown": http_breakdown,
         "system": sys,
     }
 

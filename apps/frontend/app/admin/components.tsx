@@ -119,6 +119,20 @@ export function InvitesTab({
   );
 }
 
+function formatSnapshotTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Europe/Moscow" });
+}
+
+function realtimeReasonLabel(reason: string): string {
+  const labels: Record<string, string> = {
+    missing_topic_draft: "Ожидаемо: черновик темы ещё не создан",
+    unauthenticated_snapshot_probe: "Ожидаемо: запрос без admin-сессии",
+    unexpected_4xx: "Проверить: неожиданный 4xx",
+    server_error: "Проверить: ошибка сервера",
+  };
+  return labels[reason] || reason;
+}
+
 export function RealtimeTab({ state, snapshot, loading, onRefresh }: { state: AdminWSState; snapshot: AdminSnapshot | null; loading: boolean; onRefresh: () => void }) {
   return (
     <div>
@@ -135,28 +149,51 @@ export function RealtimeTab({ state, snapshot, loading, onRefresh }: { state: Ad
         </button>
       </div>
       {snapshot === null ? <p className="mt-6 text-sm text-[color:var(--prism-muted)]">Ожидание первых данных с Prometheus…</p> : (
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <RealtimeKpi label="AI токены" value={(snapshot.ai_tokens.input || 0) + (snapshot.ai_tokens.output || 0)} sublabel={`Всего токенов AI: input ${snapshot.ai_tokens.input || 0} / output ${snapshot.ai_tokens.output || 0}`} />
-          <RealtimeKpi label="AI вызовы" value={Object.values(snapshot.ai_modes).reduce((sum, mode) => sum + (mode?.ok || 0) + (mode?.error || 0), 0)} sublabel={`Всего запросов к AI по ${Object.keys(snapshot.ai_modes).length} режимам`} />
-          <RealtimeKpi label="HTTP 5xx" value={snapshot.http_total["5xx"]} sublabel="Ошибки сервера с момента старта backend" danger={snapshot.http_total["5xx"] > 0} />
-          <RealtimeKpi label="HTTP 4xx" value={snapshot.http_total["4xx"]} sublabel="Клиентские ошибки: 401/403/404/429" />
-          <RealtimeKpi label="HTTP 2xx" value={snapshot.http_total["2xx"]} sublabel="Успешные ответы backend с момента старта" good />
-          <RealtimeKpi
-            label="RAM backend"
-            value={
-              snapshot.system.mem_used_pct !== null
-                ? `${Math.round(snapshot.system.mem_used_pct)}%`
-                : snapshot.system.mem_used_mb != null
-                  ? `${Math.round(snapshot.system.mem_used_mb)} MiB`
-                  : "—"
-            }
-            sublabel={
-              snapshot.system.mem_limit_mb != null
-                ? `Память backend: ${Math.round(snapshot.system.mem_used_mb || 0)} MiB / ${Math.round(snapshot.system.mem_limit_mb)} MiB`
-                : "Фактически занято backend-контейнером; лимит cgroup не задан"
-            }
-          />
-        </div>
+        <>
+          <div className="mt-4 rounded-2xl border border-[color:var(--prism-line)] bg-black/10 px-3 py-2 text-xs text-[color:var(--prism-muted)]">
+            Снимок: {formatSnapshotTime(snapshot.ts)} MSK · значения меняются только после ручного обновления.
+          </div>
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <RealtimeKpi label="AI токены" value={(snapshot.ai_tokens.input || 0) + (snapshot.ai_tokens.output || 0)} sublabel={`Всего токенов AI: input ${snapshot.ai_tokens.input || 0} / output ${snapshot.ai_tokens.output || 0}`} />
+            <RealtimeKpi label="AI вызовы" value={Object.values(snapshot.ai_modes).reduce((sum, mode) => sum + (mode?.ok || 0) + (mode?.error || 0), 0)} sublabel={`Всего запросов к AI по ${Object.keys(snapshot.ai_modes).length} режимам`} />
+            <RealtimeKpi label="HTTP 5xx" value={snapshot.http_total["5xx"]} sublabel="Ошибки сервера с момента старта backend" danger={snapshot.http_total["5xx"] > 0} />
+            <RealtimeKpi label="HTTP 4xx" value={snapshot.http_total["4xx"]} sublabel="Клиентские ошибки; ниже разделены ожидаемые и требующие проверки" />
+            <RealtimeKpi label="HTTP 2xx" value={snapshot.http_total["2xx"]} sublabel="Успешные ответы backend с момента старта" good />
+            <RealtimeKpi
+              label="RAM backend"
+              value={
+                snapshot.system.mem_used_pct !== null
+                  ? `${Math.round(snapshot.system.mem_used_pct)}%`
+                  : snapshot.system.mem_used_mb != null
+                    ? `${Math.round(snapshot.system.mem_used_mb)} MiB`
+                    : "—"
+              }
+              sublabel={
+                snapshot.system.mem_limit_mb != null
+                  ? `Память backend: ${Math.round(snapshot.system.mem_used_mb || 0)} MiB / ${Math.round(snapshot.system.mem_limit_mb)} MiB`
+                  : "Фактически занято backend-контейнером; лимит cgroup не задан"
+              }
+            />
+          </div>
+          {snapshot.http_breakdown && snapshot.http_breakdown.length > 0 && (
+            <section className="mt-6 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-4">
+              <h2 className="text-sm font-black uppercase tracking-wide text-[color:var(--prism-muted)]">HTTP 4xx/5xx breakdown</h2>
+              <div className="mt-3 grid gap-2">
+                {snapshot.http_breakdown.map((item) => (
+                  <div key={`${item.path}:${item.status}:${item.kind}`} className="rounded-2xl border border-[color:var(--prism-line)] bg-black/10 p-3 text-xs text-[color:var(--prism-ink)]">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={item.kind === "actionable" ? "text-rose-200" : "text-[color:var(--prism-green)]"}>{item.kind === "actionable" ? "Проверить" : "Ожидаемо"}</span>
+                      <span className="font-mono">HTTP {item.status}</span>
+                      <span>× {item.count}</span>
+                    </div>
+                    <div className="mt-1 break-all font-mono text-[color:var(--prism-muted)]">{item.path}</div>
+                    <div className="mt-1 text-[color:var(--prism-muted)]">{realtimeReasonLabel(item.reason)}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </div>
   );
