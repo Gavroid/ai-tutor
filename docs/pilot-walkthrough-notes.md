@@ -126,3 +126,39 @@ Scope: incorporated Igor's latest manual testing results and fixed the actionabl
   - `prometheus /-/healthy` returned healthy;
   - internal scrape `http://backend:8000/metrics` returned Prometheus text metrics.
 
+## 2026-08-13 18:15 MSK — Manual QA list closed
+
+Scope: closed Igor's manual QA checklist after mobile/chat/admin Realtime follow-ups and created a fresh restore-friendly backup.
+
+### Final manual testing status
+
+| # | Area | Status | Notes |
+|---:|---|---|---|
+| 0 | Быстрый Smoke | OK | Manual pass confirmed. |
+| 1 | Student Flow | OK | Manual pass confirmed. |
+| 2 | Mobile Student Flow | Fixed / ready for final spot check | Mobile layout fixed across auth/admin/subjects/topic/chat surfaces; chat readability improved with paragraph/list/table styling. |
+| 3 | Parent Flow | OK | Compact buttons, populated summary default, reduced dashboard top spacing. |
+| 4 | Teacher Flow | OK | Legacy buttons/links normalized; generate file picker dark; topic editor scroll fixed. |
+| 5 | Admin Flow | OK | Realtime stabilized: snapshot mode, single backend worker for consistent in-process metrics, cgroup-based RAM display. |
+| 6 | Multi-Subject Smoke | OK | Manual pass confirmed. |
+| 7 | Visual / UX Sweep | OK | Desktop OK; mobile regressions fixed after screenshot pass. |
+
+### Final production fixes included
+
+- `/topics/[id]` mobile chat readability: SafeMarkdown now renders markdown tables; AI answers have readable paragraph/list/table spacing; follow-up chips and decorative orb are constrained inside the viewport.
+- `/topics/[id]` mobile explain flow: pressing `Объяснить` switches back to `Чат`, matching `Практика` behavior.
+- `/subjects` and `/subjects/[id]` mobile: forced one-column Prism layout; no overlap/overflow on iPhone viewport.
+- `/admin` mobile: tab row scrolls horizontally inside the panel; no page overflow.
+- `/admin` Realtime: removed auto-polling; Realtime is a fixed snapshot with manual refresh; backend runs one worker until Prometheus multiprocess mode is implemented; RAM uses cgroup memory data instead of misleading `/proc/meminfo` percentage.
+- `/teacher` surfaces: old white buttons, blue links, native file picker and editor scroll issues normalized to Prism patterns.
+
+### Final evidence
+
+- Current production marker at backup: `bf0b765`.
+- Fresh local backup:
+  - `/opt/ai-tutor/deploy/backup/_out/db-20260813T151534Z.sql.gz`
+  - `/opt/ai-tutor/deploy/backup/_out/uploads-20260813T151534Z.tar.gz`
+  - `/opt/ai-tutor/deploy/backup/_out/manifest-20260813T151534Z.md5`
+- Offsite verification: `manifest-20260813T151534Z.md5` hash `b2131f0fb8206f58955b4de0478ce28f`, uploaded `33`, deleted `0`, SMB total `199`.
+- Production services at backup: backend/frontend/db/redis/prometheus healthy.
+
