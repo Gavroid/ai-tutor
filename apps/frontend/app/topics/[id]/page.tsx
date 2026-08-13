@@ -291,6 +291,7 @@ export default function TopicPage() {
 
   async function explain() {
     if (busy) return;
+    setActivePane("chat");
     setActionError(null);
     setBusy(true);
     try {

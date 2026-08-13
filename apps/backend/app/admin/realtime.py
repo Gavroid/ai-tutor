@@ -50,7 +50,8 @@ def _metrics_snapshot() -> dict:
     try:
         for metric in AI_REQUESTS_TOTAL.collect():
             for sample in metric.samples:
-                # 'ai_requests_total{mode="explain",status="ok"}' → value
+                if sample.name != "ai_requests_total":
+                    continue
                 labels = sample.labels
                 mode = labels.get("mode", "unknown")
                 status = labels.get("status", "unknown")
@@ -64,6 +65,8 @@ def _metrics_snapshot() -> dict:
     try:
         for metric in AI_TOKENS_TOTAL.collect():
             for sample in metric.samples:
+                if sample.name != "ai_tokens_total":
+                    continue
                 role = sample.labels.get("role", "unknown")
                 ai_tokens[role] = _safe_int(sample.value)
     except Exception as e:
@@ -74,6 +77,8 @@ def _metrics_snapshot() -> dict:
         http_total: dict[str, int] = {"2xx": 0, "4xx": 0, "5xx": 0}
         for metric in HTTP_REQUESTS_TOTAL.collect():
             for sample in metric.samples:
+                if sample.name != "http_requests_total":
+                    continue
                 status = sample.labels.get("status", "0")
                 code = int(status) if status.isdigit() else 0
                 bucket = "5xx" if 500 <= code < 600 else "4xx" if 400 <= code < 500 else "2xx"

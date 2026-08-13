@@ -632,14 +632,17 @@ function RealtimeTab({ state, snapshot }: { state: AdminWSState; snapshot: Admin
         <h1 className="mt-1 text-2xl font-bold">Real-time метрики</h1>
         <ConnectionStatus state={state} />
       </section>
+      <p className="mt-3 text-sm leading-6 text-[color:var(--prism-muted)]">
+        Метрики — это накопительные счётчики с момента последнего старта backend, а не значения “за минуту”.
+      </p>
       {snapshot === null ? <p className="mt-6 text-sm text-[color:var(--prism-muted)]">Ожидание первых данных с Prometheus…</p> : (
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <RealtimeKpi label="AI токены" value={(snapshot.ai_tokens.input || 0) + (snapshot.ai_tokens.output || 0)} sublabel={`in ${snapshot.ai_tokens.input || 0} / out ${snapshot.ai_tokens.output || 0}`} />
-          <RealtimeKpi label="AI вызовы" value={Object.values(snapshot.ai_modes).reduce((sum, mode) => sum + (mode?.ok || 0) + (mode?.error || 0), 0)} sublabel={`${Object.keys(snapshot.ai_modes).length} режимов`} />
-          <RealtimeKpi label="5xx rate" value={snapshot.http_total["5xx"]} sublabel="за всё время" danger={snapshot.http_total["5xx"] > 0} />
-          <RealtimeKpi label="4xx" value={snapshot.http_total["4xx"]} sublabel="за всё время" />
-          <RealtimeKpi label="2xx OK" value={snapshot.http_total["2xx"]} sublabel="за всё время" good />
-          <RealtimeKpi label="Memory used" value={snapshot.system.mem_used_pct !== null ? `${Math.round(snapshot.system.mem_used_pct)}%` : "—"} sublabel="System RAM" />
+          <RealtimeKpi label="AI токены" value={(snapshot.ai_tokens.input || 0) + (snapshot.ai_tokens.output || 0)} sublabel={`Всего токенов AI: input ${snapshot.ai_tokens.input || 0} / output ${snapshot.ai_tokens.output || 0}`} />
+          <RealtimeKpi label="AI вызовы" value={Object.values(snapshot.ai_modes).reduce((sum, mode) => sum + (mode?.ok || 0) + (mode?.error || 0), 0)} sublabel={`Всего запросов к AI по ${Object.keys(snapshot.ai_modes).length} режимам`} />
+          <RealtimeKpi label="HTTP 5xx" value={snapshot.http_total["5xx"]} sublabel="Ошибки сервера с момента старта backend" danger={snapshot.http_total["5xx"] > 0} />
+          <RealtimeKpi label="HTTP 4xx" value={snapshot.http_total["4xx"]} sublabel="Клиентские ошибки: 401/403/404/429" />
+          <RealtimeKpi label="HTTP 2xx" value={snapshot.http_total["2xx"]} sublabel="Успешные ответы backend с момента старта" good />
+          <RealtimeKpi label="RAM backend" value={snapshot.system.mem_used_pct !== null ? `${Math.round(snapshot.system.mem_used_pct)}%` : "—"} sublabel="Использование памяти внутри backend-контейнера" />
         </div>
       )}
     </div>
