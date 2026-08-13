@@ -141,26 +141,26 @@ export default function TeacherTopicDetailPage() {
         <div className="prism-frame">
           <div className="prism-layer p-5 lg:p-10">
       <section className="border-b border-[color:var(--prism-line)] pb-5">
-        <Link href="/teacher/topics" className="text-sm text-sky-600 hover:underline">← Готовность тем</Link>
+        <Link href="/teacher/topics" className="prism-action w-fit px-4 py-2 text-sm">← Готовность тем</Link>
         <h1 className="mt-1 text-2xl font-bold">Тема #{topicId}{topic ? ` · ${topic.name}` : ""}</h1>
-        <p className="mt-1 text-sm text-slate-600">Stage 4 MVP: followups, fallback-задания, status и safe RAG job.</p>
+        <p className="mt-1 text-sm text-[color:var(--prism-muted)]">Stage 4 MVP: followups, fallback-задания, status и safe RAG job.</p>
       </section>
 
-      {error && <div className="mt-4 rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
-      {message && <div className="mt-4 rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{message}</div>}
-      {busy && <div className="mt-4 text-sm text-slate-500">Загрузка…</div>}
+      {error && <div className="mt-4 rounded-2xl border border-rose-300/30 bg-rose-400/10 p-3 text-sm text-rose-200">{error}</div>}
+      {message && <div className="mt-4 rounded-2xl border border-emerald-300/30 bg-emerald-400/10 p-3 text-sm text-[color:var(--prism-green)]">{message}</div>}
+      {busy && <div className="mt-4 text-sm text-[color:var(--prism-muted)]">Загрузка…</div>}
 
       <section className="mt-4 grid gap-4 lg:grid-cols-2">
         <EditorCard title="Follow-up кнопки" value={followupsText} onChange={setFollowupsText} onSave={saveFollowups} disabled={busy} />
         <EditorCard title="Fallback-задания" value={fallbacksText} onChange={setFallbacksText} onSave={saveFallbacks} disabled={busy} rows={18} />
       </section>
 
-      <section className="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-4 shadow-glow">
         <h2 className="text-lg font-semibold">Manual QA статус</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
           <label className="text-sm">
             Статус
-            <select value={manualQaStatus} onChange={(e) => setManualQaStatus(e.target.value)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2">
+            <select value={manualQaStatus} onChange={(e) => setManualQaStatus(e.target.value)} className="mt-1 block w-full prism-input">
               <option value="todo">todo</option>
               <option value="ok">ok</option>
               <option value="issue">issue</option>
@@ -169,17 +169,17 @@ export default function TeacherTopicDetailPage() {
           </label>
           <label className="md:col-span-2 text-sm">
             Notes
-            <input value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2" />
+            <input value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1 block w-full prism-input" />
           </label>
         </div>
-        <button onClick={saveStatus} disabled={busy} className="mt-3 rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Сохранить статус</button>
+        <button onClick={saveStatus} disabled={busy} className="mt-3 prism-action primary px-4 py-2 text-sm disabled:opacity-50">Сохранить статус</button>
       </section>
 
-      <section className="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-4 shadow-glow">
         <h2 className="text-lg font-semibold">RAG rebuild</h2>
-        <p className="mt-1 text-sm text-slate-600">MVP safe mode: dry-run verification, без удаления chunks.</p>
-        <button onClick={rebuildRag} disabled={busy} className="mt-3 rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Запустить safe rebuild</button>
-        {job && <pre className="mt-3 overflow-auto rounded-md bg-slate-100 p-3 text-xs">{JSON.stringify(job, null, 2)}</pre>}
+        <p className="mt-1 text-sm text-[color:var(--prism-muted)]">MVP safe mode: dry-run verification, без удаления chunks.</p>
+        <button onClick={rebuildRag} disabled={busy} className="mt-3 prism-action hover-warn px-4 py-2 text-sm disabled:opacity-50">Запустить safe rebuild</button>
+        {job && <pre className="mt-3 overflow-auto rounded-2xl border border-[color:var(--prism-line)] bg-black/20 p-3 text-xs text-[color:var(--prism-ink)]">{JSON.stringify(job, null, 2)}</pre>}
       </section>
         </div>
         </div>
@@ -190,10 +190,10 @@ export default function TeacherTopicDetailPage() {
 
 function EditorCard({ title, value, onChange, onSave, disabled, rows = 12 }: { title: string; value: string; onChange: (value: string) => void; onSave: () => void; disabled: boolean; rows?: number }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <section className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-4 shadow-glow">
       <h2 className="text-lg font-semibold">{title}</h2>
-      <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} className="mt-3 w-full rounded-md border border-slate-300 p-3 font-mono text-xs" />
-      <button onClick={onSave} disabled={disabled} className="mt-3 rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Сохранить</button>
+      <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} className="prism-input mt-3 min-h-[280px] w-full resize-y p-3 font-mono text-xs" />
+      <button onClick={onSave} disabled={disabled} className="mt-3 prism-action primary px-4 py-2 text-sm disabled:opacity-50">Сохранить</button>
     </section>
   );
 }

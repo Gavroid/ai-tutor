@@ -95,12 +95,12 @@ export default function TeacherGeneratePage() {
 
   return (
     <main className="prism-shell teacher-console teacher-generate-console min-h-dvh"><Header user={user} backHref="/teacher" title="Генерация материала" /><section className="py-3 sm:py-5"><div className="prism-frame"><div className="prism-layer mx-auto max-w-5xl p-5 lg:p-10">
-      <section className="border-b border-slate-200 pb-3">
-        <Link href="/teacher" className="text-sm text-sky-600 hover:underline">
+      <section className="border-b border-[color:var(--prism-line)] pb-4">
+        <Link href="/teacher" className="prism-action w-fit px-4 py-2 text-sm">
           ← К списку материалов
         </Link>
-        <h1 className="mt-1 text-2xl font-bold">Генерация материала</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="mt-4 text-2xl font-bold text-[color:var(--prism-ink)]">Генерация материала</h1>
+        <p className="mt-1 text-sm text-[color:var(--prism-muted)]">
           Выберите тему и источник. AI создаст черновик по единому шаблону —
           конспект, задачи, тест и карточки для повторения.
         </p>
@@ -111,7 +111,7 @@ export default function TeacherGeneratePage() {
         <Step n={1} active={step === "input"} done={step === "preview"}>
           Источник
         </Step>
-        <span className="text-slate-300">→</span>
+        <span className="text-[color:var(--prism-muted)]">→</span>
         <Step n={2} active={step === "preview"}>
           Проверка
         </Step>
@@ -124,16 +124,16 @@ export default function TeacherGeneratePage() {
       )}
 
       {step === "input" && (
-        <section className="mt-4 space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="mt-4 space-y-4 rounded-xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-6 shadow-glow">
           {/* Topic */}
           <div>
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-[color:var(--prism-muted)]">
               Тема (из 7 класса)
             </label>
             <select
               value={topicId ?? ""}
               onChange={(e) => setTopicId(Number(e.target.value) || null)}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md prism-input text-sm"
             >
               <option value="">— выберите тему —</option>
               {topics.map((t) => (
@@ -146,7 +146,7 @@ export default function TeacherGeneratePage() {
 
           {/* Source type */}
           <div>
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-[color:var(--prism-muted)]">
               Источник
             </label>
             <div className="mt-2 grid gap-2 md:grid-cols-3">
@@ -177,7 +177,7 @@ export default function TeacherGeneratePage() {
           {/* Source content */}
           {sourceType === "text" && (
             <div>
-              <label className="block text-sm font-medium text-slate-700">
+              <label className="block text-sm font-medium text-[color:var(--prism-muted)]">
                 Текст источника
               </label>
               <textarea
@@ -185,9 +185,9 @@ export default function TeacherGeneratePage() {
                 onChange={(e) => setText(e.target.value)}
                 rows={10}
                 placeholder="Вставьте параграф из учебника или свой конспект..."
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-xs"
+                className="mt-1 w-full rounded-md prism-input font-mono text-xs"
               />
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-[color:var(--prism-muted)]">
                 Максимум 20 000 символов
               </p>
             </div>
@@ -195,16 +195,16 @@ export default function TeacherGeneratePage() {
 
           {sourceType === "file" && (
             <div>
-              <label className="block text-sm font-medium text-slate-700">
+              <label className="block text-sm font-medium text-[color:var(--prism-muted)]">
                 Файл
               </label>
               <input
                 type="file"
                 accept=".pdf,.docx,.txt,.md"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                className="mt-1 block w-full text-sm"
+                className="mt-1 block w-full text-sm text-[color:var(--prism-muted)]"
               />
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-[color:var(--prism-muted)]">
                 PDF / DOCX / TXT. До 20 МБ.
               </p>
             </div>
@@ -212,7 +212,7 @@ export default function TeacherGeneratePage() {
 
           {/* Hint */}
           <div>
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-[color:var(--prism-muted)]">
               Доп. указание (необязательно)
             </label>
             <input
@@ -220,21 +220,21 @@ export default function TeacherGeneratePage() {
               value={hint}
               onChange={(e) => setHint(e.target.value)}
               placeholder="Например: «сделай акцент на практических задачах»"
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md prism-input text-sm"
             />
           </div>
 
           <div className="flex justify-end gap-3">
             <Link
               href="/teacher"
-              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="prism-action px-4 py-2 text-sm"
             >
               Отмена
             </Link>
             <button
               onClick={handleGenerate}
               disabled={busy || !topicId}
-              className="rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+              className="prism-action primary px-4 py-2 text-sm disabled:opacity-50"
             >
               {busy ? "Генерация…" : "Сгенерировать"}
             </button>
@@ -267,10 +267,10 @@ function Step({
     <li
       className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
         active
-          ? "bg-sky-600 text-white"
+          ? "border border-[color:var(--prism-accent)] bg-[color:var(--prism-accent)]/20 text-white"
           : done
-            ? "bg-emerald-100 text-emerald-800"
-            : "bg-slate-100 text-slate-500"
+            ? "border border-[color:var(--prism-line)] bg-black/10 text-[color:var(--prism-green)]"
+            : "border border-[color:var(--prism-line)] bg-black/10 text-[color:var(--prism-muted)]"
       }`}
     >
       <span>{n}.</span>
@@ -297,14 +297,14 @@ function SourceTypeRadio({
     <button
       type="button"
       onClick={() => onChange(value)}
-      className={`rounded-lg border p-3 text-left transition ${
+      className={`rounded-2xl border p-3 text-left transition ${
         active
-          ? "border-sky-500 bg-sky-50"
-          : "border-slate-200 bg-white hover:border-slate-300"
+          ? "border-[color:var(--prism-accent)] bg-[color:var(--prism-panel-solid)]/65 shadow-glow"
+          : "border-[color:var(--prism-line)] bg-black/10 hover:border-[color:var(--prism-accent)]"
       }`}
     >
-      <div className="text-sm font-medium">{label}</div>
-      <div className="text-xs text-slate-500">{hint}</div>
+      <div className="text-sm font-black text-[color:var(--prism-ink)]">{label}</div>
+      <div className="text-xs text-[color:var(--prism-muted)]">{hint}</div>
     </button>
   );
 }
@@ -318,27 +318,27 @@ function PreviewStep({
 }) {
   const c = material.content;
   return (
-    <section className="mt-4 space-y-6 rounded-xl border border-emerald-200 bg-emerald-50/50 p-6 shadow-sm">
+    <section className="mt-4 space-y-6 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-6 shadow-glow">
       <div className="flex items-start justify-between">
         <div>
-          <span className="rounded bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-800">
+          <span className="rounded-full border border-[color:var(--prism-line)] bg-black/10 px-2 py-1 text-xs font-medium text-[color:var(--prism-green)]">
             ✓ Черновик создан
           </span>
           <h2 className="mt-2 text-xl font-bold">{c.title}</h2>
-          <p className="text-sm text-slate-600">{c.purpose}</p>
+          <p className="text-sm text-[color:var(--prism-muted)]">{c.purpose}</p>
         </div>
         <button
           onClick={onClose}
-          className="rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700"
+          className="prism-action primary px-4 py-2 text-sm"
         >
           Открыть и одобрить →
         </button>
       </div>
 
       {c.ai_uncertainty_notes.length > 0 && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm">
-          <strong className="text-amber-900">⚠ Что AI не уверен:</strong>
-          <ul className="mt-1 list-disc pl-5 text-xs text-amber-800">
+        <div className="rounded-2xl border border-amber-300/30 bg-amber-400/10 p-3 text-sm">
+          <strong className="text-amber-200">⚠ Что AI не уверен:</strong>
+          <ul className="mt-1 list-disc pl-5 text-xs text-amber-200">
             {c.ai_uncertainty_notes.map((n, i) => (
               <li key={i}>{n}</li>
             ))}
@@ -346,7 +346,7 @@ function PreviewStep({
         </div>
       )}
 
-      <div className="rounded-lg bg-white p-4 text-sm">
+      <div className="rounded-2xl border border-[color:var(--prism-line)] bg-black/10 p-4 text-sm text-[color:var(--prism-ink)]">
         <h3 className="font-semibold">📚 Главных мыслей: {c.key_ideas.length}</h3>
         <h3 className="mt-2 font-semibold">✏️ Практических задач: {c.practice_tasks.length}</h3>
         <h3 className="mt-2 font-semibold">📝 Вопросов теста: {c.mini_test.length}</h3>

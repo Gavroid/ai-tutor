@@ -112,7 +112,7 @@ export default function TeacherMaterialDetailPage() {
         <div className="prism-frame">
           <div className="prism-layer mx-auto max-w-5xl p-5 lg:p-10">
       <section className="border-b border-[color:var(--prism-line)] pb-5">
-        <Link href="/teacher" className="text-sm text-sky-600 hover:underline">
+        <Link href="/teacher" className="prism-action w-fit px-4 py-2 text-sm">
           ← К списку материалов
         </Link>
         <div className="mt-1 flex items-start justify-between">
@@ -133,7 +133,7 @@ export default function TeacherMaterialDetailPage() {
               <button
                 onClick={() => call(() => api.teacherApprove(material.id))}
                 disabled={busy}
-                className="rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+                className="prism-action primary px-4 py-2 text-sm disabled:opacity-50"
               >
                 ✓ Одобрить
               </button>
@@ -142,7 +142,7 @@ export default function TeacherMaterialDetailPage() {
               <button
                 onClick={() => call(() => api.teacherPublish(material.id))}
                 disabled={busy}
-                className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                className="prism-action primary px-4 py-2 text-sm disabled:opacity-50"
               >
                 🚀 Опубликовать
               </button>
@@ -151,7 +151,7 @@ export default function TeacherMaterialDetailPage() {
               <button
                 onClick={() => call(() => api.teacherUnpublish(material.id))}
                 disabled={busy}
-                className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                className="prism-action hover-warn px-4 py-2 text-sm disabled:opacity-50"
               >
                 ⏸ Снять с публикации
               </button>
@@ -160,7 +160,7 @@ export default function TeacherMaterialDetailPage() {
               <button
                 onClick={handleDelete}
                 disabled={busy}
-                className="rounded-md bg-rose-100 px-4 py-2 text-sm font-medium text-rose-800 hover:bg-rose-200 disabled:opacity-50"
+                className="prism-action hover-danger px-4 py-2 text-sm disabled:opacity-50"
               >
                 Удалить
               </button>
@@ -258,7 +258,7 @@ export default function TeacherMaterialDetailPage() {
                   </div>
                   <p className="mt-1 text-sm">{t.question_text}</p>
                   <details className="mt-2">
-                    <summary className="cursor-pointer text-xs text-sky-600">
+                    <summary className="cursor-pointer text-xs text-[color:var(--prism-accent)]">
                       Эталонное решение
                     </summary>
                     <pre className="mt-1 whitespace-pre-wrap rounded bg-slate-50 p-2 font-mono text-xs">

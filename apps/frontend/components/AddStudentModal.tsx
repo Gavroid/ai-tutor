@@ -70,7 +70,7 @@ export default function AddStudentModal({ onCreated, onClose }: AddStudentModalP
   return (
     // Sprint 14: keyboard-trap (Escape close, Tab циклит), role=dialog, aria-modal=true.
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
       onClick={onClose}
       data-testid="add-student-modal"
     >
@@ -80,30 +80,30 @@ export default function AddStudentModal({ onCreated, onClose }: AddStudentModalP
         aria-modal="true"
         aria-labelledby="add-student-title"
         tabIndex={-1}
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl focus:outline-none"
+        className="w-full max-w-md rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/95 p-6 shadow-glow focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="add-student-title" className="text-xl font-bold text-slate-900">Создать ученика</h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <h2 id="add-student-title" className="text-xl font-black text-[color:var(--prism-ink)]">Создать ученика</h2>
+        <p className="mt-1 text-sm text-[color:var(--prism-muted)]">
           Новый ученик автоматически привязывается к общему curriculum 7 класса (или другому, см.
           ниже).
         </p>
 
         <form onSubmit={submit} className="mt-4 space-y-3">
           <label className="block">
-            <span className="block text-sm font-medium text-slate-700">Email</span>
+            <span className="block text-sm font-black text-[color:var(--prism-muted)]">Email</span>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="kid@example.com"
-              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2"
+              className="prism-input mt-1 block w-full"
             />
           </label>
 
           <label className="block">
-            <span className="block text-sm font-medium text-slate-700">
+            <span className="block text-sm font-black text-[color:var(--prism-muted)]">
               Имя (опционально)
             </span>
             <input
@@ -111,16 +111,16 @@ export default function AddStudentModal({ onCreated, onClose }: AddStudentModalP
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="Кирилл"
-              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2"
+              className="prism-input mt-1 block w-full"
             />
           </label>
 
           <label className="block">
-            <span className="block text-sm font-medium text-slate-700">Класс</span>
+            <span className="block text-sm font-black text-[color:var(--prism-muted)]">Класс</span>
             <select
               value={grade}
               onChange={(e) => setGrade(Number(e.target.value))}
-              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2"
+              className="prism-input mt-1 block w-full"
             >
               {[5, 6, 7, 8, 9, 10, 11].map((g) => (
                 <option key={g} value={g}>
@@ -131,7 +131,7 @@ export default function AddStudentModal({ onCreated, onClose }: AddStudentModalP
           </label>
 
           <label className="block">
-            <span className="block text-sm font-medium text-slate-700">
+            <span className="block text-sm font-black text-[color:var(--prism-muted)]">
               Временный пароль (передайте ученику)
             </span>
             <div className="mt-1 flex gap-2">
@@ -141,12 +141,12 @@ export default function AddStudentModal({ onCreated, onClose }: AddStudentModalP
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
-                className="block w-full rounded-md border border-slate-300 px-3 py-2 font-mono"
+                className="prism-input block w-full font-mono"
               />
               <button
                 type="button"
                 onClick={() => setPassword(autoGeneratePassword())}
-                className="rounded-md bg-slate-200 px-3 py-2 text-xs hover:bg-slate-300"
+                className="prism-action min-h-0 px-3 py-2 text-xs"
               >
                 Новый
               </button>
@@ -154,21 +154,21 @@ export default function AddStudentModal({ onCreated, onClose }: AddStudentModalP
           </label>
 
           {error && (
-            <div className="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</div>
+            <div className="rounded-2xl border border-rose-300/30 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">{error}</div>
           )}
 
           <div className="flex gap-2 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-md bg-slate-100 px-4 py-2 text-slate-700 hover:bg-slate-200"
+              className="prism-action flex-1 px-4 py-2"
             >
               Отмена
             </button>
             <button
               type="submit"
               disabled={busy || !email || !password}
-              className="flex-1 rounded-md bg-sky-600 px-4 py-2 font-semibold text-white hover:bg-sky-500 disabled:opacity-50"
+              className="prism-action primary flex-1 px-4 py-2 disabled:opacity-50"
             >
               {busy ? "Создаю…" : "Создать"}
             </button>

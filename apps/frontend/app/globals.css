@@ -2745,3 +2745,78 @@ body,
   background: rgba(8,11,22,.28) !important;
 }
 
+/* Final Prism cleanup for teacher/admin legacy controls and editor scrolling. */
+@media (min-width: 981px) {
+  .teacher-generate-console .prism-frame,
+  .teacher-topic-editor .prism-frame,
+  .teacher-material-detail .prism-frame {
+    height: auto !important;
+    max-height: none !important;
+    min-height: calc(100dvh - 104px) !important;
+  }
+  .teacher-generate-console .prism-layer,
+  .teacher-topic-editor .prism-layer,
+  .teacher-material-detail .prism-layer {
+    height: auto !important;
+    min-height: calc(100dvh - 106px) !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+}
+.teacher-console a[class*="text-sky"],
+.teacher-console a[class*="text-blue"],
+.admin-console a[class*="text-sky"],
+.admin-console a[class*="text-blue"] {
+  color: var(--prism-ink) !important;
+  text-decoration: none !important;
+}
+.teacher-console .rounded-xl,
+.teacher-console .rounded-md,
+.admin-console .rounded-xl,
+.admin-console .rounded-md {
+  border-color: var(--prism-line) !important;
+}
+.teacher-console .bg-white,
+.teacher-console .bg-slate-50,
+.teacher-console .bg-slate-100,
+.admin-console .bg-white,
+.admin-console .bg-slate-50,
+.admin-console .bg-slate-100 {
+  background: rgba(8,11,22,.38) !important;
+  color: var(--prism-ink) !important;
+}
+.teacher-console button[class*="bg-sky"],
+.teacher-console button[class*="bg-emerald"],
+.teacher-console button[class*="bg-amber"],
+.teacher-console button[class*="bg-rose"],
+.teacher-console a[class*="bg-sky"],
+.teacher-console a[class*="bg-white"],
+.admin-console button[class*="bg-sky"],
+.admin-console button[class*="bg-emerald"],
+.admin-console button[class*="bg-amber"],
+.admin-console button[class*="bg-rose"],
+.admin-console button[class*="bg-slate"],
+.admin-console a[class*="bg-sky"],
+.admin-console a[class*="bg-white"] {
+  min-height: 44px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(226,232,255,.18) !important;
+  background: rgba(255,255,255,.10) !important;
+  color: var(--prism-ink) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+.teacher-console button[class*="bg-sky"]:hover,
+.teacher-console button[class*="bg-emerald"]:hover,
+.teacher-console button[class*="bg-amber"]:hover,
+.teacher-console button[class*="bg-rose"]:hover,
+.teacher-console a[class*="bg-sky"]:hover,
+.admin-console button[class*="bg-sky"]:hover,
+.admin-console button[class*="bg-emerald"]:hover,
+.admin-console button[class*="bg-amber"]:hover,
+.admin-console button[class*="bg-rose"]:hover,
+.admin-console button[class*="bg-slate"]:hover,
+.admin-console a[class*="bg-sky"]:hover {
+  background: linear-gradient(135deg, var(--prism-accent), var(--prism-accent-2) 58%, var(--prism-pink)) !important;
+  color: #fff !important;
+}
+
