@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     rate_limit_register_per_hour: int = 5
     rate_limit_login_per_15min: int = 10
 
+    # Audit log retention
+    audit_retention_days: int = 90
+
     # Sprint 3.6.3: kill switch для AI — persistent через Redis (shared между
     # worker'ами uvicorn). Admin endpoint пишет в Redis key 'ai:kill_switch',
     # middleware читает на каждом запросе. Fallback на env (для boot).

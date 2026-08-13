@@ -281,3 +281,50 @@ def purge_old_logs(db: Session, ttl_days: int = 90) -> int:
     )
     db.commit()
     return int(result.rowcount or 0)
+
+
+def _rehash_chain(db: Session) -> None:
+    """Recompute audit hash chain from oldest to newest after retention pruning."""
+    rows = db.execute(select(models.AuditLog).order_by(models.AuditLog.created_at.asc(), models.AuditLog.id.asc())).scalars().all()
+    previous_hash = None
+    for row in rows:
+        row.previous_hash = previous_hash
+        created_at_iso = row.created_at.isoformat() if row.created_at else ""
+        row.record_hash = _compute_record_hash(
+            user_id=row.user_id,
+            action=row.action,
+            entity=row.entity,
+            entity_id=row.entity_id,
+            details=row.details,
+            ip_address=row.ip_address,
+            created_at_iso=created_at_iso,
+            previous_hash=previous_hash,
+        )
+        previous_hash = row.record_hash
+
+
+def prune_logs_older_than(db: Session, retention_days: int, now: object | None = None) -> int:
+    """Delete audit logs older than retention window and re-anchor hash chain.
+
+    This is a maintenance primitive; production callers should run it only after
+    backup. Rehashing is required because `previous_hash` points to deleted rows.
+    """
+    if retention_days <= 0:
+        raise ValueError("retention_days must be positive")
+    from datetime import datetime, timezone, timedelta
+
+    current = now if now is not None else datetime.now(timezone.utc)
+    if getattr(current, "tzinfo", None) is None:
+        current = current.replace(tzinfo=timezone.utc)
+    cutoff = current - timedelta(days=retention_days)
+
+    old_rows = db.execute(select(models.AuditLog).where(models.AuditLog.created_at < cutoff)).scalars().all()
+    deleted = len(old_rows)
+    for row in old_rows:
+        db.delete(row)
+    if deleted:
+        db.flush()
+        _rehash_chain(db)
+    db.commit()
+    return deleted
+
