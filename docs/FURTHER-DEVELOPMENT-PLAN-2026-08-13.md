@@ -11,7 +11,7 @@ This plan starts from the current pilot-ready MVP state after manual QA closure,
 - Manual QA checklist: closed in `docs/pilot-walkthrough-notes.md`
 - Design source of truth: `docs/PRISM-DESIGN-PATTERNS.md`
 - Historical QA handoff archived: `docs/HANDOFF-QA-BUGFIX-NEXT-CONTEXT-2026-08-11.md`
-- Backend currently runs `uvicorn --workers 1` so in-process Prometheus metrics stay consistent until multiprocess metrics are implemented.
+- Backend supports Prometheus multiprocess metrics and can run multiple uvicorn workers without alternating metric snapshots.
 
 ## Principles
 
@@ -35,7 +35,7 @@ This plan starts from the current pilot-ready MVP state after manual QA closure,
   - current domain;
   - actual admin/teacher/parent/student flows;
   - current monitoring behavior;
-  - backend workers = 1, with reason;
+  - backend workers use Prometheus multiprocess aggregation;
   - backup/offsite status.
 - Update `docs/architecture.md`:
   - `/admin` is one route with internal tabs;
@@ -141,7 +141,7 @@ Keep accepted mobile/desktop behavior unchanged.
 
 ### Work
 
-- Keep backend at `workers=1` until Prometheus multiprocess mode is properly implemented.
+- Run backend with Prometheus multiprocess aggregation before using multiple workers.
 - Add explicit Realtime timestamp in UI:
   - `Снимок: HH:MM:SS MSK`
 - Separate expected 4xx from real problems:
@@ -155,7 +155,7 @@ Keep accepted mobile/desktop behavior unchanged.
   - backup age and offsite status;
   - `/ready` status and latency;
   - Redis and DB health.
-- Later subphase: implement Prometheus multiprocess mode before returning `workers=4`.
+- Prometheus multiprocess mode is implemented; keep `/tmp/prometheus-multiproc` cleared at container start.
 
 ### Done When
 
@@ -167,7 +167,7 @@ Keep accepted mobile/desktop behavior unchanged.
 
 10–16 hours for MVP monitoring cleanup.
 
-Prometheus multiprocess: additional 10–18 hours.
+Prometheus multiprocess: implemented in the backend runtime; future work is Grafana alert refinement.
 
 ---
 

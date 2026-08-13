@@ -24,11 +24,7 @@ from app.auth.security import ACCESS_COOKIE
 from app.common.deps import require_admin
 
 from app.ai.budget import get_usage
-from app.observability import (
-    AI_REQUESTS_TOTAL,
-    AI_TOKENS_TOTAL,
-    HTTP_REQUESTS_TOTAL,
-)
+from app.observability import metrics_payload
 from app.users.models import User
 
 logger = logging.getLogger(__name__)
@@ -41,6 +37,54 @@ def _safe_int(v: object, default: int = 0) -> int:
         return int(v)  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return default
+
+
+def _iter_prometheus_samples(text: str):
+    from prometheus_client.parser import text_string_to_metric_families
+
+    for family in text_string_to_metric_families(text):
+        for sample in family.samples:
+            # sample = (name, labels, value, timestamp, exemplar, native_histogram)
+            name = sample.name
+            labels = dict(sample.labels or {})
+            try:
+                value = float(sample.value)
+            except (TypeError, ValueError):
+                continue
+            yield name, labels, value
+
+
+def parse_prometheus_snapshot(text: str) -> dict[str, object]:
+    """Parse aggregated Prometheus text into the compact admin realtime payload."""
+    ai_modes: dict[str, dict[str, int]] = {}
+    ai_tokens: dict[str, int] = {}
+    http_total: dict[str, int] = {"2xx": 0, "4xx": 0, "5xx": 0}
+    http_breakdown: list[dict[str, object]] = []
+
+    for name, labels, value in _iter_prometheus_samples(text):
+        if name == "ai_requests_total":
+            mode = labels.get("mode", "unknown")
+            status = labels.get("status", "unknown")
+            ai_modes.setdefault(mode, {"ok": 0, "error": 0})
+            ai_modes[mode][status] = _safe_int(value)
+        elif name == "ai_tokens_total":
+            role = labels.get("role", "unknown")
+            ai_tokens[role] = _safe_int(value)
+        elif name == "http_requests_total":
+            status = labels.get("status", "0")
+            path = labels.get("path", "unknown")
+            item = classify_http_status_sample(path, status, value)
+            http_total[str(item["bucket"])] += _safe_int(item["count"])
+            if item["bucket"] in ("4xx", "5xx") and item["count"]:
+                http_breakdown.append(item)
+
+    http_breakdown.sort(key=lambda item: (str(item["kind"]), str(item["status"]), str(item["path"])))
+    return {
+        "ai_modes": ai_modes,
+        "ai_tokens": ai_tokens,
+        "http_total": http_total,
+        "http_breakdown": http_breakdown,
+    }
 
 
 def classify_http_status_sample(path: str, status: str, value: object) -> dict[str, object]:
@@ -68,62 +112,22 @@ def classify_http_status_sample(path: str, status: str, value: object) -> dict[s
 
 
 def _metrics_snapshot() -> dict:
-    """Снимок метрик для админ-WS. Не падает при недоступности любой части."""
-    # 1) AI запросы по режимам (за всё время)
-    ai_modes: dict[str, dict[str, int]] = {}
+    """Снимок агрегированных метрик для админ-панели."""
     try:
-        for metric in AI_REQUESTS_TOTAL.collect():
-            for sample in metric.samples:
-                if sample.name != "ai_requests_total":
-                    continue
-                labels = sample.labels
-                mode = labels.get("mode", "unknown")
-                status = labels.get("status", "unknown")
-                ai_modes.setdefault(mode, {"ok": 0, "error": 0})
-                ai_modes[mode][status] = _safe_int(sample.value)
+        parsed = parse_prometheus_snapshot(metrics_payload().decode("utf-8", errors="replace"))
     except Exception as e:
-        logger.debug("ai_modes collect failed: %s", e)
+        logger.debug("prometheus payload parse failed: %s", e)
+        parsed = {
+            "ai_modes": {},
+            "ai_tokens": {},
+            "http_total": {"2xx": 0, "4xx": 0, "5xx": 0},
+            "http_breakdown": [],
+        }
 
-    # 2) AI токены (input/output)
-    ai_tokens: dict[str, int] = {}
-    try:
-        for metric in AI_TOKENS_TOTAL.collect():
-            for sample in metric.samples:
-                if sample.name != "ai_tokens_total":
-                    continue
-                role = sample.labels.get("role", "unknown")
-                ai_tokens[role] = _safe_int(sample.value)
-    except Exception as e:
-        logger.debug("ai_tokens collect failed: %s", e)
-
-    # 3) HTTP 5xx rate — это Counter, абсолютное значение (нужно знать baseline)
-    try:
-        http_total: dict[str, int] = {"2xx": 0, "4xx": 0, "5xx": 0}
-        http_breakdown: list[dict[str, object]] = []
-        for metric in HTTP_REQUESTS_TOTAL.collect():
-            for sample in metric.samples:
-                if sample.name != "http_requests_total":
-                    continue
-                status = sample.labels.get("status", "0")
-                path = sample.labels.get("path", "unknown")
-                item = classify_http_status_sample(path, status, sample.value)
-                http_total[str(item["bucket"])] += _safe_int(item["count"])
-                if item["bucket"] in ("4xx", "5xx") and item["count"]:
-                    http_breakdown.append(item)
-        http_breakdown.sort(key=lambda item: (str(item["kind"]), str(item["status"]), str(item["path"])))
-    except Exception as e:
-        logger.debug("http_total collect failed: %s", e)
-        http_total = {"2xx": 0, "4xx": 0, "5xx": 0}
-        http_breakdown = []
-
-    # 4) System status (docker-compose ps)
     sys = _system_health()
     return {
         "ts": datetime.now(timezone.utc).isoformat(),
-        "ai_modes": ai_modes,
-        "ai_tokens": ai_tokens,
-        "http_total": http_total,
-        "http_breakdown": http_breakdown,
+        **parsed,
         "system": sys,
     }
 

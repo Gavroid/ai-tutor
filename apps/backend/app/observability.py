@@ -14,9 +14,11 @@ from typing import Callable
 from fastapi import Request, Response
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
+    CollectorRegistry,
     Counter,
     Histogram,
     generate_latest,
+    multiprocess,
 )
 
 
@@ -103,9 +105,21 @@ async def metrics_middleware(request: Request, call_next: Callable) -> Response:
         HTTP_REQUEST_DURATION.labels(method=method, path=path).observe(duration)
 
 
+def metrics_payload() -> bytes:
+    """Return Prometheus text payload, aggregating workers when multiprocess is enabled."""
+    import os
+
+    multiproc_dir = os.environ.get("PROMETHEUS_MULTIPROC_DIR")
+    if multiproc_dir and os.path.isdir(multiproc_dir):
+        registry = CollectorRegistry()
+        multiprocess.MultiProcessCollector(registry)
+        return generate_latest(registry)
+    return generate_latest()
+
+
 def metrics_endpoint() -> Response:
     """Возвращает /metrics в формате Prometheus."""
-    data = generate_latest()
+    data = metrics_payload()
     return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
 

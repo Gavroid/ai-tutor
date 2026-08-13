@@ -53,6 +53,7 @@ services:
       OPS_COMMIT_MARKER_PATH: /app/.mvp-rescue-commit
       OPS_BACKUP_SCRIPT_PATH: /app/ops/backup.sh
       OPS_BACKUP_CRON_PATH: /app/ops/ai-tutor-backup
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-4}
     depends_on:
       db:
         condition: service_healthy
