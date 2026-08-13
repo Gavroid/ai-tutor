@@ -1,5 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./styles/prism-foundation.css";
+import "./styles/prism-v3.css";
+import "./styles/split-lesson.css";
+import "./styles/console-surfaces.css";
+import "./styles/mobile-chat.css";
 
 export const metadata: Metadata = {
   title: "AI-репетитор 7 класса",

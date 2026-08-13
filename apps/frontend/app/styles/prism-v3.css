@@ -1,0 +1,580 @@
+/* 13. Theme v2: real light/dark rendering + wide modern shell */
+/* ============================================================ */
+
+:root {
+  color-scheme: light;
+  --theme-bg-page:
+    radial-gradient(circle at 8% 5%, rgba(255, 47, 179, 0.16), transparent 30rem),
+    radial-gradient(circle at 94% 8%, rgba(25, 246, 255, 0.15), transparent 28rem),
+    linear-gradient(135deg, #fff7fb 0%, #f7fbff 36%, #fff1f7 74%, #fff8ef 100%);
+  --theme-shell-bg:
+    radial-gradient(circle at 10% 8%, rgba(255, 47, 179, 0.20), transparent 32rem),
+    radial-gradient(circle at 92% 4%, rgba(25, 246, 255, 0.16), transparent 30rem),
+    linear-gradient(135deg, #fff7fb 0%, #f5f8ff 42%, #fff1f8 100%);
+  --theme-hero-bg:
+    linear-gradient(135deg, rgba(31, 8, 58, 0.96), rgba(79, 23, 91, 0.92)),
+    radial-gradient(circle at 15% 15%, rgba(255,47,179,0.34), transparent 28rem),
+    radial-gradient(circle at 90% 18%, rgba(25,246,255,0.24), transparent 25rem);
+  --theme-hero-border: rgba(32, 18, 56, 0.12);
+  --theme-title: #fff7fb;
+  --theme-copy: rgba(255,247,251,0.78);
+  --theme-panel-bg: linear-gradient(180deg, rgba(255,255,255,0.74), rgba(255,255,255,0.42));
+  --theme-panel-border: rgba(83, 58, 253, 0.14);
+  --theme-panel-text: #171022;
+  --theme-tile-bg:
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,247,252,0.92)),
+    radial-gradient(circle at 20% 0%, rgba(255,47,179,0.12), transparent 18rem);
+  --theme-tile-border: rgba(83, 58, 253, 0.12);
+  --theme-readable-bg: rgba(255, 255, 255, 0.97);
+  --theme-input-bg: rgba(255,255,255,0.96);
+  --theme-input-text: #171022;
+  --theme-input-border: rgba(83,58,253,0.22);
+}
+
+html.dark {
+  color-scheme: dark;
+  --theme-bg-page:
+    radial-gradient(circle at 12% 8%, rgba(255, 47, 179, 0.34), transparent 28rem),
+    radial-gradient(circle at 88% 4%, rgba(25, 246, 255, 0.22), transparent 26rem),
+    radial-gradient(circle at 72% 92%, rgba(255, 138, 31, 0.20), transparent 28rem),
+    linear-gradient(135deg, #0b0620 0%, #170a36 42%, #2b1248 72%, #3a164b 100%);
+  --theme-shell-bg:
+    radial-gradient(circle at 14% 12%, rgba(255, 47, 179, 0.36), transparent 30rem),
+    radial-gradient(circle at 88% 10%, rgba(25, 246, 255, 0.22), transparent 28rem),
+    radial-gradient(circle at 70% 88%, rgba(255, 138, 31, 0.24), transparent 34rem),
+    linear-gradient(135deg, #070315 0%, #120729 38%, #27124f 70%, #40174e 100%);
+  --theme-hero-bg:
+    linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.055)),
+    radial-gradient(circle at 15% 15%, rgba(255,47,179,0.32), transparent 28rem),
+    radial-gradient(circle at 90% 18%, rgba(25,246,255,0.20), transparent 25rem);
+  --theme-hero-border: rgba(255,255,255,0.13);
+  --theme-title: #fff7fb;
+  --theme-copy: rgba(255,247,251,0.76);
+  --theme-panel-bg: linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0.055));
+  --theme-panel-border: rgba(255,255,255,0.13);
+  --theme-panel-text: #fff7fb;
+  --theme-tile-bg:
+    linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,242,250,0.88)),
+    radial-gradient(circle at 20% 0%, rgba(255,47,179,0.14), transparent 18rem);
+  --theme-tile-border: rgba(255,255,255,0.13);
+  --theme-readable-bg: rgba(255, 255, 255, 0.96);
+  --theme-input-bg: rgba(255,255,255,0.95);
+  --theme-input-text: #171022;
+  --theme-input-border: rgba(255,143,222,0.34);
+}
+
+body { background: var(--theme-bg-page); }
+
+.bg-app { background: var(--theme-shell-bg); }
+
+.premium-shell {
+  background: var(--theme-shell-bg);
+  overflow-x: hidden;
+}
+
+.premium-container {
+  width: min(1720px, calc(100vw - 40px));
+}
+
+.premium-hero {
+  border-color: var(--theme-hero-border);
+  background: var(--theme-hero-bg);
+}
+
+.premium-title { color: var(--theme-title); }
+.premium-copy { color: var(--theme-copy); }
+
+.premium-panel {
+  color: var(--theme-panel-text);
+  border-color: var(--theme-panel-border);
+  background: var(--theme-panel-bg);
+}
+
+.premium-tile {
+  border-color: var(--theme-tile-border);
+  background: var(--theme-tile-bg);
+}
+
+.lesson-readable {
+  background: var(--theme-readable-bg);
+  color: #171022;
+}
+
+input,
+textarea,
+select {
+  color-scheme: light;
+}
+
+.form-surface,
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  background-color: var(--theme-input-bg);
+  color: var(--theme-input-text);
+  border-color: var(--theme-input-border);
+}
+
+@media (max-width: 640px) {
+  .premium-container { width: min(100% - 16px, 1720px); }
+}
+
+
+/* ============================================================ */
+/* 14. Prism Learning OS V3 — complete visual reset */
+/* ============================================================ */
+
+:root {
+  --prism-bg: #eef3ea;
+  --prism-bg-soft: #f7f1e5;
+  --prism-ink: #101820;
+  --prism-muted: #53635f;
+  --prism-line: rgba(16,24,32,.14);
+  --prism-panel: rgba(255,252,242,.78);
+  --prism-panel-solid: #fffaf0;
+  --prism-elevated: rgba(255,255,255,.86);
+  --prism-accent: #285cff;
+  --prism-accent-2: #6b4dff;
+  --prism-cyan: #00d7ff;
+  --prism-pink: #ff4dc4;
+  --prism-warm: #ff9b42;
+  --prism-green: #315b48;
+  --prism-shadow: 0 34px 90px -54px rgba(22,31,27,.52), 0 8px 20px rgba(22,31,27,.08);
+  --prism-glow: 0 0 0 1px rgba(40,92,255,.18), 0 0 46px rgba(40,92,255,.18), 0 20px 80px -48px rgba(255,77,196,.45);
+}
+
+html.dark {
+  --prism-bg: #080a12;
+  --prism-bg-soft: #101225;
+  --prism-ink: #f4f7ff;
+  --prism-muted: #d4dcf2;
+  --prism-line: rgba(244,247,255,.13);
+  --prism-panel: rgba(13,17,34,.68);
+  --prism-panel-solid: #101426;
+  --prism-elevated: rgba(18,23,43,.82);
+  --prism-accent: #4b83ff;
+  --prism-accent-2: #8b5cff;
+  --prism-cyan: #22e7ff;
+  --prism-pink: #ff4dc4;
+  --prism-warm: #ff9b42;
+  --prism-green: #7fffd1;
+  --prism-shadow: 0 38px 110px -58px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.08);
+  --prism-glow: 0 0 0 1px rgba(34,231,255,.18), 0 0 54px rgba(75,131,255,.28), 0 24px 100px -55px rgba(255,77,196,.42);
+}
+
+.prism-shell {
+  min-height: 100dvh;
+  color: var(--prism-ink);
+  background:
+    radial-gradient(circle at 14% 10%, color-mix(in srgb, var(--prism-pink) 18%, transparent), transparent 28rem),
+    radial-gradient(circle at 90% 7%, color-mix(in srgb, var(--prism-cyan) 18%, transparent), transparent 30rem),
+    radial-gradient(circle at 72% 92%, color-mix(in srgb, var(--prism-warm) 18%, transparent), transparent 34rem),
+    linear-gradient(135deg, var(--prism-bg) 0%, var(--prism-bg-soft) 100%);
+  overflow-x: hidden;
+}
+
+.prism-frame {
+  position: relative;
+  width: min(1840px, calc(100vw - 32px));
+  margin-inline: auto;
+  border: 1px solid var(--prism-line);
+  border-radius: 36px;
+  background: var(--prism-panel);
+  box-shadow: var(--prism-shadow);
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  overflow: hidden;
+}
+
+.prism-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--prism-ink) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--prism-ink) 6%, transparent) 1px, transparent 1px);
+  background-size: 78px 78px;
+  mask-image: radial-gradient(circle at 54% 30%, black, transparent 78%);
+  opacity: .48;
+}
+
+.prism-layer { position: relative; z-index: 1; }
+
+.prism-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 68px;
+  border-bottom: 1px solid var(--prism-line);
+  padding: 14px 18px;
+}
+
+.prism-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 950;
+  letter-spacing: -.03em;
+}
+
+.prism-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, var(--prism-accent), var(--prism-pink) 58%, var(--prism-cyan));
+  box-shadow: var(--prism-glow);
+}
+
+.prism-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.prism-nav a,
+.prism-pill,
+.prism-action {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--prism-line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--prism-panel-solid) 62%, transparent);
+  color: var(--prism-ink);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 850;
+  text-decoration: none;
+  box-shadow: 0 1px 0 rgba(255,255,255,.25) inset;
+}
+
+.prism-action.primary,
+.prism-pill.active {
+  color: white;
+  border-color: color-mix(in srgb, var(--prism-accent) 50%, transparent);
+  background: linear-gradient(135deg, var(--prism-accent), var(--prism-accent-2) 55%, var(--prism-pink));
+  box-shadow: var(--prism-glow);
+}
+
+.prism-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr);
+  gap: 28px;
+  padding: clamp(22px, 4vw, 64px);
+}
+
+.prism-kicker {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  border-left: 12px solid var(--prism-accent);
+  padding-left: 12px;
+  color: var(--prism-muted);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.prism-title {
+  margin: 18px 0 0;
+  max-width: 980px;
+  font-size: clamp(44px, 8vw, 122px);
+  line-height: .86;
+  letter-spacing: -.075em;
+  font-weight: 950;
+  text-wrap: balance;
+}
+
+.prism-title .accent { color: var(--prism-accent); }
+
+.prism-copy {
+  max-width: 720px;
+  margin-top: 22px;
+  color: var(--prism-muted);
+  font-size: clamp(16px, 1.5vw, 21px);
+  line-height: 1.62;
+  text-wrap: pretty;
+}
+
+.prism-bento {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.prism-card {
+  position: relative;
+  border: 1px solid var(--prism-line);
+  border-radius: 28px;
+  background: var(--prism-elevated);
+  box-shadow: var(--prism-shadow);
+  overflow: hidden;
+}
+
+.prism-card.pad { padding: 22px; }
+.prism-card.glow { box-shadow: var(--prism-glow); }
+
+.prism-orb {
+  min-height: 420px;
+  border: 1px solid var(--prism-line);
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at 52% 38%, color-mix(in srgb, var(--prism-cyan) 24%, transparent), transparent 20rem),
+    radial-gradient(circle at 36% 68%, color-mix(in srgb, var(--prism-pink) 22%, transparent), transparent 18rem),
+    linear-gradient(145deg, color-mix(in srgb, var(--prism-panel-solid) 70%, transparent), color-mix(in srgb, var(--prism-accent) 12%, transparent));
+  box-shadow: var(--prism-glow);
+}
+
+.prism-orb::before,
+.prism-orb::after {
+  content: "";
+  position: absolute;
+  inset: 20%;
+  border: 1px solid color-mix(in srgb, var(--prism-cyan) 45%, transparent);
+  border-radius: 42% 58% 38% 62%;
+  transform: rotate(-18deg);
+}
+.prism-orb::after { inset: 30% 10%; transform: rotate(24deg); border-color: color-mix(in srgb, var(--prism-pink) 38%, transparent); }
+
+.prism-subject-card {
+  min-height: 260px;
+  padding: 22px;
+  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+.prism-subject-card:hover { transform: translateY(-5px); border-color: var(--prism-accent); box-shadow: var(--prism-glow); }
+
+.prism-input,
+.prism-field input,
+.prism-field textarea,
+.prism-field select {
+  min-height: 50px;
+  width: 100%;
+  border: 1px solid var(--prism-line);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--prism-panel-solid) 88%, transparent);
+  color: var(--prism-ink);
+  padding: 12px 16px;
+  font: inherit;
+  outline: none;
+}
+.prism-input:focus,
+.prism-field input:focus,
+.prism-field textarea:focus,
+.prism-field select:focus { border-color: var(--prism-accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--prism-accent) 18%, transparent); }
+
+.prism-lesson-grid {
+  display: grid;
+  grid-template-columns: minmax(160px, 10fr) minmax(0, 60fr) minmax(260px, 20fr);
+  gap: 16px;
+  height: calc(100dvh - 94px);
+  padding: 16px;
+}
+
+.prism-scroll { overflow: auto; scrollbar-gutter: stable; }
+
+@media (max-width: 980px) {
+  .prism-frame { width: min(100vw - 16px, 1840px); border-radius: 26px; }
+  .prism-topbar { align-items: flex-start; flex-direction: column; }
+  .prism-nav { justify-content: flex-start; width: 100%; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+  .prism-hero-grid { grid-template-columns: 1fr; padding: 22px; }
+  .prism-title { font-size: clamp(42px, 13vw, 72px); }
+  .prism-orb { min-height: 260px; }
+  .prism-bento { grid-template-columns: 1fr; }
+  .prism-lesson-grid { grid-template-columns: 1fr; height: auto; min-height: calc(100dvh - 78px); padding: 8px; }
+  .prism-card.pad { padding: 16px; }
+}
+
+
+/* ============================================================ */
+/* 15. Prism V3 lesson/dark readability hotfix */
+/* ============================================================ */
+
+.prism-chat-surface {
+  background: color-mix(in srgb, var(--prism-panel-solid) 72%, transparent);
+}
+.prism-chat-bubble-assistant {
+  background: color-mix(in srgb, var(--prism-panel-solid) 92%, white 8%);
+  color: var(--prism-ink);
+}
+.prism-option-button {
+  background: color-mix(in srgb, var(--prism-panel-solid) 90%, transparent);
+  color: var(--prism-ink);
+  border-color: var(--prism-line);
+}
+.prism-option-button-active {
+  background: color-mix(in srgb, var(--prism-green) 16%, var(--prism-panel-solid));
+  color: var(--prism-ink);
+  border-color: var(--prism-green);
+}
+
+html.dark .lesson-readable {
+  background: color-mix(in srgb, var(--prism-panel-solid) 88%, #050711 12%);
+  color: var(--prism-ink);
+  border-color: var(--prism-line);
+}
+html.dark .prism-chat-surface {
+  background: color-mix(in srgb, var(--prism-panel-solid) 82%, transparent);
+}
+html.dark .prism-chat-bubble-assistant {
+  background: color-mix(in srgb, var(--prism-panel-solid) 92%, #1f2945 8%);
+  color: var(--prism-ink);
+}
+html.dark .prism-option-button {
+  background: color-mix(in srgb, var(--prism-panel-solid) 88%, #050711 12%);
+  color: var(--prism-ink);
+  border-color: var(--prism-line);
+}
+html.dark .prism-option-button-active {
+  background: color-mix(in srgb, var(--prism-green) 18%, var(--prism-panel-solid));
+  color: var(--prism-ink);
+}
+
+@media (min-width: 1280px) {
+  .prism-lesson-grid { grid-template-columns: minmax(170px, 10fr) minmax(0, 60fr) minmax(280px, 20fr); }
+}
+@media (min-width: 1600px) {
+  .prism-lesson-grid { grid-template-columns: minmax(190px, 10fr) minmax(0, 60fr) minmax(320px, 20fr); }
+}
+@media (max-width: 980px) {
+  .prism-lesson-grid { grid-template-columns: 1fr; }
+}
+
+
+/* ============================================================ */
+/* 16. Prism dark contrast hardening for legacy nested components */
+/* ============================================================ */
+
+html.dark .prism-shell .text-slate-400,
+html.dark .prism-shell .text-slate-500,
+html.dark .prism-shell .text-slate-600,
+html.dark .prism-shell .text-slate-700,
+html.dark .prism-shell .text-gray-400,
+html.dark .prism-shell .text-gray-500,
+html.dark .prism-shell .text-gray-600,
+html.dark .prism-shell .text-gray-700 {
+  color: #d7def3 !important;
+}
+
+html.dark .prism-shell .hover\:text-slate-700:hover,
+html.dark .prism-shell .hover\:text-gray-700:hover {
+  color: #ffffff !important;
+}
+
+html.dark .prism-shell .bg-slate-50,
+html.dark .prism-shell .bg-slate-100,
+html.dark .prism-shell .bg-white {
+  background-color: color-mix(in srgb, var(--prism-panel-solid) 86%, #24304f 14%) !important;
+  color: var(--prism-ink) !important;
+}
+
+html.dark .prism-shell .border-slate-200,
+html.dark .prism-shell .border-slate-300 {
+  border-color: var(--prism-line) !important;
+}
+
+html.dark .prism-card,
+html.dark .prism-card *:not(.prism-action):not(.prism-action *):not(.prism-pill):not(.prism-pill *) {
+  color-scheme: dark;
+}
+
+html.dark .prism-card .prism-action,
+html.dark .prism-card .prism-pill {
+  color: var(--prism-ink);
+}
+html.dark .prism-card .prism-action.primary,
+html.dark .prism-card .prism-pill.active {
+  color: #ffffff;
+}
+
+
+/* ============================================================ */
+/* 17. Lesson V3 layout contrast + column roles */
+/* ============================================================ */
+.prism-chat-column { order: 2; }
+.prism-explain-column { order: 3; }
+.prism-practice-column { order: 1; }
+
+html.dark .prism-shell {
+  --prism-muted: #e2e8ff;
+}
+html.dark .prism-kicker,
+html.dark .prism-copy,
+html.dark .prism-shell [class*="text-[color:var(--prism-muted)]"] {
+  color: #e2e8ff !important;
+}
+html.dark .prism-card {
+  color: #f7f9ff;
+}
+html.dark .prism-input::placeholder {
+  color: #b7c3df;
+}
+html.dark .prism-action:not(.primary),
+html.dark .prism-pill:not(.active) {
+  background: rgba(255,255,255,0.10);
+  color: #f7f9ff;
+  border-color: rgba(255,255,255,0.20);
+}
+html.dark .prism-action:not(.primary):hover,
+html.dark .prism-pill:not(.active):hover {
+  background: rgba(255,255,255,0.16);
+}
+
+@media (max-width: 980px) {
+  .prism-chat-column,
+  .prism-explain-column,
+  .prism-practice-column { order: initial; }
+}
+
+
+/* ============================================================ */
+/* 18. Prism dark markdown hard contrast fix */
+/* ============================================================ */
+html.dark .prism-shell .text-slate-800,
+html.dark .prism-shell .text-slate-900,
+html.dark .prism-shell .text-slate-950,
+html.dark .prism-shell .text-gray-800,
+html.dark .prism-shell .text-gray-900,
+html.dark .prism-shell .text-gray-950 {
+  color: #f7f9ff !important;
+}
+
+html.dark .prism-shell strong,
+html.dark .prism-shell b,
+html.dark .prism-shell h1,
+html.dark .prism-shell h2,
+html.dark .prism-shell h3,
+html.dark .prism-shell h4,
+html.dark .prism-shell h5,
+html.dark .prism-shell h6,
+html.dark .prism-shell p,
+html.dark .prism-shell li,
+html.dark .prism-shell blockquote {
+  color: inherit;
+}
+
+html.dark .prism-shell .lesson-readable,
+html.dark .prism-shell .lesson-readable * {
+  color: #f7f9ff !important;
+}
+html.dark .prism-shell .lesson-readable .text-emerald-700,
+html.dark .prism-shell .lesson-readable [class*="text-emerald"] {
+  color: #8ff7c2 !important;
+}
+html.dark .prism-shell .lesson-readable .bg-emerald-100,
+html.dark .prism-shell .lesson-readable .bg-rose-100 {
+  background-color: rgba(255,255,255,0.10) !important;
+}
+html.dark .prism-shell .lesson-readable .text-emerald-950,
+html.dark .prism-shell .lesson-readable .text-rose-950,
+html.dark .prism-shell .lesson-readable .text-rose-900 {
+  color: #f7f9ff !important;
+}
+
+
