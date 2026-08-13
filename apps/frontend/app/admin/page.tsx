@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import type { AdminSnapshot, AdminWSState } from "@/lib/admin-ws";
@@ -84,6 +84,8 @@ export default function AdminPage() {
   const [inviteMaxUses, setInviteMaxUses] = useState(1);
   const [realtimeState, setRealtimeState] = useState<AdminWSState>({ status: "closed", reason: "not-opened" });
   const [realtimeSnapshot, setRealtimeSnapshot] = useState<AdminSnapshot | null>(null);
+  const realtimeFailuresRef = useRef(0);
+  const realtimeHasSnapshotRef = useRef(false);
 
   useEffect(() => {
     const requestedTab = new URLSearchParams(window.location.search).get("tab");
@@ -112,24 +114,39 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (tab !== "realtime") return;
+    if (current?.role !== "admin") {
+      setRealtimeState({ status: "connecting" });
+      return;
+    }
     let cancelled = false;
     let timer: number | null = null;
 
     async function loadSnapshot() {
       try {
-        setRealtimeState((current) =>
-          current.status === "open" ? current : { status: "connecting" },
+        setRealtimeState((currentState) =>
+          currentState.status === "open" ? currentState : { status: "connecting" },
         );
-        const response = await fetch("/api/v1/admin/realtime/snapshot", { credentials: "include" });
+        const response = await fetch("/api/v1/admin/realtime/snapshot", {
+          credentials: "include",
+          cache: "no-store",
+        });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const snapshot = (await response.json()) as AdminSnapshot;
         if (cancelled) return;
+        realtimeFailuresRef.current = 0;
+        realtimeHasSnapshotRef.current = true;
         setRealtimeSnapshot(snapshot);
         setRealtimeState({ status: "open", last: snapshot });
       } catch (error) {
-        if (!cancelled) {
-          setRealtimeState({ status: "error", error: error instanceof Error ? error.message : "Polling error" });
-        }
+        if (cancelled) return;
+        realtimeFailuresRef.current += 1;
+        const message = error instanceof Error ? error.message : "Polling error";
+        setRealtimeState((currentState) => {
+          if (currentState.status === "open" || realtimeHasSnapshotRef.current) return currentState;
+          return realtimeFailuresRef.current >= 3
+            ? { status: "error", error: message }
+            : { status: "connecting" };
+        });
       }
     }
 
@@ -139,7 +156,7 @@ export default function AdminPage() {
       cancelled = true;
       if (timer) window.clearInterval(timer);
     };
-  }, [tab]);
+  }, [tab, current?.role]);
 
   async function refresh(which: AdminTab) {
     setBusy(true);

@@ -31,6 +31,10 @@ export const viewport: Viewport = {
 const themeInitScript = `
 (function() {
   try {
+    if (location.hostname === 'school431a.ru') {
+      location.replace('https://school.431a.ru' + location.pathname + location.search + location.hash);
+      return;
+    }
     document.documentElement.classList.add('dark');
     document.documentElement.dataset.theme = 'dark';
     localStorage.setItem('ai-tutor:theme', 'dark');
