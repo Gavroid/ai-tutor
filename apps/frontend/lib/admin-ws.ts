@@ -15,6 +15,8 @@ export type AdminSnapshot = {
     redis: string;
     backend: string;
     mem_used_pct: number | null;
+    mem_used_mb?: number | null;
+    mem_limit_mb?: number | null;
   };
 };
 

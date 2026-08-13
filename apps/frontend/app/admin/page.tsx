@@ -651,7 +651,21 @@ function RealtimeTab({ state, snapshot, loading, onRefresh }: { state: AdminWSSt
           <RealtimeKpi label="HTTP 5xx" value={snapshot.http_total["5xx"]} sublabel="Ошибки сервера с момента старта backend" danger={snapshot.http_total["5xx"] > 0} />
           <RealtimeKpi label="HTTP 4xx" value={snapshot.http_total["4xx"]} sublabel="Клиентские ошибки: 401/403/404/429" />
           <RealtimeKpi label="HTTP 2xx" value={snapshot.http_total["2xx"]} sublabel="Успешные ответы backend с момента старта" good />
-          <RealtimeKpi label="RAM backend" value={snapshot.system.mem_used_pct !== null ? `${Math.round(snapshot.system.mem_used_pct)}%` : "—"} sublabel="Использование памяти внутри backend-контейнера" />
+          <RealtimeKpi
+            label="RAM backend"
+            value={
+              snapshot.system.mem_used_pct !== null
+                ? `${Math.round(snapshot.system.mem_used_pct)}%`
+                : snapshot.system.mem_used_mb != null
+                  ? `${Math.round(snapshot.system.mem_used_mb)} MiB`
+                  : "—"
+            }
+            sublabel={
+              snapshot.system.mem_limit_mb != null
+                ? `Память backend: ${Math.round(snapshot.system.mem_used_mb || 0)} MiB / ${Math.round(snapshot.system.mem_limit_mb)} MiB`
+                : "Фактически занято backend-контейнером; лимит cgroup не задан"
+            }
+          />
         </div>
       )}
     </div>

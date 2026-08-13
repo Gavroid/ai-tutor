@@ -100,7 +100,7 @@ def _metrics_snapshot() -> dict:
 
 def _system_health() -> dict:
     """Проверяет здоровье Docker-сервисов + память/CPU."""
-    result = {"db": "unknown", "redis": "unknown", "backend": "unknown", "mem_used_pct": None}
+    result = {"db": "unknown", "redis": "unknown", "backend": "unknown", "mem_used_pct": None, "mem_used_mb": None, "mem_limit_mb": None}
     try:
         out = subprocess.run(
             ["docker", "compose", "ps", "--format", "{{.Service}}={{.Status}}"],
@@ -119,19 +119,23 @@ def _system_health() -> dict:
         logger.debug("docker ps failed: %s", e)
 
     try:
-        with open("/proc/meminfo") as f:
-            mem = {}
-            for line in f:
-                if ":" in line:
-                    k, v = line.split(":", 1)
-                    mem[k.strip()] = v.strip().split()[0]
-            total = _safe_int(mem.get("MemTotal"))
-            avail = _safe_int(mem.get("MemAvailable"))
-            if total > 0:
-                used_pct = round((total - avail) / total * 100, 1)
-                result["mem_used_pct"] = used_pct
+        current_path = "/sys/fs/cgroup/memory.current"
+        max_path = "/sys/fs/cgroup/memory.max"
+        with open(current_path) as f:
+            used_bytes = _safe_int(f.read().strip())
+        result["mem_used_mb"] = round(used_bytes / 1024 / 1024, 1)
+        try:
+            with open(max_path) as f:
+                raw_limit = f.read().strip()
+            if raw_limit and raw_limit != "max":
+                limit_bytes = _safe_int(raw_limit)
+                if limit_bytes > 0:
+                    result["mem_limit_mb"] = round(limit_bytes / 1024 / 1024, 1)
+                    result["mem_used_pct"] = round(used_bytes / limit_bytes * 100, 1)
+        except Exception:
+            pass
     except Exception:
-        pass
+        logger.debug("cgroup memory read failed", exc_info=True)
     return result
 
 
