@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import type { AdminSnapshot, AdminWSState } from "@/lib/admin-ws";
@@ -84,8 +84,7 @@ export default function AdminPage() {
   const [inviteMaxUses, setInviteMaxUses] = useState(1);
   const [realtimeState, setRealtimeState] = useState<AdminWSState>({ status: "closed", reason: "not-opened" });
   const [realtimeSnapshot, setRealtimeSnapshot] = useState<AdminSnapshot | null>(null);
-  const realtimeFailuresRef = useRef(0);
-  const realtimeHasSnapshotRef = useRef(false);
+  const [realtimeLoading, setRealtimeLoading] = useState(false);
 
   useEffect(() => {
     const requestedTab = new URLSearchParams(window.location.search).get("tab");
@@ -112,50 +111,38 @@ export default function AdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, current?.role]);
 
-  useEffect(() => {
-    if (tab !== "realtime") return;
+  async function refreshRealtimeSnapshot() {
     if (current?.role !== "admin") {
-      setRealtimeState({ status: "connecting" });
+      setRealtimeState({ status: "error", error: "Admin session required" });
       return;
     }
-    let cancelled = false;
-    let timer: number | null = null;
-
-    async function loadSnapshot() {
-      try {
-        setRealtimeState((currentState) =>
-          currentState.status === "open" ? currentState : { status: "connecting" },
-        );
-        const response = await fetch("/api/v1/admin/realtime/snapshot", {
-          credentials: "include",
-          cache: "no-store",
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const snapshot = (await response.json()) as AdminSnapshot;
-        if (cancelled) return;
-        realtimeFailuresRef.current = 0;
-        realtimeHasSnapshotRef.current = true;
-        setRealtimeSnapshot(snapshot);
-        setRealtimeState({ status: "open", last: snapshot });
-      } catch (error) {
-        if (cancelled) return;
-        realtimeFailuresRef.current += 1;
-        const message = error instanceof Error ? error.message : "Polling error";
-        setRealtimeState((currentState) => {
-          if (currentState.status === "open" || realtimeHasSnapshotRef.current) return currentState;
-          return realtimeFailuresRef.current >= 3
-            ? { status: "error", error: message }
-            : { status: "connecting" };
-        });
-      }
+    setRealtimeLoading(true);
+    setRealtimeState((currentState) =>
+      realtimeSnapshot && currentState.status === "open" ? currentState : { status: "connecting" },
+    );
+    try {
+      const response = await fetch("/api/v1/admin/realtime/snapshot", {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const snapshot = (await response.json()) as AdminSnapshot;
+      setRealtimeSnapshot(snapshot);
+      setRealtimeState({ status: "open", last: snapshot });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Snapshot error";
+      setRealtimeState((currentState) =>
+        realtimeSnapshot && currentState.status === "open" ? currentState : { status: "error", error: message },
+      );
+    } finally {
+      setRealtimeLoading(false);
     }
+  }
 
-    void loadSnapshot();
-    timer = window.setInterval(loadSnapshot, 3000);
-    return () => {
-      cancelled = true;
-      if (timer) window.clearInterval(timer);
-    };
+  useEffect(() => {
+    if (tab !== "realtime" || current?.role !== "admin" || realtimeSnapshot) return;
+    void refreshRealtimeSnapshot();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, current?.role]);
 
   async function refresh(which: AdminTab) {
@@ -533,7 +520,7 @@ export default function AdminPage() {
           />
         )}
 
-        {tab === "realtime" && !busy && <RealtimeTab state={realtimeState} snapshot={realtimeSnapshot} />}
+        {tab === "realtime" && !busy && <RealtimeTab state={realtimeState} snapshot={realtimeSnapshot} loading={realtimeLoading} onRefresh={refreshRealtimeSnapshot} />}
       </section>
     </div></div></section></main>
   );
@@ -642,16 +629,21 @@ function InvitesTab({
   );
 }
 
-function RealtimeTab({ state, snapshot }: { state: AdminWSState; snapshot: AdminSnapshot | null }) {
+function RealtimeTab({ state, snapshot, loading, onRefresh }: { state: AdminWSState; snapshot: AdminSnapshot | null; loading: boolean; onRefresh: () => void }) {
   return (
     <div>
       <section className="border-b border-[color:var(--prism-line)] pb-5">
         <h1 className="mt-1 text-2xl font-bold">Real-time метрики</h1>
         <ConnectionStatus state={state} />
       </section>
-      <p className="mt-3 text-sm leading-6 text-[color:var(--prism-muted)]">
-        Метрики — это накопительные счётчики с момента последнего старта backend, а не значения “за минуту”.
-      </p>
+      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm leading-6 text-[color:var(--prism-muted)]">
+          Метрики — это фиксированный снимок накопительных счётчиков с момента последнего старта backend. Автообновление отключено, чтобы значения не прыгали.
+        </p>
+        <button type="button" onClick={onRefresh} disabled={loading} className="prism-action shrink-0 px-4 py-2 text-sm disabled:opacity-50">
+          {loading ? "Обновляю…" : "Обновить"}
+        </button>
+      </div>
       {snapshot === null ? <p className="mt-6 text-sm text-[color:var(--prism-muted)]">Ожидание первых данных с Prometheus…</p> : (
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
           <RealtimeKpi label="AI токены" value={(snapshot.ai_tokens.input || 0) + (snapshot.ai_tokens.output || 0)} sublabel={`Всего токенов AI: input ${snapshot.ai_tokens.input || 0} / output ${snapshot.ai_tokens.output || 0}`} />
