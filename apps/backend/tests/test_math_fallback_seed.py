@@ -1,9 +1,12 @@
 from scripts.math_fallback_seed import FALLBACKS, build_rows
 
 
-def test_math_fallback_bank_covers_at_least_stage03_target_topics():
-    """Stage 03 requires at least 15 upgraded non-generic fallback tasks."""
-    assert len(FALLBACKS) >= 15
+def test_math_fallback_bank_covers_all_math_route_topics():
+    """Stage 04 requires all 42 math route topics to have specific fallbacks."""
+    from app.math_plan import MATH_TOPIC_PLAN
+
+    expected = {row.topic_id for row in MATH_TOPIC_PLAN}
+    assert set(FALLBACKS) == expected
 
 
 def test_math_fallback_bank_has_checkable_single_choice_rows():
