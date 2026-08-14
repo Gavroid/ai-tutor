@@ -101,6 +101,7 @@ export default function TopicPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const voiceEnabled = process.env.NEXT_PUBLIC_VOICE_ENABLED === "1";
   const [activePane, setActivePane] = useState<"chat" | "lesson" | "practice">("chat");
+  const [nextTopicId, setNextTopicId] = useState<number | null>(null);
 
   useEffect(() => {
     // Sprint 27: cookie auth.
@@ -125,6 +126,25 @@ export default function TopicPage() {
       cancelled = true;
     };
   }, [topicId, router]);
+
+  useEffect(() => {
+    if (!topicId || Number.isNaN(topicId)) {
+      setNextTopicId(null);
+      return;
+    }
+    let cancelled = false;
+    api
+      .subjectRoutePlan(3)
+      .then((route) => {
+        if (cancelled) return;
+        const row = route.find((item) => item.topic_id === topicId);
+        setNextTopicId(row?.next_topic_id ?? null);
+      })
+      .catch(() => setNextTopicId(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [topicId]);
 
   // Sprint 42: T1D recovery mode — fetch recommend-next для RecoveryBadge.
   // Показывается только если recovery_mode=true (т.е. была недавняя hypo/hyper).
@@ -247,19 +267,33 @@ export default function TopicPage() {
 
   const nextStep = (() => {
     if (checkResult?.is_correct) {
-      return { title: "Закрепи навык", body: "Ответ верный. Возьми следующее задание или коротко объясни правило своими словами.", tone: "practice" as const };
+      return {
+        title: nextTopicId ? "Можно идти дальше" : "Закрепи навык",
+        body: nextTopicId
+          ? "Ответ верный. Возьми ещё одно задание или переходи к следующей теме маршрута."
+          : "Ответ верный. Возьми следующее задание или коротко объясни правило своими словами.",
+        tone: "practice" as const,
+        action: nextTopicId ? "next_topic" as const : "next_task" as const,
+      };
     }
     if (checkResult && !checkResult.is_correct) {
-      return { title: "Разбери ошибку", body: "Посмотри объяснение ошибки, исправь ответ и только потом бери новое задание.", tone: "review" as const };
+      return { title: "Разбери ошибку", body: "Посмотри объяснение ошибки, исправь ответ и только потом бери новое задание.", tone: "review" as const, action: "retry" as const };
     }
     if (exercise) {
-      return { title: "Реши практику", body: "Сначала выбери или введи ответ, затем нажми “Проверить”.", tone: "practice" as const };
+      return { title: "Реши практику", body: "Сначала выбери или введи ответ, затем нажми “Проверить”.", tone: "practice" as const, action: "practice" as const };
     }
     if (msgs.some((message) => message.role === "assistant")) {
-      return { title: "Переходи к практике", body: "Объяснение уже есть. Нажми “Практика”, чтобы проверить понимание на задаче.", tone: "practice" as const };
+      return { title: "Переходи к практике", body: "Объяснение уже есть. Нажми “Практика”, чтобы проверить понимание на задаче.", tone: "practice" as const, action: "practice" as const };
     }
-    return { title: "Начни с объяснения", body: "Нажми “Объяснить”: репетитор даст правило, пример и вопрос для самопроверки.", tone: "focus" as const };
+    return { title: "Начни с объяснения", body: "Нажми “Объяснить”: репетитор даст правило, пример и вопрос для самопроверки.", tone: "focus" as const, action: "explain" as const };
   })();
+
+  function startPractice(nextSeed?: number) {
+    const seed = nextSeed ?? practiceSeed + 1;
+    setPracticeSeed(seed);
+    generate(seed);
+    setActivePane("practice");
+  }
 
   async function send(textOverride?: string) {
     const text = (textOverride ?? input).trim();
@@ -390,12 +424,17 @@ export default function TopicPage() {
           actionError={actionError}
           timerMinutes={process.env.NODE_ENV !== "production" ? Number(searchParams.get("timerMinutes") || 0) : 0}
           nextStep={nextStep}
+          nextTopicId={nextTopicId}
           onExplain={explain}
-          onGeneratePractice={() => {
-            const nextSeed = practiceSeed + 1;
-            setPracticeSeed(nextSeed);
-            generate(nextSeed);
+          onGeneratePractice={() => startPractice()}
+          onGoToPractice={() => startPractice()}
+          onRetryPractice={() => {
+            setCheckResult(null);
             setActivePane("practice");
+          }}
+          onNextTask={() => startPractice(practiceSeed + 1)}
+          onNextTopic={() => {
+            if (nextTopicId) router.push(`/topics/${nextTopicId}`);
           }}
           onShowClearConfirm={() => setShowClearConfirm(true)}
           onCancelClear={() => setShowClearConfirm(false)}

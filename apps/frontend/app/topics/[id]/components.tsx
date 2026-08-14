@@ -68,7 +68,12 @@ export function LessonRail({
   onCancelClear,
   onConfirmClear,
   nextStep,
+  nextTopicId,
   onPause,
+  onGoToPractice,
+  onRetryPractice,
+  onNextTask,
+  onNextTopic,
 }: {
   activePane: LessonPane;
   busy: boolean;
@@ -82,9 +87,30 @@ export function LessonRail({
   onShowClearConfirm: () => void;
   onCancelClear: () => void;
   onConfirmClear: () => void;
-  nextStep: { title: string; body: string; tone: "focus" | "practice" | "review" };
+  nextStep: { title: string; body: string; tone: "focus" | "practice" | "review"; action: "explain" | "practice" | "retry" | "next_task" | "next_topic" };
+  nextTopicId: number | null;
   onPause: (reason: "hypo" | "hyper" | "break" | "other") => void;
+  onGoToPractice: () => void;
+  onRetryPractice: () => void;
+  onNextTask: () => void;
+  onNextTopic: () => void;
 }) {
+  const primaryAction = (() => {
+    if (nextStep.action === "next_topic" && nextTopicId) {
+      return { label: "Следующая тема", onClick: onNextTopic, disabled: busy };
+    }
+    if (nextStep.action === "next_task") {
+      return { label: "Следующее задание", onClick: onNextTask, disabled: busy };
+    }
+    if (nextStep.action === "retry") {
+      return { label: "Попробовать ещё раз", onClick: onRetryPractice, disabled: busy || !hasExercise };
+    }
+    if (nextStep.action === "practice") {
+      return { label: "Перейти к практике", onClick: onGoToPractice, disabled: busy };
+    }
+    return { label: "Начать объяснение", onClick: onExplain, disabled: busy };
+  })();
+
   return (
     <aside className={`split-panel split-lesson ${activePane === "lesson" ? "flex" : "hidden xl:flex"}`}>
       <div className="split-kicker">Урок</div>
@@ -124,6 +150,12 @@ export function LessonRail({
         <div className="split-kicker">Следующий шаг</div>
         <div className="mt-2 text-base font-black text-[color:var(--split-ink)]">{nextStep.title}</div>
         <p className="mt-1 text-xs leading-5 text-[color:var(--split-muted)]">{nextStep.body}</p>
+        <button type="button" onClick={primaryAction.onClick} disabled={primaryAction.disabled} className="split-button split-button-primary mt-3 w-full">
+          {primaryAction.label}
+        </button>
+        {nextStep.action === "next_topic" && !nextTopicId && (
+          <p className="mt-2 text-xs text-[color:var(--split-muted)]">Маршрут завершён — можно закрепить тему ещё одним заданием.</p>
+        )}
       </div>
 
       <div className="mt-auto space-y-3">

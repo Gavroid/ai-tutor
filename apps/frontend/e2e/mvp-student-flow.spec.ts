@@ -91,6 +91,7 @@ test.describe("MVP student learning flow", () => {
     await expect(page.locator("text=AI думает")).toBeVisible({ timeout: 5_000 }).catch(() => undefined);
     const explainResponse = await explainResponsePromise;
     expect(explainResponse.ok()).toBeTruthy();
+    await expect(page.getByRole("button", { name: /перейти к практике/i })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole("button", { name: /ещё пример/i })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole("button", { name: /проверь меня/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /дай задачу/i })).toBeVisible();
@@ -130,6 +131,7 @@ test.describe("MVP student learning flow", () => {
       const wrongBody = await wrongResponse.json();
       expect(wrongBody.is_correct).toBeFalsy();
       await expect(page.getByText("Есть ошибка").first()).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByRole("button", { name: /попробовать ещё раз/i })).toBeVisible({ timeout: 10_000 });
     }
 
     if (parsedGenerate.options?.includes(answer)) {
@@ -149,6 +151,7 @@ test.describe("MVP student learning flow", () => {
     const answerBody = await answerResponse.json();
     expect(answerBody.is_correct).toBeTruthy();
     await expect(page.getByText("Верно!").first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("button", { name: /следующая тема|следующее задание/i }).first()).toBeVisible({ timeout: 10_000 });
 
     await page.locator("input[placeholder='Задай вопрос репетитору…']").fill("Объясни проще про дроби");
     await page.getByRole("button", { name: /отправить/i }).click();
