@@ -87,3 +87,12 @@ class QuestionOut(BaseModel):
     correct_answer: str
     explanation: str | None
     typical_mistakes: str | None
+
+class MathTopicPlanOut(BaseModel):
+    topic_id: int
+    order: int
+    section: str
+    tier: str
+    focus: str
+    checkpoint: bool = False
+    next_topic_id: int | None = None

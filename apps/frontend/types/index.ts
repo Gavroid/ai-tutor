@@ -177,3 +177,13 @@ export type ChatMsg = {
   // UI показывает вкладку «Подробности» с error-сообщением.
   error?: string;
 };
+
+export type MathTopicPlan = {
+  topic_id: number;
+  order: number;
+  section: string;
+  tier: "base" | "medium" | "hard" | string;
+  focus: string;
+  checkpoint: boolean;
+  next_topic_id: number | null;
+};

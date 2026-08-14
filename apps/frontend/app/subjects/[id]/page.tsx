@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
-import type { Subject, Topic, User } from "@/types";
+import type { MathTopicPlan, Subject, Topic, User } from "@/types";
 import Header from "@/components/Header";
 
 export default function SubjectPage() {
@@ -15,6 +15,7 @@ export default function SubjectPage() {
   const [user, setUser] = useState<User | null>(null);
   const [subject, setSubject] = useState<Subject | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
+  const [routePlan, setRoutePlan] = useState<MathTopicPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,8 +32,14 @@ export default function SubjectPage() {
         const currentSubject = all.find((x) => x.id === subjectId) ?? null;
         setSubject(currentSubject);
         if (!currentSubject) { setError("Предмет не найден"); return; }
-        const loadedTopics = await api.subjectTopics(subjectId);
-        if (!cancelled) setTopics(loadedTopics);
+        const [loadedTopics, loadedRoutePlan] = await Promise.all([
+          api.subjectTopics(subjectId),
+          api.subjectRoutePlan(subjectId).catch(() => []),
+        ]);
+        if (!cancelled) {
+          setTopics(loadedTopics);
+          setRoutePlan(loadedRoutePlan);
+        }
       } catch (e: unknown) {
         if (cancelled) return;
         if (e instanceof ApiError && (e.status === 401 || e.status === 403)) { router.push("/login"); return; }
@@ -43,6 +50,14 @@ export default function SubjectPage() {
     })();
     return () => { cancelled = true; };
   }, [subjectId, router]);
+
+  const routeByTopic = new Map(routePlan.map((item) => [item.topic_id, item]));
+  const routeSummary = {
+    base: routePlan.filter((item) => item.tier === "base").length,
+    medium: routePlan.filter((item) => item.tier === "medium").length,
+    hard: routePlan.filter((item) => item.tier === "hard").length,
+    checkpoints: routePlan.filter((item) => item.checkpoint).length,
+  };
 
   return (
     <main className="prism-shell">
@@ -62,6 +77,8 @@ export default function SubjectPage() {
                 <Readiness label="Статус" value={subject?.mvp_status === "mvp_ready" ? "Ready" : "Preview"} />
                 <Readiness label="RAG" value={subject?.rag_ready ? "ON" : "OFF"} hot={!!subject?.rag_ready} />
                 <Readiness label="Practice" value={subject?.practice_ready ? "ON" : "Preview"} hot={!!subject?.practice_ready} />
+                {routePlan.length > 0 && <Readiness label="Маршрут" value={`${routePlan.length}/42`} hot />}
+                {routePlan.length > 0 && <Readiness label="Контроль" value={routeSummary.checkpoints} hot />}
               </div>
               {subject && <p className="mt-5 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-4 text-sm text-[color:var(--prism-muted)]"><b>{subject.mvp_status === "mvp_ready" ? "MVP-ready." : "Preview-предмет."}</b> {subject.support_note}</p>}
             </aside>
@@ -77,24 +94,36 @@ export default function SubjectPage() {
                 <div className="prism-kicker">Timeline</div>
                 <h2 className="mt-2 text-3xl font-black tracking-[-0.05em] sm:text-5xl">Маршрут тем</h2>
               </div>
-              <span className={`prism-pill ${subject?.mvp_status === "mvp_ready" ? "active" : ""}`}>{subject?.mvp_status === "mvp_ready" ? "MVP-ready" : "Preview"}</span>
+              <div className="flex flex-wrap gap-2">
+                <span className={`prism-pill ${subject?.mvp_status === "mvp_ready" ? "active" : ""}`}>{subject?.mvp_status === "mvp_ready" ? "MVP-ready" : "Preview"}</span>
+                {routePlan.length > 0 && <span className="prism-pill active">Base {routeSummary.base} · Medium {routeSummary.medium} · Hard {routeSummary.hard}</span>}
+              </div>
             </div>
 
             <ol className="grid gap-3 xl:grid-cols-2">
-              {topics.map((topic, index) => (
+              {topics.map((topic, index) => {
+                const route = routeByTopic.get(topic.id);
+                return (
                 <li key={topic.id}>
-                  <Link href={`/topics/${topic.id}`} className="prism-card pad flex min-h-[104px] flex-col gap-3 hover:border-[color:var(--prism-accent)] sm:flex-row sm:items-center sm:justify-between">
+                  <Link href={`/topics/${topic.id}`} className="prism-card pad flex min-h-[124px] flex-col gap-3 hover:border-[color:var(--prism-accent)] sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-start gap-4">
-                      <span className="prism-mark flex shrink-0 items-center justify-center text-sm font-black text-white">{String(index + 1).padStart(2, "0")}</span>
+                      <span className="prism-mark flex shrink-0 items-center justify-center text-sm font-black text-white">{String(route?.order ?? index + 1).padStart(2, "0")}</span>
                       <div>
-                        <h3 className="text-lg font-black tracking-[-0.035em]">{topic.name}</h3>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-lg font-black tracking-[-0.035em]">{topic.name}</h3>
+                          {route?.checkpoint && <span className="prism-pill active">Контроль</span>}
+                        </div>
+                        {route?.focus && <p className="mt-1 text-sm text-[color:var(--prism-muted)]">Фокус: {route.focus}</p>}
                         {topic.description && <p className="mt-1 line-clamp-2 text-sm text-[color:var(--prism-muted)]">{topic.description}</p>}
                       </div>
                     </div>
-                    <span className="prism-pill">{topic.difficulty}/5</span>
+                    <div className="flex flex-wrap gap-2 sm:justify-end">
+                      {route?.tier && <span className="prism-pill">{route.tier}</span>}
+                      <span className="prism-pill">{topic.difficulty}/5</span>
+                    </div>
                   </Link>
                 </li>
-              ))}
+              );})}
             </ol>
           </section>
         </div>

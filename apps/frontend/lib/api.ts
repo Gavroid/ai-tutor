@@ -74,6 +74,7 @@ export const api = {
   // Subjects & topics
   subjects: () => request<Subject[]>("/api/v1/subjects"),
   subjectTopics: (id: number) => request<Topic[]>(`/api/v1/subjects/${id}/topics`),
+  subjectRoutePlan: (id: number) => request<import("@/types").MathTopicPlan[]>(`/api/v1/subjects/${id}/route-plan`),
   topic: (id: number) => request<Topic>(`/api/v1/topics/${id}`),
   topicFollowups: (id: number) => request<TopicFollowup[]>(`/api/v1/topics/${id}/followups`),
   teacherTopicReadiness: (params: { subject_id?: number; priority?: "P0" | "P1" | "P2" } = {}) => {
@@ -366,6 +367,7 @@ export const api = {
       subject_name: string;
       difficulty: number;
       question_text: string;
+      correct_answer: string;
     }>(`/api/v1/diagnostic/${session_id}/next`),
   submitDiagnosticAnswer: (session_id: number, data: { topic_id: number; question_text: string; user_answer: string; correct_answer: string }) =>
     request<{ is_correct: boolean; answer_id: number }>(`/api/v1/diagnostic/${session_id}/answer`, {

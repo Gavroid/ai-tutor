@@ -14,6 +14,7 @@ from app.subjects import models as subj_models
 from app.subjects.curriculum_7_class import CURRICULUM_7_CLASS
 from app.ai.types import AIRequest, AIMessage
 from app.ai.service import get_ai_service
+from app.math_plan import MATH_SUBJECT_ID, diagnostic_topic_ids
 
 
 def _heuristic_check(question_text: str, correct: str, user_answer: str) -> bool:
@@ -58,14 +59,22 @@ def start_diagnostic(db: Session, user_id: int, subject_id: int) -> models.Diagn
     if subject is None:
         raise ValueError(f"Subject {subject_id} not found")
 
-    # Берём 5 разных тем из предмета
-    topics = db.execute(
-        select(subj_models.Topic)
-        .join(subj_models.Section)
-        .where(subj_models.Section.subject_id == subject_id)
-        .order_by(subj_models.Topic.difficulty, subj_models.Topic.order_index)
-        .limit(5)
-    ).scalars().all()
+    # Math MVP: balanced diagnostic checkpoints across the full route.
+    if subject_id == MATH_SUBJECT_ID:
+        topic_ids = diagnostic_topic_ids(max_questions=8)
+        topics = db.execute(
+            select(subj_models.Topic)
+            .where(subj_models.Topic.id.in_(topic_ids))
+        ).scalars().all()
+        topics = sorted(topics, key=lambda topic: topic_ids.index(topic.id))
+    else:
+        topics = db.execute(
+            select(subj_models.Topic)
+            .join(subj_models.Section)
+            .where(subj_models.Section.subject_id == subject_id)
+            .order_by(subj_models.Topic.difficulty, subj_models.Topic.order_index)
+            .limit(5)
+        ).scalars().all()
 
     session = models.DiagnosticSession(
         user_id=user_id,
@@ -93,14 +102,21 @@ def next_question(db: Session, session_id: int) -> dict | None:
         )
     ).scalars().all()
 
-    topic = db.execute(
-        select(subj_models.Topic)
-        .join(subj_models.Section)
-        .where(subj_models.Section.subject_id == sess.subject_id)
-        .where(subj_models.Topic.id.notin_(answered) if answered else True)
-        .order_by(subj_models.Topic.difficulty, subj_models.Topic.order_index)
-        .limit(1)
-    ).scalars().first()
+    if sess.subject_id == MATH_SUBJECT_ID:
+        route_ids = diagnostic_topic_ids(max_questions=8)
+        remaining_ids = [topic_id for topic_id in route_ids if topic_id not in set(answered)]
+        topic = None
+        if remaining_ids:
+            topic = db.get(subj_models.Topic, remaining_ids[0])
+    else:
+        topic = db.execute(
+            select(subj_models.Topic)
+            .join(subj_models.Section)
+            .where(subj_models.Section.subject_id == sess.subject_id)
+            .where(subj_models.Topic.id.notin_(answered) if answered else True)
+            .order_by(subj_models.Topic.difficulty, subj_models.Topic.order_index)
+            .limit(1)
+        ).scalars().first()
 
     if topic is None:
         return None
@@ -111,7 +127,7 @@ def next_question(db: Session, session_id: int) -> dict | None:
     svc = get_ai_service()
 
     async def _gen():
-        return await svc.generate_exercise(subject.name, topic.name, topic.difficulty)
+        return await svc.generate_exercise(subject.name, topic.name, topic.difficulty, topic_id=topic.id)
 
     try:
         gen = asyncio.run(_gen())
@@ -134,6 +150,7 @@ def next_question(db: Session, session_id: int) -> dict | None:
         "subject_name": subject.name,
         "difficulty": topic.difficulty,
         "question_text": q_text,
+        "correct_answer": correct,
     }
 
 
