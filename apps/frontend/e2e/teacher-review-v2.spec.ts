@@ -71,13 +71,14 @@ test.describe("Teacher review mode V2", () => {
     await expect(page.getByText("Route tier")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText("Manual status")).toBeVisible();
     await expect(page.getByText("Checkpoints only")).toBeVisible();
-    await expect(page.getByText("base").first()).toBeVisible();
-    await expect(page.getByText("checkpoint")).toBeVisible();
-    await expect(page.getByText("Среднее арифметическое")).toBeVisible();
+    await expect(page.locator("table").getByText("1").first()).toBeVisible();
+    await expect(page.locator("table").getByText("base").first()).toBeVisible();
+    await expect(page.locator("table").getByText(/checkpoint/).first()).toBeVisible();
+    await expect(page.locator("table").getByRole("link", { name: /Среднее арифметическое/ })).toBeVisible();
 
     await page.getByLabel("Route tier").selectOption("base");
     await page.getByLabel("Checkpoints only").check();
-    await expect(page.getByText("Виды треугольников")).toBeVisible();
+    await expect(page.locator("table").getByRole("link", { name: /Виды треугольников/ })).toBeVisible();
 
     const mainText = await page.locator("main").innerText();
     expect(mainText).not.toContain("{");
