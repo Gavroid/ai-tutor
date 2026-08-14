@@ -1,6 +1,6 @@
-"""Seed practical follow-up buttons for P0 topics.
+"""Seed practical follow-up buttons for math topics.
 
-Safe/idempotent: replaces only P0 followup registry entries with deterministic rows.
+Safe/idempotent: replaces only math followup registry entries with deterministic rows.
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from app.db.session import SessionLocal
 from app.subjects.models import Topic
 from app.teacher import content_registry
 
-P0_TOPIC_IDS = [187,188,189,192,193,194,195,196,197,198,199,201,203,204,225]
+DEFAULT_MATH_TOPIC_IDS = [187,188,189,190,191,192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,224,225,226,227,228]
 
 
 def build_followups(topic_name: str) -> list[dict[str, object]]:
@@ -54,7 +54,7 @@ def run(topic_ids: list[int], *, dry_run: bool = False) -> dict[str, object]:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--topics", default=",".join(map(str, P0_TOPIC_IDS)))
+    parser.add_argument("--topics", default=",".join(map(str, DEFAULT_MATH_TOPIC_IDS)))
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     topic_ids = [int(part.strip()) for part in args.topics.split(",") if part.strip()]
