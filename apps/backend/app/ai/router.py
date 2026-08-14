@@ -182,7 +182,7 @@ async def generate(
     if topic is None:
         raise HTTPException(404, "Topic not found")
     svc = get_ai_service()
-    gen = await svc.generate_exercise(topic.section.subject.name, topic.name, payload.difficulty)
+    gen = await svc.generate_exercise(topic.section.subject.name, topic.name, payload.difficulty, topic_id=topic.id)
     return GeneratedOut(
         question_text=gen.question_text,
         type=gen.type,
