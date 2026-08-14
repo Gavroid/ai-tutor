@@ -175,7 +175,7 @@ export const api = {
       { topic_id: number; topic_name: string; subject_id: number; subject_name: string; mastery_score: number; attempts_count: number; correct_count: number }[]
     >("/api/v1/progress/recommend-review"),
   // Sprint 8.2: рекомендация следующей темы (adaptive curriculum).
-  recommendNext: () =>
+  recommendNext: (subjectId?: number) =>
     request<{
       topic_id: number | null;
       topic_name: string | null;
@@ -188,7 +188,7 @@ export const api = {
       recovery_mode: boolean;
       recovery_reason: string | null;
       minutes_since_pause: number | null;
-    }>("/api/v1/progress/recommend-next"),
+    }>(`/api/v1/progress/recommend-next${subjectId ? `?subject_id=${subjectId}` : ""}`),
 
   // Sprint 2.2 — Spaced Repetition
   dueForReview: (limit: number = 20) =>

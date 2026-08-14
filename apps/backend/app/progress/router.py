@@ -1,7 +1,7 @@
 """Роутер прогресса."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -73,6 +73,7 @@ _NEXT_TOPIC_ENCOURAGEMENTS = [
 
 @router.get("/recommend-next", response_model=NextTopicOut)
 def recommend_next(
+    subject_id: int | None = Query(None),
     db: Session = Depends(get_db),
     current: user_models.User = Depends(get_current_user),
 ):
@@ -81,6 +82,7 @@ def recommend_next(
 
     from app.subjects import models as subj_models
     from app.progress import models as prog_models
+    from app.math_plan import MATH_SUBJECT_ID, MATH_TOPIC_PLAN
 
     # Sprint 16.2 P2-4: константы вместо магических чисел (Luna Pro).
     WEAK_THRESHOLD = 0.5  # mastery < 0.5 → тема "слабая"
@@ -126,6 +128,65 @@ def recommend_next(
     ).scalars().all()
 
     weak = [p for p in progress if 0 < p.mastery_score < WEAK_THRESHOLD]
+    if subject_id == MATH_SUBJECT_ID:
+        route_ids = [row.topic_id for row in MATH_TOPIC_PLAN]
+        route_by_id = {row.topic_id: row for row in MATH_TOPIC_PLAN}
+        progress_by_topic = {p.topic_id: p for p in progress}
+        weak_math = [p for p in weak if p.topic_id in route_by_id and p.attempts_count > 0]
+        if weak_math:
+            weakest = min(
+                weak_math,
+                key=lambda p: (
+                    p.mastery_score,
+                    route_by_id[p.topic_id].order,
+                    p.topic_id,
+                ),
+            )
+            topic = db.get(subj_models.Topic, weakest.topic_id)
+            plan = route_by_id[weakest.topic_id]
+            return NextTopicOut(
+                topic_id=weakest.topic_id,
+                topic_name=topic.name if topic else plan.focus,
+                subject_id=MATH_SUBJECT_ID,
+                subject_name=(topic.section.subject.name if topic and topic.section and topic.section.subject else "Математика (6 класс — повторение пройденного материала)"),
+                reason="weak_topic",
+                mastery_score=weakest.mastery_score,
+                encouragement=f"Повтори эту тему — всего {weakest.mastery_score * 100:.0f}% освоения. С фокусом обязательно получится! 💪",
+                recovery_mode=recovery_mode,
+                recovery_reason=recovery_reason,
+                minutes_since_pause=minutes_since_pause,
+            )
+
+        for plan in MATH_TOPIC_PLAN:
+            p = progress_by_topic.get(plan.topic_id)
+            if p is None or p.attempts_count == 0 or p.mastery_score < MASTERED_THRESHOLD:
+                topic = db.get(subj_models.Topic, plan.topic_id)
+                return NextTopicOut(
+                    topic_id=plan.topic_id,
+                    topic_name=topic.name if topic else plan.focus,
+                    subject_id=MATH_SUBJECT_ID,
+                    subject_name=(topic.section.subject.name if topic and topic.section and topic.section.subject else "Математика (6 класс — повторение пройденного материала)"),
+                    reason="next_in_curriculum",
+                    mastery_score=None if p is None or p.attempts_count == 0 else p.mastery_score,
+                    encouragement=random.choice(_NEXT_TOPIC_ENCOURAGEMENTS),
+                    recovery_mode=recovery_mode,
+                    recovery_reason=recovery_reason,
+                    minutes_since_pause=minutes_since_pause,
+                )
+
+        return NextTopicOut(
+            topic_id=None,
+            topic_name=None,
+            subject_id=MATH_SUBJECT_ID,
+            subject_name="Математика (6 класс — повторение пройденного материала)",
+            reason="all_mastered",
+            mastery_score=None,
+            encouragement="🎉 Математический маршрут 6 класса закрыт. Можно переходить к закреплению или следующему предмету!",
+            recovery_mode=recovery_mode,
+            recovery_reason=recovery_reason,
+            minutes_since_pause=minutes_since_pause,
+        )
+
     if weak:
         # Sprint 16.2 P2-4: deterministic tie-breaker (Luna Pro).
         # Без tie-breaker две темы с mastery=0.4 → выбирается произвольная.

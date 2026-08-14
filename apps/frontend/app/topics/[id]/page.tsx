@@ -152,7 +152,7 @@ export default function TopicPage() {
   useEffect(() => {
     if (!topicId || Number.isNaN(topicId)) return;
     api
-      .recommendNext()
+      .recommendNext(3)
       .then((data) => {
         setRecommendNext({
           recovery_mode: data.recovery_mode,

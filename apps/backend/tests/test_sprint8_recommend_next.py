@@ -25,6 +25,7 @@ from app.users import service as user_service
 from app.users.schemas import UserCreate
 from app.progress import models as prog_models
 from app.subjects import models as subj_models
+from app.math_plan import MATH_TOPIC_PLAN
 
 
 @pytest.fixture()
@@ -80,6 +81,89 @@ def _add_progress(s, user_id: int, topic_id: int, mastery: float, attempts: int 
     )
     s.add(p)
     s.commit()
+
+
+def test_recommend_next_math_route_no_attempts_starts_at_first_route_topic(client):
+    """Stage 09: math pilot defaults to the first route topic, not generic curriculum order."""
+    _setup_kid_with_seed()
+    token = _login(client)
+
+    r = client.get(
+        "/api/v1/progress/recommend-next?subject_id=3",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["reason"] == "next_in_curriculum"
+    assert body["topic_id"] == 187
+    assert body["subject_id"] == 3
+
+
+def test_recommend_next_math_route_prefers_weak_math_topic_over_new_topic(client):
+    """Stage 09: weak math topics are reviewed before introducing new math route topics."""
+    s = SessionLocal()
+    try:
+        user_id = _setup_kid_with_seed()
+        _add_progress(s, user_id, 187, mastery=0.85, attempts=4)
+        _add_progress(s, user_id, 188, mastery=0.35, attempts=3)
+    finally:
+        s.close()
+    token = _login(client)
+
+    r = client.get(
+        "/api/v1/progress/recommend-next?subject_id=3",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["reason"] == "weak_topic"
+    assert body["topic_id"] == 188
+    assert body["mastery_score"] == 0.35
+
+
+def test_recommend_next_math_route_mastered_current_moves_to_next_route_topic(client):
+    """Stage 09: mastered route topics advance to the next math route topic."""
+    s = SessionLocal()
+    try:
+        user_id = _setup_kid_with_seed()
+        _add_progress(s, user_id, 187, mastery=0.85, attempts=4)
+    finally:
+        s.close()
+    token = _login(client)
+
+    r = client.get(
+        "/api/v1/progress/recommend-next?subject_id=3",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["reason"] == "next_in_curriculum"
+    assert body["topic_id"] == 188
+
+
+def test_recommend_next_math_route_all_mastered_after_42_topics(client):
+    """Stage 09: all 42 math route topics mastered returns all_mastered for math."""
+    s = SessionLocal()
+    try:
+        user_id = _setup_kid_with_seed()
+        for row in MATH_TOPIC_PLAN:
+            _add_progress(s, user_id, row.topic_id, mastery=0.85, attempts=4)
+    finally:
+        s.close()
+    token = _login(client)
+
+    r = client.get(
+        "/api/v1/progress/recommend-next?subject_id=3",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["reason"] == "all_mastered"
+    assert body["topic_id"] is None
 
 
 def test_recommend_next_no_attempts_returns_next_topic(client):

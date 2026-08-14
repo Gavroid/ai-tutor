@@ -49,7 +49,7 @@ export default function StudentBadgesClient() {
     // Sprint 8.1: parallel load streak
     api.studentStreak().then(setStreak).catch(() => {});
     // Sprint 8.2: parallel load next topic
-    api.recommendNext().then(setNextTopic).catch(() => {});
+    api.recommendNext(3).then(setNextTopic).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -137,7 +137,7 @@ export default function StudentBadgesClient() {
           <NextTopicCard
             next={nextTopic}
             onRefresh={() => {
-              api.recommendNext().then(setNextTopic).catch(() => {});
+              api.recommendNext(3).then(setNextTopic).catch(() => {});
             }}
           />
         </div>
