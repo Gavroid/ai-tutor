@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI-Tutor MVP — презентация для стейкхолдера</title>
+  <style>
+    :root { --bg:#0b1020; --panel:#17213c; --panel2:#111827; --ink:#f8fafc; --muted:#b6c2d9; --blue:#38bdf8; --violet:#a78bfa; --green:#34d399; --amber:#fbbf24; --rose:#fb7185; --line:#334155; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:#050816; color:var(--ink); font-family: Calibri, Arial, sans-serif; }
+    .deck { width: 1280px; margin: 0 auto; }
+    .slide { width: 1280px; height: 720px; page-break-after: always; padding: 46px 56px; background: var(--bg); border: 1px solid #1f2a44; position: relative; overflow: hidden; }
+    .kicker { color: var(--blue); text-transform: uppercase; letter-spacing: .14em; font-weight: 800; font-size: 14px; margin-bottom: 14px; }
+    h1 { margin: 0; font-size: 46px; line-height: 1.02; letter-spacing: -0.04em; max-width: 980px; }
+    h2 { margin: 0; font-size: 38px; line-height: 1.04; letter-spacing: -0.035em; }
+    p.sub { color: var(--muted); font-size: 21px; line-height: 1.35; max-width: 980px; }
+    .grid { display: grid; gap: 20px; }
+    .g2 { grid-template-columns: 1fr 1fr; } .g3 { grid-template-columns: repeat(3, 1fr); } .g5 { grid-template-columns: repeat(5, 1fr); }
+    .card { background: var(--panel); border: 1px solid var(--line); padding: 20px; min-height: 110px; }
+    .card h3 { margin: 0 0 10px; font-size: 22px; color: var(--ink); }
+    .card p, .card li { color: var(--muted); font-size: 17px; line-height: 1.28; }
+    .stat { background: var(--panel2); border: 1px solid var(--line); padding: 18px; text-align: center; }
+    .stat .num { font-size: 42px; font-weight: 900; line-height: 1; }
+    .stat .label { margin-top: 10px; color: var(--muted); font-size: 15px; }
+    .green{color:var(--green)} .blue{color:var(--blue)} .violet{color:var(--violet)} .amber{color:var(--amber)} .rose{color:var(--rose)}
+    table { width: 100%; border-collapse: collapse; margin-top: 24px; font-size: 17px; }
+    th, td { border: 1px solid var(--line); padding: 12px 14px; vertical-align: top; }
+    th { background: var(--panel2); color: var(--ink); text-align: left; }
+    td { background: rgba(23,33,60,.86); color: var(--muted); }
+    .section { display:flex; align-items:center; gap:34px; height:100%; }
+    .section .num { width:104px; height:104px; background:var(--blue); color:var(--bg); display:grid; place-items:center; font-size:46px; font-weight:900; }
+    .final-box { margin-top: 54px; padding: 28px; border: 2px solid var(--green); background:#102a22; text-align:center; font-size:28px; font-weight:900; line-height:1.25; }
+    @page { size: 338.67mm 190.5mm; margin: 0; }
+    @media print { html, body { width:1280px; height:720px; background:var(--bg); margin:0; padding:0; } .deck { margin:0; width:1280px; } .slide { page-break-after: always; page-break-inside: avoid; } }
+  </style>
+</head>
+<body><main class="deck">
+<section class="slide">
+  <div class="kicker">AI-Tutor MVP</div>
+  <h1>AI-репетитор: статус проекта и дорожная карта</h1>
+  <p class="sub">Простым языком для стейкхолдера: что уже готово, что делаем дальше и как проект меняется по фазам.</p>
+  <div class="grid g3" style="margin-top:48px; max-width: 860px;">
+    <div class="stat"><div class="num green">42/42</div><div class="label">тем математики готовы</div></div>
+    <div class="stat"><div class="num blue">4 роли</div><div class="label">ученик, родитель, учитель, админ</div></div>
+    <div class="stat"><div class="num amber">OK</div><div class="label">production health</div></div>
+  </div>
+</section>
+<section class="slide">
+  <div class="kicker">Структура</div><h2>5 частей презентации</h2><p class="sub">От фактов текущего проекта к плану развития и управленческим решениям.</p>
+  <div class="grid g3" style="margin-top:46px">
+    <div class="card"><h3>1. Что сделано</h3><p>Рабочий MVP, роли, математика 42/42, мониторинг и backup.</p></div>
+    <div class="card"><h3>2. Ближайший месяц</h3><p>Живой пилот, редактура, больше практики, понятные отчёты.</p></div>
+    <div class="card"><h3>3. Ближайшие 3 месяца</h3><p>Новые предметы, адаптивность, аналитика, управление качеством.</p></div>
+    <div class="card"><h3>4. Отличие фаз</h3><p>Как проект меняется от прототипа к образовательной платформе.</p></div>
+    <div class="card"><h3>5. Топ-5 фишек</h3><p>Что будет самым заметным и ценным на каждом этапе.</p></div>
+  </div>
+</section>
+<section class="slide"><div class="section"><div class="num" style="background:var(--green)">1</div><div><h1>Что сделано по итогам проекта</h1><p class="sub">Проект доведён до рабочего MVP: можно тестировать не макет, а полный учебный сценарий.</p></div></div></section>
+<section class="slide"><div class="kicker">Часть 1</div><h2>Что уже готово</h2><div class="grid g5" style="margin-top:35px"><div class="stat"><div class="num green">42/42</div><div class="label">математика</div></div><div class="stat"><div class="num blue">15/15</div><div class="label">P0 smoke</div></div><div class="stat"><div class="num violet">4</div><div class="label">роли</div></div><div class="stat"><div class="num amber">OK</div><div class="label">prod</div></div><div class="stat"><div class="num rose">24/7</div><div class="label">контроль</div></div></div><div class="grid g3" style="margin-top:38px"><div class="card"><h3>Ученик</h3><p>Предметы, темы, урок, объяснение, практика и следующий шаг.</p></div><div class="card"><h3>Родитель</h3><p>Сводка прогресса и рекомендации без доступа к личному чату ребёнка.</p></div><div class="card"><h3>Учитель и админ</h3><p>Готовность тем, материалы, пользователи, инвайты, аудит и мониторинг.</p></div></div></section>
+<section class="slide"><div class="kicker">Часть 1</div><h2>Что это даёт обычным языком</h2><div class="grid g2" style="margin-top:38px"><div class="card"><h3>Для ребёнка</h3><p>Понятный путь: диагностика → тема → объяснение → практика → следующий шаг.</p></div><div class="card"><h3>Для семьи</h3><p>Родитель видит прогресс и понимает, где нужно помочь.</p></div><div class="card"><h3>Для учителя</h3><p>Можно улучшать качество тем и заданий управляемо.</p></div><div class="card"><h3>Для владельца проекта</h3><p>Есть production, backup, мониторинг и понятная дорожная карта.</p></div></div></section>
+<section class="slide"><div class="section"><div class="num">2</div><div><h1>Что предстоит сделать в ближайший месяц</h1><p class="sub">Цель месяца — доказать ценность на живом учебном процессе, а не просто добавлять функции.</p></div></div></section>
+<section class="slide"><div class="kicker">Часть 2</div><h2>План на ближайший месяц</h2><table><tr><th>Приоритет</th><th>Что делаем</th><th>Что это даст пользователю</th></tr><tr><td>P0</td><td>Живой пилот с учеником</td><td>Проверим реальное обучение, а не тестовый сценарий</td></tr><tr><td>P0</td><td>Вычитка математики</td><td>Задания станут понятнее и ближе к школьному языку</td></tr><tr><td>P0</td><td>Больше практики</td><td>Меньше повторов, лучше закрепление</td></tr><tr><td>P0</td><td>Adaptive progression</td><td>Следующая тема выбирается по ошибкам и mastery</td></tr><tr><td>P1</td><td>Еженедельный отчёт родителю</td><td>Семья понимает, что делать завтра</td></tr></table></section>
+<section class="slide"><div class="kicker">Часть 2</div><h2>Как продукт выглядит через месяц</h2><div class="grid g3" style="margin-top:42px"><div class="card"><h3>Учебный маршрут</h3><p>Система ведёт ребёнка дальше, а не ждёт случайного выбора.</p></div><div class="card"><h3>Качественная практика</h3><p>У каждой темы несколько вариантов заданий.</p></div><div class="card"><h3>Отчёт родителю</h3><p>Не метрики, а простое “что делать завтра”.</p></div><div class="card"><h3>Живые данные</h3><p>Видно, где ребёнок ошибается.</p></div><div class="card"><h3>Контроль качества</h3><p>Учитель отмечает, что годится, а что переписать.</p></div><div class="card"><h3>Стабильность</h3><p>Backup, мониторинг и проверки остаются обязательными.</p></div></div></section>
+<section class="slide"><div class="section"><div class="num" style="background:var(--violet)">3</div><div><h1>Что предстоит сделать в ближайшие 3 месяца</h1><p class="sub">Цель квартала — перейти от пилота по математике к платформе с несколькими предметами и управляемым качеством.</p></div></div></section>
+<section class="slide"><div class="kicker">Часть 3</div><h2>План на 3 месяца</h2><table><tr><th>Период</th><th>Главный фокус</th><th>Что делаем</th><th>Что это даст</th></tr><tr><td>Месяц 1</td><td>Пилот математики</td><td>Живое тестирование, редактура, практика</td><td>Докажем пользу на одном предмете</td></tr><tr><td>Месяц 2</td><td>Новые предметы</td><td>Алгебра и геометрия по тому же стандарту</td><td>Проект перестаёт быть только математикой</td></tr><tr><td>Месяц 3</td><td>Платформа</td><td>Аналитика, качество, масштабирование</td><td>Появляется управляемая система</td></tr></table></section>
+<section class="slide"><div class="kicker">Часть 3</div><h2>Результат через 3 месяца</h2><div class="grid g3" style="margin-top:42px"><div class="card"><h3>Учебный охват</h3><p>Математика стабилизирована, алгебра и геометрия подготовлены.</p></div><div class="card"><h3>Качество</h3><p>Контент проверяется, источники видны, задания не ломают проверку.</p></div><div class="card"><h3>Адаптивность</h3><p>Ошибки ребёнка влияют на повторение и следующую тему.</p></div><div class="card"><h3>Управление</h3><p>Учитель и админ видят слабые места продукта и учеников.</p></div><div class="card"><h3>Масштабирование</h3><p>Можно добавлять учеников и предметы по понятному шаблону.</p></div></div></section>
+<section class="slide"><div class="section"><div class="num" style="background:var(--amber)">4</div><div><h1>Глобальное отличие проекта в каждой фазе</h1><p class="sub">Каждая фаза повышает зрелость: от идеи к продукту, от продукта к платформе.</p></div></div></section>
+<section class="slide"><div class="kicker">Часть 4</div><h2>Чем фазы отличаются друг от друга</h2><table><tr><th>Фаза</th><th>Как выглядит проект</th><th>Главное отличие</th></tr><tr><td>Прототип</td><td>Идея и AI-ответ</td><td>Проверяем возможность</td></tr><tr><td>MVP</td><td>Полный пользовательский контур</td><td>Появляется учебный сценарий</td></tr><tr><td>Пилот</td><td>Реальный ребёнок и качество</td><td>Проверяем пользу в живом обучении</td></tr><tr><td>Платформа</td><td>Несколько предметов и аналитика</td><td>Масштабируем проверенный процесс</td></tr><tr><td>Экосистема</td><td>Методика, пользователи, партнёры</td><td>Образовательный продукт</td></tr></table></section>
+<section class="slide"><div class="section"><div class="num" style="background:var(--rose)">5</div><div><h1>Топ-5 фишек на каждом этапе проекта</h1><p class="sub">Что наиболее заметно и ценно для пользователя и стейкхолдера.</p></div></div></section>
+<section class="slide"><div class="kicker">Часть 5</div><h2>Топ-5 фишек текущего этапа</h2><table><tr><th>#</th><th>Фишка</th><th>Почему важно</th></tr><tr><td>1</td><td>Математика 42/42</td><td>Полный учебный маршрут</td></tr><tr><td>2</td><td>AI-урок</td><td>Объяснение, чат, практика, следующий шаг</td></tr><tr><td>3</td><td>Родительская сводка</td><td>Семья понимает прогресс</td></tr><tr><td>4</td><td>Учительская готовность</td><td>Качество можно улучшать управляемо</td></tr><tr><td>5</td><td>Ops-контур</td><td>Backup и мониторинг снижают риск</td></tr></table></section>
+<section class="slide"><div class="kicker">Часть 5</div><h2>Топ-5 фишек ближайшего месяца</h2><table><tr><th>#</th><th>Фишка</th><th>Пользовательская ценность</th></tr><tr><td>1</td><td>Живой маршрут</td><td>Система ведёт ребёнка дальше</td></tr><tr><td>2</td><td>Редакторское качество</td><td>Задания звучат как у репетитора</td></tr><tr><td>3</td><td>Вариативная практика</td><td>Больше способов закрепить тему</td></tr><tr><td>4</td><td>Диагностика старта</td><td>Учим слабые места</td></tr><tr><td>5</td><td>Еженедельный отчёт</td><td>Родитель понимает, что делать завтра</td></tr></table></section>
+<section class="slide"><div class="kicker">Часть 5</div><h2>Топ-5 фишек горизонта 3 месяца</h2><table><tr><th>#</th><th>Фишка</th><th>Пользовательская ценность</th></tr><tr><td>1</td><td>Несколько предметов</td><td>Подход работает шире математики</td></tr><tr><td>2</td><td>Адаптивный план</td><td>Темы выбираются по данным</td></tr><tr><td>3</td><td>Контроль качества</td><td>Учитель управляет качеством AI</td></tr><tr><td>4</td><td>Аналитика обучения</td><td>Видно, где дети застревают</td></tr><tr><td>5</td><td>Масштабируемый пилот</td><td>Можно подключать больше учеников</td></tr></table></section>
+<section class="slide"><div class="kicker">Итог</div><h1>Рекомендация для стейкхолдера</h1><p class="sub">Не распыляться: сначала доказать пользу на математике, затем масштабировать проверенный шаблон.</p><div class="final-box">Главный следующий шаг: провести живой math-пилот, собрать данные и масштабировать только то, что доказало пользу.</div></section>
+</main></body></html>
