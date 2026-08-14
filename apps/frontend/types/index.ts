@@ -35,6 +35,43 @@ export type Subject = {
   practice_topic_count?: number;
 };
 
+export type LearningAnalytics = {
+  totals: {
+    attempts: number;
+    correct: number;
+    accuracy: number;
+    active_topics: number;
+    weak_topics: number;
+    average_mastery: number;
+  };
+  subjects: Array<{
+    subject_id: number;
+    subject_code: string;
+    subject_name: string;
+    attempts: number;
+    correct: number;
+    accuracy: number;
+    average_mastery: number;
+    active_topics: number;
+    weak_topics: number;
+  }>;
+  weak_topics: Array<{
+    topic_id: number;
+    topic_name: string;
+    subject_id: number;
+    subject_code: string;
+    subject_name: string;
+    mastery_score: number;
+    attempts_count: number;
+    correct_count: number;
+  }>;
+  recent_activity: Array<{
+    date: string;
+    attempts: number;
+    correct: number;
+  }>;
+};
+
 // === Teacher (Sprint 1.2-1.3) ===
 export type MaterialStatus = "draft" | "ai_generated" | "teacher_approved" | "published";
 export type SourceType = "text" | "file" | "topic";

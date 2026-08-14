@@ -44,7 +44,7 @@ export class ApiError extends Error {
   }
 }
 
-import type { ChatMsg, MaterialDraftOut, MaterialListItem, RagRebuildJob, Subject, TokenPair, Topic, TopicFollowup, TopicPracticeFallback, TopicReadiness, TopicStatusUpdate, User } from "@/types";
+import type { ChatMsg, LearningAnalytics, MaterialDraftOut, MaterialListItem, RagRebuildJob, Subject, TokenPair, Topic, TopicFollowup, TopicPracticeFallback, TopicReadiness, TopicStatusUpdate, User } from "@/types";
 
 export const api = {
   // Auth
@@ -107,6 +107,7 @@ export const api = {
   teacherRebuildTopicRag: (topicId: number) =>
     request<RagRebuildJob>(`/api/v1/teacher/rag/rebuild-topic/${topicId}`, { method: "POST" }),
   teacherGetRagJob: (jobId: string) => request<RagRebuildJob>(`/api/v1/teacher/rag/jobs/${jobId}`),
+  learningAnalytics: (days: number = 30) => request<LearningAnalytics>(`/api/v1/analytics/learning?days=${days}`),
 
   // AI
   aiPing: () => request<{ ok: boolean; model: string | null }>("/api/v1/ai/ping"),

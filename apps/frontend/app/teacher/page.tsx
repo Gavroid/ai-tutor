@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import Header from "@/components/Header";
-import type { MaterialListItem, MaterialStatus, User } from "@/types";
+import type { LearningAnalytics, MaterialListItem, MaterialStatus, User } from "@/types";
 
 const STATUS_LABEL: Record<MaterialStatus, string> = {
   draft: "Черновик",
@@ -28,6 +28,7 @@ export default function TeacherPage() {
   const [statusFilter, setStatusFilter] = useState<MaterialStatus | "">("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [analytics, setAnalytics] = useState<LearningAnalytics | null>(null);
 
   useEffect(() => {
     // Sprint 27: cookie-based auth. Если /me вернёт 401 → редирект.
@@ -50,6 +51,7 @@ export default function TeacherPage() {
         status: statusFilter || undefined,
       });
       setItems(data);
+      setAnalytics(await api.learningAnalytics(30));
     } catch (e: any) {
       setError(e?.body?.detail || "Ошибка загрузки (нужны права учителя)");
     } finally {
@@ -109,6 +111,50 @@ export default function TeacherPage() {
           </div>
         )}
       </section>
+
+      {analytics && (
+        <section className="mt-5 prism-card pad">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="prism-kicker">Learning Analytics</div>
+              <h2 className="mt-1 text-xl font-black">Где обучение проседает</h2>
+              <p className="mt-1 text-sm text-[color:var(--prism-muted)]">Агрегаты по темам и предметам, без сырого AI-чата ученика.</p>
+            </div>
+            <MiniMetric label="Слабых тем" value={analytics.totals.weak_topics} />
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <MiniMetric label="Попыток" value={analytics.totals.attempts} />
+            <MiniMetric label="Верно" value={analytics.totals.correct} />
+            <MiniMetric label="Точность" value={Math.round(analytics.totals.accuracy * 100)} />
+            <MiniMetric label="Mastery" value={Math.round(analytics.totals.average_mastery * 100)} />
+          </div>
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            <div className="rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-4">
+              <h3 className="font-black">Предметы</h3>
+              <div className="mt-3 space-y-2">
+                {analytics.subjects.slice(0, 5).map((subject) => (
+                  <div key={subject.subject_id} className="flex items-center justify-between rounded-2xl border border-[color:var(--prism-line)] px-3 py-2 text-sm">
+                    <span className="font-black">{subject.subject_name}</span>
+                    <span className="text-[color:var(--prism-muted)]">{subject.attempts} попыток · {Math.round(subject.accuracy * 100)}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-4">
+              <h3 className="font-black">Слабые темы</h3>
+              <div className="mt-3 space-y-2">
+                {analytics.weak_topics.length === 0 && <p className="text-sm text-[color:var(--prism-muted)]">Пока слабых тем нет.</p>}
+                {analytics.weak_topics.slice(0, 5).map((topic) => (
+                  <Link key={topic.topic_id} href={`/topics/${topic.topic_id}`} className="block rounded-2xl border border-[color:var(--prism-line)] px-3 py-2 text-sm hover:border-[color:var(--prism-accent)]">
+                    <div className="font-black">{topic.topic_name}</div>
+                    <div className="mt-1 text-xs text-[color:var(--prism-muted)]">{topic.subject_name} · mastery {Math.round(topic.mastery_score * 100)}% · попыток {topic.attempts_count}</div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       <div className="mt-5 flex flex-wrap gap-2">
         <FilterChip active={statusFilter === ""} onClick={() => setStatusFilter("")}>
