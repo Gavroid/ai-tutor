@@ -29,3 +29,4 @@ class DiagnosticQuestionOut(BaseModel):
     subject_name: str
     difficulty: int
     question_text: str
+    correct_answer: str
