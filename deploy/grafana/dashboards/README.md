@@ -1,109 +1,49 @@
-# Grafana Dashboards — Sprint 39
+# Grafana Dashboards — AI-Tutor
 
-Дашборды для AI-репетитора: parent-friendly и system overview.
+Provisioned dashboards for the current pilot deployment.
 
-## 📊 Доступные дашборды
+## Available Dashboards
 
-### 1. `ai-tutor-overview.json` (Sprint 9.2)
-System overview:
-- HTTP requests/min
-- AI tokens/min
-- AI requests by mode
+### `ai-tutor-overview.json`
 
-### 2. `parent-dashboard.json` (Sprint 39, NEW)
-**T1D-friendly view для parent'а** — мониторинг Кирилла:
-- 🟢 **Streak** (current/longest) — T1D-friendly, не показывает "STREAK LOST"
-- 📊 **Активность** (attempts/day) за 7 дней
-- 🎯 **Mastery по предметам** (gauge) — зеленый ≥70%, желтый ≥40%
-- ⚠️ **Слабые темы** (mastery < 0.6) — table с actionable list
-- 🛑 **T1D Session Pauses** по reason (break/hypo/hyper/other) — piechart
-- ⏱ **Средняя длина сессии** — T1D safety (>40 мин = red)
-- 📈 **Weekly trend** — this week vs prev week
+System overview based on real Prometheus metrics currently exposed by backend:
 
-### 3. `system-overview.json` (Sprint 39, NEW)
-Production health:
-- 🚨 5xx ошибки (rate/min) — если >0, alert
-- ⏱ Latency p95 (seconds)
-- 👥 Active users (last 5m)
-- 🤖 AI requests (req/min)
-- 📊 HTTP requests by status
-- 📚 Materials по status (draft/ai_generated/approved/published)
-- ⚡ Workers (uvicorn)
-- 🛑 Telegram alerts (5xx → TG)
+- HTTP request rate by route/status.
+- HTTP 5xx rate.
+- AI token rate by role.
+- AI request rate by mode/status.
+- Latency p95 from `http_request_duration_seconds`.
 
-## 🔧 Custom metrics (TODO: expose в Prometheus)
+### `system-overview.json`
 
-`parent_*` метрики в `parent-dashboard.json` пока **не существуют** в Prometheus.
-Чтобы дашборд показывал реальные данные, нужно:
+Production-health oriented panels. Keep panels tied only to metrics that exist in `/metrics`.
 
-### Sprint 39 follow-up: expose parent metrics
+### `parent-dashboard.json`
 
-В `apps/backend/app/parents/router.py::child_dashboard` добавить Prometheus counters:
-```python
-from prometheus_client import Counter, Gauge, Histogram
+Historical parent-oriented dashboard. Treat as optional/legacy unless the referenced `parent_*` metrics are exposed.
+The application parent dashboard is the source of truth for parent-facing progress summaries.
 
-# Counter — attempts by day
-parent_attempts_total = Counter(
-    "parent_attempts_total",
-    "Total attempts by student (parent view)",
-    ["user_id", "day"]
-)
+## Alerts
 
-# Gauge — streak
-parent_streak_current_streak_days = Gauge(
-    "parent_streak_current_streak_days",
-    "Current streak (T1D-friendly)",
-    ["user_id"]
-)
-parent_streak_longest_streak_days = Gauge(
-    "parent_streak_longest_streak_days",
-    "Longest streak",
-    ["user_id"]
-)
+Alert rules are provisioned separately under:
 
-# Gauge — mastery by subject
-parent_subject_mastery_avg = Gauge(
-    "parent_subject_mastery_avg",
-    "Average mastery by subject",
-    ["user_id", "subject"]
-)
-
-# Gauge — session pause reason
-parent_session_pauses_total = Counter(
-    "parent_session_pauses_total",
-    "T1D session pauses (Sprint 34)",
-    ["user_id", "reason"]
-)
-
-# Histogram — session duration
-parent_session_duration_seconds = Histogram(
-    "parent_session_duration_seconds",
-    "Session duration (T1D safety)"
-)
+```text
+deploy/grafana/provisioning/alerting/ai-tutor-alerts.yml
+deploy/prometheus/alerts.yml
 ```
 
-Эти метрики будут в `/metrics` endpoint и Grafana сможет их собирать.
+Current alert scope:
 
-## 🚀 Setup
+- backend scrape target down;
+- backend HTTP 5xx;
+- unexpected 4xx spikes, excluding expected draft 404 and unauthenticated snapshot probes;
+- login 429 spikes;
+- readiness failures;
+- disk usage high when node filesystem metrics are available.
 
-Dashboards **автоматически** импортируются через Grafana provisioning:
-```yaml
-# deploy/grafana/provisioning/dashboards/dashboards.yml
-providers:
-  - name: 'AI Tutor'
-    orgId: 1
-    folder: ''
-    type: file
-    disableDeletion: false
-    updateIntervalSeconds: 10
-    allowUiUpdates: true
-    options:
-      path: /etc/grafana/dashboards
-```
+## Maintenance Rules
 
-Доступ к Grafana: `https://192.168.1.86/grafana` (admin/admin или internal).
-
-## 📝 Security note
-
-`parent-dashboard.json` НЕ содержит PHI (glucose data, CGM). Только timing-based метрики
-(Sprint 34 T1D safety). CGM integration — Sprint 40.
+- Do not add panels for metrics that do not exist in `/metrics`.
+- Do not add Telegram/email delivery in this phase.
+- Prefer application dashboards for parent/teacher/student product views; Grafana is for ops.
+- After provisioning changes: restart Grafana/Prometheus and verify rules/dashboards load.

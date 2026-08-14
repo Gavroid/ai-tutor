@@ -31,6 +31,17 @@ export default function TeacherTopicsReadinessPage() {
     return () => { cancelled = true; };
   }, [user, priority]);
 
+  const readiness = rows.map((row) => {
+    const blockers = [
+      row.material_count < 1 ? "нет материала" : null,
+      row.chunk_count < 1 ? "нет RAG chunks" : null,
+      row.fallback_count < 1 ? "нет fallback-задачи" : null,
+      row.followup_count < 3 ? "мало follow-up" : null,
+      !["ok", "smoke ok", "verified"].includes(String(row.manual_qa_status).toLowerCase()) ? "manual QA не закрыт" : null,
+    ].filter(Boolean) as string[];
+    return { topic_id: row.topic_id, ready: blockers.length === 0, blockers };
+  });
+  const readyCount = readiness.filter((row) => row.ready).length;
   const summary = rows.reduce((acc, row) => {
     acc.topics += 1; acc.materials += row.material_count; acc.chunks += row.chunk_count; acc.fallbacks += row.fallback_count; acc.followups += row.followup_count; return acc;
   }, { topics: 0, materials: 0, chunks: 0, fallbacks: 0, followups: 0 });
@@ -48,7 +59,8 @@ export default function TeacherTopicsReadinessPage() {
               <h1 className="prism-title">Матрица <span className="accent">готовности</span></h1>
               <p className="prism-copy">Темы, материалы, источники, fallback и follow-up покрытие — в одном операционном экране.</p>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
+              <Metric label="Готово" value={`${readyCount}/${summary.topics}`} />
               <Metric label="Темы" value={summary.topics} />
               <Metric label="Материалы" value={summary.materials} />
               <Metric label="Chunks" value={summary.chunks} />
@@ -68,6 +80,15 @@ export default function TeacherTopicsReadinessPage() {
 
           {error && <div className="prism-card pad mt-5 text-red-500">{error}</div>}
           {busy && <div className="mt-5 text-[color:var(--prism-muted)]">Загрузка…</div>}
+          {!busy && !error && rows.length > 0 && (
+            <div className="prism-card pad mt-5">
+              <div className="prism-kicker">Readiness rule</div>
+              <p className="mt-2 text-sm leading-6 text-[color:var(--prism-muted)]">
+                Тема считается готовой, если есть материал, RAG chunks, fallback-задача, минимум 3 follow-up кнопки и закрытый manual smoke.
+              </p>
+              <div className="mt-3 text-sm font-black text-[color:var(--prism-ink)]">Готово: {readyCount}/{summary.topics}</div>
+            </div>
+          )}
 
           {!busy && !error && (
             <>
@@ -108,7 +129,7 @@ export default function TeacherTopicsReadinessPage() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function Metric({ label, value }: { label: string; value: number | string }) {
   return <div className="prism-card pad"><div className="text-[10px] font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">{label}</div><div className="mt-1 text-2xl font-black">{value}</div></div>;
 }
 

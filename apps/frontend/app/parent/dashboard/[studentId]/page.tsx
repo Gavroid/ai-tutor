@@ -146,6 +146,12 @@ export default function ParentDashboardPage() {
     if (dash.weak_topics.length > 0) return `Главный фокус недели: «${dash.weak_topics[0].topic_name}». Достаточно 2–3 коротких задач.`;
     return "Неделя выглядит ровно: можно продолжать текущий темп и брать одну задачу на закрепление.";
   })();
+  const tomorrowPlan = (() => {
+    if (dash.weak_topics.length > 0) return `Завтра: 10 минут на «${dash.weak_topics[0].topic_name}» — сначала объяснение, потом одна практика.`;
+    if (dash.due_for_review_count > 0) return `Завтра: повторить ${dash.due_for_review_count} тем(ы), которые пора закрепить.`;
+    if (weeklyAttempts === 0) return "Завтра: выбрать одну короткую тему и решить 2–3 простые задачи.";
+    return "Завтра: сохранить темп — одно объяснение и одна задача на закрепление.";
+  })();
   const exportHref = `/api/v1/parents/students/${studentId}/dashboard.pdf`;
 
   return (
@@ -170,6 +176,9 @@ export default function ParentDashboardPage() {
               <div className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-4">
                 <div className="prism-kicker">Weekly Summary</div>
                 <p className="mt-2 text-sm leading-6 text-[color:var(--prism-ink)]">{weeklySummary}</p>
+                <div className="mt-3 rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/40 p-3 text-sm font-black text-[color:var(--prism-ink)]">
+                  Что сделать завтра: {tomorrowPlan}
+                </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <Metric label="7 дней" value={weeklyAttempts} />
                   <Metric label="Активных дней" value={weeklyActiveDays} />
