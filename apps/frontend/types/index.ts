@@ -147,6 +147,10 @@ export type TopicReadiness = {
   subject_id: number;
   subject_name: string;
   priority: "P0" | "P1" | "P2" | string;
+  route_order: number | null;
+  route_tier: "base" | "medium" | "hard" | string | null;
+  route_focus: string | null;
+  route_checkpoint: boolean;
   material_count: number;
   chunk_count: number;
   fallback_count: number;

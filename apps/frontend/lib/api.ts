@@ -77,10 +77,13 @@ export const api = {
   subjectRoutePlan: (id: number) => request<import("@/types").MathTopicPlan[]>(`/api/v1/subjects/${id}/route-plan`),
   topic: (id: number) => request<Topic>(`/api/v1/topics/${id}`),
   topicFollowups: (id: number) => request<TopicFollowup[]>(`/api/v1/topics/${id}/followups`),
-  teacherTopicReadiness: (params: { subject_id?: number; priority?: "P0" | "P1" | "P2" } = {}) => {
+  teacherTopicReadiness: (params: { subject_id?: number; priority?: "P0" | "P1" | "P2"; manual_qa_status?: string; route_tier?: "base" | "medium" | "hard"; checkpoint?: boolean } = {}) => {
     const search = new URLSearchParams();
     if (params.subject_id !== undefined) search.set("subject_id", String(params.subject_id));
     if (params.priority) search.set("priority", params.priority);
+    if (params.manual_qa_status) search.set("manual_qa_status", params.manual_qa_status);
+    if (params.route_tier) search.set("route_tier", params.route_tier);
+    if (params.checkpoint !== undefined) search.set("checkpoint", String(params.checkpoint));
     const qs = search.toString();
     return request<TopicReadiness[]>(`/api/v1/teacher/topics/readiness${qs ? "?" + qs : ""}`);
   },

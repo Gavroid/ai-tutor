@@ -146,6 +146,10 @@ class TopicReadinessOut(BaseModel):
     subject_id: int
     subject_name: str
     priority: str
+    route_order: int | None = None
+    route_tier: str | None = None
+    route_focus: str | None = None
+    route_checkpoint: bool = False
     material_count: int
     chunk_count: int
     fallback_count: int

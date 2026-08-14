@@ -164,6 +164,10 @@ def test_teacher_topics_readiness_returns_topic_rows(client):
         "subject_id",
         "subject_name",
         "priority",
+        "route_order",
+        "route_tier",
+        "route_focus",
+        "route_checkpoint",
         "material_count",
         "chunk_count",
         "fallback_count",
@@ -175,6 +179,21 @@ def test_teacher_topics_readiness_returns_topic_rows(client):
     }.issubset(first)
     assert isinstance(first["material_count"], int)
     assert isinstance(first["chunk_count"], int)
+
+
+def test_teacher_topics_readiness_route_filters(client):
+    teacher = _token(client, "teacher@example.com")
+
+    r = client.get(
+        "/api/v1/teacher/topics/readiness?subject_id=3&route_tier=base&checkpoint=false",
+        headers=_h(teacher),
+    )
+
+    assert r.status_code == 200, r.text
+    for row in r.json():
+        if row["route_tier"] is not None:
+            assert row["route_tier"] == "base"
+        assert row["route_checkpoint"] is False
 
 
 def test_teacher_can_update_followups_and_audit(client):

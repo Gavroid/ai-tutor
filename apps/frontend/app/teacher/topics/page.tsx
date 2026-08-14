@@ -9,12 +9,18 @@ import type { TopicReadiness, User } from "@/types";
 
 const PRIORITIES = ["", "P0", "P1", "P2"] as const;
 type PriorityFilter = (typeof PRIORITIES)[number];
+const ROUTE_TIERS = ["", "base", "medium", "hard"] as const;
+type RouteTierFilter = (typeof ROUTE_TIERS)[number];
+const MANUAL_STATUSES = ["", "TODO", "Smoke OK", "Verified", "ok", "issue", "blocked"] as const;
 
 export default function TeacherTopicsReadinessPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [rows, setRows] = useState<TopicReadiness[]>([]);
   const [priority, setPriority] = useState<PriorityFilter>("");
+  const [routeTier, setRouteTier] = useState<RouteTierFilter>("");
+  const [checkpointOnly, setCheckpointOnly] = useState(false);
+  const [manualStatus, setManualStatus] = useState<(typeof MANUAL_STATUSES)[number]>("");
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,12 +30,18 @@ export default function TeacherTopicsReadinessPage() {
     let cancelled = false;
     setBusy(true);
     setError(null);
-    api.teacherTopicReadiness({ subject_id: 3, priority: priority || undefined })
+    api.teacherTopicReadiness({
+      subject_id: 3,
+      priority: priority || undefined,
+      route_tier: routeTier || undefined,
+      checkpoint: checkpointOnly ? true : undefined,
+      manual_qa_status: manualStatus || undefined,
+    })
       .then((data) => { if (!cancelled) setRows(data); })
       .catch((err: unknown) => { if (!cancelled) setError(err instanceof Error ? err.message : "Ошибка загрузки readiness"); })
       .finally(() => { if (!cancelled) setBusy(false); });
     return () => { cancelled = true; };
-  }, [user, priority]);
+  }, [user, priority, routeTier, checkpointOnly, manualStatus]);
 
   const readiness = rows.map((row) => {
     const blockers = [
@@ -78,6 +90,23 @@ export default function TeacherTopicsReadinessPage() {
             <Link href="/teacher/generate" className="prism-action primary">+ Материал</Link>
           </div>
 
+          <div className="mt-4 grid gap-3 rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-4 md:grid-cols-3">
+            <label className="grid gap-1 text-xs font-black uppercase tracking-[0.14em] text-[color:var(--prism-muted)]">Route tier
+              <select value={routeTier} onChange={(event) => setRouteTier(event.target.value as RouteTierFilter)} className="prism-input text-sm normal-case tracking-normal">
+                {ROUTE_TIERS.map((value) => <option key={value || "all-tier"} value={value}>{value || "all"}</option>)}
+              </select>
+            </label>
+            <label className="grid gap-1 text-xs font-black uppercase tracking-[0.14em] text-[color:var(--prism-muted)]">Manual status
+              <select value={manualStatus} onChange={(event) => setManualStatus(event.target.value as (typeof MANUAL_STATUSES)[number])} className="prism-input text-sm normal-case tracking-normal">
+                {MANUAL_STATUSES.map((value) => <option key={value || "all-status"} value={value}>{value || "all"}</option>)}
+              </select>
+            </label>
+            <label className="console-pill justify-center">
+              <input type="checkbox" checked={checkpointOnly} onChange={(event) => setCheckpointOnly(event.target.checked)} className="mr-2 accent-[color:var(--prism-accent)]" />
+              Checkpoints only
+            </label>
+          </div>
+
           {error && <div className="prism-card pad mt-5 text-red-500">{error}</div>}
           {busy && <div className="mt-5 text-[color:var(--prism-muted)]">Загрузка…</div>}
           {!busy && !error && rows.length > 0 && (
@@ -99,12 +128,13 @@ export default function TeacherTopicsReadinessPage() {
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-[color:var(--prism-line)] text-sm">
                     <thead className="bg-[color:var(--prism-panel-solid)]/80 text-left text-xs uppercase tracking-[0.16em] text-[color:var(--prism-muted)]">
-                      <tr>{['Тема','Priority','Материалы','Chunks','Fallback','Follow-up','Explain','Practice','Sources','Manual'].map((h) => <th key={h} className="px-4 py-3">{h}</th>)}</tr>
+                      <tr>{['Тема','Route','Priority','Материалы','Chunks','Fallback','Follow-up','Explain','Practice','Sources','Manual'].map((h) => <th key={h} className="px-4 py-3">{h}</th>)}</tr>
                     </thead>
                     <tbody className="divide-y divide-[color:var(--prism-line)]">
                       {rows.map((row) => (
                         <tr key={row.topic_id} className="hover:bg-[color:var(--prism-panel)]">
                           <td className="max-w-md px-4 py-3"><Link href={`/teacher/topics/${row.topic_id}`} className="font-black text-[color:var(--prism-accent)]">#{row.topic_id} · {row.topic_name}</Link><div className="text-xs text-[color:var(--prism-muted)]">{row.section_name}</div></td>
+                          <td className="px-4 py-3"><div className="font-black">{row.route_order ?? "—"}</div><div className="text-xs text-[color:var(--prism-muted)]">{row.route_tier ?? "preview"}{row.route_checkpoint ? " · checkpoint" : ""}</div></td>
                           <td className="px-4 py-3"><Pill value={row.priority} /></td>
                           <td className="px-4 py-3 tabular-nums">{row.material_count}</td>
                           <td className="px-4 py-3 tabular-nums">{row.chunk_count}</td>
@@ -137,7 +167,7 @@ function ReadinessCard({ row }: { row: TopicReadiness }) {
   return (
     <Link href={`/teacher/topics/${row.topic_id}`} className="prism-card prism-topic-card pad block">
       <div className="flex items-start justify-between gap-3">
-        <div><div className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--prism-accent)]">#{row.topic_id} · {row.priority}</div><div className="mt-1 text-lg font-black">{row.topic_name}</div><div className="mt-1 text-xs text-[color:var(--prism-muted)]">{row.section_name}</div></div>
+        <div><div className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--prism-accent)]">#{row.topic_id} · {row.priority}</div><div className="mt-1 text-lg font-black">{row.topic_name}</div><div className="mt-1 text-xs text-[color:var(--prism-muted)]">{row.section_name}</div><div className="mt-1 text-xs text-[color:var(--prism-muted)]">Route {row.route_order ?? "—"} · {row.route_tier ?? "preview"}{row.route_checkpoint ? " · checkpoint" : ""}</div></div>
         <Pill value={row.manual_qa_status} />
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">

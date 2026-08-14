@@ -59,10 +59,14 @@ def _status_for(priority: str) -> tuple[str, str, str, str]:
 def topic_readiness(
     subject_id: int | None = Query(None),
     priority: str | None = Query(None, pattern="^(P0|P1|P2)$"),
+    manual_qa_status: str | None = Query(None),
+    route_tier: str | None = Query(None, pattern="^(base|medium|hard)$"),
+    checkpoint: bool | None = Query(None),
     db: Session = Depends(get_db),
     current: User = Depends(require_teacher_or_admin()),
 ):
     from app.rag_models import RagChunk
+    from app.math_plan import PLAN_BY_TOPIC_ID
 
     query = (
         db.query(subj_models.Topic)
@@ -90,7 +94,16 @@ def topic_readiness(
         topic_priority = _priority_for_topic(topic.id)
         if priority and topic_priority != priority:
             continue
+        route = PLAN_BY_TOPIC_ID.get(topic.id)
+        if route_tier and (route is None or route.tier != route_tier):
+            continue
+        if checkpoint is not None and bool(route.checkpoint if route else False) != checkpoint:
+            continue
         explain_status, practice_status, source_status, manual_status = _status_for(topic_priority)
+        status_row = content_registry.get_topic_status(topic.id)
+        resolved_manual = str(status_row.get("manual_qa_status") or manual_status)
+        if manual_qa_status and resolved_manual.lower() != manual_qa_status.lower():
+            continue
         rows.append(
             teacher_schemas.TopicReadinessOut(
                 topic_id=topic.id,
@@ -100,14 +113,18 @@ def topic_readiness(
                 subject_id=topic.section.subject.id,
                 subject_name=topic.section.subject.name,
                 priority=topic_priority,
+                route_order=route.order if route else None,
+                route_tier=route.tier if route else None,
+                route_focus=route.focus if route else None,
+                route_checkpoint=bool(route.checkpoint) if route else False,
                 material_count=int(material_counts.get(topic.id, 0)),
                 chunk_count=int(chunk_counts.get(topic.id, 0)),
                 fallback_count=len(content_registry.get_fallbacks(topic.id)) or _fallback_count_for_topic(topic.id),
                 followup_count=len(content_registry.get_followups(topic)),
-                explain_status=str(content_registry.get_topic_status(topic.id).get("explain_status") or explain_status),
-                practice_status=str(content_registry.get_topic_status(topic.id).get("practice_status") or practice_status),
-                source_status=str(content_registry.get_topic_status(topic.id).get("source_status") or source_status),
-                manual_qa_status=str(content_registry.get_topic_status(topic.id).get("manual_qa_status") or manual_status),
+                explain_status=str(status_row.get("explain_status") or explain_status),
+                practice_status=str(status_row.get("practice_status") or practice_status),
+                source_status=str(status_row.get("source_status") or source_status),
+                manual_qa_status=resolved_manual,
             )
         )
     return rows
