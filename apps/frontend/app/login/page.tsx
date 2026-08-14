@@ -47,6 +47,12 @@ export default function LoginPage() {
       router.push(await landingForRole(role));
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) setError("Неверный email или пароль");
+      else if (err instanceof ApiError && err.status === 429) {
+        const detail = typeof err.body === "object" && err.body !== null && "detail" in err.body
+          ? String((err.body as { detail?: unknown }).detail)
+          : "Слишком много попыток входа. Подождите и попробуйте снова.";
+        setError(detail);
+      }
       else setError("Не удалось войти. Проверьте соединение с сервером.");
     } finally {
       setLoading(false);

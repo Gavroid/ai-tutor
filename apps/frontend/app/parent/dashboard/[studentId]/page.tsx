@@ -152,6 +152,21 @@ export default function ParentDashboardPage() {
     if (weeklyAttempts === 0) return "Завтра: выбрать одну короткую тему и решить 2–3 простые задачи.";
     return "Завтра: сохранить темп — одно объяснение и одна задача на закрепление.";
   })();
+  const primarySubject = dash.subject_mastery[0] ?? null;
+  const routeProgress = primarySubject
+    ? `${primarySubject.topics_attempted}/${primarySubject.topics_total} тем · mastery ${Math.round(primarySubject.avg_mastery * 100)}%`
+    : "Маршрут пока не начат";
+  const improvementSignal = (() => {
+    if (weeklyAttempts === 0) return "На этой неделе ещё нет учебной активности.";
+    if (dash.accuracy >= 0.8) return "Ребёнок уверенно отвечает: можно закреплять и двигаться по маршруту.";
+    if (dash.accuracy >= 0.6) return "Есть рабочий темп: важно сохранить регулярность и короткие повторения.";
+    return "Активность есть, но точность просела: сейчас важнее повторение, чем новые темы.";
+  })();
+  const helpSignal = dash.weak_topics[0]
+    ? `Помочь с темой «${dash.weak_topics[0].topic_name}»: сначала правило, затем 2–3 простые задачи.`
+    : dash.due_for_review_count > 0
+      ? `Помочь с повторением: к закреплению ${dash.due_for_review_count} тем(ы).`
+      : "Явных слабых тем нет — достаточно короткого контроля и поддержки регулярности.";
   const exportHref = `/api/v1/parents/students/${studentId}/dashboard.pdf`;
 
   return (
@@ -196,6 +211,13 @@ export default function ParentDashboardPage() {
             <Metric label="Точность" value={`${Math.round(dash.accuracy * 100)}%`} hot={dash.accuracy >= 0.7} />
             <Metric label="Средний mastery" value={`${Math.round(dash.average_mastery * 100)}%`} />
             <Metric label="К повторению" value={dash.due_for_review_count} hot={dash.due_for_review_count === 0} />
+          </section>
+
+          <section className="mt-4 grid gap-3 lg:grid-cols-4" aria-label="Краткий родительский отчёт">
+            <ParentInsight title="Что улучшилось" body={improvementSignal} tone={dash.accuracy >= 0.75 ? "success" : "info"} />
+            <ParentInsight title="Где нужна помощь" body={helpSignal} tone={dash.weak_topics.length > 0 || dash.accuracy < 0.6 ? "warning" : "success"} />
+            <ParentInsight title="Что сделать завтра" body={tomorrowPlan} tone="info" />
+            <ParentInsight title="Маршрут" body={routeProgress} tone="neutral" />
           </section>
 
           <section className="mt-4 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
@@ -310,6 +332,16 @@ function Metric({ label, value, hot = false }: { label: string; value: string | 
 
 function RecommendationCard({ rec }: { rec: ParentRecommendation }) {
   return <div className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-4"><div className="font-black">{rec.title}</div><div className="mt-1 text-sm text-[color:var(--prism-muted)]">{rec.detail}</div>{rec.topic_id && <Link href={`/topics/${rec.topic_id}`} className="prism-pill mt-3">Открыть тему</Link>}</div>;
+}
+
+function ParentInsight({ title, body, tone }: { title: string; body: string; tone: "success" | "warning" | "info" | "neutral" }) {
+  const toneClass = tone === "success" ? "border-emerald-400/30" : tone === "warning" ? "border-amber-400/35" : tone === "info" ? "border-sky-400/30" : "border-[color:var(--prism-line)]";
+  return (
+    <article className={`rounded-3xl border ${toneClass} bg-[color:var(--prism-panel-solid)]/45 p-4`}>
+      <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">{title}</div>
+      <p className="mt-2 text-sm font-bold leading-6 text-[color:var(--prism-ink)]">{body}</p>
+    </article>
+  );
 }
 
 function SubjectBar({ sm }: { sm: SubjectMastery }) {
