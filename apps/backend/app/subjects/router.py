@@ -114,10 +114,11 @@ def list_subject_topics(subject_id: int, db: Session = Depends(get_db)):
 def subject_route_plan(subject_id: int):
     """Student-friendly route map.
 
-    Math is MVP-ready. Algebra is exposed as a preview route in Stage 12;
-    it must remain preview until source/RAG and fallback coverage are complete.
+    Math is MVP-ready. Algebra and Geometry are exposed as preview routes;
+    they must remain preview until source/RAG and fallback coverage are complete.
     """
     from app.algebra_plan import ALGEBRA_SUBJECT_ID, ALGEBRA_TOPIC_PLAN, next_algebra_topic_after
+    from app.geometry_plan import GEOMETRY_SUBJECT_ID, GEOMETRY_TOPIC_PLAN, next_geometry_topic_after
     from app.math_plan import MATH_SUBJECT_ID, MATH_TOPIC_PLAN, next_topic_after
 
     if subject_id == MATH_SUBJECT_ID:
@@ -145,6 +146,19 @@ def subject_route_plan(subject_id: int):
                 next_topic_id=next_algebra_topic_after(row.topic_id),
             )
             for row in ALGEBRA_TOPIC_PLAN
+        ]
+    if subject_id == GEOMETRY_SUBJECT_ID:
+        return [
+            schemas.MathTopicPlanOut(
+                topic_id=row.topic_id,
+                order=row.order,
+                section=row.section,
+                tier=row.tier,
+                focus=row.focus,
+                checkpoint=row.checkpoint,
+                next_topic_id=next_geometry_topic_after(row.topic_id),
+            )
+            for row in GEOMETRY_TOPIC_PLAN
         ]
     return []
 
