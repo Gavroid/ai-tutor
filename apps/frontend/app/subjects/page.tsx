@@ -98,7 +98,7 @@ export default function HomePage() {
               <div>
                 <div className="prism-kicker">Subject Gallery</div>
                 <h2 className="mt-2 text-3xl font-black tracking-[-0.05em] sm:text-5xl">Каталог предметов</h2>
-                <p className="mt-2 max-w-2xl text-sm text-[color:var(--prism-muted)]">MVP-ready — можно тестировать полноценно. Preview — виден в системе, но без обещания качества источников и практики.</p>
+                <p className="mt-2 max-w-2xl text-sm text-[color:var(--prism-muted)]">MVP-ready — можно тестировать полноценно. Preview — виден в системе, но ниже честно показано, что уже готово: маршрут, источники и практика.</p>
               </div>
               <input
                 type="search"
@@ -121,6 +121,11 @@ export default function HomePage() {
                     <h3 className="mt-6 text-3xl font-black tracking-[-0.04em]">{s.name}</h3>
                     {s.description && <p className="mt-3 line-clamp-3 text-sm text-[color:var(--prism-muted)]">{s.description}</p>}
                     <p className="mt-5 text-xs leading-relaxed text-[color:var(--prism-muted)]">{s.support_note}</p>
+                    <div className="mt-5 grid gap-2 text-xs">
+                      <ReadinessLine label="Маршрут" ready={!!s.route_ready} value={`${s.route_topic_count ?? 0}/${s.topic_count ?? 0}`} />
+                      <ReadinessLine label="Источники" ready={!!s.rag_ready} value={`${s.source_topic_count ?? 0}/${s.topic_count ?? 0}`} />
+                      <ReadinessLine label="Практика" ready={!!s.practice_ready} value={`${s.practice_topic_count ?? 0}/${s.topic_count ?? 0}`} />
+                    </div>
                     <div className="mt-6 flex items-center justify-between border-t border-[color:var(--prism-line)] pt-4 text-xs font-black uppercase tracking-[0.16em]">
                       <span>{s.recommended_grade} класс</span><span>Открыть →</span>
                     </div>
@@ -134,6 +139,15 @@ export default function HomePage() {
         </div>
       </section>
     </main>
+  );
+}
+
+function ReadinessLine({ label, ready, value }: { label: string; ready: boolean; value: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/35 px-3 py-2">
+      <span className="font-black uppercase tracking-[0.14em] text-[color:var(--prism-muted)]">{label}</span>
+      <span className={ready ? "font-black text-[color:var(--prism-green)]" : "font-black text-[color:var(--prism-amber)]"}>{value}</span>
+    </div>
   );
 }
 

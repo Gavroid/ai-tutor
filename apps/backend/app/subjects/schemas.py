@@ -21,8 +21,13 @@ class SubjectOut(BaseModel):
     is_active: bool
     mvp_status: str = "preview"
     support_note: str = "Preview: учебный маршрут виден, но материалы/RAG ещё не подтверждены."
+    route_ready: bool = False
     rag_ready: bool = False
     practice_ready: bool = False
+    topic_count: int = 0
+    route_topic_count: int = 0
+    source_topic_count: int = 0
+    practice_topic_count: int = 0
 
 
 class SectionOut(BaseModel):

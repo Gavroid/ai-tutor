@@ -26,8 +26,13 @@ export type Subject = {
   is_active: boolean;
   mvp_status?: "mvp_ready" | "preview" | string;
   support_note?: string;
+  route_ready?: boolean;
   rag_ready?: boolean;
   practice_ready?: boolean;
+  topic_count?: number;
+  route_topic_count?: number;
+  source_topic_count?: number;
+  practice_topic_count?: number;
 };
 
 // === Teacher (Sprint 1.2-1.3) ===

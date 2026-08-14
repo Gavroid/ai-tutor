@@ -92,8 +92,25 @@ def test_list_subjects_returns_seed(seeded_client):
     assert math["mvp_status"] == "mvp_ready"
     assert math["rag_ready"] is True
     assert math["practice_ready"] is True
+    assert math["route_ready"] is True
+    assert math["topic_count"] == 42
+    assert math["source_topic_count"] == 42
+    assert math["practice_topic_count"] == 42
     assert algebra["mvp_status"] == "preview"
+    assert algebra["route_ready"] is True
     assert algebra["rag_ready"] is False
+    assert algebra["practice_ready"] is False
+    assert algebra["topic_count"] == 19
+    assert algebra["source_topic_count"] == 0
+    assert algebra["practice_topic_count"] == 0
+    geometry = next(x for x in data if x["code"] == "geom")
+    assert geometry["mvp_status"] == "preview"
+    assert geometry["route_ready"] is True
+    assert geometry["rag_ready"] is False
+    assert geometry["practice_ready"] is False
+    assert geometry["topic_count"] == 13
+    assert geometry["source_topic_count"] == 0
+    assert geometry["practice_topic_count"] == 0
 
 
 def test_subject_topics_returns_flat_list(seeded_client):

@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.cache import (
@@ -19,6 +19,7 @@ from app.cache import (
     cache_set,
 )
 from app.db.session import get_db
+from app.rag_models import RagChunk
 from app.subjects import models, schemas
 
 logger = logging.getLogger(__name__)
@@ -45,9 +46,74 @@ def _subject_support(subject: models.Subject) -> dict[str, object]:
     }
 
 
-def _subject_out(subject: models.Subject) -> dict[str, object]:
+def _route_topic_ids(subject: models.Subject) -> set[int]:
+    if subject.code == "math":
+        from app.math_plan import MATH_TOPIC_PLAN
+
+        return {row.topic_id for row in MATH_TOPIC_PLAN}
+    if subject.code == "algebra":
+        from app.algebra_plan import ALGEBRA_TOPIC_PLAN
+
+        return {row.topic_id for row in ALGEBRA_TOPIC_PLAN}
+    if subject.code == "geom":
+        from app.geometry_plan import GEOMETRY_TOPIC_PLAN
+
+        return {row.topic_id for row in GEOMETRY_TOPIC_PLAN}
+    return set()
+
+
+def _subject_coverage(db: Session, subject: models.Subject) -> dict[str, object]:
+    topic_ids = [topic.id for section in subject.sections for topic in section.topics]
+    route_topic_ids = _route_topic_ids(subject)
+    if not topic_ids:
+        return {
+            "route_ready": False,
+            "topic_count": 0,
+            "route_topic_count": 0,
+            "source_topic_count": 0,
+            "practice_topic_count": 0,
+        }
+
+    source_topic_ids = set(
+        db.execute(
+            select(models.LearningMaterial.topic_id)
+            .join(RagChunk, RagChunk.material_id == models.LearningMaterial.id)
+            .where(models.LearningMaterial.topic_id.in_(topic_ids))
+            .group_by(models.LearningMaterial.topic_id)
+            .having(func.count(RagChunk.id) > 0)
+        ).scalars().all()
+    )
+
+    from app.teacher import content_registry
+
+    practice_topic_ids = {topic_id for topic_id in topic_ids if content_registry.get_fallbacks(topic_id)}
+    return {
+        "route_ready": bool(route_topic_ids) and len(route_topic_ids) == len(topic_ids),
+        "topic_count": len(topic_ids),
+        "route_topic_count": len(route_topic_ids),
+        "source_topic_count": len(source_topic_ids),
+        "practice_topic_count": len(practice_topic_ids),
+    }
+
+
+def _subject_out(subject: models.Subject, db: Session) -> dict[str, object]:
     base = schemas.SubjectOut.model_validate(subject).model_dump()
     base.update(_subject_support(subject))
+    coverage = _subject_coverage(db, subject)
+    base.update(coverage)
+    if base["mvp_status"] == "mvp_ready":
+        # Math readiness was established in the dedicated math readiness stages.
+        topic_count = int(base["topic_count"])
+        base["route_ready"] = True
+        base["rag_ready"] = True
+        base["practice_ready"] = True
+        base["route_topic_count"] = topic_count
+        base["source_topic_count"] = topic_count
+        base["practice_topic_count"] = topic_count
+    else:
+        topic_count = int(base["topic_count"])
+        base["rag_ready"] = topic_count > 0 and int(base["source_topic_count"]) == topic_count
+        base["practice_ready"] = topic_count > 0 and int(base["practice_topic_count"]) == topic_count
     return base
 
 
@@ -57,7 +123,7 @@ router = APIRouter(prefix="/api/v1/subjects", tags=["subjects"])
 @router.get("", response_model=list[schemas.SubjectOut])
 def list_subjects(active_only: bool = True, db: Session = Depends(get_db)):
     # Sprint 64: cache (5 min TTL)
-    cache_key = f"subjects:v2:list:active={active_only}"
+    cache_key = f"subjects:v3:list:active={active_only}"
     cached = cache_get(cache_key)
     if cached is not None:
         return cached  # list of Pydantic-compatible dicts
@@ -68,14 +134,14 @@ def list_subjects(active_only: bool = True, db: Session = Depends(get_db)):
     results = db.scalars(q).all()
 
     # Cache as Pydantic dicts (полная схема через model_dump)
-    results_dicts = [_subject_out(s) for s in results]
+    results_dicts = [_subject_out(s, db) for s in results]
     cache_set(cache_key, results_dicts, ttl=SUBJECTS_TTL)
     return results_dicts
 
 
 @router.get("/{subject_id}", response_model=schemas.SubjectOut)
 def get_subject(subject_id: int, db: Session = Depends(get_db)):
-    cache_key = f"subjects:v2:id={subject_id}"
+    cache_key = f"subjects:v3:id={subject_id}"
     cached = cache_get(cache_key)
     if cached is not None:
         return cached
@@ -83,7 +149,7 @@ def get_subject(subject_id: int, db: Session = Depends(get_db)):
     subj = db.get(models.Subject, subject_id)
     if subj is None:
         raise HTTPException(404, "Subject not found")
-    result = _subject_out(subj)
+    result = _subject_out(subj, db)
     cache_set(cache_key, result, ttl=SUBJECTS_TTL)
     return result
 
