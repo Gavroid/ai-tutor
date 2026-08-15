@@ -46,3 +46,39 @@ groups:
         annotations:
           summary: "AI-Tutor readiness failures"
           description: "/ready returned non-200 recently. Check DB connectivity and backend startup."
+
+      - alert: AiTutorDatabaseProbeDown
+        expr: max(ai_tutor_db_up) == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AI-Tutor DB probe is failing"
+          description: "Backend /metrics cannot run SELECT 1 against the database. /ready should also be checked."
+
+      - alert: AiTutorRedisProbeDown
+        expr: max(ai_tutor_redis_up) == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AI-Tutor Redis probe is failing"
+          description: "Backend /metrics cannot ping Redis. Rate-limit, budget and readiness state may be unsafe."
+
+      - alert: AiTutorUploadDiskHigh
+        expr: max(ai_tutor_upload_disk_used_percent) > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI-Tutor upload filesystem disk usage is high"
+          description: "Uploads/backup filesystem is above 80 percent used. Clean old artifacts or expand storage."
+
+      - alert: AiTutorBackupMissingOrStale
+        expr: max(ai_tutor_backup_latest_age_seconds) < 0 or max(ai_tutor_backup_latest_age_seconds) > 93600
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AI-Tutor latest backup is missing or older than 26 hours"
+          description: "Backend metrics cannot see a recent backup manifest. Check backup cron and offsite job."

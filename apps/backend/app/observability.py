@@ -8,7 +8,9 @@ Middleware автоматически собирает:
 """
 from __future__ import annotations
 
+import shutil
 import time
+from pathlib import Path
 from typing import Callable
 
 from fastapi import Request, Response
@@ -16,6 +18,7 @@ from prometheus_client import (
     CONTENT_TYPE_LATEST,
     CollectorRegistry,
     Counter,
+    Gauge,
     Histogram,
     generate_latest,
     multiprocess,
@@ -54,6 +57,95 @@ ACTIVE_SESSIONS = Counter(
     "Cumulative session events (login/register)",
     ["event"],  # login / register / logout
 )
+
+OPS_DB_UP = Gauge("ai_tutor_db_up", "Database probe status: 1=up, 0=down")
+OPS_REDIS_UP = Gauge("ai_tutor_redis_up", "Redis probe status: 1=up, 0=down")
+OPS_UPLOAD_DISK_USED_PERCENT = Gauge(
+    "ai_tutor_upload_disk_used_percent",
+    "Disk used percent for the upload filesystem",
+)
+OPS_BACKUP_LATEST_AGE_SECONDS = Gauge(
+    "ai_tutor_backup_latest_age_seconds",
+    "Age of the latest production backup manifest in seconds; -1 means not visible",
+)
+
+
+# === Ops probes for Stage 23 alertability ===
+
+def _probe_db() -> float:
+    try:
+        from sqlalchemy import text
+        from app.db.session import engine
+
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return 1.0
+    except Exception:
+        return 0.0
+
+
+def _probe_redis() -> float:
+    try:
+        import os
+        import redis as redis_lib
+
+        redis_url = os.environ.get("REDIS_URL", "redis://redis:6379/0")
+        client = redis_lib.Redis.from_url(redis_url, socket_timeout=2)
+        try:
+            return 1.0 if client.ping() else 0.0
+        finally:
+            client.close()
+    except Exception:
+        return 0.0
+
+
+def _upload_dir_path() -> Path:
+    try:
+        from app.config import get_settings
+
+        return Path(get_settings().upload_dir)
+    except Exception:
+        return Path("/app/uploads")
+
+
+def _backup_out_path() -> Path:
+    import os
+
+    return Path(os.environ.get("OPS_BACKUP_OUT_PATH", "/app/ops/backup_out"))
+
+
+def _latest_backup_age_seconds() -> float:
+    try:
+        candidates = sorted(
+            _backup_out_path().glob("manifest-*.md5"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+    except Exception:
+        return -1.0
+    if not candidates:
+        return -1.0
+    return max(0.0, time.time() - candidates[0].stat().st_mtime)
+
+
+def collect_ops_metrics() -> dict[str, float]:
+    upload_path = _upload_dir_path()
+    usage = shutil.disk_usage(upload_path if upload_path.exists() else "/")
+    disk_used_pct = round(((usage.total - usage.free) / usage.total) * 100, 4) if usage.total else 0.0
+    return {
+        "ai_tutor_db_up": _probe_db(),
+        "ai_tutor_redis_up": _probe_redis(),
+        "ai_tutor_upload_disk_used_percent": disk_used_pct,
+        "ai_tutor_backup_latest_age_seconds": _latest_backup_age_seconds(),
+    }
+
+
+def update_ops_metrics() -> None:
+    metrics = collect_ops_metrics()
+    OPS_DB_UP.set(metrics["ai_tutor_db_up"])
+    OPS_REDIS_UP.set(metrics["ai_tutor_redis_up"])
+    OPS_UPLOAD_DISK_USED_PERCENT.set(metrics["ai_tutor_upload_disk_used_percent"])
+    OPS_BACKUP_LATEST_AGE_SECONDS.set(metrics["ai_tutor_backup_latest_age_seconds"])
 
 
 # === Middleware ===
@@ -109,6 +201,7 @@ def metrics_payload() -> bytes:
     """Return Prometheus text payload, aggregating workers when multiprocess is enabled."""
     import os
 
+    update_ops_metrics()
     multiproc_dir = os.environ.get("PROMETHEUS_MULTIPROC_DIR")
     if multiproc_dir and os.path.isdir(multiproc_dir):
         registry = CollectorRegistry()

@@ -53,6 +53,7 @@ services:
       OPS_COMMIT_MARKER_PATH: /app/.mvp-rescue-commit
       OPS_BACKUP_SCRIPT_PATH: /app/ops/backup.sh
       OPS_BACKUP_CRON_PATH: /app/ops/ai-tutor-backup
+      OPS_BACKUP_OUT_PATH: /app/ops/backup_out
       UVICORN_WORKERS: ${UVICORN_WORKERS:-4}
     depends_on:
       db:
@@ -64,6 +65,7 @@ services:
       - ../data/curriculum:/app/data/curriculum:ro
       - ../.mvp-rescue-commit:/app/.mvp-rescue-commit:ro
       - ./backup/backup.sh:/app/ops/backup.sh:ro
+      - ./backup/_out:/app/ops/backup_out:ro
       - /etc/cron.d/ai-tutor-backup:/app/ops/ai-tutor-backup:ro
     # Backend healthcheck
     healthcheck:
