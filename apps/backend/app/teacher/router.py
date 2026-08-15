@@ -573,6 +573,42 @@ def approve_material(
     return teacher_service.material_to_draft_out(material)
 
 
+@router.post(
+    "/materials/{material_id}/quality-status",
+    response_model=teacher_schemas.MaterialDraftOut,
+    summary="Stage 21: repeatable content QA status transition",
+)
+def set_material_quality_status(
+    material_id: int,
+    payload: teacher_schemas.MaterialQualityStatusIn,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_teacher_or_admin()),
+):
+    material = db.get(subj_models.LearningMaterial, material_id)
+    if material is None:
+        raise HTTPException(404, "Материал не найден")
+    if current.role.value == "teacher" and material.generated_by != current.id:
+        raise HTTPException(403, "Можно менять QA статус только своих материалов")
+
+    before = material.status
+    try:
+        material = teacher_service.set_quality_status(db, material, current, payload.status)
+    except teacher_service.WorkflowError as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+    from app.admin import service as audit_service
+
+    audit_service.record(
+        db,
+        user=current,
+        action="material.quality_status.update",
+        entity="learning_material",
+        entity_id=str(material.id),
+        details={"from": before, "to": payload.status, "stored_status": material.status, "note": payload.note},
+    )
+    return teacher_service.material_to_draft_out(material)
+
+
 class BulkApproveIn(BaseModel):
     """Sprint 35: bulk approve материалов."""
     material_ids: list[int] = Field(min_length=1, max_length=50)

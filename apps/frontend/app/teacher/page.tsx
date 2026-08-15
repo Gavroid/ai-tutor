@@ -10,15 +10,19 @@ import type { LearningAnalytics, MaterialListItem, MaterialStatus, User } from "
 const STATUS_LABEL: Record<MaterialStatus, string> = {
   draft: "Черновик",
   ai_generated: "AI сгенерировал",
+  needs_review: "Нужна проверка",
   teacher_approved: "Одобрено",
   published: "Опубликовано",
+  blocked: "Заблокировано",
 };
 
 const STATUS_COLOR: Record<MaterialStatus, string> = {
   draft: "bg-slate-100 text-slate-700",
   ai_generated: "bg-amber-100 text-amber-800",
+  needs_review: "bg-orange-100 text-orange-800",
   teacher_approved: "bg-sky-100 text-sky-800",
   published: "bg-emerald-100 text-emerald-800",
+  blocked: "bg-rose-100 text-rose-800",
 };
 
 export default function TeacherPage() {

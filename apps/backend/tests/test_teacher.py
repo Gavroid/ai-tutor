@@ -500,6 +500,48 @@ def test_workflow_cannot_publish_without_approve(client):
     assert "approve" in r.text.lower() or "teacher_approved" in r.text
 
 
+def test_quality_workflow_status_transition_and_audit(client):
+    """Stage 21: content QA has repeatable states and audit trail."""
+    mat_id = _create_material(client)
+    teacher = _token(client, "teacher@example.com")
+    admin = _token(client, "admin@example.com")
+
+    review = client.post(
+        f"/api/v1/teacher/materials/{mat_id}/quality-status",
+        headers=_h(teacher),
+        json={"status": "needs_review", "note": "проверить примеры"},
+    )
+    assert review.status_code == 200, review.text
+    assert review.json()["status"] == "needs_review"
+
+    blocked_publish = client.post(f"/api/v1/teacher/materials/{mat_id}/publish", headers=_h(teacher))
+    assert blocked_publish.status_code == 409
+
+    blocked = client.post(
+        f"/api/v1/teacher/materials/{mat_id}/quality-status",
+        headers=_h(teacher),
+        json={"status": "blocked", "note": "нет источника"},
+    )
+    assert blocked.status_code == 200, blocked.text
+    assert blocked.json()["status"] == "blocked"
+
+    approved = client.post(
+        f"/api/v1/teacher/materials/{mat_id}/quality-status",
+        headers=_h(teacher),
+        json={"status": "approved", "note": "manual smoke ok"},
+    )
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["status"] == "teacher_approved"
+    assert approved.json()["approved_by"] is not None
+
+    audit = client.get(
+        "/api/v1/admin/audit-log?action=material.quality_status.update&entity=learning_material",
+        headers=_h(admin),
+    )
+    assert audit.status_code == 200, audit.text
+    assert any(str(item["entity_id"]) == str(mat_id) for item in audit.json())
+
+
 def test_workflow_unpublish_works(client):
     mat_id = _create_material(client)
     teacher = _token(client, "teacher@example.com")

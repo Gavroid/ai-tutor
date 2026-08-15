@@ -7,7 +7,8 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 SourceType = Literal["text", "file", "topic", "pdf"]
-MaterialStatus = Literal["draft", "ai_generated", "teacher_approved", "published"]
+MaterialStatus = Literal["draft", "ai_generated", "needs_review", "teacher_approved", "published", "blocked"]
+QualityStatus = Literal["draft", "ai_generated", "needs_review", "approved", "published", "blocked"]
 Difficulty = Literal["easy", "medium", "hard"]
 
 
@@ -206,3 +207,10 @@ class MaterialUpdateIn(BaseModel):
 
     title: str | None = Field(None, max_length=300)
     content: MaterialContent | None = None
+
+
+class MaterialQualityStatusIn(BaseModel):
+    """Stage 21: explicit content QA workflow transition."""
+
+    status: QualityStatus
+    note: str | None = Field(None, max_length=500)

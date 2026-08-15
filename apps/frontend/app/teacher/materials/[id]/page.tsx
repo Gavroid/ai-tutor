@@ -5,20 +5,24 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import Header from "@/components/Header";
-import type { MaterialDraftOut, MaterialStatus, User } from "@/types";
+import type { MaterialDraftOut, MaterialStatus, QualityStatus, User } from "@/types";
 
 const STATUS_LABEL: Record<MaterialStatus, string> = {
   draft: "Черновик",
   ai_generated: "AI сгенерировал (требует проверки)",
+  needs_review: "Нужна проверка",
   teacher_approved: "Одобрено",
   published: "Опубликовано",
+  blocked: "Заблокировано",
 };
 
 const STATUS_COLOR: Record<MaterialStatus, string> = {
   draft: "bg-slate-100 text-slate-700",
   ai_generated: "bg-amber-100 text-amber-800",
+  needs_review: "bg-orange-100 text-orange-800",
   teacher_approved: "bg-sky-100 text-sky-800",
   published: "bg-emerald-100 text-emerald-800",
+  blocked: "bg-rose-100 text-rose-800",
 };
 
 export default function TeacherMaterialDetailPage() {
@@ -29,6 +33,7 @@ export default function TeacherMaterialDetailPage() {
   const [material, setMaterial] = useState<MaterialDraftOut | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [qualityNote, setQualityNote] = useState("");
 
   useEffect(() => {
     // Sprint 27: cookie-based auth. /me 401 → /login.
@@ -67,6 +72,11 @@ export default function TeacherMaterialDetailPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function setQualityStatus(status: QualityStatus) {
+    await call(() => api.teacherSetQualityStatus(material!.id, { status, note: qualityNote || undefined }));
+    setQualityNote("");
   }
 
   async function handleDelete() {
@@ -165,6 +175,23 @@ export default function TeacherMaterialDetailPage() {
                 Удалить
               </button>
             )}
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-4">
+        <div className="prism-kicker">Content QA Workflow</div>
+        <h2 className="mt-1 text-lg font-black">Повторяемый статус качества</h2>
+        <p className="mt-1 text-sm text-[color:var(--prism-muted)]">Используй needs review / blocked для явной остановки публикации, approved — для перехода к публикации. Все изменения пишутся в audit log.</p>
+        <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
+          <label className="grid gap-1 text-xs font-black uppercase tracking-[0.14em] text-[color:var(--prism-muted)]">
+            QA note
+            <input value={qualityNote} onChange={(event) => setQualityNote(event.target.value)} placeholder="Например: нет источника, проверить пример №2" className="prism-input text-sm normal-case tracking-normal" />
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setQualityStatus("needs_review")} disabled={busy} className="prism-action hover-warn px-4 py-2 text-sm disabled:opacity-50">Needs review</button>
+            <button onClick={() => setQualityStatus("blocked")} disabled={busy} className="prism-action hover-danger px-4 py-2 text-sm disabled:opacity-50">Blocked</button>
+            <button onClick={() => setQualityStatus("approved")} disabled={busy} className="prism-action primary px-4 py-2 text-sm disabled:opacity-50">Approved</button>
           </div>
         </div>
       </section>

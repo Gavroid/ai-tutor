@@ -44,7 +44,7 @@ export class ApiError extends Error {
   }
 }
 
-import type { ChatMsg, LearningAnalytics, MaterialDraftOut, MaterialListItem, RagRebuildJob, Subject, TokenPair, Topic, TopicFollowup, TopicPracticeFallback, TopicReadiness, TopicStatusUpdate, User } from "@/types";
+import type { ChatMsg, LearningAnalytics, MaterialDraftOut, MaterialListItem, QualityStatus, RagRebuildJob, Subject, TokenPair, Topic, TopicFollowup, TopicPracticeFallback, TopicReadiness, TopicStatusUpdate, User } from "@/types";
 
 export const api = {
   // Auth
@@ -645,6 +645,11 @@ export const api = {
     request<MaterialDraftOut>(`/api/v1/teacher/materials/${id}/publish`, { method: "POST" }),
   teacherUnpublish: (id: number) =>
     request<MaterialDraftOut>(`/api/v1/teacher/materials/${id}/unpublish`, { method: "POST" }),
+  teacherSetQualityStatus: (id: number, data: { status: QualityStatus; note?: string }) =>
+    request<MaterialDraftOut>(`/api/v1/teacher/materials/${id}/quality-status`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   teacherUpdateMaterial: (id: number, data: { title?: string; content?: MaterialDraftOut["content"] }) =>
     request<MaterialDraftOut>(`/api/v1/teacher/materials/${id}`, {
       method: "PATCH",

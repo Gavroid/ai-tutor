@@ -73,7 +73,8 @@ export type LearningAnalytics = {
 };
 
 // === Teacher (Sprint 1.2-1.3) ===
-export type MaterialStatus = "draft" | "ai_generated" | "teacher_approved" | "published";
+export type MaterialStatus = "draft" | "ai_generated" | "needs_review" | "teacher_approved" | "published" | "blocked";
+export type QualityStatus = "draft" | "ai_generated" | "needs_review" | "approved" | "published" | "blocked";
 export type SourceType = "text" | "file" | "topic";
 export type Difficulty = "easy" | "medium" | "hard";
 

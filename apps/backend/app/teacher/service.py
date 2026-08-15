@@ -354,10 +354,12 @@ def save_manual_draft(
 
 # Допустимые переходы workflow
 _ALLOWED_TRANSITIONS: dict[str, set[str]] = {
-    "draft": {"ai_generated", "teacher_approved", "published"},
-    "ai_generated": {"teacher_approved", "draft"},  # draft = откат к редактированию
-    "teacher_approved": {"published", "ai_generated"},  # обратно если нашёл ошибку
-    "published": {"teacher_approved"},  # только обратно для правок
+    "draft": {"ai_generated", "needs_review", "teacher_approved", "published", "blocked"},
+    "ai_generated": {"needs_review", "teacher_approved", "draft", "blocked"},  # draft = откат к редактированию
+    "needs_review": {"ai_generated", "teacher_approved", "blocked"},
+    "blocked": {"ai_generated", "needs_review", "teacher_approved"},
+    "teacher_approved": {"published", "ai_generated", "needs_review", "blocked"},  # обратно если нашёл ошибку
+    "published": {"teacher_approved", "blocked"},  # только обратно для правок или emergency block
 }
 
 
@@ -383,6 +385,34 @@ def approve_material(
         )
     material.status = "teacher_approved"
     material.approved_by = user.id
+    db.commit()
+    db.refresh(material)
+    return material
+
+
+def set_quality_status(
+    db: Session,
+    material: subj_models.LearningMaterial,
+    user: user_models.User,
+    status: str,
+) -> subj_models.LearningMaterial:
+    """Stage 21: explicit QA workflow status transition.
+
+    Public status `approved` maps to legacy DB status `teacher_approved` so old
+    publish and student-library paths remain compatible.
+    """
+    target = "teacher_approved" if status == "approved" else status
+    if target == "published":
+        return publish_material(db, material, user)
+    if not can_transition(material.status, target):
+        raise WorkflowError(f"Невозможно перейти из статуса '{material.status}' в '{status}'")
+    material.status = target
+    if target == "teacher_approved":
+        material.approved_by = user.id
+        material.published_at = None
+    elif target in {"draft", "ai_generated", "needs_review", "blocked"}:
+        material.approved_by = None
+        material.published_at = None
     db.commit()
     db.refresh(material)
     return material
