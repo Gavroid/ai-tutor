@@ -160,7 +160,7 @@ curl -sk -w '\nHTTP=%{http_code}\n' https://localhost/health
 docker compose ps
 # backend, db, frontend, redis healthy; proxy/grafana running
 
-GET /api/v1/admin/ops/status with admin bearer token
+Authenticated admin request to `/api/v1/admin/ops/status`
 # ok=true, database_ok=true, redis_ok=true, backup cron/script true, commit_marker ok=true
 ```
 
