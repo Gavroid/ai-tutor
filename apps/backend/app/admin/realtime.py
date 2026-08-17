@@ -16,7 +16,6 @@ import asyncio
 import json
 import logging
 import os
-import subprocess
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
@@ -24,7 +23,7 @@ from app.auth.security import ACCESS_COOKIE
 from app.common.deps import require_admin
 
 from app.ai.budget import get_usage
-from app.observability import metrics_payload
+from app.observability import collect_ops_metrics, metrics_payload
 from app.users.models import User
 
 logger = logging.getLogger(__name__)
@@ -133,24 +132,30 @@ def _metrics_snapshot() -> dict:
 
 
 def _system_health() -> dict:
-    """Проверяет здоровье Docker-сервисов + память/CPU."""
-    result = {"db": "unknown", "redis": "unknown", "backend": "unknown", "mem_used_pct": None, "mem_used_mb": None, "mem_limit_mb": None}
+    """App-level health for the admin realtime snapshot.
+
+    Production backend containers do not have reliable access to the host Docker
+    socket, so this uses the same DB/Redis/disk/backup probes that feed
+    Prometheus. That keeps Admin Realtime useful without SSH.
+    """
+    result = {
+        "db": "unknown",
+        "redis": "unknown",
+        "backend": "ok",
+        "upload_disk_used_percent": None,
+        "backup_latest_age_seconds": None,
+        "mem_used_pct": None,
+        "mem_used_mb": None,
+        "mem_limit_mb": None,
+    }
     try:
-        out = subprocess.run(
-            ["docker", "compose", "ps", "--format", "{{.Service}}={{.Status}}"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            cwd="/opt/ai-tutor/deploy",
-        )
-        for line in out.stdout.splitlines():
-            if "=" in line:
-                svc, status = line.split("=", 1)
-                is_healthy = "healthy" in status.lower() or "up" in status.lower()
-                if svc in ("db", "redis", "backend"):
-                    result[svc] = "ok" if is_healthy else "down"
+        ops = collect_ops_metrics()
+        result["db"] = "ok" if float(ops.get("ai_tutor_db_up", 0.0)) >= 1.0 else "down"
+        result["redis"] = "ok" if float(ops.get("ai_tutor_redis_up", 0.0)) >= 1.0 else "down"
+        result["upload_disk_used_percent"] = ops.get("ai_tutor_upload_disk_used_percent")
+        result["backup_latest_age_seconds"] = ops.get("ai_tutor_backup_latest_age_seconds")
     except Exception as e:
-        logger.debug("docker ps failed: %s", e)
+        logger.debug("ops health probes failed: %s", e)
 
     try:
         current_path = "/sys/fs/cgroup/memory.current"

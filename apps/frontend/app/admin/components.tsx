@@ -154,6 +154,22 @@ export function RealtimeTab({ state, snapshot, loading, onRefresh }: { state: Ad
             Снимок: {formatSnapshotTime(snapshot.ts)} MSK · значения меняются только после ручного обновления.
           </div>
           <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <RealtimeKpi label="DB" value={snapshot.system.db} sublabel="App-level SELECT 1 probe from backend /metrics" good={snapshot.system.db === "ok"} danger={snapshot.system.db !== "ok"} />
+            <RealtimeKpi label="Redis" value={snapshot.system.redis} sublabel="App-level Redis ping from backend /metrics" good={snapshot.system.redis === "ok"} danger={snapshot.system.redis !== "ok"} />
+            <RealtimeKpi
+              label="Backup age"
+              value={snapshot.system.backup_latest_age_seconds != null && snapshot.system.backup_latest_age_seconds >= 0 ? `${Math.round(snapshot.system.backup_latest_age_seconds / 3600)}h` : "missing"}
+              sublabel="Latest visible backup manifest age; critical above 26h"
+              good={snapshot.system.backup_latest_age_seconds != null && snapshot.system.backup_latest_age_seconds >= 0 && snapshot.system.backup_latest_age_seconds <= 93_600}
+              danger={snapshot.system.backup_latest_age_seconds == null || snapshot.system.backup_latest_age_seconds < 0 || snapshot.system.backup_latest_age_seconds > 93_600}
+            />
+            <RealtimeKpi
+              label="Upload disk"
+              value={snapshot.system.upload_disk_used_percent != null ? `${Math.round(snapshot.system.upload_disk_used_percent)}%` : "—"}
+              sublabel="Warning threshold: 80% used"
+              good={snapshot.system.upload_disk_used_percent != null && snapshot.system.upload_disk_used_percent <= 80}
+              danger={snapshot.system.upload_disk_used_percent != null && snapshot.system.upload_disk_used_percent > 80}
+            />
             <RealtimeKpi label="AI токены" value={(snapshot.ai_tokens.input || 0) + (snapshot.ai_tokens.output || 0)} sublabel={`Всего токенов AI: input ${snapshot.ai_tokens.input || 0} / output ${snapshot.ai_tokens.output || 0}`} />
             <RealtimeKpi label="AI вызовы" value={Object.values(snapshot.ai_modes).reduce((sum, mode) => sum + (mode?.ok || 0) + (mode?.error || 0), 0)} sublabel={`Всего запросов к AI по ${Object.keys(snapshot.ai_modes).length} режимам`} />
             <RealtimeKpi label="HTTP 5xx" value={snapshot.http_total["5xx"]} sublabel="Ошибки сервера с момента старта backend" danger={snapshot.http_total["5xx"] > 0} />

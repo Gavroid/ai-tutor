@@ -15,6 +15,8 @@ export type AdminSnapshot = {
     db: string;
     redis: string;
     backend: string;
+    upload_disk_used_percent?: number | null;
+    backup_latest_age_seconds?: number | null;
     mem_used_pct: number | null;
     mem_used_mb?: number | null;
     mem_limit_mb?: number | null;
