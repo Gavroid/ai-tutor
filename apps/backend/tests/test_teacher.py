@@ -514,8 +514,9 @@ def test_quality_workflow_status_transition_and_audit(client):
     assert review.status_code == 200, review.text
     assert review.json()["status"] == "needs_review"
 
-    blocked_publish = client.post(f"/api/v1/teacher/materials/{mat_id}/publish", headers=_h(teacher))
-    assert blocked_publish.status_code == 409
+    needs_review_publish = client.post(f"/api/v1/teacher/materials/{mat_id}/publish", headers=_h(teacher))
+    assert needs_review_publish.status_code == 409
+    assert "teacher_approved" in needs_review_publish.text
 
     blocked = client.post(
         f"/api/v1/teacher/materials/{mat_id}/quality-status",
@@ -524,6 +525,10 @@ def test_quality_workflow_status_transition_and_audit(client):
     )
     assert blocked.status_code == 200, blocked.text
     assert blocked.json()["status"] == "blocked"
+
+    blocked_publish = client.post(f"/api/v1/teacher/materials/{mat_id}/publish", headers=_h(teacher))
+    assert blocked_publish.status_code == 409
+    assert "teacher_approved" in blocked_publish.text
 
     approved = client.post(
         f"/api/v1/teacher/materials/{mat_id}/quality-status",
@@ -539,7 +544,14 @@ def test_quality_workflow_status_transition_and_audit(client):
         headers=_h(admin),
     )
     assert audit.status_code == 200, audit.text
-    assert any(str(item["entity_id"]) == str(mat_id) for item in audit.json())
+    events = [item for item in audit.json() if str(item["entity_id"]) == str(mat_id)]
+    assert len(events) >= 3
+    details = [json.loads(event["details"]) if isinstance(event["details"], str) else event["details"] for event in events]
+    transitions = {(detail or {}).get("from"): (detail or {}).get("to") for detail in details}
+    assert transitions["ai_generated"] == "needs_review"
+    assert transitions["needs_review"] == "blocked"
+    assert transitions["blocked"] == "approved"
+    assert any((detail or {}).get("note") == "нет источника" for detail in details)
 
 
 def test_workflow_unpublish_works(client):
