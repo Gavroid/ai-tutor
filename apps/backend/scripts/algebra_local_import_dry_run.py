@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 from typing import Any, Sequence, cast
 
+from app.algebra_plan import ALGEBRA_TOPIC_PLAN
 from scripts.algebra_rag_subset_fixture import build_subset_fixture
 
 
@@ -25,7 +26,8 @@ def _metadata(row: dict[str, object]) -> dict[str, object]:
 
 def build_local_import_manifest(*, topic_ids: Sequence[int] | None = None) -> dict[str, object]:
     """Build local material/chunk-shaped rows for audit-only import rehearsal."""
-    fixture_rows = build_subset_fixture(topic_ids=topic_ids)
+    selected_topic_ids = list(topic_ids) if topic_ids is not None else [topic.topic_id for topic in ALGEBRA_TOPIC_PLAN]
+    fixture_rows = build_subset_fixture(topic_ids=selected_topic_ids)
     materials: list[dict[str, object]] = []
     chunks: list[dict[str, object]] = []
     audit_rows: list[dict[str, object]] = []

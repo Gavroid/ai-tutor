@@ -32,3 +32,15 @@ def test_local_import_dry_run_keeps_preview_decision() -> None:
 
     assert manifest["readiness_decision"] == "keep_preview_local_dry_run_only"
     assert manifest["promotion_allowed"] is False
+
+
+def test_local_import_dry_run_default_covers_all_algebra_topics() -> None:
+    manifest = build_local_import_manifest()
+
+    assert manifest["topic_count"] == 19
+    assert len(manifest["materials"]) == 19
+    assert len(manifest["chunks"]) == 19
+    assert len({row["topic_id"] for row in manifest["materials"]}) == 19
+    summary = summarize_audit(audit_rows(manifest["audit_rows"], expected_subject_code="algebra"))
+    assert summary["rows_checked"] == 19
+    assert summary["bad_rows"] == 0
