@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from scripts.math_fallback_seed import FALLBACKS
 from scripts.math_quality_lab import (
+    audit_explanation_samples,
     DEFAULT_SAMPLE_TOPIC_IDS,
     QualityIssue,
     audit_fallback_bank,
@@ -77,3 +78,45 @@ def test_quality_issue_serializes_to_plain_dict() -> None:
         "code": "raw_json",
         "detail": "bad",
     }
+
+
+def test_explanation_sample_audit_flags_short_raw_provider_output() -> None:
+    report = audit_explanation_samples([
+        {
+            "topic_id": 187,
+            "topic_name": "Среднее арифметическое",
+            "content": '{"answer": "42"} <think>hidden</think> AI не вернул JSON',
+        }
+    ])
+
+    assert report.topic_count == 1
+    assert report.fail_count == 1
+    issue_codes = {issue.code for issue in report.issues}
+    assert "raw_json" in issue_codes
+    assert "hidden_answer_leak" in issue_codes
+    assert "reasoning_leak" in issue_codes
+    assert "provider_artifact" in issue_codes
+    assert "explanation_too_short" in issue_codes
+
+
+def test_explanation_sample_audit_accepts_structured_child_readable_sample() -> None:
+    content = (
+        "**Среднее арифметическое** помогает найти обычное значение для нескольких чисел. "
+        "Сначала сложи все числа, потом раздели сумму на количество чисел. "
+        "### Пример\n"
+        "Если оценки за три работы: 4, 5 и 3, сумма равна 12. Делим 12 на 3 и получаем 4. "
+        "Это значит, что средняя оценка равна 4. "
+        "### Частая ошибка\n"
+        "Не дели сумму на случайное число: делить нужно именно на количество значений. "
+        "### Проверь себя\n"
+        "Почему для чисел 2, 6, 7 и 5 мы делим сумму на 4?"
+    )
+
+    report = audit_explanation_samples([
+        {"topic_id": 187, "topic_name": "Среднее арифметическое", "content": content}
+    ])
+
+    assert report.topic_count == 1
+    assert report.pass_count == 1
+    assert report.fail_count == 0
+    assert report.issues == []

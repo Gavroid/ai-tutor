@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
@@ -127,6 +128,62 @@ def build_quality_report(
     return QualityReport(topic_count=len(rows), pass_count=len(rows) - fail_count, fail_count=fail_count, rows=rows, issues=all_issues)
 
 
+def audit_explanation_samples(samples: Sequence[Mapping[str, object]]) -> QualityReport:
+    """Audit captured explain outputs without calling a provider or production."""
+    rows: list[dict[str, object]] = []
+    all_issues: list[QualityIssue] = []
+    for idx, sample in enumerate(samples, start=1):
+        raw_topic_id = sample.get("topic_id")
+        topic_id = raw_topic_id if isinstance(raw_topic_id, int) else None
+        content = str(sample.get("content") or "").strip()
+        issues = audit_student_visible_text(content, field="explanation", topic_id=topic_id)
+        if len(content) < 250:
+            issues.append(
+                QualityIssue(
+                    topic_id,
+                    "explanation",
+                    "explanation_too_short",
+                    "Explanation is shorter than the runtime retry/fallback threshold.",
+                )
+            )
+        required_markers = ("пример", "проверь", "правил")
+        lowered = content.lower()
+        if content and not any(marker in lowered for marker in required_markers):
+            issues.append(
+                QualityIssue(
+                    topic_id,
+                    "explanation",
+                    "missing_instructional_structure",
+                    "Explanation lacks example/check/rule structure.",
+                )
+            )
+        all_issues.extend(issues)
+        rows.append({
+            "sample_id": sample.get("sample_id") or idx,
+            "topic_id": topic_id,
+            "topic_name": sample.get("topic_name"),
+            "status": "pass" if not issues else "fail",
+            "content_chars": len(content),
+            "issue_count": len(issues),
+            "issues": [issue.to_dict() for issue in issues],
+        })
+    fail_count = sum(1 for row in rows if row["status"] == "fail")
+    return QualityReport(topic_count=len(rows), pass_count=len(rows) - fail_count, fail_count=fail_count, rows=rows, issues=all_issues)
+
+
+def load_explanation_samples(path: str | Path) -> list[Mapping[str, object]]:
+    """Load explanation samples from a JSON array for offline quality audits."""
+    payload = json.loads(Path(path).read_text())
+    if not isinstance(payload, list):
+        raise ValueError("Explanation samples file must contain a JSON array.")
+    samples: list[Mapping[str, object]] = []
+    for item in payload:
+        if not isinstance(item, Mapping):
+            raise ValueError("Each explanation sample must be an object.")
+        samples.append(item)
+    return samples
+
+
 def audit_fallback_bank(fallbacks: Mapping[int, Mapping[str, object]] | None = None) -> QualityReport:
     return build_quality_report(fallbacks or FALLBACKS)
 
@@ -157,9 +214,13 @@ def main() -> int:
     parser.add_argument("--sample-only", action="store_true")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--markdown", action="store_true")
+    parser.add_argument("--explanation-samples", help="Path to JSON array of captured explain outputs")
     args = parser.parse_args()
-    topic_ids = select_default_sample_topics() if args.sample_only else None
-    report = build_quality_report(topic_ids=topic_ids)
+    if args.explanation_samples:
+        report = audit_explanation_samples(load_explanation_samples(args.explanation_samples))
+    else:
+        topic_ids = select_default_sample_topics() if args.sample_only else None
+        report = build_quality_report(topic_ids=topic_ids)
     if args.json:
         print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2))
     elif args.markdown:
