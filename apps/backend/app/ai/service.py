@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import dataclass
 from typing import Any
 
 from app.ai import prompts, sanitize
+from app.ai.hermes import _strip_reasoning_blocks
 from app.ai.types import AIMessage, AIRequest, AIResponse, AIProvider
 from app.config import get_settings
 from app.subjects import models as subj_models
@@ -206,18 +208,29 @@ def _exercise_matches_topic(exercise: GeneratedExercise, topic_name: str) -> boo
 
 
 _ALLOWED_EXERCISE_TYPES = {"single", "multiple", "numeric", "text", "fill", "code"}
+_JSON_OBJECT_RE = re.compile(r"(?s)\{\s*\"[^{}]*(?:correct_answer|answer|question_text|is_correct)[^{}]*\".*?\}")
 
 
 def _clean_ai_text(value: Any) -> str:
     return str(value or "").strip()
 
 
+def _clean_student_visible_text(value: Any) -> str:
+    """Remove model artefacts before text can reach a student-facing response."""
+    text = _strip_reasoning_blocks(_clean_ai_text(value))
+    text = _JSON_OBJECT_RE.sub("", text)
+    text = re.sub(r"```[a-zA-Z0-9_-]*", "", text)
+    text = text.replace("```", "")
+    text = sanitize.sanitize_output(text)
+    return "\n".join(line.strip() for line in text.splitlines() if line.strip()).strip()
+
+
 def _valid_generated_exercise(data: dict[str, Any]) -> GeneratedExercise:
     """Validate model JSON before it becomes a student-facing exercise."""
-    question_text = _clean_ai_text(data.get("question_text"))
+    question_text = _clean_student_visible_text(data.get("question_text"))
     exercise_type = _clean_ai_text(data.get("type") or "text")
-    correct_answer = _clean_ai_text(data.get("correct_answer"))
-    explanation = _clean_ai_text(data.get("explanation"))
+    correct_answer = _clean_student_visible_text(data.get("correct_answer"))
+    explanation = _clean_student_visible_text(data.get("explanation"))
 
     lowered_blob = "\n".join([question_text, correct_answer, explanation]).lower()
     if (
@@ -231,13 +244,13 @@ def _valid_generated_exercise(data: dict[str, Any]) -> GeneratedExercise:
         raise ValueError("AI did not return a valid structured exercise")
 
     raw_options = data.get("options")
-    options = [str(item).strip() for item in raw_options if str(item).strip()] if isinstance(raw_options, list) else None
+    options = [_clean_student_visible_text(item) for item in raw_options if _clean_student_visible_text(item)] if isinstance(raw_options, list) else None
     if exercise_type in {"single", "multiple"} and (not options or len(options) < 2):
         raise ValueError("AI did not return a valid structured exercise")
 
     raw_mistakes = data.get("typical_mistakes", [])
     typical_mistakes = (
-        [str(item).strip() for item in raw_mistakes if str(item).strip()]
+        [_clean_student_visible_text(item) for item in raw_mistakes if _clean_student_visible_text(item)]
         if isinstance(raw_mistakes, list)
         else []
     )
@@ -742,6 +755,7 @@ class AIService:
         )
         try:
             resp = await self.provider.complete(req)
+            resp.content = _clean_student_visible_text(resp.content)
             used_fallback = False
             if len(resp.content.strip()) < 250:
                 retry_req = AIRequest(
@@ -756,6 +770,7 @@ class AIService:
                     temperature=0.4,
                 )
                 retry_resp = await self.provider.complete(retry_req)
+                retry_resp.content = _clean_student_visible_text(retry_resp.content)
                 if len(retry_resp.content.strip()) >= 250:
                     resp = retry_resp
                 else:
@@ -889,6 +904,7 @@ class AIService:
         )
         try:
             resp = await self.provider.complete(req)
+            resp.content = _clean_student_visible_text(resp.content)
             _record_ai("hint", "ok", resp=resp)
             return resp
         except Exception as e:
@@ -933,8 +949,8 @@ class AIService:
                     result = CheckResult(
                         is_correct=bool(resp.structured.get("is_correct")),
                         score=float(resp.structured.get("score", 0.0)),
-                        first_error=resp.structured.get("first_error"),
-                        explanation=str(resp.structured.get("explanation", "")),
+                        first_error=_clean_student_visible_text(resp.structured.get("first_error")),
+                        explanation=_clean_student_visible_text(resp.structured.get("explanation", "")),
                         hint_level=int(resp.structured.get("hint_level", 1)),
                         next_difficulty=int(resp.structured.get("next_difficulty", 1)),
                         # Sprint 4.3.1: error_type для context-aware hints.
@@ -951,7 +967,7 @@ class AIService:
                 is_correct=False,
                 score=0.0,
                 first_error=None,
-                explanation=resp.content[:1000] or "Не удалось разобрать ответ.",
+                explanation=_clean_student_visible_text(resp.content[:1000]) or "Не удалось разобрать ответ.",
                 hint_level=1,
                 next_difficulty=2,
             )
@@ -1038,11 +1054,11 @@ class AIService:
                             opts = item.get("options")
                             questions.append(
                                 QuizQuestion(
-                                    question_text=str(item.get("question_text", "")),
+                                    question_text=_clean_student_visible_text(item.get("question_text", "")),
                                     type=str(item.get("type", "text")),
-                                    options=list(opts) if isinstance(opts, list) else None,
-                                    correct_answer=str(item.get("correct_answer", "")),
-                                    explanation=str(item.get("explanation", "")),
+                                    options=[_clean_student_visible_text(option) for option in opts if _clean_student_visible_text(option)] if isinstance(opts, list) else None,
+                                    correct_answer=_clean_student_visible_text(item.get("correct_answer", "")),
+                                    explanation=_clean_student_visible_text(item.get("explanation", "")),
                                 )
                             )
                         if questions:
@@ -1055,11 +1071,11 @@ class AIService:
             return Quiz(
                 questions=[
                     QuizQuestion(
-                        question_text=resp.content[:500] or "(нет ответа)",
+                        question_text=_clean_student_visible_text(resp.content[:500]) or "(нет ответа)",
                         type="text",
                         options=None,
                         correct_answer="(см. объяснение)",
-                        explanation=resp.content[:1000],
+                        explanation=_clean_student_visible_text(resp.content[:1000]) or "Не удалось разобрать ответ.",
                     )
                 ]
             )
@@ -1087,7 +1103,7 @@ class AIService:
         req = AIRequest(messages=msgs, mode="chat", max_tokens=900)
         try:
             resp = await self.provider.complete(req)
-            resp.content = _trim_incomplete_trailing_fragment(resp.content)
+            resp.content = _trim_incomplete_trailing_fragment(_clean_student_visible_text(resp.content))
             _record_ai("chat", "ok", resp=resp)
             return resp
         except Exception as e:

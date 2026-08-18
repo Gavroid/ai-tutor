@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from app.ai.hermes import _extract_structured_json, _prepare_model_output
-from app.ai.service import AIService, GeneratedExercise, _dedupe_rag_sources, _exercise_matches_topic, _rag_enabled_for_subject, _verified_rag_sources, _trim_incomplete_trailing_fragment
+from app.ai.service import AIService, GeneratedExercise, _dedupe_rag_sources, _exercise_matches_topic, _rag_enabled_for_subject, _verified_rag_sources, _trim_incomplete_trailing_fragment, _valid_generated_exercise
 from app.ai.types import AIMessage, AIRequest, AIResponse, AIProvider
 
 
@@ -570,3 +570,97 @@ async def test_generate_exercise_accepts_json_after_think() -> None:
     assert exercise.type == "single"
     assert exercise.options == ["Лениться", "Бежать", "Читать"]
     assert exercise.correct_answer == "Лениться"
+
+
+def _assert_student_clean(text: str) -> None:
+    lowered = text.lower()
+    assert "<think" not in lowered
+    assert "&lt;think" not in lowered
+    assert "hidden answer" not in lowered
+    assert "```json" not in lowered
+    assert '"correct_answer"' not in text
+    assert "$$" not in text
+    assert "\\frac" not in text
+    assert "\\text" not in text
+    assert "|---|" not in text
+
+
+def test_valid_generated_exercise_sanitizes_all_student_visible_fields() -> None:
+    exercise = _valid_generated_exercise(
+        {
+            "question_text": "<think>hidden answer</think>```json {\"question_text\":\"bad\"}```Вычисли $$\\frac{1}{2} + \\frac{1}{2}$$.",
+            "type": "single",
+            "options": ["<think>hidden</think>1", "0"],
+            "correct_answer": "1",
+            "explanation": "```json\n{\"correct_answer\":\"1\"}\n``` Сложили \\frac{1}{2} и \\frac{1}{2}.",
+            "typical_mistakes": ["<think>x</think>Сложить знаменатели"],
+        }
+    )
+
+    visible = "\n".join(
+        [exercise.question_text, *(exercise.options or []), exercise.correct_answer, exercise.explanation, *exercise.typical_mistakes]
+    )
+    _assert_student_clean(visible)
+    assert "1 / 2" in visible
+
+
+@pytest.mark.asyncio
+async def test_check_answer_structured_response_sanitizes_explanation() -> None:
+    svc = AIService(
+        StaticProvider(
+            AIResponse(
+                content="ignored",
+                model="test-model",
+                structured={
+                    "is_correct": False,
+                    "score": 0,
+                    "first_error": "<think>hidden answer</think>Ошибка",
+                    "explanation": "<think>hidden answer</think>```json\n{\"correct_answer\":\"4\"}\n``` Подумай про сумму.",
+                    "hint_level": 1,
+                    "next_difficulty": 1,
+                },
+            )
+        )
+    )
+
+    result = await svc.check_answer("2+2", "4", "5")
+
+    _assert_student_clean("\n".join([result.first_error or "", result.explanation]))
+    assert "Подумай про сумму" in result.explanation
+
+
+@pytest.mark.asyncio
+async def test_check_answer_fallback_does_not_surface_raw_provider_json() -> None:
+    svc = AIService(
+        StaticProvider(
+            AIResponse(
+                content='<think>hidden answer</think>```json {"correct_answer":"4"}``` Подсказка: проверь сложение.',
+                model="test-model",
+                structured=None,
+            )
+        )
+    )
+
+    result = await svc.check_answer("2+2", "4", "5")
+
+    _assert_student_clean(result.explanation)
+    assert "проверь сложение" in result.explanation.lower()
+
+
+@pytest.mark.asyncio
+async def test_generate_quiz_fallback_does_not_surface_raw_provider_json() -> None:
+    svc = AIService(
+        StaticProvider(
+            AIResponse(
+                content='<think>hidden answer</think>```json {"correct_answer":"4"}``` Вопрос: сколько будет 2+2?',
+                model="test-model",
+                structured=None,
+            )
+        )
+    )
+
+    quiz = await svc.generate_quiz("Математика", "Сложение", 1, count=3)
+    visible = "\n".join([quiz.questions[0].question_text, quiz.questions[0].explanation])
+
+    _assert_student_clean(visible)
+    assert "сколько будет" in visible.lower()
