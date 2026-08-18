@@ -3,6 +3,7 @@ from __future__ import annotations
 from scripts.math_fallback_seed import FALLBACKS
 from scripts.math_quality_lab import (
     audit_explanation_samples,
+    build_local_sample_capture,
     DEFAULT_SAMPLE_TOPIC_IDS,
     QualityIssue,
     audit_fallback_bank,
@@ -120,3 +121,34 @@ def test_explanation_sample_audit_accepts_structured_child_readable_sample() -> 
     assert report.pass_count == 1
     assert report.fail_count == 0
     assert report.issues == []
+
+
+def test_build_local_sample_capture_emits_explanation_and_practice_samples() -> None:
+    samples = build_local_sample_capture(topic_ids=[187, 188])
+
+    kinds = {sample["kind"] for sample in samples}
+    assert kinds == {"explanation", "practice"}
+    assert len(samples) == 4
+    assert {sample["topic_id"] for sample in samples} == {187, 188}
+    assert all(sample["source"] == "local_fallback_bank" for sample in samples)
+    assert all(sample["content"] for sample in samples)
+    explanation_samples = [sample for sample in samples if sample["kind"] == "explanation"]
+    report = audit_explanation_samples(explanation_samples)
+    assert report.topic_count == 2
+    assert report.fail_count == 0
+
+
+def test_build_local_sample_capture_marks_missing_topic_without_crashing() -> None:
+    samples = build_local_sample_capture(topic_ids=[999999])
+
+    assert samples == [
+        {
+            "sample_id": "missing-999999",
+            "kind": "missing",
+            "topic_id": 999999,
+            "topic_name": None,
+            "source": "local_fallback_bank",
+            "content": "",
+            "metadata": {"error": "missing_topic"},
+        }
+    ]

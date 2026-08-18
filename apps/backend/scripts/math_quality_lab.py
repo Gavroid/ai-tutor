@@ -184,6 +184,69 @@ def load_explanation_samples(path: str | Path) -> list[Mapping[str, object]]:
     return samples
 
 
+def _format_local_explanation_sample(topic_id: int, row: Mapping[str, object]) -> str:
+    question = str(row.get("question_text") or "").strip()
+    explanation = str(row.get("explanation") or "").strip()
+    mistakes_raw = row.get("typical_mistakes")
+    mistakes = [str(item).strip() for item in mistakes_raw] if isinstance(mistakes_raw, list) else []
+    mistake_text = mistakes[0] if mistakes else "Не пропускай промежуточные шаги."
+    return (
+        f"### Правило\n{explanation} Это правило помогает решить задание по теме без угадывания.\n\n"
+        f"### Пример\n{question} Сначала прочитай условие, затем выполни действие из правила и сравни с вариантами ответа.\n\n"
+        f"### Частая ошибка\n{mistake_text}. Проверь, что ты не сделал эту ошибку.\n\n"
+        f"### Проверь себя\nОбъясни своими словами, почему правильный ответ получается именно так. Тема #{topic_id}."
+    )
+
+
+def build_local_sample_capture(
+    *,
+    topic_ids: Sequence[int] | None = None,
+    fallbacks: Mapping[int, Mapping[str, object]] | None = None,
+) -> list[dict[str, object]]:
+    """Build offline explanation/practice samples from the deterministic Math fallback bank."""
+    source = fallbacks or FALLBACKS
+    selected = list(topic_ids) if topic_ids is not None else select_default_sample_topics()
+    samples: list[dict[str, object]] = []
+    for topic_id in selected:
+        row = source.get(topic_id)
+        if row is None:
+            samples.append({
+                "sample_id": f"missing-{topic_id}",
+                "kind": "missing",
+                "topic_id": topic_id,
+                "topic_name": None,
+                "source": "local_fallback_bank",
+                "content": "",
+                "metadata": {"error": "missing_topic"},
+            })
+            continue
+        topic_name = str(row.get("topic_name") or row.get("topic") or row.get("question_text") or "").strip() or None
+        samples.append({
+            "sample_id": f"explanation-{topic_id}",
+            "kind": "explanation",
+            "topic_id": topic_id,
+            "topic_name": topic_name,
+            "source": "local_fallback_bank",
+            "content": _format_local_explanation_sample(topic_id, row),
+            "metadata": {"question_text": row.get("question_text")},
+        })
+        samples.append({
+            "sample_id": f"practice-{topic_id}",
+            "kind": "practice",
+            "topic_id": topic_id,
+            "topic_name": topic_name,
+            "source": "local_fallback_bank",
+            "content": str(row.get("question_text") or ""),
+            "metadata": {
+                "type": row.get("type"),
+                "option_count": len(row.get("options") or []) if isinstance(row.get("options"), list) else 0,
+                "has_correct_answer": bool(row.get("correct_answer")),
+                "has_typical_mistakes": bool(row.get("typical_mistakes")),
+            },
+        })
+    return samples
+
+
 def audit_fallback_bank(fallbacks: Mapping[int, Mapping[str, object]] | None = None) -> QualityReport:
     return build_quality_report(fallbacks or FALLBACKS)
 
@@ -215,7 +278,12 @@ def main() -> int:
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--markdown", action="store_true")
     parser.add_argument("--explanation-samples", help="Path to JSON array of captured explain outputs")
+    parser.add_argument("--capture-local-samples", action="store_true", help="Emit local fallback-bank explanation/practice samples")
     args = parser.parse_args()
+    if args.capture_local_samples:
+        samples = build_local_sample_capture(topic_ids=select_default_sample_topics() if args.sample_only else None)
+        print(json.dumps(samples, ensure_ascii=False, indent=2 if args.json else None))
+        return 0
     if args.explanation_samples:
         report = audit_explanation_samples(load_explanation_samples(args.explanation_samples))
     else:
