@@ -248,51 +248,71 @@ tail -f /var/log/ai-tutor-deploy.log
 ### Database migration
 ```bash
 ssh root@192.168.1.86
-cd /opt/ai-tutor/deploy
+cd /opt/ai-tutor/deploy/backup
 
 # 1. Backup first
-./release/backup.sh  # если exists
+./backup.sh
+./ai-tutor-backup-offsite.sh
 
-# 2. Apply migration (autouse через app startup)
+# 2. Apply migration/restart only affected service
+cd /opt/ai-tutor/deploy
 docker compose restart backend
 
 # 3. Verify
-docker exec deploy-backend-1 alembic current
+curl -sk -w '\nREADY_HTTP=%{http_code}\n' https://localhost/ready
+curl -sk -w '\nHEALTH_HTTP=%{http_code}\n' https://localhost/health
+docker compose exec -T backend alembic current
 ```
+
+### Safe restore drill
+```bash
+ssh root@192.168.1.86
+cd /opt/ai-tutor
+scripts/restore_drill.sh
+```
+
+Expected: `RESTORE DRILL PASSED`, table count >10, user count >0. This uses an offsite DB backup and a temporary PostgreSQL container; it does not touch production DB.
 
 ### Backend deploy
 ```bash
-# 1. На local machine: pull + tests + commit
+# 1. Local: tests + commit
+cd /root/workspace/ai-tutor/apps/backend
+.venv/bin/pytest tests/test_health.py -q
+
+# 2. Production: backup/offsite first
+ssh root@192.168.1.86 'cd /opt/ai-tutor/deploy/backup && ./backup.sh && ./ai-tutor-backup-offsite.sh'
+
+# 3. Targeted sync only the files changed in this task. Avoid broad rsync --delete while production tree/marker hygiene is dirty.
 cd /root/workspace/ai-tutor
-git pull
-.venv/bin/pytest tests/ -q
-git add -A && git commit -m "..." && git push
+rsync -av -e 'ssh -i /root/.ssh/id_ed25519_kirill_ai -o BatchMode=yes' \
+  apps/backend/app/path/to/file.py \
+  root@192.168.1.86:/opt/ai-tutor/apps/backend/app/path/to/file.py
 
-# 2. На production: rsync + build + restart
-ssh root@192.168.1.86
-cd /opt/ai-tutor
-git pull
-rsync -avz --delete --exclude='__pycache__' \
-  /root/workspace/ai-tutor/apps/backend/ /opt/ai-tutor/apps/backend/
-cd deploy
-docker compose build backend
-docker compose up -d backend
-
-# 3. Verify
-curl https://localhost/health
-bash release/smoke.sh
-bash release/smoke-extra.sh
+# 4. Rebuild/restart affected service only
+ssh root@192.168.1.86 '
+  cd /opt/ai-tutor/deploy
+  docker compose build backend
+  docker compose up -d --no-deps backend
+  curl -sk -w "\nREADY_HTTP=%{http_code}\n" https://localhost/ready
+  curl -sk -w "\nHEALTH_HTTP=%{http_code}\n" https://localhost/health
+  docker compose ps backend
+'
 ```
 
 ### Rollback
 ```bash
 ssh root@192.168.1.86
-cd /opt/ai-tutor
-git log --oneline | head -5
-git reset --hard PREVIOUS_COMMIT
-cd deploy
+cd /opt/ai-tutor/deploy
+
+# Prefer code rollback by targeted file restore/rebuild first.
+# If DB changed, restore DB only from a known backup after explicit approval:
+#   /opt/ai-tutor/deploy/backup/backup.sh --restore /opt/ai-tutor/deploy/backup/_out/db-YYYYMMDDTHHMMSSZ.sql.gz
+# The --restore path drops/recreates production public schema.
+
 docker compose build backend
-docker compose up -d backend
+docker compose up -d --no-deps backend
+curl -sk -w '\nREADY_HTTP=%{http_code}\n' https://localhost/ready
+curl -sk -w '\nHEALTH_HTTP=%{http_code}\n' https://localhost/health
 ```
 
 ## 🔗 См. также

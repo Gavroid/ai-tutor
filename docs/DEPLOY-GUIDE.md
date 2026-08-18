@@ -1,6 +1,6 @@
 # AI-Tutor Production Deployment Guide
 
-_Last updated: 2026-08-13_
+_Last updated: 2026-08-18_
 
 Production target:
 
@@ -66,6 +66,35 @@ Expected local artifacts:
 
 Offsite verification must report hash verified. Do not expose SMB credentials.
 
+## Restore drill
+
+Safe restore drill uses an offsite DB backup and a temporary PostgreSQL container. It does **not** touch the production database.
+
+Run from production server:
+
+```bash
+cd /opt/ai-tutor
+scripts/restore_drill.sh
+```
+
+Expected success markers:
+
+```text
+RESTORE DRILL PASSED
+Backup: db-YYYYMMDDTHHMMSSZ.sql.gz
+Tables: >10
+Users: >0
+```
+
+For a local backup file already present under `/opt/ai-tutor/deploy/backup/_out`, the older compose-based test restore is also safe because it restores to `tutor_test` and drops that test DB at the end:
+
+```bash
+cd /opt/ai-tutor/deploy/backup
+./test-restore.sh /opt/ai-tutor/deploy/backup/_out/db-YYYYMMDDTHHMMSSZ.sql.gz
+```
+
+Never run `backup.sh --restore` against production without explicit approval; that path drops/recreates the production public schema.
+
 ## Frontend gates
 
 ```bash
@@ -89,6 +118,53 @@ Use targeted tests for changed modules. Examples:
 .venv/bin/pytest tests/test_parent_dashboard.py tests/test_health.py -q
 .venv/bin/pytest tests/test_teacher.py -q
 .venv/bin/pytest tests/test_ai_output_contract.py -q
+```
+
+## Deploy targeted changes
+
+Production tree/marker hygiene is still handled conservatively. Prefer targeted syncs over broad deploys unless the production tree has been explicitly cleaned and verified.
+
+Rules:
+
+1. Run backup/offsite first.
+2. Sync only changed runtime files.
+3. Rebuild/recreate only affected services.
+4. Verify `/ready`, `/health`, service status, and targeted browser/API smoke.
+5. Do not advance `.mvp-rescue-commit` for ad-hoc targeted deploys unless the full marker advancement runbook was intentionally executed.
+
+Backend-only example:
+
+```bash
+cd /root/workspace/ai-tutor
+rsync -av -e 'ssh -i /root/.ssh/id_ed25519_kirill_ai -o BatchMode=yes' \
+  apps/backend/app/path/to/file.py \
+  root@192.168.1.86:/opt/ai-tutor/apps/backend/app/path/to/file.py
+
+ssh -i /root/.ssh/id_ed25519_kirill_ai -o BatchMode=yes root@192.168.1.86 '
+  cd /opt/ai-tutor/deploy
+  docker compose build backend
+  docker compose up -d --no-deps backend
+  curl -sk -w "\nREADY_HTTP=%{http_code}\n" https://localhost/ready
+  curl -sk -w "\nHEALTH_HTTP=%{http_code}\n" https://localhost/health
+  docker compose ps backend
+'
+```
+
+Frontend-only example:
+
+```bash
+cd /root/workspace/ai-tutor
+rsync -av -e 'ssh -i /root/.ssh/id_ed25519_kirill_ai -o BatchMode=yes' \
+  apps/frontend/app/path/to/file.tsx \
+  root@192.168.1.86:/opt/ai-tutor/apps/frontend/app/path/to/file.tsx
+
+ssh -i /root/.ssh/id_ed25519_kirill_ai -o BatchMode=yes root@192.168.1.86 '
+  cd /opt/ai-tutor/deploy
+  docker compose build frontend
+  docker compose up -d --no-deps frontend
+  curl -sk -w "\nREADY_HTTP=%{http_code}\n" https://localhost/ready
+  docker compose ps frontend
+'
 ```
 
 ## Deploy frontend-only changes
