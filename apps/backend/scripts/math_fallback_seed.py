@@ -7,7 +7,8 @@ from __future__ import annotations
 import argparse
 import json
 
-from app.teacher import content_registry
+# content_registry is imported lazily in run() so importing FALLBACKS for local
+# quality audits does not require application settings or database configuration.
 
 FALLBACKS: dict[int, dict[str, object]] = {
     187: {
@@ -362,6 +363,8 @@ def run(topic_ids: list[int], *, dry_run: bool = False) -> dict[str, object]:
             continue
         rows = build_rows(topic_id)
         if not dry_run:
+            from app.teacher import content_registry
+
             content_registry.set_fallbacks(topic_id, rows)
         result["updated"][str(topic_id)] = len(rows)  # type: ignore[index]
     return result
