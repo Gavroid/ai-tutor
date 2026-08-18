@@ -247,6 +247,79 @@ def build_local_sample_capture(
     return samples
 
 
+def _practice_sample_issues(sample: Mapping[str, object]) -> list[str]:
+    metadata = sample.get("metadata") if isinstance(sample.get("metadata"), Mapping) else {}
+    issues: list[str] = []
+    if not str(sample.get("content") or "").strip():
+        issues.append("missing_practice_text")
+    if metadata.get("type") != "single":
+        issues.append("unsupported_practice_type")
+    if int(metadata.get("option_count") or 0) < 2:
+        issues.append("missing_options")
+    if not metadata.get("has_correct_answer"):
+        issues.append("missing_correct_answer")
+    if not metadata.get("has_typical_mistakes"):
+        issues.append("missing_typical_mistakes")
+    return issues
+
+
+def build_sample_quality_matrix(samples: Sequence[Mapping[str, object]]) -> list[dict[str, object]]:
+    """Summarize captured explanation/practice samples into per-topic quality rows."""
+    by_topic: dict[int, dict[str, object]] = {}
+    for sample in samples:
+        raw_topic_id = sample.get("topic_id")
+        if not isinstance(raw_topic_id, int):
+            continue
+        row = by_topic.setdefault(raw_topic_id, {
+            "topic_id": raw_topic_id,
+            "source": sample.get("source") or "unknown",
+            "explanation_status": "missing",
+            "practice_status": "missing",
+            "issue_count": 0,
+            "issues": [],
+        })
+        kind = sample.get("kind")
+        issues: list[str] = []
+        if kind == "explanation":
+            report = audit_explanation_samples([sample])
+            issues = [issue.code for issue in report.issues]
+            row["explanation_status"] = "pass" if not issues else "fail"
+        elif kind == "practice":
+            issues = _practice_sample_issues(sample)
+            row["practice_status"] = "pass" if not issues else "fail"
+        elif kind == "missing":
+            issues = ["missing_topic"]
+            row["explanation_status"] = "missing"
+            row["practice_status"] = "missing"
+        if issues:
+            current = row.get("issues")
+            if isinstance(current, list):
+                current.extend(issues)
+            row["issue_count"] = int(row.get("issue_count") or 0) + len(issues)
+    return [by_topic[topic_id] for topic_id in sorted(by_topic)]
+
+
+def format_sample_quality_matrix_markdown(rows: Sequence[Mapping[str, object]]) -> str:
+    """Render a safe Markdown matrix without hidden answers or raw sample content."""
+    lines = [
+        "# Math Quality Sample Matrix",
+        "",
+        "| Topic ID | Source | Explanation | Practice | Issues |",
+        "|---:|---|---|---|---:|",
+    ]
+    for row in rows:
+        lines.append(
+            "| {topic_id} | {source} | {explanation_status} | {practice_status} | {issue_count} |".format(
+                topic_id=row.get("topic_id"),
+                source=row.get("source"),
+                explanation_status=row.get("explanation_status"),
+                practice_status=row.get("practice_status"),
+                issue_count=row.get("issue_count"),
+            )
+        )
+    return "\n".join(lines) + "\n"
+
+
 def audit_fallback_bank(fallbacks: Mapping[int, Mapping[str, object]] | None = None) -> QualityReport:
     return build_quality_report(fallbacks or FALLBACKS)
 
@@ -279,10 +352,14 @@ def main() -> int:
     parser.add_argument("--markdown", action="store_true")
     parser.add_argument("--explanation-samples", help="Path to JSON array of captured explain outputs")
     parser.add_argument("--capture-local-samples", action="store_true", help="Emit local fallback-bank explanation/practice samples")
+    parser.add_argument("--sample-matrix", action="store_true", help="Emit Markdown matrix for local captured samples")
     args = parser.parse_args()
-    if args.capture_local_samples:
+    if args.capture_local_samples or args.sample_matrix:
         samples = build_local_sample_capture(topic_ids=select_default_sample_topics() if args.sample_only else None)
-        print(json.dumps(samples, ensure_ascii=False, indent=2 if args.json else None))
+        if args.sample_matrix:
+            print(format_sample_quality_matrix_markdown(build_sample_quality_matrix(samples)))
+        else:
+            print(json.dumps(samples, ensure_ascii=False, indent=2 if args.json else None))
         return 0
     if args.explanation_samples:
         report = audit_explanation_samples(load_explanation_samples(args.explanation_samples))

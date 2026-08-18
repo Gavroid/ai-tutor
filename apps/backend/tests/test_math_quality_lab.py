@@ -4,6 +4,8 @@ from scripts.math_fallback_seed import FALLBACKS
 from scripts.math_quality_lab import (
     audit_explanation_samples,
     build_local_sample_capture,
+    build_sample_quality_matrix,
+    format_sample_quality_matrix_markdown,
     DEFAULT_SAMPLE_TOPIC_IDS,
     QualityIssue,
     audit_fallback_bank,
@@ -152,3 +154,24 @@ def test_build_local_sample_capture_marks_missing_topic_without_crashing() -> No
             "metadata": {"error": "missing_topic"},
         }
     ]
+
+
+def test_build_sample_quality_matrix_summarizes_capture_and_explanation_gate() -> None:
+    samples = build_local_sample_capture(topic_ids=[187, 188])
+    matrix = build_sample_quality_matrix(samples)
+
+    assert [row["topic_id"] for row in matrix] == [187, 188]
+    assert all(row["explanation_status"] == "pass" for row in matrix)
+    assert all(row["practice_status"] == "pass" for row in matrix)
+    assert all(row["source"] == "local_fallback_bank" for row in matrix)
+    assert all(row["issue_count"] == 0 for row in matrix)
+
+
+def test_format_sample_quality_matrix_markdown_is_readable_table() -> None:
+    samples = build_local_sample_capture(topic_ids=[187])
+    markdown = format_sample_quality_matrix_markdown(build_sample_quality_matrix(samples))
+
+    assert markdown.startswith("# Math Quality Sample Matrix")
+    assert "| Topic ID | Source | Explanation | Practice | Issues |" in markdown
+    assert "| 187 | local_fallback_bank | pass | pass | 0 |" in markdown
+    assert "correct_answer" not in markdown
