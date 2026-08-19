@@ -1,0 +1,46 @@
+from __future__ import annotations
+
+from app.subjects.curriculum_7_class import CURRICULUM_7_CLASS
+from scripts.remaining_subjects_internal_source_manifest import (
+    REMAINING_SUBJECT_CODES,
+    build_remaining_subjects_internal_source_manifest,
+)
+from scripts.rag_metadata_audit import audit_rows, summarize_audit
+
+
+def test_remaining_subjects_manifest_covers_all_non_ready_preview_topics() -> None:
+    manifest = build_remaining_subjects_internal_source_manifest()
+    expected_count = sum(
+        len(topics)
+        for subject in CURRICULUM_7_CLASS
+        if subject["code"] in REMAINING_SUBJECT_CODES
+        for _section, topics in subject["sections"]
+    )
+
+    assert manifest["subject"] == "remaining_subjects"
+    assert manifest["topic_count"] == expected_count == 151
+    assert len(manifest["materials"]) == expected_count
+    assert len(manifest["chunks"]) == expected_count
+    assert len(manifest["fallbacks"]) == expected_count
+    assert manifest["production_mutation"] is False
+    assert manifest["promotion_allowed"] is False
+
+
+def test_remaining_subjects_manifest_passes_per_subject_metadata_audit() -> None:
+    manifest = build_remaining_subjects_internal_source_manifest()
+
+    for subject_code in REMAINING_SUBJECT_CODES:
+        rows = [row for row in manifest["audit_rows"] if row["material_subject_code"] == subject_code]
+        summary = summarize_audit(audit_rows(rows, expected_subject_code=subject_code))
+        assert summary["bad_rows"] == 0
+
+
+def test_remaining_subjects_fallbacks_are_checkable_single_choice_tasks() -> None:
+    manifest = build_remaining_subjects_internal_source_manifest()
+
+    for fallback in manifest["fallbacks"]:
+        assert fallback["type"] == "single"
+        assert fallback["correct_answer"] in fallback["options"]
+        assert fallback["question_text"]
+        assert fallback["explanation"]
+        assert fallback["is_active"] is True

@@ -248,3 +248,35 @@ def test_algebra_becomes_mvp_ready_when_route_source_and_practice_coverage_compl
     assert algebra["source_topic_count"] == 19
     assert algebra["practice_topic_count"] == 19
     assert algebra["mvp_status"] == "mvp_ready"
+
+
+def test_all_seeded_subjects_have_route_coverage(seeded_client):
+    r = seeded_client.get("/api/v1/subjects")
+    assert r.status_code == 200
+
+    for subject in r.json():
+        assert subject["topic_count"] > 0
+        assert subject["route_ready"] is True
+        assert subject["route_topic_count"] == subject["topic_count"]
+
+
+def test_generic_subject_route_plan_returns_curriculum_topics(seeded_client):
+    s = SessionLocal()
+    try:
+        rus = s.scalar(select(models.Subject).where(models.Subject.code == "rus"))
+        assert rus is not None
+        subject_id = rus.id
+        topic_count = sum(len(section.topics) for section in rus.sections)
+    finally:
+        s.close()
+
+    r = seeded_client.get(f"/api/v1/subjects/{subject_id}/route-plan")
+
+    assert r.status_code == 200
+    rows = r.json()
+    assert len(rows) == topic_count == 13
+    assert rows[0]["topic_id"]
+    assert rows[0]["order"] == 1
+    assert rows[0]["section"]
+    assert rows[0]["focus"]
+    assert rows[0]["next_topic_id"] == rows[1]["topic_id"]

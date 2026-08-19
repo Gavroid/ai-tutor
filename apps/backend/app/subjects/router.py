@@ -59,7 +59,7 @@ def _route_topic_ids(subject: models.Subject) -> set[int]:
         from app.geometry_plan import GEOMETRY_TOPIC_PLAN
 
         return {row.topic_id for row in GEOMETRY_TOPIC_PLAN}
-    return set()
+    return {topic.id for section in subject.sections for topic in section.topics}
 
 
 def _subject_coverage(db: Session, subject: models.Subject) -> dict[str, object]:
@@ -179,12 +179,8 @@ def list_subject_topics(subject_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{subject_id}/route-plan", response_model=list[schemas.MathTopicPlanOut])
-def subject_route_plan(subject_id: int):
-    """Student-friendly route map.
-
-    Math is MVP-ready. Algebra and Geometry are exposed as preview routes;
-    they must remain preview until source/RAG and fallback coverage are complete.
-    """
+def subject_route_plan(subject_id: int, db: Session = Depends(get_db)):
+    """Student-friendly route map for every seeded subject."""
     from app.algebra_plan import ALGEBRA_SUBJECT_ID, ALGEBRA_TOPIC_PLAN, next_algebra_topic_after
     from app.geometry_plan import GEOMETRY_SUBJECT_ID, GEOMETRY_TOPIC_PLAN, next_geometry_topic_after
     from app.math_plan import MATH_SUBJECT_ID, MATH_TOPIC_PLAN, next_topic_after
@@ -228,7 +224,24 @@ def subject_route_plan(subject_id: int):
             )
             for row in GEOMETRY_TOPIC_PLAN
         ]
-    return []
+    rows = db.execute(
+        select(models.Topic, models.Section)
+        .join(models.Section, models.Topic.section_id == models.Section.id)
+        .where(models.Section.subject_id == subject_id)
+        .order_by(models.Section.order_index, models.Topic.order_index)
+    ).all()
+    return [
+        schemas.MathTopicPlanOut(
+            topic_id=topic.id,
+            order=idx,
+            section=section.name,
+            tier="base" if topic.difficulty <= 2 else "medium" if topic.difficulty == 3 else "hard",
+            focus=topic.name,
+            checkpoint=topic.difficulty >= 4,
+            next_topic_id=rows[idx][0].id if idx < len(rows) else None,
+        )
+        for idx, (topic, section) in enumerate(rows, start=1)
+    ]
 
 
 topics_router = APIRouter(prefix="/api/v1/topics", tags=["topics"])
