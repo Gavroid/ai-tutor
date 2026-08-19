@@ -33,3 +33,8 @@ apps/frontend/tsconfig.tsbuildinfo
 # User/analysis files (Sprint 66+ planning docs)
 /NEXT-SESSION-PROMPT.md
 /docs/AUDIT-*.md
+
+# Production runtime/generated artifacts
+deploy/backup/_manual/
+deploy/backup/_out/
+deploy/ssl/certs/
