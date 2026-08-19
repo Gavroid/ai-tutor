@@ -199,3 +199,52 @@ def test_empty_db_returns_empty_list(empty_client):
     r = empty_client.get("/api/v1/subjects")
     assert r.status_code == 200
     assert r.json() == []
+
+
+def test_algebra_becomes_mvp_ready_when_route_source_and_practice_coverage_complete(seeded_client, monkeypatch):
+    from app.rag_models import RagChunk
+    from app.teacher import content_registry
+
+    s = SessionLocal()
+    try:
+        algebra = s.scalar(select(models.Subject).where(models.Subject.code == "algebra"))
+        assert algebra is not None
+        topic_ids = [topic.id for section in algebra.sections for topic in section.topics]
+        assert len(topic_ids) == 19
+        for idx, topic_id in enumerate(topic_ids, start=1):
+            material = models.LearningMaterial(
+                id=50000 + idx,
+                topic_id=topic_id,
+                title=f"Algebra source {topic_id}",
+                content="Verified algebra source text",
+                source="algebra-test",
+                status="published",
+                source_type="text",
+            )
+            s.add(material)
+            s.flush()
+            s.add(
+                RagChunk(
+                    material_id=material.id,
+                    hash=f"algebra-test-{topic_id}",
+                    text="Verified algebra source text",
+                    embedding_json="[]",
+                    metadata_json=f'{{"subject_code":"algebra","topic_id":{topic_id},"topic_name":"topic","source_title":"Algebra source","source_section":"unit","license":"CC BY 4.0","attribution":"test"}}',
+                )
+            )
+        s.commit()
+    finally:
+        s.close()
+
+    monkeypatch.setattr(content_registry, "get_fallbacks", lambda topic_id: [object()])
+
+    r = seeded_client.get("/api/v1/subjects")
+    assert r.status_code == 200
+    algebra = next(x for x in r.json() if x["code"] == "algebra")
+
+    assert algebra["route_ready"] is True
+    assert algebra["rag_ready"] is True
+    assert algebra["practice_ready"] is True
+    assert algebra["source_topic_count"] == 19
+    assert algebra["practice_topic_count"] == 19
+    assert algebra["mvp_status"] == "mvp_ready"

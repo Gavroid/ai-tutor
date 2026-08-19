@@ -101,9 +101,9 @@ def _subject_out(subject: models.Subject, db: Session) -> dict[str, object]:
     base.update(_subject_support(subject))
     coverage = _subject_coverage(db, subject)
     base.update(coverage)
+    topic_count = int(base["topic_count"])
     if base["mvp_status"] == "mvp_ready":
         # Math readiness was established in the dedicated math readiness stages.
-        topic_count = int(base["topic_count"])
         base["route_ready"] = True
         base["rag_ready"] = True
         base["practice_ready"] = True
@@ -111,9 +111,11 @@ def _subject_out(subject: models.Subject, db: Session) -> dict[str, object]:
         base["source_topic_count"] = topic_count
         base["practice_topic_count"] = topic_count
     else:
-        topic_count = int(base["topic_count"])
         base["rag_ready"] = topic_count > 0 and int(base["source_topic_count"]) == topic_count
         base["practice_ready"] = topic_count > 0 and int(base["practice_topic_count"]) == topic_count
+        if base["route_ready"] and base["rag_ready"] and base["practice_ready"]:
+            base["mvp_status"] = "mvp_ready"
+            base["support_note"] = "MVP-ready: маршрут, практика и проверенные источники доступны для ручного тестирования."
     return base
 
 
