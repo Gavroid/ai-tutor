@@ -44,3 +44,33 @@ def test_remaining_subjects_fallbacks_are_checkable_single_choice_tasks() -> Non
         assert fallback["question_text"]
         assert fallback["explanation"]
         assert fallback["is_active"] is True
+
+
+
+def test_remaining_subjects_content_is_subject_specific_not_one_generic_template() -> None:
+    manifest = build_remaining_subjects_internal_source_manifest()
+    answers = {fallback["correct_answer"] for fallback in manifest["fallbacks"]}
+
+    assert len(answers) >= len(REMAINING_SUBJECT_CODES)
+    for material in manifest["materials"]:
+        content = str(material["content"]).lower()
+        subject_code = material["subject_code"]
+        if subject_code == "rus":
+            assert any(word in content for word in ["орфограмм", "морфолог", "пунктуац"])
+        if subject_code == "phys":
+            assert any(word in content for word in ["величин", "опыт", "единиц"])
+        if subject_code == "inf":
+            assert any(word in content for word in ["алгоритм", "данн", "кодирован"])
+        assert "без внешних материалов" in content
+
+
+def test_remaining_subjects_content_has_no_student_facing_artifacts() -> None:
+    manifest = build_remaining_subjects_internal_source_manifest()
+    forbidden = ("<think>", "json", "correct_answer", "резервное", "parser", "provider", "|---")
+
+    for material in manifest["materials"]:
+        content = str(material["content"]).lower()
+        assert not any(token in content for token in forbidden)
+    for fallback in manifest["fallbacks"]:
+        visible = " ".join(str(fallback[key]) for key in ["question_text", "explanation"])
+        assert not any(token in visible.lower() for token in forbidden)
