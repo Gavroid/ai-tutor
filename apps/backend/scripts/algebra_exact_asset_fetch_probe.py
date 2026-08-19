@@ -74,6 +74,7 @@ def evaluate_extracted_text(*, topic_id: int, asset_url: str, source_section: st
         "source_section": source_section,
         "status": "pass" if not problems else "fail",
         "text_chars": len(text),
+        "text_excerpt": text.strip()[:1200],
         "missing_terms": missing_terms,
         "problems": problems,
     }
