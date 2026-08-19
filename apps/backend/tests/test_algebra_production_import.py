@@ -138,3 +138,62 @@ def test_execute_algebra_import_plan_writes_to_staging_sqlite(tmp_path) -> None:
     assert result["chunk_count"] == 1
     assert result["production_mutation"] is False
     assert result["promotion_allowed"] is False
+
+
+def test_execute_algebra_import_plan_reports_only_target_rows_when_db_has_existing_data(tmp_path) -> None:
+    db_url = f"sqlite+pysqlite:///{tmp_path / 'target.sqlite3'}"
+    existing = {
+        "materials": [
+            {
+                "id": 20001,
+                "topic_id": 1,
+                "subject_code": "math",
+                "title": "Existing math",
+                "content": "Existing text",
+                "source": "math",
+                "source_url": "https://example.test/math",
+                "source_section": "Math",
+                "license": "CC BY 4.0",
+                "attribution": "Example",
+                "status": "draft",
+            }
+        ],
+        "chunks": [],
+        "audit_rows": [],
+    }
+    execute_algebra_import_plan(manifest=existing, target_env="staging", db_url=db_url, dry_run=False)
+
+    manifest = {
+        "materials": [
+            {
+                "id": 10001,
+                "topic_id": 37,
+                "subject_code": "algebra",
+                "title": "Algebra source",
+                "content": "Linear equations extracted text",
+                "source": "im_first_edition",
+                "source_url": "https://example.test/unit2",
+                "source_section": "Unit 2",
+                "license": "CC BY 4.0",
+                "attribution": "Example",
+                "status": "draft_extracted_text_local_only",
+            }
+        ],
+        "chunks": [
+            {
+                "id": "algebra-extracted-37-1",
+                "material_id": 10001,
+                "hash": "hash37",
+                "text": "Linear equations extracted text",
+                "embedding_json": "[]",
+                "metadata_json": '{"subject_code":"algebra","topic_id":37,"topic_name":"Linear equations","source_title":"Algebra source","source_section":"Unit 2","license":"CC BY 4.0","attribution":"Example"}',
+            }
+        ],
+        "audit_rows": [],
+    }
+
+    result = execute_algebra_import_plan(manifest=manifest, target_env="staging", db_url=db_url, dry_run=False)
+
+    assert result["material_count"] == 1
+    assert result["chunk_count"] == 1
+    assert result["rows_written"] == 2

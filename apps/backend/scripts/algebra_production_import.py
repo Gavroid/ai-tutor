@@ -155,8 +155,22 @@ def execute_algebra_import_plan(
                         metadata_json=chunk["metadata_json"],
                     )
                 )
-        material_count = session.scalar(select(func.count()).select_from(materials_table)) or 0
-        chunk_count = session.scalar(select(func.count()).select_from(chunks_table)) or 0
+        if topic_ids:
+            imported_material_ids = list(
+                session.execute(
+                    select(materials_table.c.id).where(materials_table.c.topic_id.in_(topic_ids))
+                ).scalars()
+            )
+            material_count = len(imported_material_ids)
+            chunk_count = (
+                session.scalar(
+                    select(func.count()).select_from(chunks_table).where(chunks_table.c.material_id.in_(imported_material_ids))
+                )
+                or 0
+            )
+        else:
+            material_count = 0
+            chunk_count = 0
     engine.dispose()
     decision = "production_import_executed" if target_env == "production" else "staging_import_executed"
     return {
