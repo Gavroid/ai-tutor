@@ -17,6 +17,7 @@ DisplayNameStr = Annotated[str, Field(min_length=2, max_length=100)]
 # email через ошибку 422 ("пароль слишком короткий") и не отвечать на брутфорс
 # уникальными ответами. Все пароли проверяются одинаково через bcrypt → 401.
 LoginPasswordStr = Annotated[str, Field(min_length=1, max_length=128)]
+LoginEmailStr = Annotated[str, Field(min_length=3, max_length=320, pattern=r"^[^@\s]+@[^@\s]+$")]
 
 # Pilot Core Stage 1 — P1.1.3: явный белый список ролей для ПУБЛИЧНОЙ регистрации.
 #
@@ -55,7 +56,7 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     """Вход — пароль принимает любой длины (1+), чтобы вернуть 401 а не 422."""
 
-    email: EmailStr
+    email: LoginEmailStr
     password: LoginPasswordStr
 
 

@@ -223,6 +223,36 @@ def test_login_wrong_password_401(client):
     assert r.status_code == 401
 
 
+
+def test_login_accepts_seed_local_email_without_422(client):
+    """Design audit B-01: seed demo .local accounts must reach auth, not Pydantic 422.
+
+    Existing production contains *@pilot.local users. Login should accept the
+    syntactic email and let bcrypt decide whether credentials are valid.
+    """
+    from app.auth.security import hash_password
+    from app.db.session import SessionLocal
+    from app.users.models import Role, User
+
+    with SessionLocal() as session:
+        session.add(
+            User(
+                email="teacher@pilot.local",
+                password_hash=hash_password("DemoTeacher-7-PILOT"),
+                display_name="Учитель (пилот)",
+                role=Role.TEACHER,
+            )
+        )
+        session.commit()
+
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "teacher@pilot.local", "password": "DemoTeacher-7-PILOT"},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["token_type"] == "bearer"
+
 def test_me_requires_token(client):
     r = client.get("/api/v1/auth/me")
     assert r.status_code == 401
