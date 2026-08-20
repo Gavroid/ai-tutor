@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import Header from "@/components/Header";
-import type { LearningAnalytics, MaterialListItem, MaterialStatus, User } from "@/types";
+import type { MaterialListItem, MaterialStatus, User } from "@/types";
 
 const STATUS_LABEL: Record<MaterialStatus, string> = {
   draft: "Черновик",
@@ -32,7 +32,6 @@ export default function TeacherPage() {
   const [statusFilter, setStatusFilter] = useState<MaterialStatus | "">("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [analytics, setAnalytics] = useState<LearningAnalytics | null>(null);
 
   useEffect(() => {
     // Sprint 27: cookie-based auth. Если /me вернёт 401 → редирект.
@@ -55,7 +54,6 @@ export default function TeacherPage() {
         status: statusFilter || undefined,
       });
       setItems(data);
-      setAnalytics(await api.learningAnalytics(30));
     } catch (e: any) {
       setError(e?.body?.detail || "Ошибка загрузки (нужны права учителя)");
     } finally {
@@ -93,6 +91,12 @@ export default function TeacherPage() {
               Готовность тем
             </Link>
             <Link
+              href="/teacher/analytics"
+              className="prism-action"
+            >
+              Где проседает
+            </Link>
+            <Link
               href="/teacher/generate"
               className="prism-action primary"
             >
@@ -115,54 +119,6 @@ export default function TeacherPage() {
           </div>
         )}
       </section>
-
-      {analytics && (
-        <section className="teacher-analytics-card" aria-labelledby="teacher-analytics-heading">
-          <div className="teacher-analytics-hero">
-            <div className="teacher-analytics-copy">
-              <div className="prism-kicker teacher-analytics-kicker">Learning Analytics</div>
-              <h2 id="teacher-analytics-heading" className="teacher-analytics-title">Где обучение проседает</h2>
-              <p className="teacher-analytics-subtitle">Агрегаты по темам и предметам — без сырого AI-чата ученика.</p>
-            </div>
-            <div className="teacher-analytics-focus" aria-label="Слабых тем">
-              <span className="teacher-analytics-focus-label">Слабых тем</span>
-              <strong>{analytics.totals.weak_topics}</strong>
-              <span className="teacher-analytics-focus-note">нужны повторение и короткая практика</span>
-            </div>
-          </div>
-          <div className="teacher-analytics-metrics">
-            <MiniMetric label="Попыток" value={analytics.totals.attempts} className="teacher-analytics-metric" />
-            <MiniMetric label="Верно" value={analytics.totals.correct} className="teacher-analytics-metric" />
-            <MiniMetric label="Точность" value={Math.round(analytics.totals.accuracy * 100)} className="teacher-analytics-metric" />
-            <MiniMetric label="Mastery" value={Math.round(analytics.totals.average_mastery * 100)} className="teacher-analytics-metric" />
-          </div>
-          <div className="teacher-analytics-grid">
-            <div className="teacher-analytics-panel">
-              <h3>Предметы</h3>
-              <div className="teacher-analytics-list">
-                {analytics.subjects.slice(0, 5).map((subject) => (
-                  <div key={subject.subject_id} className="teacher-analytics-row">
-                    <span>{subject.subject_name}</span>
-                    <small>{subject.attempts} попыток · {Math.round(subject.accuracy * 100)}%</small>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="teacher-analytics-panel">
-              <h3>Слабые темы</h3>
-              <div className="teacher-analytics-list">
-                {analytics.weak_topics.length === 0 && <p className="teacher-analytics-empty">Пока слабых тем нет.</p>}
-                {analytics.weak_topics.slice(0, 5).map((topic) => (
-                  <Link key={topic.topic_id} href={`/topics/${topic.topic_id}`} className="teacher-analytics-row teacher-analytics-link">
-                    <span>{topic.topic_name}</span>
-                    <small>{topic.subject_name} · mastery {Math.round(topic.mastery_score * 100)}% · попыток {topic.attempts_count}</small>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
 
       <div className="mt-5 flex flex-wrap gap-2">
         <FilterChip active={statusFilter === ""} onClick={() => setStatusFilter("")}>
