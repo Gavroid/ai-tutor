@@ -982,3 +982,57 @@ body,
 }
 
 
+
+/* Design audit Phase 2/3 polish. */
+.prism-action.login-primary {
+  border-color: rgba(34, 231, 255, .42) !important;
+  background: rgba(255,255,255,.10) !important;
+  color: #f8fbff !important;
+  box-shadow: 0 0 0 1px rgba(34,231,255,.12), 0 18px 54px -42px rgba(34,231,255,.75), inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+.prism-action.login-primary:hover,
+.prism-action.login-primary:focus-visible {
+  border-color: rgba(34, 231, 255, .70) !important;
+  background: rgba(34,231,255,.14) !important;
+  color: #ffffff !important;
+}
+.prism-toggle-pill {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid rgba(226,232,255,.18);
+  border-radius: 999px;
+  background: rgba(255,255,255,.10);
+  color: var(--prism-ink);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px rgba(75,131,255,.10), inset 0 1px 0 rgba(255,255,255,.08);
+}
+.prism-toggle-dot {
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(226,232,255,.30);
+  border-radius: 999px;
+  background: rgba(0,0,0,.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10);
+}
+.prism-toggle-pill:has(input:checked) {
+  border-color: rgba(255,207,111,.70);
+  color: #ffd28a;
+  background: rgba(255,255,255,.12);
+}
+.prism-toggle-pill:has(input:checked) .prism-toggle-dot {
+  border-color: rgba(255,207,111,.85);
+  background: radial-gradient(circle at 50% 50%, #ffd28a 0 42%, rgba(255,207,111,.18) 45% 100%);
+}
+.split-empty .split-orb.compact {
+  width: 120px;
+  height: 120px;
+  min-height: 120px;
+  margin-inline: auto;
+  opacity: .72;
+}

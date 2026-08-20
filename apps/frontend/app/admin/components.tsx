@@ -216,7 +216,7 @@ export function RealtimeTab({ state, snapshot, loading, onRefresh }: { state: Ad
 }
 
 function ConnectionStatus({ state }: { state: AdminWSState }) {
-  const text = { connecting: "Подключение…", open: "● Подключено (real-time)", closed: `Отключено${state.status === "closed" && state.reason ? `: ${state.reason}` : ""}`, error: `Ошибка: ${state.status === "error" ? state.error : ""}` }[state.status];
+  const text = { connecting: "Подключение…", open: "Снимок (snapshot)", closed: `Отключено${state.status === "closed" && state.reason ? `: ${state.reason}` : ""}`, error: `Ошибка: ${state.status === "error" ? state.error : ""}` }[state.status];
   return <span className="mt-2 inline-block rounded border border-[color:var(--prism-line)] bg-black/10 px-2 py-1 text-xs font-medium text-[color:var(--prism-muted)]">{text}</span>;
 }
 

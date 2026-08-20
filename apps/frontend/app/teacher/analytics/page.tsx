@@ -53,7 +53,7 @@ export default function TeacherAnalyticsPage() {
               </div>
             </section>
 
-            {error && <div className="mt-5 rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
+            {error && <div className="mt-5 rounded-2xl border border-rose-400/30 bg-rose-500/10 p-3 text-sm text-rose-200">{error}</div>}
             {busy && <div className="mt-5 text-sm text-[color:var(--prism-muted)]">Загрузка аналитики…</div>}
 
             {!busy && analytics && (

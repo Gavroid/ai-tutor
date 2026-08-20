@@ -17,12 +17,12 @@ const STATUS_LABEL: Record<MaterialStatus, string> = {
 };
 
 const STATUS_COLOR: Record<MaterialStatus, string> = {
-  draft: "bg-slate-100 text-[color:var(--prism-muted)]",
-  ai_generated: "bg-amber-100 text-amber-800",
-  needs_review: "bg-orange-100 text-orange-800",
-  teacher_approved: "bg-sky-100 text-sky-800",
-  published: "bg-emerald-100 text-emerald-800",
-  blocked: "bg-rose-100 text-rose-800",
+  draft: "border border-slate-500/40 bg-slate-500/10 text-slate-300",
+  ai_generated: "border border-amber-500/40 bg-amber-500/10 text-amber-200",
+  needs_review: "border border-orange-500/40 bg-orange-500/10 text-orange-200",
+  teacher_approved: "border border-sky-500/40 bg-sky-500/10 text-sky-200",
+  published: "border border-emerald-500/40 bg-emerald-500/10 text-emerald-200",
+  blocked: "border border-rose-500/40 bg-rose-500/10 text-rose-200",
 };
 
 export default function TeacherMaterialDetailPage() {
@@ -98,11 +98,11 @@ export default function TeacherMaterialDetailPage() {
     return (
       <main className="prism-shell teacher-console teacher-material-detail min-h-dvh"><Header user={user} backHref="/teacher" title="Материал" /><section className="py-3 sm:py-5"><div className="prism-frame"><div className="prism-layer mx-auto max-w-5xl p-5 lg:p-10">
         {error && (
-          <div className="rounded-md bg-rose-50 p-3 text-sm text-rose-700">
+          <div className="rounded-2xl border border-rose-400/30 bg-rose-500/10 p-3 text-sm text-rose-200">
             {error}
           </div>
         )}
-        <div className="mt-4 text-sm text-slate-500">Загрузка…</div>
+        <div className="mt-4 text-sm text-[color:var(--prism-muted)]">Загрузка…</div>
       </div></div></section></main>
     );
   }
@@ -128,7 +128,7 @@ export default function TeacherMaterialDetailPage() {
         <div className="mt-1 flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold">{c.title}</h1>
-            <div className="mt-1 flex items-center gap-2 text-sm text-slate-600">
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[color:var(--prism-muted)]">
               <span
                 className={`rounded px-2 py-0.5 text-xs font-medium ${STATUS_COLOR[material.status]}`}
               >
@@ -211,7 +211,7 @@ export default function TeacherMaterialDetailPage() {
                 <li key={i}>
                   <strong>{k.idea}</strong>
                   {k.terms.length > 0 && (
-                    <div className="ml-2 mt-0.5 text-xs text-slate-500">
+                    <div className="ml-2 mt-0.5 text-xs text-[color:var(--prism-muted)]">
                       Термины: {k.terms.join(", ")}
                     </div>
                   )}
@@ -223,7 +223,7 @@ export default function TeacherMaterialDetailPage() {
 
         {c.rule_or_formula && (
           <Block title="Правило / формула">
-            <pre className="whitespace-pre-wrap rounded bg-slate-50 p-3 font-mono text-xs">
+            <pre className="whitespace-pre-wrap rounded-2xl border border-[color:var(--prism-line)] bg-black/10 p-3 font-mono text-xs text-[color:var(--prism-ink)]">
               {c.rule_or_formula}
             </pre>
           </Block>
@@ -235,7 +235,7 @@ export default function TeacherMaterialDetailPage() {
 
         {c.schema_or_table && (
           <Block title="Схема / таблица">
-            <pre className="whitespace-pre-wrap rounded bg-slate-50 p-3 font-mono text-xs">
+            <pre className="whitespace-pre-wrap rounded-2xl border border-[color:var(--prism-line)] bg-black/10 p-3 font-mono text-xs text-[color:var(--prism-ink)]">
               {c.schema_or_table}
             </pre>
           </Block>
@@ -243,12 +243,12 @@ export default function TeacherMaterialDetailPage() {
 
         {c.misconception && (
           <Block title="⚠ Типичное заблуждение">
-            <span className="text-amber-800">{c.misconception}</span>
+            <span className="text-amber-200">{c.misconception}</span>
           </Block>
         )}
         {c.common_mistake && (
           <Block title="⚠ Частая ошибка">
-            <span className="text-amber-800">{c.common_mistake}</span>
+            <span className="text-amber-200">{c.common_mistake}</span>
           </Block>
         )}
 
@@ -268,20 +268,20 @@ export default function TeacherMaterialDetailPage() {
           <Block title={`Практические задачи (${c.practice_tasks.length})`}>
             <ol className="space-y-3">
               {c.practice_tasks.map((t, i) => (
-                <li key={i} className="rounded-md border border-slate-200 p-3">
+                <li key={i} className="rounded-2xl border border-[color:var(--prism-line)] bg-black/10 p-3">
                   <div className="flex items-center gap-2 text-xs">
                     <span
                       className={`rounded px-2 py-0.5 font-medium ${
                         t.difficulty === "easy"
-                          ? "bg-emerald-100 text-emerald-800"
+                          ? "border border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
                           : t.difficulty === "medium"
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-rose-100 text-rose-800"
+                            ? "border border-amber-500/40 bg-amber-500/10 text-amber-200"
+                            : "border border-rose-500/40 bg-rose-500/10 text-rose-200"
                       }`}
                     >
                       {t.difficulty}
                     </span>
-                    <span className="text-slate-500">Задача {i + 1}</span>
+                    <span className="text-[color:var(--prism-muted)]">Задача {i + 1}</span>
                   </div>
                   <p className="mt-1 text-sm">{t.question_text}</p>
                   <details className="mt-2">
@@ -297,7 +297,7 @@ export default function TeacherMaterialDetailPage() {
                       <summary className="cursor-pointer text-xs text-slate-500">
                         Подсказка
                       </summary>
-                      <p className="mt-1 text-xs text-slate-600">{t.hint}</p>
+                      <p className="mt-1 text-xs text-[color:var(--prism-muted)]">{t.hint}</p>
                     </details>
                   )}
                 </li>
@@ -311,7 +311,7 @@ export default function TeacherMaterialDetailPage() {
           <Block title={`Мини-тест (${c.mini_test.length})`}>
             <ol className="space-y-3">
               {c.mini_test.map((q, i) => (
-                <li key={i} className="rounded-md border border-slate-200 p-3">
+                <li key={i} className="rounded-2xl border border-[color:var(--prism-line)] bg-black/10 p-3">
                   <p className="text-sm font-medium">
                     {i + 1}. {q.question_text}
                   </p>
@@ -321,8 +321,8 @@ export default function TeacherMaterialDetailPage() {
                         key={j}
                         className={`rounded px-2 py-1 ${
                           j === q.correct_index
-                            ? "bg-emerald-50 text-emerald-800"
-                            : "bg-slate-50"
+                            ? "border border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+                            : "border border-[color:var(--prism-line)] bg-black/10"
                         }`}
                       >
                         {String.fromCharCode(65 + j)}. {opt}
@@ -348,10 +348,10 @@ export default function TeacherMaterialDetailPage() {
               {c.flashcards.map((f, i) => (
                 <li
                   key={i}
-                  className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm"
+                  className="rounded-2xl border border-[color:var(--prism-line)] bg-black/10 p-3 text-sm"
                 >
                   <div className="font-medium">{f.question}</div>
-                  <div className="mt-1 text-xs text-slate-600">{f.answer}</div>
+                  <div className="mt-1 text-xs text-[color:var(--prism-muted)]">{f.answer}</div>
                 </li>
               ))}
             </ul>
@@ -361,7 +361,7 @@ export default function TeacherMaterialDetailPage() {
         {/* AI uncertainty */}
         {c.ai_uncertainty_notes.length > 0 && (
           <Block title="⚠ Что требует проверки">
-            <ul className="list-disc space-y-1 pl-5 text-amber-800">
+            <ul className="list-disc space-y-1 pl-5 text-amber-200">
               {c.ai_uncertainty_notes.map((n, i) => (
                 <li key={i}>{n}</li>
               ))}
@@ -384,7 +384,7 @@ function Block({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-5 shadow-glow">
       <h2 className="text-base font-semibold text-[color:var(--prism-ink)]">{title}</h2>
       <div className="mt-2 text-sm text-[color:var(--prism-muted)]">{children}</div>
     </div>

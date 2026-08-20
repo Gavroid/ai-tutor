@@ -101,9 +101,10 @@ export default function TeacherTopicsReadinessPage() {
                 {MANUAL_STATUSES.map((value) => <option key={value || "all-status"} value={value}>{value || "all"}</option>)}
               </select>
             </label>
-            <label className="console-pill justify-center">
-              <input type="checkbox" checked={checkpointOnly} onChange={(event) => setCheckpointOnly(event.target.checked)} className="mr-2 accent-[color:var(--prism-accent)]" />
-              Checkpoints only
+            <label className="prism-toggle-pill justify-center">
+              <input type="checkbox" checked={checkpointOnly} onChange={(event) => setCheckpointOnly(event.target.checked)} className="sr-only" />
+              <span aria-hidden="true" className="prism-toggle-dot" />
+              <span>Checkpoints only</span>
             </label>
           </div>
 
@@ -185,5 +186,5 @@ function Small({ label, value }: { label: string; value: number }) {
 function Pill({ value }: { value: string }) {
   const good = ["Smoke OK", "Verified", "OK", "P0"].includes(value);
   const warn = ["TODO", "P1", "P2"].includes(value);
-  return <span className={`rounded-full px-2.5 py-1 text-xs font-black ${good ? "bg-emerald-100 text-emerald-800" : warn ? "bg-amber-100 text-amber-800" : "bg-brand-100 text-brand-800"}`}>{value}</span>;
+  return <span className={`rounded-full border px-2.5 py-1 text-xs font-black ${good ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : warn ? "border-amber-500/40 bg-amber-500/10 text-amber-200" : "border-sky-500/40 bg-sky-500/10 text-sky-200"}`}>{value}</span>;
 }

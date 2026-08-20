@@ -70,7 +70,7 @@ export default function LoginPage() {
           <div className="py-10">
             <div className="prism-kicker">Here and now</div>
             <h1 className="prism-title">Вход в <span className="accent">учебную систему</span></h1>
-            <p className="prism-copy">Один портал для ученика, родителя, учителя и администратора. Светлая и тёмная тема работают как полноценные материалы интерфейса.</p>
+            <p className="prism-copy">Один портал для ученика, родителя, учителя и администратора — с безопасным маршрутом обучения и прозрачным прогрессом.</p>
           </div>
           <div className="prism-bento">
             <Mini label="Student" value="Learn" />
@@ -94,7 +94,7 @@ export default function LoginPage() {
 
             {error && <div role="alert" className="mt-4 rounded-3xl border border-red-400/30 bg-red-500/10 p-4 text-sm font-bold text-red-500">{error}</div>}
 
-            <button type="submit" disabled={loading} className="prism-action primary mt-6 w-full">
+            <button type="submit" disabled={loading} className="prism-action login-primary mt-6 w-full">
               {loading ? "Входим…" : "Войти"}
             </button>
 

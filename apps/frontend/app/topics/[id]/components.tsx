@@ -196,7 +196,7 @@ export function TutorChat({
       <section ref={scrollRef} className="split-chat-scroll">
         {messages.length === 0 && (
           <div className="split-empty">
-            <div className="split-orb" aria-hidden="true" />
+            <div className="split-orb compact" aria-hidden="true" />
             <h2>Спроси репетитора</h2>
             <p>Например: «Объясни среднее арифметическое проще» или нажми «Объяснить» в разделе урока.</p>
           </div>

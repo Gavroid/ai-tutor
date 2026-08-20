@@ -106,6 +106,15 @@ npm run typecheck
 npm run build
 ```
 
+Design audit:
+
+```bash
+cd /root/workspace/ai-tutor
+BASE_URL=https://school.431a.ru make audit-design
+```
+
+Admin date/time inputs intentionally use native `datetime-local`; visible date order follows browser/OS locale.
+
 Backend targeted smoke:
 
 ```bash

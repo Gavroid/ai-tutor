@@ -116,7 +116,7 @@ export default function CGMSettingsPage() {
           {error && (
             <div
               role="alert"
-              className="bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-lg p-3"
+              className="rounded-2xl border border-rose-400/30 bg-rose-500/10 p-3 text-sm text-rose-200"
               data-testid="cgm-error"
             >
               {error}

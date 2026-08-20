@@ -1,7 +1,7 @@
 # Удобные команды для локальной разработки.
 # Запуск: make up / make down / make logs / make test / make migrate ...
 
-.PHONY: help up down logs ps build rebuild migrate test backend-test frontend-install
+.PHONY: help up down logs ps build rebuild migrate test backend-test frontend-install audit-design
 
 help:
 	@echo "Доступные команды:"
@@ -15,6 +15,7 @@ help:
 	@echo "  make test            — backend pytest"
 	@echo "  make backend-shell   — зайти в контейнер backend"
 	@echo "  make db-shell        — psql в контейнере db"
+	@echo "  make audit-design    — Playwright дизайн-аудит production/staging"
 
 up:
 	cd deploy && cp -n ../.env.example ../.env || true && docker compose up -d --build
@@ -51,3 +52,6 @@ db-shell:
 
 backup:
 	bash deploy/backup/backup.sh
+
+audit-design:
+	cd apps/frontend && BASE_URL=$${BASE_URL:-https://school.431a.ru} node -e "console.log(\"Use: python3 scripts/audit-design.py (BASE_URL=$${BASE_URL:-https://school.431a.ru})\")" && python3 scripts/audit-design.py

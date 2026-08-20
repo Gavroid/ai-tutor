@@ -96,10 +96,7 @@ export default function TeacherGeneratePage() {
   return (
     <main className="prism-shell teacher-console teacher-generate-console min-h-dvh"><Header user={user} backHref="/teacher" title="Генерация материала" /><section className="py-3 sm:py-5"><div className="prism-frame"><div className="prism-layer mx-auto max-w-5xl p-5 lg:p-10">
       <section className="border-b border-[color:var(--prism-line)] pb-4">
-        <Link href="/teacher" className="prism-action w-fit px-4 py-2 text-sm">
-          ← К списку материалов
-        </Link>
-        <h1 className="mt-4 text-2xl font-bold text-[color:var(--prism-ink)]">Генерация материала</h1>
+        <h1 className="text-2xl font-bold text-[color:var(--prism-ink)]">Генерация материала</h1>
         <p className="mt-1 text-sm text-[color:var(--prism-muted)]">
           Выберите тему и источник. AI создаст черновик по единому шаблону —
           конспект, задачи, тест и карточки для повторения.
@@ -118,7 +115,7 @@ export default function TeacherGeneratePage() {
       </ol>
 
       {error && (
-        <div className="mt-4 rounded-md bg-rose-50 p-3 text-sm text-rose-700">
+        <div className="mt-4 rounded-2xl border border-rose-400/30 bg-rose-500/10 p-3 text-sm text-rose-200">
           {error}
         </div>
       )}

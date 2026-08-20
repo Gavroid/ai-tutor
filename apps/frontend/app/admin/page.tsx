@@ -280,7 +280,8 @@ export default function AdminPage() {
       <section className="py-3 sm:py-5">
         <div className="prism-frame">
           <div className="prism-layer p-5 lg:p-10">
-      <nav className="flex gap-2">
+      <div className="-mx-2 overflow-x-auto px-2 pb-2 scroll-smooth">
+        <nav className="flex min-w-max gap-2">
         <Tab active={tab === "audit"} onClick={() => setTab("audit")}>
           Audit log
         </Tab>
@@ -299,20 +300,21 @@ export default function AdminPage() {
         <Tab active={tab === "realtime"} onClick={() => setTab("realtime")}>
           Realtime
         </Tab>
-      </nav>
+        </nav>
+      </div>
 
       {error && (
-        <div className="mt-4 rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</div>
+        <div className="mt-4 rounded-2xl border border-rose-400/30 bg-rose-500/10 p-3 text-sm text-rose-200">{error}</div>
       )}
 
       <section className="admin-content-zone mt-4">
         {busy && <div className="text-sm text-[color:var(--prism-muted)]">Загрузка…</div>}
 
         {tab === "audit" && !busy && (
-          <div className="admin-panel-surface mb-4 grid grid-cols-1 gap-3 p-3 md:grid-cols-5">
+          <div className="admin-panel-surface mb-4 grid grid-cols-1 gap-3 p-3 lg:grid-cols-[1fr_1fr_220px_220px_auto]">
             <input
               type="text"
-              placeholder="Действие (action)"
+              placeholder="action (например, login_success)"
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
               className="rounded border border-slate-300 px-2 py-1 text-sm"
@@ -320,7 +322,7 @@ export default function AdminPage() {
             {/* Sprint 10.4: filter по entity */}
             <input
               type="text"
-              placeholder="Entity (users/exercises/ai...)"
+              placeholder="entity (например, user или material)"
               value={entityFilter}
               onChange={(e) => setEntityFilter(e.target.value)}
               className="rounded border border-slate-300 px-2 py-1 text-sm"
@@ -349,7 +351,7 @@ export default function AdminPage() {
         )}
 
         {tab === "audit" && !busy && (
-          <div className="admin-panel-surface prism-scroll overflow-x-auto">
+          <div className="admin-panel-surface prism-scroll w-full overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-[color:var(--prism-muted)]">
                 <tr>
@@ -385,7 +387,7 @@ export default function AdminPage() {
                       {e.ip_address ?? "-"}
                     </td>
                     <td className="px-3 py-2 font-mono text-xs text-[color:var(--prism-muted)]">
-                      <pre className="max-w-md overflow-x-auto whitespace-pre-wrap">
+                      <pre className="min-w-[360px] max-w-4xl overflow-x-auto whitespace-pre-wrap">
                         {fmtDetails(e.details)}
                       </pre>
                     </td>
@@ -408,7 +410,7 @@ export default function AdminPage() {
                 + Создать ученика
               </button>
             </div>
-            <div className="admin-panel-surface prism-scroll overflow-x-auto">
+            <div className="admin-panel-surface prism-scroll w-full overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-[color:var(--prism-muted)]">
                 <tr>

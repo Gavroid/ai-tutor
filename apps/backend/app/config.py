@@ -2,6 +2,7 @@
 
 Используется pydantic-settings для валидации. Все секреты берутся из .env.
 """
+import os
 from functools import lru_cache
 from typing import Literal
 
@@ -51,7 +52,7 @@ class Settings(BaseSettings):
     # Rate limit
     rate_limit_ai_per_minute: int = 30
     rate_limit_register_per_hour: int = 5
-    rate_limit_login_per_15min: int = 10
+    rate_limit_login_per_15min: int = int(os.getenv("RATE_LIMIT_LOGIN", "10"))
 
     # Audit log retention
     audit_retention_days: int = 90

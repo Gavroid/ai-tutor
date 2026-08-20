@@ -303,14 +303,15 @@ export default function ParentDashboardPage() {
                 ["showMistakes", "Типичные ошибки"],
                 ["showActivity", "Активность"],
               ].map(([key, label]) => (
-                <label key={key} className="console-pill justify-center">
+                <label key={key} className="prism-toggle-pill">
                   <input
                     type="checkbox"
                     checked={displaySettings[key as keyof typeof displaySettings]}
                     onChange={(event) => setDisplaySettings((prev) => ({ ...prev, [key]: event.target.checked }))}
-                    className="mr-2 accent-[color:var(--prism-accent)]"
+                    className="sr-only"
                   />
-                  {label}
+                  <span aria-hidden="true" className="prism-toggle-dot" />
+                  <span>{label}</span>
                 </label>
               ))}
             </div>

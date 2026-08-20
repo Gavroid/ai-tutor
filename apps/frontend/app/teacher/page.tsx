@@ -17,12 +17,12 @@ const STATUS_LABEL: Record<MaterialStatus, string> = {
 };
 
 const STATUS_COLOR: Record<MaterialStatus, string> = {
-  draft: "bg-slate-100 text-[color:var(--prism-muted)]",
-  ai_generated: "bg-amber-100 text-amber-800",
-  needs_review: "bg-orange-100 text-orange-800",
-  teacher_approved: "bg-sky-100 text-sky-800",
-  published: "bg-emerald-100 text-emerald-800",
-  blocked: "bg-rose-100 text-rose-800",
+  draft: "border border-slate-500/40 bg-slate-500/10 text-slate-300",
+  ai_generated: "border border-amber-500/40 bg-amber-500/10 text-amber-200",
+  needs_review: "border border-orange-500/40 bg-orange-500/10 text-orange-200",
+  teacher_approved: "border border-sky-500/40 bg-sky-500/10 text-sky-200",
+  published: "border border-emerald-500/40 bg-emerald-500/10 text-emerald-200",
+  blocked: "border border-rose-500/40 bg-rose-500/10 text-rose-200",
 };
 
 export default function TeacherPage() {
@@ -81,9 +81,9 @@ export default function TeacherPage() {
         <div className="prism-frame">
           <div className="prism-layer p-5 lg:p-10">
       <section className="border-b border-[color:var(--prism-line)] pb-5">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Учительская</h1>
-          <div className="flex gap-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="prism-kicker">Материалы</p>
+          <div className="flex flex-wrap gap-2">
             <Link
               href="/teacher/topics"
               className="prism-action"
@@ -136,13 +136,13 @@ export default function TeacherPage() {
       </div>
 
       {error && (
-        <div className="mt-4 rounded-md bg-rose-50 p-3 text-sm text-rose-700">
+        <div className="mt-4 rounded-2xl border border-rose-400/30 bg-rose-500/10 p-3 text-sm text-rose-200">
           {error}
         </div>
       )}
 
       <section className="teacher-material-list mt-5">
-        {busy && <div className="text-sm text-slate-500">Загрузка…</div>}
+        {busy && <div className="text-sm text-[color:var(--prism-muted)]">Загрузка…</div>}
 
         {!busy && items.length === 0 && (
           <div className="prism-card pad text-center">
@@ -171,7 +171,7 @@ export default function TeacherPage() {
                     <h3 className="text-base font-semibold text-[color:var(--prism-ink)]">
                       #{m.id} · {m.title}
                     </h3>
-                    <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-500">
+                    <div className="mt-1 flex flex-wrap gap-2 text-xs text-[color:var(--prism-muted)]">
                       <span>Тема #{m.topic_id}</span>
                       <span>·</span>
                       <span>{fmtDate(m.created_at)}</span>

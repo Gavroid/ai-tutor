@@ -388,7 +388,7 @@ function FallbacksEditor({
               <textarea value={item.explanation} onChange={(event) => onChange(index, { explanation: event.target.value })} rows={3} className="prism-input mt-1 w-full resize-y p-3 text-sm" />
             </label>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <label className="console-pill min-h-0 px-3 py-2 text-xs"><input type="checkbox" checked={item.is_active !== false} onChange={(event) => onChange(index, { is_active: event.target.checked })} className="mr-2" /> active</label>
+              <label className="prism-toggle-pill min-h-0 px-3 py-2 text-xs"><input type="checkbox" checked={item.is_active !== false} onChange={(event) => onChange(index, { is_active: event.target.checked })} className="sr-only" /><span aria-hidden="true" className="prism-toggle-dot" /><span>active</span></label>
               <button type="button" onClick={() => onRemove(index)} disabled={disabled} className="prism-action hover-danger px-3 py-2 text-xs">Удалить</button>
             </div>
           </div>
