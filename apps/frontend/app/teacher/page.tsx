@@ -117,41 +117,45 @@ export default function TeacherPage() {
       </section>
 
       {analytics && (
-        <section className="mt-5 prism-card pad">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <div className="prism-kicker">Learning Analytics</div>
-              <h2 className="mt-1 text-xl font-black">Где обучение проседает</h2>
-              <p className="mt-1 text-sm text-[color:var(--prism-muted)]">Агрегаты по темам и предметам, без сырого AI-чата ученика.</p>
+        <section className="teacher-analytics-card" aria-labelledby="teacher-analytics-heading">
+          <div className="teacher-analytics-hero">
+            <div className="teacher-analytics-copy">
+              <div className="prism-kicker teacher-analytics-kicker">Learning Analytics</div>
+              <h2 id="teacher-analytics-heading" className="teacher-analytics-title">Где обучение проседает</h2>
+              <p className="teacher-analytics-subtitle">Агрегаты по темам и предметам — без сырого AI-чата ученика.</p>
             </div>
-            <MiniMetric label="Слабых тем" value={analytics.totals.weak_topics} />
+            <div className="teacher-analytics-focus" aria-label="Слабых тем">
+              <span className="teacher-analytics-focus-label">Слабых тем</span>
+              <strong>{analytics.totals.weak_topics}</strong>
+              <span className="teacher-analytics-focus-note">нужны повторение и короткая практика</span>
+            </div>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-            <MiniMetric label="Попыток" value={analytics.totals.attempts} />
-            <MiniMetric label="Верно" value={analytics.totals.correct} />
-            <MiniMetric label="Точность" value={Math.round(analytics.totals.accuracy * 100)} />
-            <MiniMetric label="Mastery" value={Math.round(analytics.totals.average_mastery * 100)} />
+          <div className="teacher-analytics-metrics">
+            <MiniMetric label="Попыток" value={analytics.totals.attempts} className="teacher-analytics-metric" />
+            <MiniMetric label="Верно" value={analytics.totals.correct} className="teacher-analytics-metric" />
+            <MiniMetric label="Точность" value={Math.round(analytics.totals.accuracy * 100)} className="teacher-analytics-metric" />
+            <MiniMetric label="Mastery" value={Math.round(analytics.totals.average_mastery * 100)} className="teacher-analytics-metric" />
           </div>
-          <div className="mt-4 grid gap-3 lg:grid-cols-2">
-            <div className="rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-4">
-              <h3 className="font-black">Предметы</h3>
-              <div className="mt-3 space-y-2">
+          <div className="teacher-analytics-grid">
+            <div className="teacher-analytics-panel">
+              <h3>Предметы</h3>
+              <div className="teacher-analytics-list">
                 {analytics.subjects.slice(0, 5).map((subject) => (
-                  <div key={subject.subject_id} className="flex items-center justify-between rounded-2xl border border-[color:var(--prism-line)] px-3 py-2 text-sm">
-                    <span className="font-black">{subject.subject_name}</span>
-                    <span className="text-[color:var(--prism-muted)]">{subject.attempts} попыток · {Math.round(subject.accuracy * 100)}%</span>
+                  <div key={subject.subject_id} className="teacher-analytics-row">
+                    <span>{subject.subject_name}</span>
+                    <small>{subject.attempts} попыток · {Math.round(subject.accuracy * 100)}%</small>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-4">
-              <h3 className="font-black">Слабые темы</h3>
-              <div className="mt-3 space-y-2">
-                {analytics.weak_topics.length === 0 && <p className="text-sm text-[color:var(--prism-muted)]">Пока слабых тем нет.</p>}
+            <div className="teacher-analytics-panel">
+              <h3>Слабые темы</h3>
+              <div className="teacher-analytics-list">
+                {analytics.weak_topics.length === 0 && <p className="teacher-analytics-empty">Пока слабых тем нет.</p>}
                 {analytics.weak_topics.slice(0, 5).map((topic) => (
-                  <Link key={topic.topic_id} href={`/topics/${topic.topic_id}`} className="block rounded-2xl border border-[color:var(--prism-line)] px-3 py-2 text-sm hover:border-[color:var(--prism-accent)]">
-                    <div className="font-black">{topic.topic_name}</div>
-                    <div className="mt-1 text-xs text-[color:var(--prism-muted)]">{topic.subject_name} · mastery {Math.round(topic.mastery_score * 100)}% · попыток {topic.attempts_count}</div>
+                  <Link key={topic.topic_id} href={`/topics/${topic.topic_id}`} className="teacher-analytics-row teacher-analytics-link">
+                    <span>{topic.topic_name}</span>
+                    <small>{topic.subject_name} · mastery {Math.round(topic.mastery_score * 100)}% · попыток {topic.attempts_count}</small>
                   </Link>
                 ))}
               </div>
@@ -181,7 +185,7 @@ export default function TeacherPage() {
         </div>
       )}
 
-      <section className="mt-5">
+      <section className="teacher-material-list mt-5">
         {busy && <div className="text-sm text-slate-500">Загрузка…</div>}
 
         {!busy && items.length === 0 && (
@@ -257,9 +261,9 @@ function FilterChip({
   );
 }
 
-function MiniMetric({ label, value }: { label: string; value: number }) {
+function MiniMetric({ label, value, className = "" }: { label: string; value: number; className?: string }) {
   return (
-    <div className="rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-3">
+    <div className={`rounded-3xl border border-[color:var(--prism-line)] bg-black/10 p-3 ${className}`.trim()}>
       <div className="text-[10px] font-black uppercase tracking-[0.16em] text-[color:var(--prism-muted)]">{label}</div>
       <div className="mt-1 text-xl font-black text-[color:var(--prism-ink)]">{value}</div>
     </div>
