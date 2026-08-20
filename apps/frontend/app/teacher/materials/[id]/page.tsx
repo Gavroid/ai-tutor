@@ -17,7 +17,7 @@ const STATUS_LABEL: Record<MaterialStatus, string> = {
 };
 
 const STATUS_COLOR: Record<MaterialStatus, string> = {
-  draft: "bg-slate-100 text-slate-700",
+  draft: "bg-slate-100 text-[color:var(--prism-muted)]",
   ai_generated: "bg-amber-100 text-amber-800",
   needs_review: "bg-orange-100 text-orange-800",
   teacher_approved: "bg-sky-100 text-sky-800",
@@ -385,8 +385,8 @@ function Block({
 }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-      <div className="mt-2 text-sm text-slate-700">{children}</div>
+      <h2 className="text-base font-semibold text-[color:var(--prism-ink)]">{title}</h2>
+      <div className="mt-2 text-sm text-[color:var(--prism-muted)]">{children}</div>
     </div>
   );
 }

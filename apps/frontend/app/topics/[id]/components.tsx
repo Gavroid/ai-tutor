@@ -412,7 +412,7 @@ function VoiceMicButton({
       disabled={disabled}
       aria-label={recording ? "Остановить запись" : "Записать голосовое сообщение"}
       title={typeof navigator !== "undefined" && !navigator.mediaDevices ? "Микрофон не поддерживается" : recording ? `Идёт запись… ${seconds}с` : "Записать голос"}
-      className={`relative h-11 w-11 shrink-0 rounded-full text-2xl transition ${recording ? "animate-pulse bg-rose-500 text-white shadow-lg shadow-rose-500/40" : "bg-slate-100 text-slate-700 hover:bg-slate-200"} disabled:opacity-50`}
+      className={`relative h-11 w-11 shrink-0 rounded-full text-2xl transition ${recording ? "animate-pulse bg-rose-500 text-white shadow-lg shadow-rose-500/40" : "bg-slate-100 text-[color:var(--prism-muted)] hover:bg-slate-200"} disabled:opacity-50`}
     >
       {recording ? "⏹" : "🎤"}
       {recording && <span className="absolute -right-2 -top-1 rounded bg-rose-700 px-1 text-[10px] font-semibold text-white">{seconds}s</span>}

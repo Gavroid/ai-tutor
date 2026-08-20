@@ -17,7 +17,7 @@ const STATUS_LABEL: Record<MaterialStatus, string> = {
 };
 
 const STATUS_COLOR: Record<MaterialStatus, string> = {
-  draft: "bg-slate-100 text-slate-700",
+  draft: "bg-slate-100 text-[color:var(--prism-muted)]",
   ai_generated: "bg-amber-100 text-amber-800",
   needs_review: "bg-orange-100 text-orange-800",
   teacher_approved: "bg-sky-100 text-sky-800",
@@ -168,7 +168,7 @@ export default function TeacherPage() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="text-base font-semibold text-slate-900">
+                    <h3 className="text-base font-semibold text-[color:var(--prism-ink)]">
                       #{m.id} · {m.title}
                     </h3>
                     <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-500">

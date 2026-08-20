@@ -231,7 +231,7 @@ export function ToolsTab() {
   return (
     <div className="space-y-6">
       <div className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/55 p-6">
-        <h3 className="text-lg font-semibold text-slate-900">🔧 Диагностика</h3>
+        <h3 className="text-lg font-semibold text-[color:var(--prism-ink)]">🔧 Диагностика</h3>
         <p className="mt-1 text-sm text-slate-600">
           Завершает диагностические сессии старше TTL (по умолчанию 24ч).
         </p>
@@ -281,6 +281,9 @@ export function ToolsTab() {
                 const uid = Number(inp.value);
                 if (!uid || uid < 1) {
                   alert("Введи валидный user_id");
+                  return;
+                }
+                if (!window.confirm("Отключить AI для всех пользователей этого user_id? Ученики не смогут получать объяснения и задачи.")) {
                   return;
                 }
                 setBusy(true);

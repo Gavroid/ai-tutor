@@ -40,11 +40,11 @@ export default function ErrorPage({
           🌿
         </div>
 
-        <h1 className="text-2xl font-bold text-slate-900 mb-3">
+        <h1 className="text-2xl font-bold text-[color:var(--prism-ink)] mb-3">
           Что-то пошло не так
         </h1>
 
-        <p className="text-slate-700 mb-2 leading-relaxed">
+        <p className="text-[color:var(--prism-muted)] mb-2 leading-relaxed">
           Не переживай — твои ответы сохранены.
         </p>
 
@@ -64,7 +64,7 @@ export default function ErrorPage({
 
           <a
             href="/subjects"
-            className="min-h-[48px] px-6 py-3 bg-slate-200 text-slate-900 rounded-lg font-medium hover:bg-slate-300 transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-slate-400 inline-flex items-center justify-center"
+            className="min-h-[48px] px-6 py-3 bg-slate-200 text-[color:var(--prism-ink)] rounded-lg font-medium hover:bg-slate-300 transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-slate-400 inline-flex items-center justify-center"
           >
             На главную
           </a>

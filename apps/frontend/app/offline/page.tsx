@@ -11,7 +11,7 @@ export default function OfflinePage() {
     >
       <div className="max-w-md text-center">
         <div className="mb-6 text-6xl">📡</div>
-        <h1 className="mb-4 text-2xl font-bold text-slate-900 dark:text-slate-100">
+        <h1 className="mb-4 text-2xl font-bold text-[color:var(--prism-ink)] dark:text-slate-100">
           Нет соединения
         </h1>
         <p className="mb-6 text-slate-600 dark:text-slate-400">

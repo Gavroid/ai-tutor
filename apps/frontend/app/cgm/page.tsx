@@ -65,7 +65,7 @@ export default function CGMSettingsPage() {
   return (
     <main className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">
+        <h1 className="text-2xl font-bold text-[color:var(--prism-ink)] mb-2">
           CGM (Continuous Glucose Monitor)
         </h1>
         <p className="text-sm text-slate-600 mb-6">
@@ -81,7 +81,7 @@ export default function CGMSettingsPage() {
           <div>
             <label
               htmlFor="cgm-url"
-              className="block text-sm font-medium text-slate-700 mb-1"
+              className="block text-sm font-medium text-[color:var(--prism-muted)] mb-1"
             >
               Nightscout URL
             </label>
@@ -108,7 +108,7 @@ export default function CGMSettingsPage() {
               className="w-4 h-4"
               data-testid="cgm-enabled-checkbox"
             />
-            <label htmlFor="cgm-enabled" className="text-sm text-slate-700">
+            <label htmlFor="cgm-enabled" className="text-sm text-[color:var(--prism-muted)]">
               Показывать CGM badge (opt-in)
             </label>
           </div>

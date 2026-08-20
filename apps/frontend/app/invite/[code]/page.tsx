@@ -95,7 +95,7 @@ export default function InviteLandingPage() {
   return (
     <main className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
       <div className="max-w-md w-full bg-white rounded-2xl border border-sky-200 p-6" data-testid="invite-card">
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">
+        <h1 className="text-2xl font-bold text-[color:var(--prism-ink)] mb-2">
           Добро пожаловать! 👋
         </h1>
 
@@ -112,20 +112,20 @@ export default function InviteLandingPage() {
         <dl className="space-y-2 text-sm mb-6">
           <div className="flex justify-between">
             <dt className="text-slate-500">Роль:</dt>
-            <dd className="font-medium text-slate-700">
+            <dd className="font-medium text-[color:var(--prism-muted)]">
               {roleLabel[info.role] || info.role}
             </dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-slate-500">Осталось использований:</dt>
-            <dd className="font-medium text-slate-700">
+            <dd className="font-medium text-[color:var(--prism-muted)]">
               {info.remaining_uses}
             </dd>
           </div>
           {info.expires_at && (
             <div className="flex justify-between">
               <dt className="text-slate-500">Действует до:</dt>
-              <dd className="font-medium text-slate-700">
+              <dd className="font-medium text-[color:var(--prism-muted)]">
                 {new Date(info.expires_at).toLocaleDateString("ru-RU")}
               </dd>
             </div>

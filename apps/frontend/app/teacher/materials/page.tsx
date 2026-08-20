@@ -45,10 +45,10 @@ export default function TeacherMaterialsListPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">📚 Учебные материалы</h1>
+        <h1 className="text-2xl font-bold text-[color:var(--prism-ink)]">📚 Учебные материалы</h1>
         <Link
           href="/teacher"
-          className="rounded-md bg-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-300"
+          className="rounded-md bg-slate-200 px-3 py-1.5 text-sm text-[color:var(--prism-muted)] hover:bg-slate-300"
         >
           ← Назад
         </Link>
@@ -77,7 +77,7 @@ export default function TeacherMaterialsListPage() {
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="font-semibold text-slate-900">{m.title}</h3>
+                  <h3 className="font-semibold text-[color:var(--prism-ink)]">{m.title}</h3>
                   <p className="mt-1 text-sm text-slate-600">
                     Тема #{m.topic_id} · {m.status} · {new Date(m.created_at).toLocaleString("ru-RU")}
                   </p>
