@@ -122,10 +122,7 @@ export default function TeacherMaterialDetailPage() {
         <div className="prism-frame">
           <div className="prism-layer mx-auto max-w-5xl p-5 lg:p-10">
       <section className="border-b border-[color:var(--prism-line)] pb-5">
-        <Link href="/teacher" className="prism-action w-fit px-4 py-2 text-sm">
-          ← К списку материалов
-        </Link>
-        <div className="mt-1 flex items-start justify-between">
+        <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold">{c.title}</h1>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[color:var(--prism-muted)]">
