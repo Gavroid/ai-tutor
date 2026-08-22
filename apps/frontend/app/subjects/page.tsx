@@ -40,9 +40,21 @@ export default function HomePage() {
   }, [router]);
 
   const q = searchQuery.trim().toLowerCase();
-  const filtered = q ? subjects.filter((s) => s.name.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q)) : subjects;
+  // Sprint 2026-08-22: для роли student показываем только pilot_visible=true.
+  // Для teacher/admin/parent — все subjects, чтобы они могли видеть pipeline status.
+  const isOperator = user?.role === "teacher" || user?.role === "admin";
+  const visibleSubjects = isOperator
+    ? subjects
+    : subjects.filter((s) => s.pilot_visible === true);
+  const filtered = q
+    ? visibleSubjects.filter(
+        (s) => s.name.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q)
+      )
+    : visibleSubjects;
   const readyCount = subjects.filter((s) => s.mvp_status === "mvp_ready").length;
-  const previewCount = Math.max(subjects.length - readyCount, 0);
+  const pilotVisibleCount = subjects.filter((s) => s.pilot_visible === true).length;
+  const blockedCount = subjects.filter((s) => s.mvp_status === "blocked_ocr").length;
+  const previewCount = Math.max(subjects.length - readyCount - blockedCount, 0);
 
   return (
     <main className="prism-shell">
@@ -69,10 +81,21 @@ export default function HomePage() {
               <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">Live System</div>
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <Metric label="Предметов" value={subjects.length || "—"} />
-                <Metric label="MVP-ready" value={readyCount || "—"} />
-                <Metric label="Preview" value={previewCount || "—"} />
+                <Metric label="Пилот" value={pilotVisibleCount || "—"} hot={pilotVisibleCount > 0} />
+                <Metric label="В обработке" value={previewCount || "—"} />
+                <Metric label="OCR-blocked" value={blockedCount || "—"} />
                 <Metric label="AI" value={aiOk === null ? "…" : aiOk ? "ON" : "OFF"} hot={!!aiOk} />
               </div>
+              {!isOperator && pilotVisibleCount > 0 && (
+                <p className="mt-3 text-xs text-[color:var(--prism-muted)]">
+                  Ребёнку показываются только пилотные предметы.
+                </p>
+              )}
+              {isOperator && (
+                <p className="mt-3 text-xs text-[color:var(--prism-muted)]">
+                  Режим оператора: видны все subjects с полным pipeline status.
+                </p>
+              )}
               {aiOk === true && aiModel && <p className="mt-3 text-xs text-[color:var(--prism-muted)]">Модель: {aiModel}</p>}
               <div className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/40 p-3">
                 <div className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--prism-muted)]">Стоит повторить</div>
@@ -97,8 +120,14 @@ export default function HomePage() {
             <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_360px] lg:items-end">
               <div>
                 <div className="prism-kicker">Subject Gallery</div>
-                <h2 className="mt-2 text-3xl font-black tracking-[-0.05em] sm:text-5xl">Каталог предметов</h2>
-                <p className="mt-2 max-w-2xl text-sm text-[color:var(--prism-muted)]">MVP-ready — можно тестировать полноценно. Preview — виден в системе, но ниже честно показано, что уже готово: маршрут, источники и практика.</p>
+                <h2 className="mt-2 text-3xl font-black tracking-[-0.05em] sm:text-5xl">
+                  {isOperator ? "Каталог предметов · оператор" : "Каталог предметов"}
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm text-[color:var(--prism-muted)]">
+                  {isOperator
+                    ? "Видны все subjects и их evidence-статусы. Только pilot_visible=true показывается ребёнку."
+                    : "Доступны только предметы, прошедшие полную evidence-проверку и помеченные pilot_visible."}
+                </p>
               </div>
               <input
                 type="search"
@@ -112,28 +141,57 @@ export default function HomePage() {
 
             {filtered.length > 0 ? (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {filtered.map((s) => (
-                  <Link key={s.id} href={`/subjects/${s.id}`} className="prism-card prism-subject-card">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="prism-mark flex items-center justify-center text-2xl text-white">{s.icon || "📘"}</div>
-                      <span className={`prism-pill ${s.mvp_status === "mvp_ready" ? "active" : ""}`}>{s.mvp_status === "mvp_ready" ? "MVP-ready" : "Preview"}</span>
-                    </div>
-                    <h3 className="mt-6 text-3xl font-black tracking-[-0.04em]">{s.name}</h3>
-                    {s.description && <p className="mt-3 line-clamp-3 text-sm text-[color:var(--prism-muted)]">{s.description}</p>}
-                    <p className="mt-5 text-xs leading-relaxed text-[color:var(--prism-muted)]">{s.support_note}</p>
-                    <div className="mt-5 grid gap-2 text-xs">
-                      <ReadinessLine label="Маршрут" ready={!!s.route_ready} value={`${s.route_topic_count ?? 0}/${s.topic_count ?? 0}`} />
-                      <ReadinessLine label="Источники" ready={!!s.rag_ready} value={`${s.source_topic_count ?? 0}/${s.topic_count ?? 0}`} />
-                      <ReadinessLine label="Практика" ready={!!s.practice_ready} value={`${s.practice_topic_count ?? 0}/${s.topic_count ?? 0}`} />
-                    </div>
-                    <div className="mt-6 flex items-center justify-between border-t border-[color:var(--prism-line)] pt-4 text-xs font-black uppercase tracking-[0.16em]">
-                      <span>{s.recommended_grade} класс</span><span>Открыть →</span>
-                    </div>
-                  </Link>
-                ))}
+                {filtered.map((s) => {
+                  const status = s.mvp_status ?? "preview";
+                  const statusLabel = statusLabelFor(status);
+                  return (
+                    <Link key={s.id} href={`/subjects/${s.id}`} className="prism-card prism-subject-card">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="prism-mark flex items-center justify-center text-2xl text-white">{s.icon || "📘"}</div>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={`prism-pill ${status === "mvp_ready" ? "active" : ""}`}>
+                            {statusLabel}
+                          </span>
+                          {isOperator && (
+                            <span className={`text-[10px] font-black uppercase tracking-[0.14em] ${s.pilot_visible ? "text-[color:var(--prism-green)]" : "text-[color:var(--prism-muted)]"}`}>
+                              {s.pilot_visible ? "pilot ✓" : "скрыт от ребёнка"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <h3 className="mt-6 text-3xl font-black tracking-[-0.04em]">{s.name}</h3>
+                      {s.description && <p className="mt-3 line-clamp-3 text-sm text-[color:var(--prism-muted)]">{s.description}</p>}
+                      <p className="mt-5 text-xs leading-relaxed text-[color:var(--prism-muted)]">{s.support_note}</p>
+                      <div className="mt-5 grid gap-2 text-xs">
+                        <ReadinessLine label="Маршрут" ready={!!s.route_ready} value={`${s.route_topic_count ?? 0}/${s.topic_count ?? 0}`} />
+                        <ReadinessLine label="Источники" ready={!!s.rag_ready} value={`${s.source_topic_count ?? 0}/${s.topic_count ?? 0}`} />
+                        <ReadinessLine label="Практика" ready={!!s.practice_ready} value={`${s.practice_topic_count ?? 0}/${s.topic_count ?? 0}`} />
+                      </div>
+                      {isOperator && (
+                        <div className="mt-3 grid grid-cols-3 gap-1 text-[10px] uppercase tracking-[0.12em]">
+                          <EvidenceBadge label="manifest" ready={!!s.manifest_ready} />
+                          <EvidenceBadge label="mapping" ready={!!s.mapping_ready} />
+                          <EvidenceBadge label="import" ready={!!s.import_ready} />
+                        </div>
+                      )}
+                      <div className="mt-6 flex items-center justify-between border-t border-[color:var(--prism-line)] pt-4 text-xs font-black uppercase tracking-[0.16em]">
+                        <span>{s.recommended_grade} класс</span><span>Открыть →</span>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             ) : (
-              <EmptyState icon="🔍" title={`Ничего не найдено по «${searchQuery}»`} description="Попробуй другой запрос, например: матем, русск, физика" variant="neutral" />
+              <EmptyState
+                icon="🔍"
+                title={isOperator ? "Ничего не найдено по запросу" : "Доступных предметов пока нет"}
+                description={
+                  isOperator
+                    ? "Попробуй другой запрос, например: матем, русск, физика"
+                    : "Пилотный предмет проходит финальную проверку. Скоро здесь появится."
+                }
+                variant="neutral"
+              />
             )}
           </section>
         </div>
@@ -148,6 +206,37 @@ function ReadinessLine({ label, ready, value }: { label: string; ready: boolean;
       <span className="font-black uppercase tracking-[0.14em] text-[color:var(--prism-muted)]">{label}</span>
       <span className={ready ? "font-black text-[color:var(--prism-green)]" : "font-black text-[color:var(--prism-amber)]"}>{value}</span>
     </div>
+  );
+}
+
+function statusLabelFor(status: string): string {
+  switch (status) {
+    case "mvp_ready":
+      return "MVP-ready";
+    case "internal_mvp":
+      return "В обработке";
+    case "blocked_ocr":
+      return "OCR-blocked";
+    case "not_available":
+      return "Недоступно";
+    case "preview":
+    default:
+      return "Preview";
+  }
+}
+
+function EvidenceBadge({ label, ready }: { label: string; ready: boolean }) {
+  return (
+    <span
+      className={`rounded-md border px-1.5 py-0.5 text-center ${
+        ready
+          ? "border-[color:var(--prism-green)]/40 text-[color:var(--prism-green)]"
+          : "border-[color:var(--prism-line)] text-[color:var(--prism-muted)]"
+      }`}
+      title={`${label}: ${ready ? "yes" : "no"}`}
+    >
+      {ready ? "✓" : "·"} {label}
+    </span>
   );
 }
 

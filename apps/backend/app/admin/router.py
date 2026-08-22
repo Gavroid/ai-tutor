@@ -803,3 +803,232 @@ async def remove_ai_kill_switch(
     )
     db.commit()
     return {"ok": True, "user_id": user_id, "all_killed": sorted(new_ids)}
+
+
+# === Sprint 2026-08-22: Evidence update endpoints ===
+# Эти endpoints управляют readiness gates в data/textbooks/7-class/evidence.json.
+# Используют те же guards, что и другие admin endpoints, и пишут в audit log.
+
+EVIDENCE_GATES = (
+    "manifest_ready",
+    "mapping_ready",
+    "import_ready",
+    "rag_ready",
+    "practice_ready",
+    "manual_smoke_ready",
+)
+EVIDENCE_PROMOTION = ("pilot_visible", "promotion_allowed")
+ALL_EVIDENCE_FIELDS = EVIDENCE_GATES + EVIDENCE_PROMOTION
+
+_EVIDENCE_PATH = Path("/root/workspace/ai-tutor/data/textbooks/7-class/evidence.json")
+
+
+def _load_evidence() -> dict[str, dict]:
+    """Прочитать evidence.json; если файла нет — пустой dict.
+
+    Путь overridable через monkeypatch: tests/test_admin_evidence.py меняет
+    app.admin.router._EVIDENCE_PATH на tmp.
+    """
+    path = globals().get("_EVIDENCE_PATH", _EVIDENCE_PATH)
+    if not Path(path).exists():
+        return {}
+    import json
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def _save_evidence(data: dict[str, dict]) -> None:
+    import json
+    path = globals().get("_EVIDENCE_PATH", _EVIDENCE_PATH)
+    Path(path).write_text(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def _evidence_mvp_status(row: dict) -> str:
+    if row.get("promotion_allowed") and all(row.get(g) for g in EVIDENCE_GATES):
+        return "mvp_ready"
+    if row.get("blocked_reason"):
+        return str(row["blocked_reason"])
+    if any(row.get(g) for g in EVIDENCE_GATES):
+        return "internal_mvp"
+    return "preview"
+
+
+@router.get("/evidence")
+def list_evidence(
+    db: Session = Depends(get_db),
+    current: User = Depends(require_admin()),
+):
+    """Список readiness всех предметов (admin).
+
+    Возвращает каждый subject_code с текущими gates и вычисленным mvp_status.
+    """
+    data = _load_evidence()
+    out = []
+    for code in sorted(data.keys()):
+        row = data[code]
+        out.append({
+            "subject_code": code,
+            "mvp_status": _evidence_mvp_status(row),
+            "pilot_visible": bool(row.get("pilot_visible")),
+            "promotion_allowed": bool(row.get("promotion_allowed")),
+            "blocked_reason": row.get("blocked_reason"),
+            "gates": {g: bool(row.get(g)) for g in EVIDENCE_GATES},
+        })
+    service.record(
+        db, user=current, action="evidence.list",
+        entity="evidence", details={"count": len(out)},
+    )
+    db.commit()
+    return {"evidence": out}
+
+
+@router.post("/evidence/{subject_code}")
+def update_evidence(
+    subject_code: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_admin()),
+):
+    """Обновить readiness gates для предмета (admin).
+
+    payload: {"gates": {"mapping_ready": true, ...}, "promotion_allowed": false, ...}
+    Любые поля вне EVIDENCE_GATES и EVIDENCE_PROMOTION игнорируются.
+
+    Инварианты:
+    - promotion_allowed=true только если все EVIDENCE_GATES=true.
+      Иначе 400.
+    - pilot_visible=true требует promotion_allowed=true.
+      Иначе 400.
+    """
+    gates = payload.get("gates", {}) if isinstance(payload, dict) else {}
+    promotion = {k: payload.get(k) for k in EVIDENCE_PROMOTION if k in payload} if isinstance(payload, dict) else {}
+
+    # Проверка неизвестных полей.
+    unknown = set((gates or {}).keys()) - set(EVIDENCE_GATES)
+    if unknown:
+        raise HTTPException(400, f"Unknown gates: {sorted(unknown)}")
+    unknown_promotion = set(promotion.keys()) - set(EVIDENCE_PROMOTION)
+    if unknown_promotion:
+        raise HTTPException(400, f"Unknown promotion fields: {sorted(unknown_promotion)}")
+
+    data = _load_evidence()
+    row = data.get(subject_code)
+    if row is None:
+        raise HTTPException(404, f"subject_code '{subject_code}' not in evidence.json")
+
+    # Применить изменения.
+    for g, v in gates.items():
+        row[g] = bool(v)
+    for k, v in promotion.items():
+        row[k] = bool(v)
+
+    # Инвариант: promotion_allowed требует всех gates.
+    if row.get("promotion_allowed"):
+        missing = [g for g in EVIDENCE_GATES if not row.get(g)]
+        if missing:
+            raise HTTPException(400, f"Cannot set promotion_allowed=true; missing gates: {missing}")
+    # Инвариант: pilot_visible требует promotion_allowed.
+    if row.get("pilot_visible") and not row.get("promotion_allowed"):
+        raise HTTPException(400, "Cannot set pilot_visible=true without promotion_allowed=true")
+
+    data[subject_code] = row
+    _save_evidence(data)
+
+    service.record(
+        db,
+        user=current,
+        action="evidence.update",
+        entity="evidence",
+        entity_id=subject_code,
+        details={"gates": gates, "promotion": promotion, "mvp_status": _evidence_mvp_status(row)},
+    )
+    db.commit()
+
+    # Сбросить кеш evidence-store, чтобы следующий /api/v1/subjects подхватил.
+    try:
+        from app.subjects import evidence as _ev_mod
+        _ev_mod.reset_evidence_cache()
+    except Exception:
+        pass
+
+    return {
+        "ok": True,
+        "subject_code": subject_code,
+        "mvp_status": _evidence_mvp_status(row),
+        "row": row,
+    }
+
+
+@router.post("/evidence/{subject_code}/promote")
+def promote_evidence(
+    subject_code: str,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_admin()),
+):
+    """promotion_allowed=true + pilot_visible=true (только если все gates закрыты)."""
+    data = _load_evidence()
+    row = data.get(subject_code)
+    if row is None:
+        raise HTTPException(404, f"subject_code '{subject_code}' not in evidence.json")
+
+    missing = [g for g in EVIDENCE_GATES if not row.get(g)]
+    if missing:
+        raise HTTPException(400, f"Cannot promote; missing gates: {missing}")
+
+    row["promotion_allowed"] = True
+    row["pilot_visible"] = True
+    data[subject_code] = row
+    _save_evidence(data)
+
+    service.record(
+        db,
+        user=current,
+        action="evidence.promote",
+        entity="evidence",
+        entity_id=subject_code,
+        details={"mvp_status": _evidence_mvp_status(row)},
+    )
+    db.commit()
+    try:
+        from app.subjects import evidence as _ev_mod
+        _ev_mod.reset_evidence_cache()
+    except Exception:
+        pass
+
+    return {"ok": True, "subject_code": subject_code, "mvp_status": _evidence_mvp_status(row)}
+
+
+@router.post("/evidence/{subject_code}/revoke")
+def revoke_evidence(
+    subject_code: str,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_admin()),
+):
+    """pilot_visible=false, promotion_allowed=false (отзыв для ребёнка)."""
+    data = _load_evidence()
+    row = data.get(subject_code)
+    if row is None:
+        raise HTTPException(404, f"subject_code '{subject_code}' not in evidence.json")
+
+    row["pilot_visible"] = False
+    row["promotion_allowed"] = False
+    data[subject_code] = row
+    _save_evidence(data)
+
+    service.record(
+        db,
+        user=current,
+        action="evidence.revoke",
+        entity="evidence",
+        entity_id=subject_code,
+    )
+    db.commit()
+    try:
+        from app.subjects import evidence as _ev_mod
+        _ev_mod.reset_evidence_cache()
+    except Exception:
+        pass
+
+    return {"ok": True, "subject_code": subject_code, "mvp_status": _evidence_mvp_status(row)}

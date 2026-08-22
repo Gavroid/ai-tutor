@@ -24,11 +24,20 @@ export type Subject = {
   age_min: number;
   age_max: number;
   is_active: boolean;
-  mvp_status?: "mvp_ready" | "preview" | string;
+  mvp_status?: "mvp_ready" | "internal_mvp" | "preview" | "blocked_ocr" | "not_available" | string;
   support_note?: string;
-  route_ready?: boolean;
+  // Sprint 2026-08-22: явные evidence-поля (fail-closed readiness).
+  manifest_ready?: boolean;
+  mapping_ready?: boolean;
+  import_ready?: boolean;
   rag_ready?: boolean;
   practice_ready?: boolean;
+  manual_smoke_ready?: boolean;
+  pilot_visible?: boolean;
+  promotion_allowed?: boolean;
+  blocked_reason?: string | null;
+  // Diagnostic counts.
+  route_ready?: boolean;
   topic_count?: number;
   route_topic_count?: number;
   source_topic_count?: number;

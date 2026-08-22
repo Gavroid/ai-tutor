@@ -1,6 +1,8 @@
 """Роутер учебной структуры: список предметов, разделы, темы, материалы, задания.
 
 Sprint 64: Redis caching для read-heavy endpoints (subjects/topics).
+Sprint 2026-08-22: fail-closed readiness policy. mvp_status вычисляется из
+явного evidence-store (см. app.subjects.evidence), а не из counts/route/seed.
 """
 from __future__ import annotations
 
@@ -21,29 +23,13 @@ from app.cache import (
 from app.db.session import get_db
 from app.rag_models import RagChunk
 from app.subjects import models, schemas
+from app.subjects.evidence import (
+    SubjectEvidence,
+    evidence_to_dict,
+    get_evidence_for,
+)
 
 logger = logging.getLogger(__name__)
-
-
-MVP_READY_SUBJECT_KEYWORDS = ("математика", "6 класс", "повтор")
-
-
-def _subject_support(subject: models.Subject) -> dict[str, object]:
-    normalized = f"{subject.name} {subject.description or ''}".lower()
-    ready = all(word in normalized for word in MVP_READY_SUBJECT_KEYWORDS)
-    if ready:
-        return {
-            "mvp_status": "mvp_ready",
-            "support_note": "MVP-ready: объяснения, практика и проверенные источники доступны для ручного тестирования.",
-            "rag_ready": True,
-            "practice_ready": True,
-        }
-    return {
-        "mvp_status": "preview",
-        "support_note": "Preview: учебный маршрут виден, но материалы/RAG ещё не подтверждены. Используй для навигации, не для пилотного теста.",
-        "rag_ready": False,
-        "practice_ready": False,
-    }
 
 
 def _route_topic_ids(subject: models.Subject) -> set[int]:
@@ -63,6 +49,12 @@ def _route_topic_ids(subject: models.Subject) -> set[int]:
 
 
 def _subject_coverage(db: Session, subject: models.Subject) -> dict[str, object]:
+    """Diagnostic counts (read-only).
+
+    Возвращает coverage fields для UI diagnostics (route_topic_count, source_topic_count,
+    practice_topic_count, route_ready). Эти поля НЕ участвуют в вычислении
+    mvp_status — это только счётчики, чтобы оператор видел состояние.
+    """
     topic_ids = [topic.id for section in subject.sections for topic in section.topics]
     route_topic_ids = _route_topic_ids(subject)
     if not topic_ids:
@@ -97,25 +89,38 @@ def _subject_coverage(db: Session, subject: models.Subject) -> dict[str, object]
 
 
 def _subject_out(subject: models.Subject, db: Session) -> dict[str, object]:
+    """Compose SubjectOut: явный evidence + diagnostic counts.
+
+    Pipeline:
+    1. Читаем явный evidence из evidence-store (manifest/mapping/import/rag/
+       practice/manual_smoke/pilot/promotion).
+    2. Считаем mvp_status fail-closed (mvp_ready только при promotion_allowed
+       и всех evidence_ready=true).
+    3. Считаем diagnostic counts (route/source/practice) — они НЕ участвуют в
+       mvp_status, только для operator UI.
+    """
     base = schemas.SubjectOut.model_validate(subject).model_dump()
-    base.update(_subject_support(subject))
+
+    # 1) Явный evidence (fail-closed).
+    evidence = get_evidence_for(subject.code)
+    base.update(evidence_to_dict(evidence))
+
+    # 2) mvp_status computed from evidence only.
+    # Promotion policy is stricter than raw evidence: only the controlled
+    # Math-6 pilot may be mvp_ready/pilot-visible at this stage.
+    status = evidence.mvp_status()
+    if subject.code != "math" and status == "mvp_ready":
+        status = "internal_mvp"
+    base["mvp_status"] = status
+    base["support_note"] = (
+        evidence.support_note()
+        if status == evidence.mvp_status()
+        else "Внутренний MVP: evidence есть, но предмет не включён в текущий Math-6 pilot."
+    )
+
+    # 3) Diagnostic counts (не участвуют в mvp_status).
     coverage = _subject_coverage(db, subject)
     base.update(coverage)
-    topic_count = int(base["topic_count"])
-    if base["mvp_status"] == "mvp_ready":
-        # Math readiness was established in the dedicated math readiness stages.
-        base["route_ready"] = True
-        base["rag_ready"] = True
-        base["practice_ready"] = True
-        base["route_topic_count"] = topic_count
-        base["source_topic_count"] = topic_count
-        base["practice_topic_count"] = topic_count
-    else:
-        base["rag_ready"] = topic_count > 0 and int(base["source_topic_count"]) == topic_count
-        base["practice_ready"] = topic_count > 0 and int(base["practice_topic_count"]) == topic_count
-        if base["route_ready"] and base["rag_ready"] and base["practice_ready"]:
-            base["mvp_status"] = "mvp_ready"
-            base["support_note"] = "MVP-ready: маршрут, практика и проверенные источники доступны для ручного тестирования."
     return base
 
 

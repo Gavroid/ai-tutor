@@ -13,44 +13,39 @@ async function loginAsStudent(page: Page): Promise<void> {
   await page.waitForURL(/\/subjects/, { timeout: 15_000 });
 }
 
-test.describe("Stage 7 multi-subject readiness", () => {
-  test("subjects clearly separate MVP-ready math from preview subjects", async ({ page }) => {
+test.describe("Stage 7 multi-subject readiness (pilot_visible filter)", () => {
+  test("student sees only pilot-visible subjects (math)", async ({ page }) => {
     await loginAsStudent(page);
-
     await page.goto("/subjects");
     await expect(page.getByText("Каталог предметов")).toBeVisible({ timeout: 10_000 });
 
-    const mathCard = page
-      .locator("a[href^='/subjects/']")
-      .filter({ hasText: /Математика .*повторение/i })
-      .first();
-    await expect(mathCard).toBeVisible({ timeout: 10_000 });
+    // Только math должна быть видна ребёнку.
+    const cards = page.locator("a[href^='/subjects/']");
+    await expect(cards).toHaveCount(1, { timeout: 10_000 });
+
+    const mathCard = cards.first();
+    await expect(mathCard).toContainText(/Математика .*повторение/i);
     await expect(mathCard.getByText("MVP-ready")).toHaveCount(2);
     await expect(mathCard).toContainText(/объяснения, практика/i);
+  });
 
-    const previewCard = page
-      .locator("a[href^='/subjects/']")
-      .filter({ hasText: /Алгебра/i })
-      .first();
-    await expect(previewCard).toBeVisible({ timeout: 10_000 });
-    await expect(previewCard.getByText("Preview")).toHaveCount(2);
-    await expect(previewCard).toContainText(/материалы\/RAG ещё не подтверждены/i);
+  test("student gets locked screen on non-pilot subject URL", async ({ page }) => {
+    await loginAsStudent(page);
 
-    await mathCard.click();
-    await page.waitForURL(/\/subjects\/\d+/, { timeout: 10_000 });
+    // Прямой переход на algebra должна показать "Subject locked" экран.
+    await page.goto("/subjects/4"); // algebra id=4
+    await expect(page.getByText(/Subject locked/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/проходит evidence-проверку/i)).toBeVisible();
+    await expect(page.getByRole("link", { name: /В каталог предметов/i })).toBeVisible();
+  });
+
+  test("math subject page shows readiness panel and topics for student", async ({ page }) => {
+    await loginAsStudent(page);
+    await page.goto("/subjects/3"); // math id=3
     await expect(page.getByText("Readiness Panel")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText("MVP-ready.")).toBeVisible();
     await expect(page.getByText("RAG")).toBeVisible();
     await expect(page.getByText("ON").first()).toBeVisible();
-    await expect(page.getByText("Practice")).toBeVisible();
-
-    await page.goto("/subjects");
-    const previewHref = await previewCard.getAttribute("href");
-    expect(previewHref).toBeTruthy();
-    await page.goto(previewHref!);
-    await expect(page.getByText("Readiness Panel")).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText("Preview-предмет.")).toBeVisible();
-    await expect(page.getByText(/материалы\/RAG ещё не подтверждены/i)).toBeVisible();
-    await expect(page.getByText("OFF").first()).toBeVisible();
+    await expect(page.getByText("Маршрут тем")).toBeVisible();
   });
 });

@@ -149,7 +149,7 @@ def create_app() -> FastAPI:
                 content={"status": "not_ready", "reason": reason},
             )
 
-        # Sprint 82: check БД + Redis (multi-worker state).
+        # Sprint 82: Redis check + DB check (multi-worker state).
         # Если Redis недоступна — rate limit + AI budget не работают,
         # поэтому readiness должен быть not_ready.
         try:

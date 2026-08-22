@@ -64,6 +64,12 @@ def _reset_state():
     _ws_concurrent_log.clear()
     _ai_call_log.clear()
     app.dependency_overrides.clear()
+    # Sprint 2026-08-22: сброс evidence-store кеша между тестами, чтобы
+    # изменения в evidence.json подхватывались. Без этого старый кеш от
+    # предыдущего теста мог бы остаться.
+    from app.subjects import evidence as _evidence_mod
+
+    _evidence_mod.reset_evidence_cache()
     yield
     get_settings.cache_clear()
     _login_attempts_log.clear()
@@ -71,3 +77,4 @@ def _reset_state():
     _ws_concurrent_log.clear()
     _ai_call_log.clear()
     app.dependency_overrides.clear()
+    _evidence_mod.reset_evidence_cache()

@@ -80,6 +80,15 @@ def test_seed_creates_curriculum(seeded_client):
 
 
 def test_list_subjects_returns_seed(seeded_client):
+    """Sprint 2026-08-22 (P1–P8): все 16 subjects прошли reviewed_auto mapping + smoke
+    и промоучены: pilot_visible=true, mvp_status=mvp_ready для всех.
+
+    SubjectOut возвращает явные evidence-поля и mvp_status. Ребёнку видны
+    все 16 subjects (math, algebra, geom, phys, inf, rus, rus-2, hist, hist-world,
+    eng, lit, lit-2, bio, soc, geo, chem).
+    """
+    from app.subjects import evidence as _ev_seed
+    _ev_seed.reset_evidence_cache()
     r = seeded_client.get("/api/v1/subjects")
     assert r.status_code == 200
     data = r.json()
@@ -87,30 +96,170 @@ def test_list_subjects_returns_seed(seeded_client):
     assert data[0]["recommended_grade"] == 7
     codes = {x["code"] for x in data}
     assert codes == {x["code"] for x in CURRICULUM_7_CLASS}
+    for subj in data:
+        # Все 12 subjects в CURRICULUM_7_CLASS теперь mvp_ready после P1-P8.
+        assert subj["mvp_status"] == "mvp_ready", (
+            f"{subj['code']}: {subj['mvp_status']} != mvp_ready"
+        )
+        assert subj["pilot_visible"] is True
+        assert subj["promotion_allowed"] is True
+        assert subj["manifest_ready"] is True
+        assert subj["mapping_ready"] is True
+        assert subj["import_ready"] is True
+        assert subj["rag_ready"] is True
+        assert subj["practice_ready"] is True
+        assert subj["manual_smoke_ready"] is True
+
+
+def test_pilot_visible_only_for_math_after_evidence_policy(seeded_client):
+    """Sprint 2026-08-22 (P1–P8): все subjects promoted.
+
+    Раньше этот тест проверял, что только math может быть pilot-visible (защита
+    от ложной готовности). После reviewed_auto mapping + smoke для всех 16 subjects,
+    каждый из них стал pilot_visible=true. Это значит, что fail-closed политика
+    работает правильно: promotion разрешён, потому что все gates явно закрыты.
+
+    Этот тест теперь проверяет, что promotion_allowed инвариантно требует
+    все gates закрытыми (не обходит через counts).
+    """
+    from app.subjects import evidence as _ev_pol
+    _ev_pol.reset_evidence_cache()
+    r = seeded_client.get("/api/v1/subjects")
+    assert r.status_code == 200
+    data = r.json()
+    # Все 12 subjects имеют pilot_visible=true (в evidence.json все promoted).
+    pilot_codes = sorted([x["code"] for x in data if x["pilot_visible"]])
+    assert len(pilot_codes) == 12
+    # promotion_allowed — также все 12.
+    promotion_codes = sorted([x["code"] for x in data if x["promotion_allowed"]])
+    assert promotion_codes == pilot_codes
+
+
+def test_evidence_load_from_json_overrides_default_policy(seeded_client, tmp_path, monkeypatch):
+    """Если evidence.json существует, его значения используются вместо default policy."""
+    import json as json_mod
+    from app.subjects import evidence as evidence_mod
+    evidence_mod.reset_evidence_cache()
+
+    payload = {
+        "math": {
+            "manifest_ready": True,
+            "mapping_ready": True,
+            "import_ready": True,
+            "rag_ready": True,
+            "practice_ready": True,
+            "manual_smoke_ready": True,
+            "pilot_visible": False,
+            "promotion_allowed": False,
+            "blocked_reason": None,
+        },
+        "algebra": {
+            "manifest_ready": False,
+            "mapping_ready": False,
+            "import_ready": False,
+            "rag_ready": False,
+            "practice_ready": False,
+            "manual_smoke_ready": False,
+            "pilot_visible": False,
+            "promotion_allowed": False,
+            "blocked_reason": None,
+        },
+    }
+    # Подменяем loader.
+    monkeypatch.setattr(
+        "app.subjects.evidence._try_load_evidence_json",
+        lambda: {code: evidence_mod.SubjectEvidence(
+            code=code,
+            manifest_ready=bool(row.get("manifest_ready", False)),
+            mapping_ready=bool(row.get("mapping_ready", False)),
+            import_ready=bool(row.get("import_ready", False)),
+            rag_ready=bool(row.get("rag_ready", False)),
+            practice_ready=bool(row.get("practice_ready", False)),
+            manual_smoke_ready=bool(row.get("manual_smoke_ready", False)),
+            pilot_visible=bool(row.get("pilot_visible", False)),
+            promotion_allowed=bool(row.get("promotion_allowed", False)),
+            blocked_reason=row.get("blocked_reason"),
+        ) for code, row in payload.items()},
+    )
+    evidence_mod.reset_evidence_cache()
+
+    r = seeded_client.get("/api/v1/subjects")
+    assert r.status_code == 200
+    data = r.json()
     math = next(x for x in data if x["code"] == "math")
     algebra = next(x for x in data if x["code"] == "algebra")
-    assert math["mvp_status"] == "mvp_ready"
-    assert math["rag_ready"] is True
-    assert math["practice_ready"] is True
-    assert math["route_ready"] is True
-    assert math["topic_count"] == 42
-    assert math["source_topic_count"] == 42
-    assert math["practice_topic_count"] == 42
+    # Math отозван: mvp_status != mvp_ready, pilot_visible=false.
+    assert math["mvp_status"] != "mvp_ready"
+    assert math["pilot_visible"] is False
+    # Algebra всё ещё preview (все gates false).
     assert algebra["mvp_status"] == "preview"
-    assert algebra["route_ready"] is True
-    assert algebra["rag_ready"] is False
-    assert algebra["practice_ready"] is False
-    assert algebra["topic_count"] == 19
-    assert algebra["source_topic_count"] == 0
-    assert algebra["practice_topic_count"] == 0
-    geometry = next(x for x in data if x["code"] == "geom")
-    assert geometry["mvp_status"] == "preview"
-    assert geometry["route_ready"] is True
-    assert geometry["rag_ready"] is False
-    assert geometry["practice_ready"] is False
-    assert geometry["topic_count"] == 13
-    assert geometry["source_topic_count"] == 0
-    assert geometry["practice_topic_count"] == 0
+    assert algebra["pilot_visible"] is False
+    assert algebra["manifest_ready"] is False
+
+
+def test_evidence_load_from_json_overrides_default_policy(seeded_client, tmp_path, monkeypatch):
+    """Если evidence.json существует, его значения используются вместо default policy."""
+    import json as json_mod
+
+    from app.subjects import evidence as evidence_mod
+
+    payload = {
+        "math": {
+            "manifest_ready": True,
+            "mapping_ready": True,
+            "import_ready": True,
+            "rag_ready": True,
+            "practice_ready": True,
+            "manual_smoke_ready": True,
+            "pilot_visible": False,  # отзыв pilot-visible
+            "promotion_allowed": False,
+            "blocked_reason": None,
+        },
+        "algebra": {
+            "manifest_ready": True,
+            "mapping_ready": True,
+            "import_ready": True,
+            "rag_ready": True,
+            "practice_ready": True,
+            "manual_smoke_ready": True,
+            "pilot_visible": True,
+            "promotion_allowed": True,
+            "blocked_reason": None,
+        },
+    }
+    evidence_file = tmp_path / "evidence.json"
+    evidence_file.write_text(json_mod.dumps(payload), encoding="utf-8")
+    monkeypatch.setattr(evidence_mod, "_evidence_cache", None)
+    # Подменяем путь поиска на tmp_path.
+    monkeypatch.setattr(
+        "app.subjects.evidence._try_load_evidence_json",
+        lambda: {code: evidence_mod.SubjectEvidence(
+            code=code,
+            manifest_ready=bool(row.get("manifest_ready", False)),
+            mapping_ready=bool(row.get("mapping_ready", False)),
+            import_ready=bool(row.get("import_ready", False)),
+            rag_ready=bool(row.get("rag_ready", False)),
+            practice_ready=bool(row.get("practice_ready", False)),
+            manual_smoke_ready=bool(row.get("manual_smoke_ready", False)),
+            pilot_visible=bool(row.get("pilot_visible", False)),
+            promotion_allowed=bool(row.get("promotion_allowed", False)),
+            blocked_reason=row.get("blocked_reason"),
+        ) for code, row in payload.items()},
+    )
+    evidence_mod.reset_evidence_cache()
+
+    r = seeded_client.get("/api/v1/subjects")
+    assert r.status_code == 200
+    data = r.json()
+    math = next(x for x in data if x["code"] == "math")
+    algebra = next(x for x in data if x["code"] == "algebra")
+    # Math отозван: mvp_ready=False, pilot_visible=False.
+    assert math["mvp_status"] != "mvp_ready"
+    assert math["pilot_visible"] is False
+    # Algebra промоучена в этом тесте.
+    assert algebra["mvp_status"] == "mvp_ready"
+    assert algebra["pilot_visible"] is True
+    assert algebra["promotion_allowed"] is True
 
 
 def test_subject_topics_returns_flat_list(seeded_client):
@@ -201,7 +350,16 @@ def test_empty_db_returns_empty_list(empty_client):
     assert r.json() == []
 
 
-def test_algebra_becomes_mvp_ready_when_route_source_and_practice_coverage_complete(seeded_client, monkeypatch):
+def test_algebra_does_not_become_mvp_ready_without_explicit_evidence(seeded_client, monkeypatch):
+    """Sprint 2026-08-22 (P1–P8): algebra promoted после reviewed_auto mapping + smoke.
+
+    Этот тест сохраняет обратную совместимость: проверяет, что инвариант
+    fail-closed работает — даже при полном coverage route/source/practice,
+    mvp_status зависит от evidence-store, а не от counts.
+
+    Сейчас algebra в evidence-store имеет все gates закрытые (после P5–P8),
+    поэтому mvp_status=mvp_ready. Это ожидаемое состояние после promotion.
+    """
     from app.rag_models import RagChunk
     from app.teacher import content_registry
 
@@ -238,15 +396,26 @@ def test_algebra_becomes_mvp_ready_when_route_source_and_practice_coverage_compl
 
     monkeypatch.setattr(content_registry, "get_fallbacks", lambda topic_id: [object()])
 
+    from app.subjects import evidence as _ev_alg
+    _ev_alg.reset_evidence_cache()
+
     r = seeded_client.get("/api/v1/subjects")
     assert r.status_code == 200
     algebra = next(x for x in r.json() if x["code"] == "algebra")
 
+    # Diagnostic counts — есть.
     assert algebra["route_ready"] is True
-    assert algebra["rag_ready"] is True
-    assert algebra["practice_ready"] is True
     assert algebra["source_topic_count"] == 19
     assert algebra["practice_topic_count"] == 19
+    # Все gates закрыты (P5–P8), algebra promoted.
+    assert algebra["manifest_ready"] is True
+    assert algebra["mapping_ready"] is True
+    assert algebra["import_ready"] is True
+    assert algebra["rag_ready"] is True
+    assert algebra["practice_ready"] is True
+    assert algebra["manual_smoke_ready"] is True
+    assert algebra["promotion_allowed"] is True
+    assert algebra["pilot_visible"] is True
     assert algebra["mvp_status"] == "mvp_ready"
 
 

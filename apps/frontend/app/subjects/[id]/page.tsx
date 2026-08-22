@@ -58,6 +58,43 @@ export default function SubjectPage() {
     hard: routePlan.filter((item) => item.tier === "hard").length,
     checkpoints: routePlan.filter((item) => item.checkpoint).length,
   };
+  // Sprint 2026-08-22: блокируем навигацию ребёнка в non-pilot предмет.
+  // Teacher/admin по-прежнему могут видеть темы и route plan, но видят явный баннер.
+  const isOperator = user?.role === "teacher" || user?.role === "admin";
+  const canStudentEnter = subject?.pilot_visible === true;
+  const showStudentGate = subject && !isOperator && !canStudentEnter;
+
+  if (showStudentGate) {
+    return (
+      <main className="prism-shell">
+        <Header user={user} backHref="/subjects" backLabel="Все предметы" title={subject ? `${subject.icon || "📘"} ${subject.name}` : "Предмет"} />
+        <section className="py-3 sm:py-5">
+          <div className="prism-frame">
+            <div className="prism-layer px-4 pb-7 lg:px-7">
+              <div className="prism-card pad">
+                <div className="prism-kicker">Subject locked</div>
+                <h1 className="prism-title mt-3">
+                  <span className="accent">{subject?.icon || "📘"}</span> {subject?.name || "Предмет"} — в обработке
+                </h1>
+                <p className="mt-4 max-w-2xl text-sm text-[color:var(--prism-muted)]">
+                  Этот предмет пока проходит evidence-проверку (манифест, разметка страниц, импорт,
+                  retrieval probes, ручной smoke). Ребёнку доступны только пилотные предметы,
+                  которые прошли все шесть шагов проверки.
+                </p>
+                <p className="mt-3 max-w-2xl text-sm text-[color:var(--prism-muted)]">
+                  Сейчас пилот — математика 6 класса. Возвращайся в каталог и выбирай её,
+                  либо спроси родителя, когда этот предмет будет готов.
+                </p>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Link href="/subjects" className="prism-action primary">← В каталог предметов</Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="prism-shell">
@@ -74,12 +111,28 @@ export default function SubjectPage() {
               <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">Readiness Panel</div>
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <Readiness label="Тем" value={topics.length || "—"} />
-                <Readiness label="Статус" value={subject?.mvp_status === "mvp_ready" ? "Ready" : "Preview"} />
+                <Readiness label="Статус" value={statusLabelFor(subject?.mvp_status ?? "preview")} />
                 <Readiness label="RAG" value={subject?.rag_ready ? "ON" : "OFF"} hot={!!subject?.rag_ready} />
                 <Readiness label="Practice" value={subject?.practice_ready ? "ON" : "Preview"} hot={!!subject?.practice_ready} />
                 {routePlan.length > 0 && <Readiness label="Маршрут" value={`${routePlan.length}/42`} hot />}
                 {routePlan.length > 0 && <Readiness label="Контроль" value={routeSummary.checkpoints} hot />}
               </div>
+              {isOperator && (
+                <div className="mt-4 rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/40 p-3 text-[10px] uppercase tracking-[0.14em]">
+                  <div className="text-[color:var(--prism-muted)]">Evidence gates (оператор)</div>
+                  <div className="mt-2 grid grid-cols-2 gap-1">
+                    <EvidenceBadge label="manifest" ready={!!subject?.manifest_ready} />
+                    <EvidenceBadge label="mapping" ready={!!subject?.mapping_ready} />
+                    <EvidenceBadge label="import" ready={!!subject?.import_ready} />
+                    <EvidenceBadge label="rag" ready={!!subject?.rag_ready} />
+                    <EvidenceBadge label="practice" ready={!!subject?.practice_ready} />
+                    <EvidenceBadge label="smoke" ready={!!subject?.manual_smoke_ready} />
+                  </div>
+                  <div className={`mt-3 text-center font-black ${subject?.pilot_visible ? "text-[color:var(--prism-green)]" : "text-[color:var(--prism-amber)]"}`}>
+                    {subject?.pilot_visible ? "✓ pilot-visible для ребёнка" : "✗ скрыт от ребёнка"}
+                  </div>
+                </div>
+              )}
               {subject && <p className="mt-5 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-4 text-sm text-[color:var(--prism-muted)]"><b>{subject.mvp_status === "mvp_ready" ? "MVP-ready." : "Preview-предмет."}</b> {subject.support_note}</p>}
             </aside>
           </div>
@@ -134,4 +187,35 @@ export default function SubjectPage() {
 
 function Readiness({ label, value, hot = false }: { label: string; value: string | number; hot?: boolean }) {
   return <div className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/50 p-4"><div className="text-[10px] font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">{label}</div><div className={`mt-1 text-2xl font-black ${hot ? "text-[color:var(--prism-green)]" : ""}`}>{value}</div></div>;
+}
+
+function statusLabelFor(status: string): string {
+  switch (status) {
+    case "mvp_ready":
+      return "Ready";
+    case "internal_mvp":
+      return "В обработке";
+    case "blocked_ocr":
+      return "OCR-blocked";
+    case "not_available":
+      return "Недоступно";
+    case "preview":
+    default:
+      return "Preview";
+  }
+}
+
+function EvidenceBadge({ label, ready }: { label: string; ready: boolean }) {
+  return (
+    <span
+      className={`rounded-md border px-1.5 py-0.5 text-center ${
+        ready
+          ? "border-[color:var(--prism-green)]/40 text-[color:var(--prism-green)]"
+          : "border-[color:var(--prism-line)] text-[color:var(--prism-muted)]"
+      }`}
+      title={`${label}: ${ready ? "yes" : "no"}`}
+    >
+      {ready ? "✓" : "·"} {label}
+    </span>
+  );
 }
