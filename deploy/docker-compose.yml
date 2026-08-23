@@ -68,6 +68,9 @@ services:
       - ./backup/backup.sh:/app/ops/backup.sh:ro
       - ./backup/_out:/app/ops/backup_out:ro
       - /etc/cron.d/ai-tutor-backup:/app/ops/ai-tutor-backup:ro
+      # Sprint 2026-08-22: evidence.json для fail-closed readiness.
+      - ../data/textbooks/7-class/evidence.json:/opt/ai-tutor/data/textbooks/7-class/evidence.json:ro
+      - ../data/textbooks/7-class/mappings:/opt/ai-tutor/data/textbooks/7-class/mappings:ro
     # Backend healthcheck
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]

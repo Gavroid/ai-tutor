@@ -188,35 +188,52 @@ def _try_load_evidence_json() -> dict[str, SubjectEvidence] | None:
     """
     candidates: list[Path] = []
     here = Path(__file__).resolve()
-    # backend/app/subjects -> /root/workspace/ai-tutor/apps/backend/app/subjects
-    # candidate repo roots:
-    #   /root/workspace/ai-tutor
-    #   /root/workspace/ai-tutor/apps/backend
-    for up in [Path("/root/workspace/ai-tutor"), here.parents[3] if len(here.parents) >= 4 else here.parents[-1]]:
-        if up and up.exists():
-            candidates.append(up / "data" / "textbooks" / "7-class" / "evidence.json")
+    # В Docker-окружении: /app/app/subjects/evidence.py → here.parents[1] = /app/app,
+    # here.parents[2] = /app. Здесь /opt/ai-tutor монтируется в /app или подобный путь.
+    # На prod файл лежит в /opt/ai-tutor/data/textbooks/7-class/evidence.json.
+    # На local dev: /root/workspace/ai-tutor/data/textbooks/7-class/evidence.json
+    # или относительно here (через .parents[3] для backend layout).
+    for up in [
+        Path("/opt/ai-tutor"),  # production
+        Path("/app"),  # standard docker
+        Path("/root/workspace/ai-tutor"),  # local dev
+        here.parents[3] if len(here.parents) >= 4 else here.parents[-1],  # dynamic
+    ]:
+        if not up:
+            continue
+        # PermissionError safe: внутри Docker-контейнера некоторые пути могут
+        # быть недоступны. .exists() вызывает os.stat() и может бросить PermissionError.
+        try:
+            if up.exists():
+                candidates.append(up / "data" / "textbooks" / "7-class" / "evidence.json")
+        except (OSError, PermissionError):
+            continue
     for path in candidates:
-        if path.exists():
-            try:
-                raw = json.loads(path.read_text(encoding="utf-8"))
-                out: dict[str, SubjectEvidence] = {}
-                for code, row in raw.items():
-                    out[code] = SubjectEvidence(
-                        code=code,
-                        manifest_ready=bool(row.get("manifest_ready", False)),
-                        mapping_ready=bool(row.get("mapping_ready", False)),
-                        import_ready=bool(row.get("import_ready", False)),
-                        rag_ready=bool(row.get("rag_ready", False)),
-                        practice_ready=bool(row.get("practice_ready", False)),
-                        manual_smoke_ready=bool(row.get("manual_smoke_ready", False)),
-                        pilot_visible=bool(row.get("pilot_visible", False)),
-                        promotion_allowed=bool(row.get("promotion_allowed", False)),
-                        blocked_reason=row.get("blocked_reason"),
-                    )
-                logger.info("Loaded subject evidence from %s (%d subjects)", path, len(out))
-                return out
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("Failed to parse %s: %s", path, exc)
+        try:
+            if not path.exists():
+                continue
+        except (OSError, PermissionError):
+            continue
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            out: dict[str, SubjectEvidence] = {}
+            for code, row in raw.items():
+                out[code] = SubjectEvidence(
+                    code=code,
+                    manifest_ready=bool(row.get("manifest_ready", False)),
+                    mapping_ready=bool(row.get("mapping_ready", False)),
+                    import_ready=bool(row.get("import_ready", False)),
+                    rag_ready=bool(row.get("rag_ready", False)),
+                    practice_ready=bool(row.get("practice_ready", False)),
+                    manual_smoke_ready=bool(row.get("manual_smoke_ready", False)),
+                    pilot_visible=bool(row.get("pilot_visible", False)),
+                    promotion_allowed=bool(row.get("promotion_allowed", False)),
+                    blocked_reason=row.get("blocked_reason"),
+                )
+            logger.info("Loaded subject evidence from %s (%d subjects)", path, len(out))
+            return out
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Failed to parse %s: %s", path, exc)
     return None
 
 
@@ -268,8 +285,6 @@ def all_known_codes() -> list[str]:
 
 def evidence_to_dict(ev: SubjectEvidence) -> dict[str, object]:
     """Преобразовать evidence в dict для API output."""
-    pilot_visible = ev.pilot_visible and ev.code in _PILOT_SCOPE
-    promotion_allowed = ev.promotion_allowed and ev.code in _PILOT_SCOPE
     return {
         "manifest_ready": ev.manifest_ready,
         "mapping_ready": ev.mapping_ready,
@@ -277,7 +292,7 @@ def evidence_to_dict(ev: SubjectEvidence) -> dict[str, object]:
         "rag_ready": ev.rag_ready,
         "practice_ready": ev.practice_ready,
         "manual_smoke_ready": ev.manual_smoke_ready,
-        "pilot_visible": pilot_visible,
-        "promotion_allowed": promotion_allowed,
+        "pilot_visible": ev.pilot_visible,
+        "promotion_allowed": ev.promotion_allowed,
         "blocked_reason": ev.blocked_reason,
     }

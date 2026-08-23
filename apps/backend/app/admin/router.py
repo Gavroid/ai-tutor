@@ -820,7 +820,33 @@ EVIDENCE_GATES = (
 EVIDENCE_PROMOTION = ("pilot_visible", "promotion_allowed")
 ALL_EVIDENCE_FIELDS = EVIDENCE_GATES + EVIDENCE_PROMOTION
 
-_EVIDENCE_PATH = Path("/root/workspace/ai-tutor/data/textbooks/7-class/evidence.json")
+_EVIDENCE_PATHS = [
+    Path("/opt/ai-tutor/data/textbooks/7-class/evidence.json"),  # production mount
+    Path("/app/data/textbooks/7-class/evidence.json"),  # alternative prod path
+    Path("/root/workspace/ai-tutor/data/textbooks/7-class/evidence.json"),  # dev path
+]
+
+
+def _find_evidence_path() -> Path | None:
+    """Найти рабочий путь к evidence.json.
+
+    Возвращает Path() если файл существует и readable; None иначе.
+    PermissionError safe: внутри Docker некоторые пути могут быть недоступны.
+    """
+    path = globals().get("_EVIDENCE_PATH", None)
+    if path is not None:
+        try:
+            if Path(path).exists():
+                return Path(path)
+        except (OSError, PermissionError):
+            pass
+    for candidate in _EVIDENCE_PATHS:
+        try:
+            if candidate.exists():
+                return candidate
+        except (OSError, PermissionError):
+            continue
+    return None
 
 
 def _load_evidence() -> dict[str, dict]:
@@ -829,17 +855,20 @@ def _load_evidence() -> dict[str, dict]:
     Путь overridable через monkeypatch: tests/test_admin_evidence.py меняет
     app.admin.router._EVIDENCE_PATH на tmp.
     """
-    path = globals().get("_EVIDENCE_PATH", _EVIDENCE_PATH)
-    if not Path(path).exists():
+    path = _find_evidence_path()
+    if path is None:
         return {}
     import json
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _save_evidence(data: dict[str, dict]) -> None:
     import json
-    path = globals().get("_EVIDENCE_PATH", _EVIDENCE_PATH)
-    Path(path).write_text(
+    path = _find_evidence_path()
+    if path is None:
+        path = _EVIDENCE_PATHS[0]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
         json.dumps(data, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )

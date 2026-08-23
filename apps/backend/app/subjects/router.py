@@ -106,17 +106,8 @@ def _subject_out(subject: models.Subject, db: Session) -> dict[str, object]:
     base.update(evidence_to_dict(evidence))
 
     # 2) mvp_status computed from evidence only.
-    # Promotion policy is stricter than raw evidence: only the controlled
-    # Math-6 pilot may be mvp_ready/pilot-visible at this stage.
-    status = evidence.mvp_status()
-    if subject.code != "math" and status == "mvp_ready":
-        status = "internal_mvp"
-    base["mvp_status"] = status
-    base["support_note"] = (
-        evidence.support_note()
-        if status == evidence.mvp_status()
-        else "Внутренний MVP: evidence есть, но предмет не включён в текущий Math-6 pilot."
-    )
+    base["mvp_status"] = evidence.mvp_status()
+    base["support_note"] = evidence.support_note()
 
     # 3) Diagnostic counts (не участвуют в mvp_status).
     coverage = _subject_coverage(db, subject)
