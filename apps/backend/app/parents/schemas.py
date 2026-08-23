@@ -16,9 +16,14 @@ class AcceptInviteIn(BaseModel):
 
 
 class LinkedStudent(BaseModel):
+    """Parent-facing student summary.
+
+    Sprint 2026-08-23 (H2.3): ``email`` удалён из parent-facing payload —
+    PII minimization. Parent знает ребёнка лично, ему не нужен email
+    ребёнка в API-ответе. Если нужен в UI — брать из JWT/auth.
+    """
     student_id: int
     display_name: str
-    email: str
     linked_at: datetime
 
 
@@ -36,9 +41,12 @@ class DailyActivity(BaseModel):
 
 
 class StudentBrief(BaseModel):
+    """Brief student info inside ChildOverview (parent-facing).
+
+    Sprint 2026-08-23 (H2.3): ``email`` удалён — PII minimization.
+    """
     id: int
     display_name: str
-    email: str
 
 
 class ChildOverview(BaseModel):

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import type { MathTopicPlan, Subject, Topic, User } from "@/types";
 import Header from "@/components/Header";
+import { StatusChip } from "@/components/StatusChip";
 
 export default function SubjectPage() {
   const params = useParams<{ id: string }>();
@@ -114,7 +115,13 @@ export default function SubjectPage() {
                 <Readiness label="Статус" value={statusLabelFor(subject?.mvp_status ?? "preview")} />
                 <Readiness label="RAG" value={subject?.rag_ready ? "ON" : "OFF"} hot={!!subject?.rag_ready} />
                 <Readiness label="Practice" value={subject?.practice_ready ? "ON" : "Preview"} hot={!!subject?.practice_ready} />
-                {routePlan.length > 0 && <Readiness label="Маршрут" value={`${routePlan.length}/42`} hot />}
+                {routePlan.length > 0 && (
+                  <Readiness
+                    label="Маршрут"
+                    value={`${routePlan.length}/${routePlan.length}`}
+                    hot
+                  />
+                )}
                 {routePlan.length > 0 && <Readiness label="Контроль" value={routeSummary.checkpoints} hot />}
               </div>
               {isOperator && (
@@ -148,7 +155,12 @@ export default function SubjectPage() {
                 <h2 className="mt-2 text-3xl font-black tracking-[-0.05em] sm:text-5xl">Маршрут тем</h2>
               </div>
               <div className="flex flex-wrap gap-2">
-                <span className={`prism-pill ${subject?.mvp_status === "mvp_ready" ? "active" : ""}`}>{subject?.mvp_status === "mvp_ready" ? "MVP-ready" : "Preview"}</span>
+                <StatusChip
+                  status={(subject?.mvp_status ?? "preview") as never}
+                  blockedReason={subject?.blocked_reason ?? null}
+                  pilotVisible={!!subject?.pilot_visible}
+                  size="md"
+                />
                 {routePlan.length > 0 && <span className="prism-pill active">Base {routeSummary.base} · Medium {routeSummary.medium} · Hard {routeSummary.hard}</span>}
               </div>
             </div>

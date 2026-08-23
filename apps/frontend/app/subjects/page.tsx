@@ -7,6 +7,7 @@ import { api, ApiError } from "@/lib/api";
 import type { Subject, User } from "@/types";
 import EmptyState from "@/components/EmptyState";
 import Header from "@/components/Header";
+import { StatusChip, statusLabelFor as statusLabelForChip } from "@/components/StatusChip";
 
 type RecItem = {
   topic_id: number;
@@ -149,9 +150,13 @@ export default function HomePage() {
                       <div className="flex items-start justify-between gap-4">
                         <div className="prism-mark flex items-center justify-center text-2xl text-white">{s.icon || "📘"}</div>
                         <div className="flex flex-col items-end gap-1">
-                          <span className={`prism-pill ${status === "mvp_ready" ? "active" : ""}`}>
-                            {statusLabel}
-                          </span>
+                          {/* Sprint H2.4: реальный статус через StatusChip, не "MVP-ready" для всех. */}
+                          <StatusChip
+                            status={status as never}
+                            blockedReason={s.blocked_reason ?? null}
+                            pilotVisible={s.pilot_visible ?? false}
+                            size="sm"
+                          />
                           {isOperator && (
                             <span className={`text-[10px] font-black uppercase tracking-[0.14em] ${s.pilot_visible ? "text-[color:var(--prism-green)]" : "text-[color:var(--prism-muted)]"}`}>
                               {s.pilot_visible ? "pilot ✓" : "скрыт от ребёнка"}

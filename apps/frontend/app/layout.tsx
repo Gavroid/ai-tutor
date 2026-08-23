@@ -61,7 +61,16 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="min-h-screen bg-app text-fg">
-        <div id="main-content">{children}</div>
+        {/* Sprint H2.5 / U2.1: skip-link для keyboard users. */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-slate-900"
+        >
+          Пропустить навигацию
+        </a>
+        <div id="main-content" tabIndex={-1}>
+          {children}
+        </div>
         {/* Sprint 98: register service worker для PWA offline support. */}
         <script
           dangerouslySetInnerHTML={{

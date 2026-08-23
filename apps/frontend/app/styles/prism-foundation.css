@@ -589,3 +589,33 @@ html.dark .lesson-readable {
 
 
 /* ============================================================ */
+
+/* Sprint U1.3 (2026-08-23): глобальные focus-visible кольца для keyboard
+ * навигации. Покрывают все интерактивные элементы (button, link, input,
+ * textarea, select) через общие классы Prism UI.
+ */
+:focus-visible {
+  outline: 2px solid var(--prism-accent, #818cf8);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Кольцо для input/textarea — заметнее. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--prism-accent, #818cf8);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 3px color-mix(in_srgb, var(--prism-accent, #818cf8) 25%, transparent);
+}
+/* Кольцо для кнопок и ссылок не должно съедать их layout. */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--prism-accent, #818cf8);
+  outline-offset: 2px;
+}
+/* На тёмном фоне золотистое кольцо лучше читается. */
+@media (prefers-color-scheme: dark) {
+  :focus-visible {
+    outline-color: #facc15;
+  }
+}

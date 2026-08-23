@@ -193,7 +193,14 @@ export function TutorChat({
   return (
     <section className={`split-panel split-chat ${activePane === "chat" ? "flex" : "hidden xl:flex"}`}>
       <div className="split-kicker">Чат с репетитором</div>
-      <section ref={scrollRef} className="split-chat-scroll">
+      <section
+        ref={scrollRef}
+        className="split-chat-scroll"
+        role="log"
+        aria-live="polite"
+        aria-label="Чат с репетитором — сообщения появляются здесь"
+        aria-busy={busy}
+      >
         {messages.length === 0 && (
           <div className="split-empty">
             <div className="split-orb compact" aria-hidden="true" />
@@ -247,6 +254,10 @@ export function TutorChat({
             onChange={(event) => onInputChange(event.target.value)}
             placeholder="Задай вопрос репетитору…"
             maxLength={500}
+            // Sprint U2.1 (2026-08-23): aria-label для screen readers.
+            // placeholder виден зрячим пользователям, но screen reader
+            // его не объявляет как label. Добавляем явный.
+            aria-label="Поле ввода вопроса репетитору"
             aria-describedby="input-hint"
             className="split-input"
             disabled={busy}

@@ -184,7 +184,7 @@ def child_overview(db: Session, parent: user_models.User, student_id: int) -> di
         "student": {
             "id": student.id,
             "display_name": student.display_name,
-            "email": student.email,
+            # Sprint 2026-08-23 (H2.3): email удалён — PII minimization.
         },
         "total_attempts": int(total_attempts),
         "correct_attempts": int(correct_attempts),
@@ -538,7 +538,7 @@ def child_dashboard(
         student=schemas.StudentBrief(
             id=student.id,
             display_name=student.display_name,
-            email=student.email,
+            # Sprint 2026-08-23 (H2.3): email удалён — PII minimization.
         ),
         generated_at=datetime.now(timezone.utc),
         total_attempts=int(total_attempts),
