@@ -18,6 +18,8 @@ from pathlib import Path
 
 import pytest
 
+from app.subjects.textbook_manifest_policy import validate_textbook_manifest
+
 REPO_ROOT = Path("/root/workspace/ai-tutor")
 MANIFEST_CSV = REPO_ROOT / "data" / "textbooks" / "7-class" / "textbook-manifest.csv"
 MAPPINGS_DIR = REPO_ROOT / "data" / "textbooks" / "7-class" / "mappings"
@@ -59,6 +61,18 @@ def manifest_rows() -> list[dict[str, str]]:
         pytest.skip(f"manifest не найден: {MANIFEST_CSV}")
     with MANIFEST_CSV.open() as f:
         return list(csv.DictReader(f))
+
+
+def test_manifest_license_policy_is_fail_closed(manifest_rows):
+    """Unresolved rights never become importable or pilot-ready."""
+    report = validate_textbook_manifest(manifest_rows)
+    assert report["row_count"] == EXPECTED_MANIFEST_ROWS
+    assert report["blocked_license_count"] == EXPECTED_MANIFEST_ROWS
+    assert report["pilot_allowed"] is False
+    assert report["production_mutation"] is False
+    assert report["db_write"] is False
+    assert report["rag_write"] is False
+    assert all(row["pilot_allowed"] is False for row in report["rows"])
 
 
 # === Manifest basics ==========================================================
