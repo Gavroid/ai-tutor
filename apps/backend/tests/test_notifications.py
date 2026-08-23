@@ -217,7 +217,13 @@ def test_mark_all_read(client):
 
 
 def test_email_dry_run_without_smtp(client):
-    """Без SMTP_URL email сохраняется со status='dry_run'."""
+    """Без SMTP_URL email сохраняется со status='dry_run'.
+
+    Sprint 2026-08-23 (H1.6): send_email — async def. Вызов должен
+    быть через await или asyncio.run. Прямой sync-вызов возвращает
+    coroutine и даёт unawaited warning.
+    """
+    import asyncio
     from app.notifications import service as notif_service
 
     s = SessionLocal()
@@ -227,22 +233,13 @@ def test_email_dry_run_without_smtp(client):
         kid = s.scalar(
             __import__("sqlalchemy").select(user_models.User).where(user_models.User.email == "kid@example.com")
         )
-        email_record = notif_service.send_email(
-            s,
-            user_id=kid.id,
-            to_email=kid.email,
-            subject="Test",
-            body="Body",
-        )
-        # Синхронный код создаст coroutine, но не выполнит. Вызовем через asyncio.run
-        import asyncio
-
-        asyncio.run(
+        # Правильный путь: asyncio.run + async def даёт clean await.
+        email_record = asyncio.run(
             notif_service.send_email(
                 s,
                 user_id=kid.id,
                 to_email=kid.email,
-                subject="Async",
+                subject="Test",
                 body="Body",
             )
         )

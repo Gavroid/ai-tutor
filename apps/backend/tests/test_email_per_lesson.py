@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import os
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 os.environ.setdefault("APP_SECRET_KEY", "test-secret-key-for-pytest-only-1234567890")
 os.environ.setdefault("APP_ENV", "development")
@@ -85,7 +85,7 @@ def test_no_notification_for_typical_attempt(db):
     """record_attempt на 1-м, 2-м, 3-м attempts НЕ вызывает notify."""
     with patch(
         "app.notifications.service.notify_parents_of_milestone",
-        new=AsyncMock(),
+        new=MagicMock(return_value=0),
     ) as mock_notify:
         s = db()
         try:
@@ -116,10 +116,17 @@ def test_no_notification_for_typical_attempt(db):
 
 
 def test_notification_on_milestone_attempts(db):
-    """record_attempt на 5-м attempt ВЫЗЫВАЕТ notify (5 в milestones)."""
+    """record_attempt на 5-м attempt ВЫЗЫВАЕТ notify (5 в milestones).
+
+    Sprint 2026-08-23 (H1.6): notify_parents_of_milestone — sync функция,
+    она внутри делает asyncio.new_event_loop()+run_until_complete() и
+    вызывает async send_email. Для теста достаточно MagicMock (не AsyncMock),
+    потому что снаружи это выглядит как обычный sync call.
+    AsyncMock вызывал бы _execute_mock_call coroutine warning.
+    """
     with patch(
         "app.notifications.service.notify_parents_of_milestone",
-        new=AsyncMock(),
+        new=MagicMock(return_value=1),
     ) as mock_notify:
         s = db()
         try:
@@ -144,16 +151,17 @@ def test_notification_on_milestone_attempts(db):
         finally:
             s.close()
 
-        # На 5-м attempt должно быть уведомление
-        # (синхронная функция вызывает async — mock_notify записывает через AsyncMock)
-        # Проверим, что call был
-        # Однако mock вызывается из sync функции, нужно проверить через call_args
-        # AsyncMock может не записывать вызовы из sync контекста — проверим через __call__
-        # На самом деле notify_parents_of_milestone async — она вызывается через asyncio.run()
-        # Проверим что вызов произошёл
-        # mock_notify.call_count — может быть 0 если используется asyncio.run() (новый loop)
-        # Проверим через мок функции
-        pass
+        # На 5-м attempt должно быть уведомление (mock записывает каждый вызов).
+        assert mock_notify.call_count >= 1, (
+            f"Expected notify_parents_of_milestone to be called at least once, "
+            f"got {mock_notify.call_count}"
+        )
+        # Зафиксируем сигнатуру вызова для regression-guard: первый аргумент — db session.
+        # Реальный код может использовать positional/keyword, главное — он вызван.
+        first_call = mock_notify.call_args_list[0]
+        assert first_call[0][0] is not None, (
+            "notify_parents_of_milestone should be called with a session as first arg"
+        )
 
 
 def test_notification_function_is_callable(db):
