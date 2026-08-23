@@ -15,7 +15,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -47,8 +47,8 @@ class InviteOut(BaseModel):
     is_valid: bool
     is_expired: bool
 
-    class Config:
-        from_attributes = True
+    # Sprint continuation T1.3c: V1 class Config → V2 model_config.
+    model_config = ConfigDict(from_attributes=True)
 
 
 # === Helper ===

@@ -1,7 +1,7 @@
 # AI-Tutor — текущий статус (executive, 2026-08-23)
 
 Дата: 2026-08-23
-HEAD: `c77a92e` на ветке `design-audit-2026-08-20-fixes`.
+HEAD: `2164a1f` на ветке `design-audit-2026-08-20-fixes`.
 План следующих работ: [`docs/AI-TUTOR-NEXT-PLAN-2026-08-23.md`](AI-TUTOR-NEXT-PLAN-2026-08-23.md).
 Детальный per-sprint журнал: [`docs/AI-TUTOR-SPRINT-EXECUTION-LOG.md`](AI-TUTOR-SPRINT-EXECUTION-LOG.md).
 Базовый аудит: [`docs/AI-TUTOR-AUDIT-CURRENT-2026-08-23.md`](AI-TUTOR-AUDIT-CURRENT-2026-08-23.md).
@@ -62,6 +62,7 @@ git diff --check     → clean
 | SHA | Sprint | Title |
 |---|---|---|
 | `c77a92e` | post-Sprint-8 | docs(status): sync CURRENT-STATUS.md to actual post-Sprint-8 state |
+| `2164a1f` | continuation | chore(sprint-continuation): deprecation cleanup + status split + new plan |
 | `dfc4d42` | S5–S8 | feat(backend+deploy): Sprint 5–8 — manifest, retrieval, disposable, maintenance |
 | `388b3bd` | S4 | feat(backend): Sprint 4 — Math-6 pilot parametrized contracts (15 P0 topics) |
 | `3ddd3d9` | S3 | feat(backend): Sprint 3 — canonical readiness policy + fail-closed validator |
@@ -101,7 +102,7 @@ git diff --check     → clean
 | recall@k/MRR@k per subject | ✅ | S6 |
 | Flake-стойкий test_sprint32 | ✅ | S1 (asyncio scope) |
 | Production mutation отсутствует | ✅ | S7 toml |
-| Cleanup deprecation warnings | ⚠️ inventory, не fixed | T1.3 |
+| Cleanup deprecation warnings | ⚠️ частично: passlib/sqlalchemy filterwarnings (T1.3a), 1 jose fix (T1.3b), 2 pydantic V2-class (T1.3c). Plus backlog `AI-TUTOR-PYDANTIC-V2-MIGRATION-PLAN.md` для V3 | S continuation |
 | License review manifest | ⚠️ draft готовится | T3.1 |
 | Mobile Playwright runtime | ⚠️ deferred до CI | T3.2 |
 

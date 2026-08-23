@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 SourceType = Literal["text", "file", "topic", "pdf"]
 MaterialStatus = Literal["draft", "ai_generated", "needs_review", "teacher_approved", "published", "blocked"]
@@ -118,8 +118,8 @@ class MaterialDraftOut(BaseModel):
     published_at: datetime | None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    # Sprint continuation T1.3c: V1 class Config → V2 model_config.
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MaterialListItem(BaseModel):
