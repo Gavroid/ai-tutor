@@ -826,6 +826,20 @@ _EVIDENCE_PATHS = [
     Path("/root/workspace/ai-tutor/data/textbooks/7-class/evidence.json"),  # dev path
 ]
 
+# Override-точка для тестов: tests/test_admin_evidence.py делает
+# monkeypatch.setattr(admin_router, "_EVIDENCE_PATH", tmp_evidence).
+# В рантайме остаётся None и путь резолвится через _EVIDENCE_PATHS.
+_EVIDENCE_PATH: Path | None = None
+
+
+def _resolve_active_evidence_path() -> Path | None:
+    """Вернуть активный override, если он задан; иначе None.
+
+    Отделён от _find_evidence_path, чтобы monkeypatch setattr на
+    ``_EVIDENCE_PATH=None`` (сброс) обрабатывался корректно.
+    """
+    return globals().get("_EVIDENCE_PATH", None)
+
 
 def _find_evidence_path() -> Path | None:
     """Найти рабочий путь к evidence.json.
@@ -833,11 +847,12 @@ def _find_evidence_path() -> Path | None:
     Возвращает Path() если файл существует и readable; None иначе.
     PermissionError safe: внутри Docker некоторые пути могут быть недоступны.
     """
-    path = globals().get("_EVIDENCE_PATH", None)
-    if path is not None:
+    override: Path | None = _resolve_active_evidence_path()
+    if override is not None:
         try:
-            if Path(path).exists():
-                return Path(path)
+            candidate = Path(override)
+            if candidate.exists():
+                return candidate
         except (OSError, PermissionError):
             pass
     for candidate in _EVIDENCE_PATHS:
