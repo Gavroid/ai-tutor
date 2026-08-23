@@ -22,12 +22,12 @@ def register(
     # Sprint 44: validate invite_code if provided.
     if payload.invite_code:
         from app.invites.models import Invite
-        from datetime import datetime as _dt
+        from datetime import datetime as _dt, timezone as _tz
 
         invite = db.get(Invite, payload.invite_code)
         if invite is None:
             raise HTTPException(400, "Invalid invite code")
-        if invite.expires_at and invite.expires_at <= _dt.utcnow():
+        if invite.expires_at and invite.expires_at <= _dt.now(_tz.utc):
             raise HTTPException(400, "Invite code expired")
         if invite.uses_count >= invite.max_uses:
             raise HTTPException(400, "Invite code already used")
@@ -42,13 +42,13 @@ def register(
     # Sprint 44: redeem invite (mark as used).
     if payload.invite_code:
         from app.invites.models import Invite as _Invite
-        from datetime import datetime as _dt
+        from datetime import datetime as _dt, timezone as _tz
         invite = db.get(_Invite, payload.invite_code)
         if invite is not None:
             invite.uses_count += 1
             if invite.uses_count >= invite.max_uses:
                 invite.used_by = user.id
-                invite.used_at = _dt.utcnow()
+                invite.used_at = _dt.now(_tz.utc)
             db.commit()
 
     audit_service.record(

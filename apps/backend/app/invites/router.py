@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import secrets
 import string
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -83,7 +83,7 @@ def create_invite(
     expires_at = None
     if payload.expires_in_days:
         from datetime import timedelta
-        expires_at = datetime.utcnow() + timedelta(days=payload.expires_in_days)
+        expires_at = datetime.now(timezone.utc) + timedelta(days=payload.expires_in_days)
 
     invite = Invite(
         code=code,
@@ -122,9 +122,9 @@ def create_invite(
         uses_count=invite.uses_count,
         created_at=invite.created_at,
         is_valid=invite.uses_count < invite.max_uses and (
-            invite.expires_at is None or invite.expires_at > datetime.utcnow()
+            invite.expires_at is None or invite.expires_at > datetime.now(timezone.utc)
         ),
-        is_expired=invite.expires_at is not None and invite.expires_at <= datetime.utcnow(),
+        is_expired=invite.expires_at is not None and invite.expires_at <= datetime.now(timezone.utc),
     )
 
 
@@ -154,9 +154,9 @@ def list_invites(
             uses_count=i.uses_count,
             created_at=i.created_at,
             is_valid=i.uses_count < i.max_uses and (
-                i.expires_at is None or i.expires_at > datetime.utcnow()
+                i.expires_at is None or i.expires_at > datetime.now(timezone.utc)
             ),
-            is_expired=i.expires_at is not None and i.expires_at <= datetime.utcnow(),
+            is_expired=i.expires_at is not None and i.expires_at <= datetime.now(timezone.utc),
         )
         for i in rows
     ]
@@ -185,9 +185,9 @@ def get_invite(
         uses_count=invite.uses_count,
         created_at=invite.created_at,
         is_valid=invite.uses_count < invite.max_uses and (
-            invite.expires_at is None or invite.expires_at > datetime.utcnow()
+            invite.expires_at is None or invite.expires_at > datetime.now(timezone.utc)
         ),
-        is_expired=invite.expires_at is not None and invite.expires_at <= datetime.utcnow(),
+        is_expired=invite.expires_at is not None and invite.expires_at <= datetime.now(timezone.utc),
     )
 
 
