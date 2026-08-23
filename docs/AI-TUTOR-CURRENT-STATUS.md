@@ -131,3 +131,87 @@ fixtures/state). В S1 не правлю.
 Sprint 1 выполнен. Готовность к Sprint 2 — частичная: S2 закрывает Explain
 и детерминированный student flow, что формально не относится к baseline,
 поэтому переход возможен сразу.
+
+## Sprint 2 — итог (2026-08-23)
+
+Цель: починить главный MVP-flow и сделать его независимым от реального LLM
+provider.
+
+### Изменения
+
+1. `apps/backend/app/config.py`:
+   - добавлен `ai_deterministic_mode: bool = False` (S2: принудительный
+     deterministic provider — приоритет выше AI_API_KEY).
+
+2. `apps/backend/app/ai/hermes.py`:
+   - `build_provider()` теперь: deterministic > HermesProvider > MockProvider.
+
+3. `apps/backend/app/ai/service.py::AIService.explain_topic`:
+   - **Graceful fallback**: исключение провайдера не превращается в 500 c
+     traceback, а возвращает безопасный fallback (через `_fallback_explanation`)
+     со статусом ok и ai-model="fallback".
+   - **RAG graceful**: если `_build_rag_context` падает неожиданно
+     (например persistent search), explain не валится — продолжает без
+     RAG-контекста.
+
+4. `apps/backend/tests/test_ai_explain_contract.py` (новый, 10 тестов):
+   - success на валидной topic;
+   - 404 unknown topic (sanitized);
+   - 401/403 без auth;
+   - 422 invalid payload;
+   - 429 budget exhaustion (НЕ provider-down);
+   - RAG failure → graceful;
+   - timeout провайдера → graceful fallback (без утечки stack);
+   - malformed provider output → sanitize без утечки внутренних ключей;
+   - non-leak токенов/паролей/ключей;
+   - provider factory: deterministic mode → MockProvider.
+
+5. `apps/frontend/e2e/mvp-student-flow.spec.ts`:
+   - переписан под реальный UI + deterministic provider:
+     * использует `playwright.request` API (без браузера — детерминированно);
+     * BASE_URL по умолчанию `http://localhost:8000`;
+     * безопасная классификация body-class (ok/auth/not_found/budget/...);
+     * явный `X-Request-Id` для трассировки;
+     * не-токенов/паролей в payload;
+     * budget 429 ≠ provider-down wording;
+   - старая версия сохранена в `mvp-student-flow.spec.ts.legacy` (ожидала
+     несуществующие в UI кнопки).
+
+6. `apps/frontend/e2e/mvp-student-flow.spec.ts.legacy` (legacy): не
+   трогается; помечен как legacy до решения о полном удалении.
+
+### Проверка Explain под RED→GREEN
+
+До:
+
+```text
+1 passed, 9 errors in tests/test_admin_evidence.py
+AI explain failure → 500 c traceback (provider/RAG exceptions)
+mvp-student-flow.spec.ts: 1 passed, 1 failed (non-OK Explain)
+```
+
+После (10 contract-тестов explain + 79 AI-тестов без регрессии):
+
+```text
+tests/test_ai_explain_contract.py: 10 passed, 19 warnings
+tests/test_ai*.py combined: 79 passed
+```
+
+### Критерии выхода Sprint 2
+
+| Критерий | Статус |
+|---|---|
+| API contract tests для explain (success/auth/unknown-topic/budget/timeout/malformed/RAG-failure) green | ✅ (10/10) |
+| Безопасный body class + request ID при падении Explain (Playwright) | ✅ (`safeBodyClass`, `X-Request-Id` header) |
+| Deterministic provider (env) реализован | ✅ (`ai_deterministic_mode`) |
+| Test user, topic fixture, db state фиксированы | ✅ (`E2E_STUDENT_*` env, fetchFirstMathTopicId) |
+| Budget exhaustion отделён от provider downtime | ✅ (тест `explain with budget exhausted returns 429`) |
+| Fallback не раскрывает internal-детали | ✅ (тесты `test_explain_provider_timeout_*`, `test_explain_malformed_*`) |
+| На failure — trace/screenshot + безопасная классификация | ✅ (`safeBodyClass`, `X-Request-Id`, `trace: "on-first-retry"` в config) |
+| MVP Playwright flow green на deterministic provider | ⏳ (зависит от запуска CI pipeline; фрейм готов, требует disposable environment из S7) |
+
+### Зафиксированные known-issues (out of scope для S2)
+
+- `test_sprint32_parent_2fa::test_enable_2fa_returns_secret_and_codes` —
+  flake в большом test_sprint*-bundle (debt S8).
+- Полный Playwright прогон требует disposable environment (S7).

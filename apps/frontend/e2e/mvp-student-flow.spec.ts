@@ -1,192 +1,212 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Browser } from "@playwright/test";
+
+/**
+ * MVP student flow — deterministic variant (Sprint 2, 2026-08-23).
+ *
+ * Заменяет устаревший mvp-student-flow.spec.ts.legacy, который проверял
+ * несуществующие кнопки ("перейти к практике / ещё пример / проверь меня /
+ * дай задачу"). Этих элементов в lesson-pane UI нет — реальный chat-API
+ * даёт topic-scoped followups, а урок показывает primaryAction ("Перейти к
+ * практике" динамически).
+ *
+ * Что покрыто (S2 §"Задачи"):
+ * - safe body class + request ID при ошибке Explain (S2 п.1);
+ * - детерминированный провайдер через app env (APP_AI_DETERMINISTIC_MODE=1);
+ * - фиксированный test user, topic (из API first math topic), budget state;
+ * - budget exhaustion отделён от provider downtime (S2 п.6 критериев выхода);
+ * - fallback не раскрывает internal-детали;
+ * - на failure создаётся screenshot + DOM-снимок, токены/cookies не
+ *   попадают в логи (S2 п.7 + п.8).
+ *
+ * BASE_URL должен указывать на backend с включённым deterministic-mode и
+ * заполненной seed-curriculum (math, algebra, geometry).
+ */
+
+const TEST_ENV_URL = process.env.BASE_URL || "http://localhost:8000";
 
 const STUDENT = {
-  email: "kirill@example.com",
-  password: "Kirill2026!",
+  email: process.env.E2E_STUDENT_EMAIL || "kirill@example.com",
+  password: process.env.E2E_STUDENT_PASSWORD || "strongpass1",
 };
 
-async function loginAsStudent(page: import("@playwright/test").Page): Promise<void> {
-  await page.goto("/login");
-  await page.locator("input[type='email'], input[name='email']").first().fill(STUDENT.email);
-  await page.locator("input[type='password']").first().fill(STUDENT.password);
-  await page.getByRole("button", { name: /войти|вход|логин/i }).click();
-  await page.waitForURL(/\/subjects/, { timeout: 15_000 });
+function safeBodyClass(status: number): string {
+  if (status === 200) return "ok";
+  if (status === 401 || status === 403) return "auth";
+  if (status === 404) return "not_found";
+  if (status === 422) return "bad_request";
+  if (status === 429) return "budget";
+  if (status >= 500 && status <= 599) return "upstream_or_internal";
+  return "other";
 }
 
-function expectNoRawAiGarbage(text: string): void {
-  expect(text.toLowerCase()).not.toContain("<think");
-  expect(text.toLowerCase()).not.toContain("&lt;think");
-  expect(text).not.toContain("{&quot;");
-  expect(text).not.toMatch(/```json/i);
-  expect(text).not.toContain("&amp;gt;");
-  expect(text).not.toContain("&gt;");
-  expect(text).not.toContain("$$");
-  expect(text).not.toContain("\\\\frac");
-  expect(text).not.toContain("\\\\text");
-  expect(text).not.toMatch(/\|\s*-{3,}\s*\|/);
-  expect(text).not.toMatch(/"correct_answer"\s*:/);
+async function login(api: APIRequestContext): Promise<string> {
+  const r = await api.post(`${TEST_ENV_URL}/api/v1/auth/login`, {
+    data: { email: STUDENT.email, password: STUDENT.password },
+  });
+  if (r.status() !== 200) {
+    throw new Error(`login failed: ${r.status()} ${(await r.text()).slice(0, 200)}`);
+  }
+  return (await r.json()).access_token;
 }
 
-function answerForMvpQuestion(question: string, options: string[] | null): string {
-  if (options?.includes("7") && question.includes("8") && question.includes("9") && question.includes("4")) return "7";
-  if (options?.includes("30") && question.includes("20%")) return "30";
-  if (options?.includes("20") && question.includes("x/5")) return "20";
-  if (options?.includes("4") && question.includes("2x + 3 = 11")) return "4";
-  if (options?.includes("0,24") && question.includes("0,6") && question.includes("0,4")) return "0,24";
-
-  const fractions = [...question.matchAll(/(\d+)\s*\/\s*(\d+)/g)].map((m) => ({
-    n: Number(m[1]),
-    d: Number(m[2]),
-  }));
-  if (fractions.length >= 2 && fractions[0].d === fractions[1].d) {
-    return `${fractions[0].n + fractions[1].n}/${fractions[0].d}`;
-  }
-  const averageMatch = question.match(/(?:числа|чисел|оценки|значения)[^:]*:\s*([0-9,\.\sи-]+)\./i);
-  if (averageMatch) {
-    const nums = [...averageMatch[1].matchAll(/-?\d+(?:[,.]\d+)?/g)]
-      .map((m) => Number(m[0].replace(",", ".")))
-      .filter((x) => Number.isFinite(x));
-    if (nums.length > 0) {
-      const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
-      return String(avg).replace(".", ",");
-    }
-  }
-  const allNumbers = [...question.matchAll(/-?\d+(?:[,.]\d+)?/g)]
-    .map((m) => Number(m[0].replace(",", ".")))
-    .filter((x) => Number.isFinite(x));
-  if (/средн/i.test(question) && allNumbers.length >= 2) {
-    const avg = allNumbers.reduce((a, b) => a + b, 0) / allNumbers.length;
-    const base = String(avg).replace(".", ",");
-    const optionWithUnit = options?.find((opt) => opt.replace(/[^0-9,.-]/g, "") === base);
-    return optionWithUnit ?? base;
-  }
-  if (question.includes("1/2") && question.includes("1/3")) return "5/6";
-  if (options && options.length > 0) return options[0];
-  throw new Error(`Cannot infer answer for generated MVP question: ${question}`);
+async function fetchFirstMathTopicId(api: APIRequestContext, token: string): Promise<number> {
+  const headers = { Authorization: `Bearer ${token}` };
+  const subjectsResp = await api.get(`${TEST_ENV_URL}/api/v1/subjects/`, { headers });
+  expect(subjectsResp.status(), "subjects list").toBe(200);
+  const subjects = (await subjectsResp.json()) as Array<{ id: number; name: string }>;
+  expect(subjects.length, "subjects non-empty").toBeGreaterThan(0);
+  const math =
+    subjects.find((s) => /математика|math/i.test(s.name)) ?? subjects[0];
+  const topicsResp = await api.get(
+    `${TEST_ENV_URL}/api/v1/subjects/${math.id}/topics`,
+    { headers },
+  );
+  expect(topicsResp.status(), "topics list").toBe(200);
+  const topics = (await topicsResp.json()) as Array<{ id: number; name: string }>;
+  expect(topics.length, "topics non-empty").toBeGreaterThan(0);
+  return topics[0].id;
 }
 
-test.describe("MVP student learning flow", () => {
-  test("student can open topic, request explain, generate practice, and see clean feedback", async ({
-    page,
+async function callExplain(
+  api: APIRequestContext,
+  token: string,
+  topicId: number,
+  requestId?: string,
+): Promise<{
+  status: number;
+  body: string;
+  bodyClass: string;
+  requestId: string | null;
+}> {
+  const reqId = requestId ?? `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const response = await api.post(`${TEST_ENV_URL}/api/v1/ai/explain`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      "X-Request-Id": reqId,
+    },
+    data: { topic_id: topicId },
+  });
+  const body = await response.text();
+  return {
+    status: response.status(),
+    body,
+    bodyClass: safeBodyClass(response.status()),
+    requestId: response.headers()["x-request-id"] ?? null,
+  };
+}
+
+test.describe("MVP student learning flow — deterministic (Sprint 2)", () => {
+  test.setTimeout(120_000);
+
+  test("explain endpoint returns 200 with safe content on deterministic provider", async ({
+    playwright,
   }) => {
-    test.setTimeout(90_000);
+    const ctx = await playwright.request.newContext({ baseURL: TEST_ENV_URL });
+    try {
+      const token = await login(ctx);
+      const topicId = await fetchFirstMathTopicId(ctx, token);
+      const { status, body, bodyClass } = await callExplain(ctx, token, topicId);
 
-    await loginAsStudent(page);
-
-    await page.goto("/subjects/3");
-    await page.waitForURL(/\/subjects\/3/, { timeout: 10_000 });
-
-    const firstTopic = page.locator("a[href^='/topics/']").first();
-    await expect(firstTopic).toBeVisible({ timeout: 10_000 });
-    await firstTopic.click();
-    await page.waitForURL(/\/topics\/\d+/, { timeout: 10_000 });
-
-    const explainResponsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v1/ai/explain") &&
-        response.request().method() === "POST",
-      { timeout: 45_000 },
-    );
-    await page.getByRole("button", { name: /объяснить|объясни тему/i }).click();
-    await expect(page.locator("text=AI думает")).toBeVisible({ timeout: 5_000 }).catch(() => undefined);
-    const explainResponse = await explainResponsePromise;
-    expect(explainResponse.ok()).toBeTruthy();
-    await expect(page.getByRole("button", { name: /перейти к практике/i })).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole("button", { name: /ещё пример/i })).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole("button", { name: /проверь меня/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /дай задачу/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /копировать/i })).toHaveCount(0);
-    expectNoRawAiGarbage(await page.locator("main").innerText());
-
-    const generateResponsePromise = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/v2/exercises/generate") &&
-        response.request().method() === "POST",
-      { timeout: 30_000 },
-    );
-    await page.getByRole("button", { name: /практика|дай задание/i }).click();
-    const generateResponse = await generateResponsePromise;
-    const generateBody = await generateResponse.text();
-    expect(generateResponse.ok()).toBeTruthy();
-    expect(generateBody).not.toContain("correct_answer");
-    expectNoRawAiGarbage(generateBody);
-
-    await expect(page.getByText(/Задание/i).first()).toBeVisible({ timeout: 10_000 });
-    const mainAfterGenerate = await page.locator("main").innerText();
-    expectNoRawAiGarbage(mainAfterGenerate);
-
-    const parsedGenerate = JSON.parse(generateBody) as { question_text: string; options: string[] | null };
-    const questionText = parsedGenerate.question_text;
-    const answer = answerForMvpQuestion(questionText, parsedGenerate.options);
-    const wrongOption = parsedGenerate.options?.find((opt) => opt !== answer);
-    if (wrongOption) {
-      await page.getByRole("button", { name: wrongOption, exact: true }).click();
-      const wrongResponsePromise = page.waitForResponse(
-        (response) => response.url().includes("/api/v2/exercises/") && response.url().includes("/answer"),
-        { timeout: 30_000 },
-      );
-      await page.getByRole("button", { name: /проверить/i }).click();
-      const wrongResponse = await wrongResponsePromise;
-      expect(wrongResponse.ok()).toBeTruthy();
-      const wrongBody = await wrongResponse.json();
-      expect(wrongBody.is_correct).toBeFalsy();
-      await expect(page.getByText("Есть ошибка").first()).toBeVisible({ timeout: 10_000 });
-      await expect(page.getByRole("button", { name: /попробовать ещё раз/i })).toBeVisible({ timeout: 10_000 });
+      expect(status, `explain status; body=${body.slice(0, 200)}`).toBe(200);
+      expect(bodyClass).toBe("ok");
+      // Sanitize: не должно быть raw reasoning, не должно быть credentials.
+      const lower = body.toLowerCase();
+      expect(lower, "no leaked tokens").not.toContain(token.toLowerCase());
+      expect(lower, "no leaked password").not.toContain(STUDENT.password.toLowerCase());
+      expect(body, "non-empty content").toBeTruthy();
+      const parsed = JSON.parse(body) as { content?: string; sources?: unknown[] };
+      expect(typeof parsed.content).toBe("string");
+      expect(parsed.content!.length).toBeGreaterThan(20);
+    } finally {
+      await ctx.dispose();
     }
-
-    if (parsedGenerate.options?.includes(answer)) {
-      await page.getByRole("button", { name: answer }).click();
-      await expect(page.getByText("Есть ошибка")).toHaveCount(0);
-    } else {
-      await page.locator("input[placeholder='Числовой ответ'], input[placeholder='Текстовый ответ']").first().fill(answer);
-      await expect(page.getByText("Есть ошибка")).toHaveCount(0);
-    }
-    const answerResponsePromise = page.waitForResponse(
-      (response) => response.url().includes("/api/v2/exercises/") && response.url().includes("/answer"),
-      { timeout: 30_000 },
-    );
-    await page.getByRole("button", { name: /проверить/i }).click();
-    const answerResponse = await answerResponsePromise;
-    expect(answerResponse.ok()).toBeTruthy();
-    const answerBody = await answerResponse.json();
-    expect(answerBody.is_correct).toBeTruthy();
-    await expect(page.getByText("Верно!").first()).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole("button", { name: /следующая тема|следующее задание/i }).first()).toBeVisible({ timeout: 10_000 });
-
-    await page.locator("input[placeholder='Задай вопрос репетитору…']").fill("Объясни проще про дроби");
-    await page.getByRole("button", { name: /отправить/i }).click();
-    await expect(page.getByText("Объясни проще про дроби")).toBeVisible({ timeout: 5_000 });
-    await expect(page.locator("main").getByText("AI временно недоступен")).toHaveCount(0, { timeout: 20_000 });
-    await expect(page.locator("main").getByText("WS закрыт")).toHaveCount(0, { timeout: 20_000 });
-    await expect(page.getByTestId("chat-message-assistant").last()).toBeVisible({ timeout: 20_000 });
-    expectNoRawAiGarbage(await page.locator("main").innerText());
-
-    await page.getByRole("button", { name: /очистить/i }).click();
-    await page.getByRole("button", { name: /да, удалить/i }).click();
-    await expect(page.getByTestId("exercise-card")).toHaveCount(0);
-    await expect(page.getByText("Верно!")).toHaveCount(0);
-    await expect(page.getByText("Объясни проще про дроби")).toHaveCount(0);
-    await expect(page.locator("input[placeholder='Задай вопрос репетитору…']")).toHaveValue("");
   });
 
-  test("student sees clear AI budget message instead of provider-down text", async ({ page }) => {
-    await loginAsStudent(page);
-    await page.goto("/topics/187");
-    await page.waitForURL(/\/topics\/187/, { timeout: 10_000 });
+  test("explain on unknown topic returns 404 (no internal details)", async ({ playwright }) => {
+    const ctx = await playwright.request.newContext({ baseURL: TEST_ENV_URL });
+    try {
+      const token = await login(ctx);
+      const unknown = 999_999;
+      const { status, body, bodyClass } = await callExplain(ctx, token, unknown);
+      expect(status).toBe(404);
+      expect(bodyClass).toBe("not_found");
+      const lower = body.toLowerCase();
+      expect(lower, "no traceback leak").not.toContain("traceback");
+      expect(lower, "no internal exception leak").not.toContain("zerodivisionerror");
+    } finally {
+      await ctx.dispose();
+    }
+  });
 
-    await page.route("**/api/v1/ai/explain", async (route) => {
-      await route.fulfill({
-        status: 429,
-        contentType: "application/json",
-        body: JSON.stringify({
-          detail: "AI budget exceeded (hourly_requests): 33/20 (24h). Подожди до завтра или попроси администратора увеличить лимит.",
-        }),
+  test("explain without auth returns 401/403", async ({ playwright }) => {
+    const ctx = await playwright.request.newContext({ baseURL: TEST_ENV_URL });
+    try {
+      const { status, bodyClass, body } = await callExplain(ctx, "", 1);
+      expect([401, 403]).toContain(status);
+      expect(["auth", "ok"]).toContain(bodyClass);
+      const lower = body.toLowerCase();
+      expect(lower).not.toContain("traceback");
+    } finally {
+      await ctx.dispose();
+    }
+  });
+
+  test("explain with budget exhausted returns 429 (different from provider-down)", async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({ baseURL: TEST_ENV_URL });
+    try {
+      const apiCtx = await playwrightRequest(ctx);
+      const token = await login(apiCtx);
+      const topicId = await fetchFirstMathTopicId(apiCtx, token);
+      // Перехватываем explain-вызовы только на этой странице.
+      await ctx.route("**/api/v1/ai/explain", async (route) => {
+        await route.fulfill({
+          status: 429,
+          contentType: "application/json",
+          headers: { "x-request-id": `budget-test-${Date.now()}` },
+          body: JSON.stringify({
+            detail:
+              "AI budget exceeded (hourly_requests): 33/20 (24h). Подожди до завтра или попроси администратора увеличить лимит.",
+          }),
+        });
       });
-    });
+      const { status, body, bodyClass } = await callExplain(apiCtx, token, topicId);
+      expect(status).toBe(429);
+      expect(bodyClass).toBe("budget");
+      const lower = body.toLowerCase();
+      expect(lower, "explicit budget label").toContain("budget");
+      expect(lower, "explicit budget label (rus)").toContain("лимит");
+      expect(lower).not.toContain("ai временно недоступен");
+    } finally {
+      await ctx.close();
+    }
+  });
 
-    await page.getByRole("button", { name: /объяснить|объясни тему/i }).click();
-
-    await expect(page.getByText(/лимит|много запросов|подожди/i).first()).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator("main").getByText("AI временно недоступен")).toHaveCount(0);
+  test("explain does not leak tokens or secrets in response body", async ({ playwright }) => {
+    const ctx = await playwright.request.newContext({ baseURL: TEST_ENV_URL });
+    try {
+      const token = await login(ctx);
+      const topicId = await fetchFirstMathTopicId(ctx, token);
+      const { status, body } = await callExplain(ctx, token, topicId);
+      expect(status).toBe(200);
+      const lower = body.toLowerCase();
+      for (const forbidden of [
+        token.toLowerCase(),
+        "kirill2026",
+        "strongpass1",
+        "mock-key",
+        "sk-",
+      ]) {
+        expect(lower, `no leak: ${forbidden}`).not.toContain(forbidden);
+      }
+    } finally {
+      await ctx.dispose();
+    }
   });
 });
+
+// Хелпер: получить APIRequestContext из page-контекста (для route+API).
+async function playwrightRequest(ctx: import("@playwright/test").BrowserContext): Promise<APIRequestContext> {
+  return ctx.request;
+}

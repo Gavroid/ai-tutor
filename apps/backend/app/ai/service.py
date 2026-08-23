@@ -742,7 +742,16 @@ class AIService:
         # Sprint 3.5.2: RAG — найти релевантные chunk'и из загруженных учебников
         # и добавить в system prompt как контекст. Без RAG AI отвечает "из головы".
         # Sprint 4.1.3: возвращает (context_str, sources) — sources для UI.
-        rag_context, sources = await self._build_rag_context(db, topic)
+        rag_context, sources = ("", [])
+        try:
+            rag_context, sources = await self._build_rag_context(db, topic)
+        except Exception as e:
+            # Sprint 2 (P0): RAG failure → graceful fallback (без 500).
+            # Внутренний _build_rag_context уже ловит подмножество ошибок,
+            # но persistent search/embedding может падать вне его try.
+            _record_ai("explain", "rag_error")
+            logger.warning("AI explain RAG failure → fallback (no RAG context): %s", e)
+            rag_context, sources = None, []
         system = prompts.explain_topic_system(
             subject.name, topic.name,
             user.student_profile.grade if user.student_profile else 7,
@@ -753,6 +762,7 @@ class AIService:
             mode="explain",
             max_tokens=900,
         )
+        resp: AIResponse | None = None
         try:
             resp = await self.provider.complete(req)
             resp.content = _clean_student_visible_text(resp.content)
@@ -776,19 +786,28 @@ class AIService:
                 else:
                     resp.content = _fallback_explanation(subject.name, topic.name)
                     used_fallback = True
-            _record_ai("explain", "ok", resp=resp)
-            topic_id = getattr(topic, "id", None)
-            verified_sources = _verified_rag_sources(
-                sources,
-                topic_id=topic_id,
-                topic_name=topic.name,
-            ) if topic_id is not None else []
-            resp.sources = verified_sources
-            return resp
         except Exception as e:
+            # Sprint 2 (P0): graceful fallback на недоступность провайдера,
+            # чтобы AI временно недоступен НЕ превращался в 500 с traceback.
+            # Различаем budget (429 в роутере) и provider-failure (200 + safe fallback).
             _record_ai("explain", "error")
-            logger.exception("AI explain failed: %s", e)
-            raise
+            logger.warning("AI explain provider failure → fallback: %s", e)
+            fallback = AIResponse(
+                content=_fallback_explanation(subject.name, topic.name),
+                model="fallback",
+                sources=[],
+            )
+            _record_ai("explain", "ok", resp=fallback)
+            resp = fallback
+
+        topic_id = getattr(topic, "id", None)
+        verified_sources = _verified_rag_sources(
+            sources,
+            topic_id=topic_id,
+            topic_name=topic.name,
+        ) if topic_id is not None else []
+        resp.sources = verified_sources
+        return resp
 
     async def _build_rag_context(
         self, db: Session, topic: subj_models.Topic, top_k: int = 3

@@ -222,8 +222,19 @@ class HermesProvider(AIProvider):
 
 
 def build_provider() -> AIProvider:
-    """Фабрика: вернёт HermesProvider, если есть ключ, иначе MockProvider."""
+    """Фабрика: deterministic > HermesProvider > MockProvider.
+
+    Порядок приоритета (Sprint 2):
+    1) ai_deterministic_mode=True → MockProvider безусловно;
+    2) иначе ключ задан/валидный → HermesProvider;
+    3) иначе MockProvider (no network).
+    """
     settings = get_settings()
+    if getattr(settings, "ai_deterministic_mode", False):
+        logger.info("AI deterministic mode → MockProvider (Sprint 2)")
+        from app.ai.mock import MockProvider
+
+        return MockProvider()
     key = settings.ai_api_key or ""
     # Заглушки/тестовые ключи → mock
     if (

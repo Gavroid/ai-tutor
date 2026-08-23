@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     ai_timeout_seconds: int = 30
     ai_max_retries: int = 2
     ai_max_input_chars: int = 8000
+    # Sprint 2 (P0): принудительный deterministic provider.
+    # В CI/controlled pilot приоритет выше наличия ключа: пустой/реальный ключ
+    # неважно, всё равно вернётся MockProvider без сетевых вызовов.
+    # В production должен оставаться выключенным.
+    ai_deterministic_mode: bool = False
 
     # Auth
     jwt_algorithm: str = "HS256"
