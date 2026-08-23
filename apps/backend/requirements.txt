@@ -17,14 +17,14 @@ asyncpg==0.30.0
 # Auth
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
-python-jose[cryptography]==3.3.0
+python-jose[cryptography]==3.5.0  # Sprint continuation 2026-08-23: 5 CVEs pinned to 3.4.0+, applied 3.5.0 (jose.utcnow internal patched upstream).
 python-multipart==0.0.20
 
 # HTTP client (для AI Gateway)
 httpx==0.28.1
 
 # Utilities
-python-dotenv==1.0.1
+python-dotenv==1.2.2  # Sprint continuation 2026-08-23: PYSEC-2026-2270 (CVE-2026-...).
 email-validator==2.2.0
 
 # File processing (Этап 10)
