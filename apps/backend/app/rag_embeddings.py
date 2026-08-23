@@ -49,7 +49,10 @@ def get_embedder():
 
             logger.info("Loading sentence-transformer model: %s", MODEL_NAME)
             _MODEL = SentenceTransformer(MODEL_NAME)
-            logger.info("Model loaded: dim=%s", _MODEL.get_sentence_embedding_dimension())
+            dimension_getter = getattr(_MODEL, "get_embedding_dimension", None)
+            if dimension_getter is None:
+                dimension_getter = _MODEL.get_sentence_embedding_dimension
+            logger.info("Model loaded: dim=%s", dimension_getter())
             return _MODEL
         except ImportError as e:
             logger.warning("sentence-transformers not available: %s", e)
