@@ -1,7 +1,9 @@
 # AI-Tutor — текущий статус (executive, 2026-08-23)
 
 Дата: 2026-08-23
-HEAD: `faa1805` на ветке `design-audit-2026-08-20-fixes`.
+HEAD: `d970332` на ветке `design-audit-2026-08-20-fixes`.
+
+Next: `AI-TUTOR-NEXT-PLAN-2026-08-23.md`; security audit `AI-TUTOR-DEPENDENCY-AUDIT-2026-08-23.md`; starlette migration plan `AI-TUTOR-STARLETTE-1X-MIGRATION-PLAN.md`.
 План следующих работ: [`docs/AI-TUTOR-NEXT-PLAN-2026-08-23.md`](AI-TUTOR-NEXT-PLAN-2026-08-23.md).
 Детальный per-sprint журнал: [`docs/AI-TUTOR-SPRINT-EXECUTION-LOG.md`](AI-TUTOR-SPRINT-EXECUTION-LOG.md).
 Базовый аудит: [`docs/AI-TUTOR-AUDIT-CURRENT-2026-08-23.md`](AI-TUTOR-AUDIT-CURRENT-2026-08-23.md).
@@ -110,7 +112,7 @@ git diff --check     → clean
 | recall@k/MRR@k per subject | ✅ | S6 |
 | Flake-стойкий test_sprint32 | ✅ | S1 (asyncio scope) |
 | Production mutation отсутствует | ✅ | S7 toml |
-| Dependency/security advisory checks | ⚠️ snapshot сделан (98 vulns в 12 packages, `AI-TUTOR-DEPENDENCY-AUDIT-2026-08-23.md`). 7 CVE закрыто surgical (faa1805): python-jose 3.3→3.5 (5 CVEs), python-dotenv 1.0.1→1.2.2 (1 CVE), pip 26.1.2→26.2 (1 CVE). 91 CVE ещё open (starlette/cryptography/pillow/pypdf/python-multipart/transformers) — major version upgrade, отдельный sprint | continuation |
+| Dependency/security advisory checks | ⚠️ snapshot сделан (98 vulns в 12 packages, `AI-TUTOR-DEPENDENCY-AUDIT-2026-08-23.md`). 7 CVE закрыто surgical (faa1805): python-jose 3.3→3.5 (5 CVEs), python-dotenv 1.0.1→1.2.2 (1 CVE), pip 26.1.2→26.2 (1 CVE). 91 CVE ещё open (starlette/cryptography/pillow/pypdf/python-multipart/transformers) — major version upgrade, отдельный sprint. Starlette migration plan: `AI-TUTOR-STARLETTE-1X-MIGRATION-PLAN.md` (8-12h estimate) | continuation |
 | License review manifest | ⚠️ draft готовится | T3.1 |
 | Mobile Playwright runtime | ⚠️ deferred до CI | T3.2 |
 
