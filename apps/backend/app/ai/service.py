@@ -194,7 +194,12 @@ def _fallback_explanation(subject_name: str, topic_name: str) -> str:
 
 
 def _exercise_matches_topic(exercise: GeneratedExercise, topic_name: str) -> bool:
-    """Reject common provider drift where a valid JSON task belongs to another topic."""
+    """Reject common provider drift where a valid JSON task belongs to another topic.
+
+    Sprint C1 (2026-08-23): добавлен safety net — если вопрос содержит
+    keywords ДРУГОГО предмета (реки/озёра для math, клетка для физики и т.д.),
+    считаем что AI дрейфанул и возвращаем False → fallback.
+    """
     topic_lower = topic_name.lower()
     question_lower = exercise.question_text.lower()
     blob = "\n".join([exercise.question_text, exercise.correct_answer, exercise.explanation]).lower()
@@ -204,6 +209,24 @@ def _exercise_matches_topic(exercise: GeneratedExercise, topic_name: str) -> boo
         return "," in question_lower or "десятич" in question_lower or "0," in question_lower
     if "обыкнов" in topic_lower or "дроб" in topic_lower:
         return "/" in blob or "дроб" in blob
+    # Subject-keyword blocklist (C1): если в вопросе/ответе/explanation
+    # есть слово из ДРУГОГО предмета — дрейф.
+    drift_keywords = {
+        "математика": ["реки", "озёр", "озер", "численность населения", "страны мира",
+                       "покрытосемен", "насекомые", "клетка", "периодический закон"],
+        "физика": ["клетка", "периодический закон", "хромосом", "реки", "озёр"],
+        "биология": ["сила тяжести", "ускорение", "молекуляр", "реки"],
+        "русский язык": ["басня", "стихотворение", "былина"],
+        "литература": ["орфограмм", "синтаксич", "морфем"],
+        "география": ["дифференциал", "интеграл", "симметрия", "хромосом"],
+        "история": ["дифференциал", "интеграл", "хромосом"],
+    }
+    for key, blocked in drift_keywords.items():
+        if key in topic_lower:
+            for bad in blocked:
+                if bad in blob:
+                    return False
+            break
     return True
 
 
@@ -867,6 +890,50 @@ class AIService:
         except Exception as e:
             logger.warning("RAG search failed: %s", e)
             return None, []
+
+        if not chunks:
+            return None, []
+
+        # Sprint C1 (2026-08-23): subject-keyword safety net.
+        # Если material_title содержит слово из ДРУГОГО предмета (география
+        # для math-topic), отбрасываем этот chunk. Это защищает ребёнка
+        # от RAG routing bug: например, для math-6 «Среднее арифметическое»
+        # привязан material «География — Реки и озёра».
+        subject_name = (subject.name or "").lower() if subject else ""
+        # Имя предмета может быть длинным ("Математика (6 класс - повторение...)"),
+        # поэтому ищем по substring — выбираем ключ, который содержится в subject_name.
+        subject_keywords_blocklist: dict[str, list[str]] = {
+            "математика": ["география", "биология", "история", "литература"],
+            "алгебра": ["география", "биология"],
+            "геометрия": ["биология", "история"],
+            "русский язык": ["литература", "история"],
+            "литература": ["русский язык"],
+            "биология": ["физика", "химия"],
+            "физика": ["биология", "химия"],
+            "химия": ["биология", "физика"],
+            "география": ["биология", "история"],
+            "история": ["география"],
+        }
+        # Находим первый ключ, который substring-match с subject_name.
+        blocklist: list[str] = []
+        for key, blocked in subject_keywords_blocklist.items():
+            if key in subject_name:
+                blocklist = blocked
+                break
+        if blocklist:
+            filtered: list = []
+            for c in chunks:
+                meta = getattr(c, "metadata", {}) or {}
+                mat_title = (meta.get("material_title") or "").lower()
+                if any(bad in mat_title for bad in blocklist):
+                    logger.warning(
+                        "RAG safety net: dropping chunk with wrong subject "
+                        "(topic=%s material_title=%r blocklist=%s)",
+                        topic_id, mat_title, blocklist,
+                    )
+                    continue
+                filtered.append(c)
+            chunks = filtered[:top_k]
 
         if not chunks:
             return None, []

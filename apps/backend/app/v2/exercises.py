@@ -216,6 +216,15 @@ async def generate_exercise(
         difficulty=target_difficulty,
         topic_id=topic.id,
     )
+
+    # Sprint C1 (2026-08-23): reject provider drift (Реки и озёра для math-6).
+    from app.ai.service import _exercise_matches_topic
+    if not _exercise_matches_topic(gen, topic.name):
+        from app.ai.service import _fallback_generated_exercise
+        gen = _fallback_generated_exercise(
+            topic.section.subject.name, topic.name, target_difficulty, topic_id=topic.id
+        )
+
     gen = _rotate_repeated_exercise(db, current, topic, target_difficulty, gen)
 
     options_json = None
