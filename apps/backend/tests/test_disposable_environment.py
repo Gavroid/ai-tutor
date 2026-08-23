@@ -250,15 +250,19 @@ def test_health_payload_schema_contract(disposable_client):
 
 
 def test_health_uptime_is_monotonic(disposable_client):
-    """T2.1: на повторных вызовах uptime_seconds не убывает."""
+    """T2.1: на повторных вызовах uptime_seconds не убывает.
+
+    Strict variant: sleep ≥1.1s чтобы пересечь секундную границу —
+    должен наблюдаться строгий рост. Если падает — clock source сломан.
+    """
     import time as _t
 
     c = disposable_client
     r1 = c.get("/health").json()
-    _t.sleep(0.05)  # 50ms
+    _t.sleep(1.1)  # гарантированно пересекает секундную границу
     r2 = c.get("/health").json()
-    assert r2["uptime_seconds"] >= r1["uptime_seconds"], (
-        f"uptime regressed: {r1['uptime_seconds']} → {r2['uptime_seconds']}"
+    assert r2["uptime_seconds"] > r1["uptime_seconds"], (
+        f"uptime НЕ вырос за 1.1s: {r1['uptime_seconds']} → {r2['uptime_seconds']}"
     )
     # started_at должен быть стабилен.
     assert r1["started_at"] == r2["started_at"], (

@@ -1,7 +1,7 @@
 # AI-Tutor — текущий статус (executive, 2026-08-23)
 
 Дата: 2026-08-23
-HEAD: `967a0ad` на ветке `design-audit-2026-08-20-fixes`.
+HEAD: `a07fb46` на ветке `design-audit-2026-08-20-fixes`.
 План следующих работ: [`docs/AI-TUTOR-NEXT-PLAN-2026-08-23.md`](AI-TUTOR-NEXT-PLAN-2026-08-23.md).
 Детальный per-sprint журнал: [`docs/AI-TUTOR-SPRINT-EXECUTION-LOG.md`](AI-TUTOR-SPRINT-EXECUTION-LOG.md).
 Базовый аудит: [`docs/AI-TUTOR-AUDIT-CURRENT-2026-08-23.md`](AI-TUTOR-AUDIT-CURRENT-2026-08-23.md).
@@ -65,6 +65,9 @@ git diff --check     → clean
 | `2164a1f` | continuation T1 | chore: deprecation cleanup + status split + new plan |
 | `b85e9fd` | continuation T2 | fix: Pydantic V1→V2 Config migration + flake-guard runner |
 | `967a0ad` | continuation T2-T3 | test: /health schema contract + license draft |
+| `3bebe73` | sync | docs(status): HEAD→967a0ad, финал continuation T1-T3 |
+| `e66e7c9` | continuation | fix: datetime.utcnow() → datetime.now(timezone.utc) — invites+v2+auth |
+| `a07fb46` | continuation | chore: filter upstream jose.utcnow deprecation warning |
 | `dfc4d42` | S5–S8 | feat(backend+deploy): Sprint 5–8 — manifest, retrieval, disposable, maintenance |
 | `388b3bd` | S4 | feat(backend): Sprint 4 — Math-6 pilot parametrized contracts (15 P0 topics) |
 | `3ddd3d9` | S3 | feat(backend): Sprint 3 — canonical readiness policy + fail-closed validator |
@@ -104,7 +107,7 @@ git diff --check     → clean
 | recall@k/MRR@k per subject | ✅ | S6 |
 | Flake-стойкий test_sprint32 | ✅ | S1 (asyncio scope) |
 | Production mutation отсутствует | ✅ | S7 toml |
-| Cleanup deprecation warnings | ⚠️ частично: passlib/sqlalchemy filterwarnings (T1.3a), 1 jose fix (T1.3b), 2 pydantic V2-class (T1.3c). Plus backlog `AI-TUTOR-PYDANTIC-V2-MIGRATION-PLAN.md` для V3 | S continuation |
+| Cleanup deprecation warnings | ⚠️ частично: passlib/sqlalchemy/jose filterwarnings (T1.3a), 11 jose/utcnow fixes (e66e7c9 T1.3b/c — invites/v2/auth/rag_bm25), 2 pydantic V2-class (T1.3c), upstream jose filtered upstream-only (a07fb46). Pydantic V2-V3 codemod backlog в `AI-TUTOR-PYDANTIC-V2-MIGRATION-PLAN.md` | continuation |
 | License review manifest | ⚠️ draft готовится | T3.1 |
 | Mobile Playwright runtime | ⚠️ deferred до CI | T3.2 |
 
