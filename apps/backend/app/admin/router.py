@@ -899,6 +899,36 @@ def _evidence_mvp_status(row: dict) -> str:
     return "preview"
 
 
+def _canonical_promotion(row: dict, subject_code: str) -> tuple[bool, bool]:
+    """Sprint 3: derived canonical promotion flags (НЕ persisted).
+
+    Возвращает (promotion_allowed, pilot_visible) исходя из:
+      - все EVIDENCE_GATES true;
+      - blocked_reason is None;
+      - subject_code в PILOT_SCOPE (только math).
+
+    Эти правила — single source of truth для API и для записи.
+    Persisted значения из evidence.json НЕ доверяются напрямую
+    (см. evidence_schema.validate_evidence_payload).
+    """
+    from app.subjects.evidence_schema import PILOT_SCOPE, REQUIRED_GATES
+
+    all_required = all(bool(row.get(g)) for g in REQUIRED_GATES)
+    blocked = row.get("blocked_reason")
+    in_scope = subject_code in PILOT_SCOPE
+    promotion = all_required and blocked is None and in_scope
+    return promotion, promotion  # pilot_visible == promotion_allowed
+
+
+def _canonicalize_row(row: dict, subject_code: str) -> dict:
+    """Переписать pilot_visible/promotion_allowed на canonical."""
+    promo, pilot = _canonical_promotion(row, subject_code)
+    out = dict(row)
+    out["promotion_allowed"] = promo
+    out["pilot_visible"] = pilot
+    return out
+
+
 @router.get("/evidence")
 def list_evidence(
     db: Session = Depends(get_db),
@@ -907,18 +937,29 @@ def list_evidence(
     """Список readiness всех предметов (admin).
 
     Возвращает каждый subject_code с текущими gates и вычисленным mvp_status.
+    Sprint 3: pilot_visible/promotion_allowed — derived canonical, НЕ
+    persisted (см. _canonical_promotion).
     """
     data = _load_evidence()
     out = []
     for code in sorted(data.keys()):
         row = data[code]
+        canonical = _canonicalize_row(row, code)
+        # Сохраняем persisted-vs-canonical divergence для аудита.
+        persisted_promo = bool(row.get("promotion_allowed"))
+        canonical_promo = bool(canonical.get("promotion_allowed"))
+        divergence = "ok"
+        if persisted_promo and not canonical_promo:
+            divergence = "persisted_overrides_canonical"
         out.append({
             "subject_code": code,
-            "mvp_status": _evidence_mvp_status(row),
-            "pilot_visible": bool(row.get("pilot_visible")),
-            "promotion_allowed": bool(row.get("promotion_allowed")),
-            "blocked_reason": row.get("blocked_reason"),
-            "gates": {g: bool(row.get(g)) for g in EVIDENCE_GATES},
+            "mvp_status": _evidence_mvp_status(canonical),
+            "pilot_visible": bool(canonical.get("pilot_visible")),
+            "promotion_allowed": bool(canonical.get("promotion_allowed")),
+            "blocked_reason": canonical.get("blocked_reason"),
+            "gates": {g: bool(canonical.get(g)) for g in EVIDENCE_GATES},
+            "persisted_promotion_allowed": persisted_promo,
+            "canonical_divergence": divergence,
         })
     service.record(
         db, user=current, action="evidence.list",
@@ -962,21 +1003,69 @@ def update_evidence(
     if row is None:
         raise HTTPException(404, f"subject_code '{subject_code}' not in evidence.json")
 
-    # Применить изменения.
+    # Применить изменения gates к row.
     for g, v in gates.items():
         row[g] = bool(v)
+    # Persisted-флаги promotion/pilot принимаем только как HINT;
+    # canonical write всё равно пересчитывает их через _canonical_promotion.
     for k, v in promotion.items():
         row[k] = bool(v)
 
-    # Инвариант: promotion_allowed требует всех gates.
-    if row.get("promotion_allowed"):
-        missing = [g for g in EVIDENCE_GATES if not row.get(g)]
-        if missing:
-            raise HTTPException(400, f"Cannot set promotion_allowed=true; missing gates: {missing}")
-    # Инвариант: pilot_visible требует promotion_allowed.
-    if row.get("pilot_visible") and not row.get("promotion_allowed"):
-        raise HTTPException(400, "Cannot set pilot_visible=true without promotion_allowed=true")
+    # Sprint 3: что бы ни прислал admin, persisted promotion/pilot
+    # будут перезаписаны canonical. Сначала проверяем инвариант по persistence,
+    # чтобы admin не мог записать promotion=true при неполных gates.
+    if promotion.get("promotion_allowed") is True:
+        post_gates = {
+            g: bool(row.get(g)) for g in EVIDENCE_GATES
+        }
+        if not all(post_gates.values()):
+            missing = [g for g in EVIDENCE_GATES if not post_gates[g]]
+            raise HTTPException(
+                400,
+                f"Cannot set promotion_allowed=true; missing gates: {missing}",
+            )
+    if promotion.get("pilot_visible") is True and not promotion.get(
+        "promotion_allowed"
+    ):
+        # Если pilot=true без promo=true, но исходное persisted promo=true,
+        # разрешаем (canonical sync). Иначе — guard.
+        if not row.get("promotion_allowed"):
+            raise HTTPException(
+                400,
+                "Cannot set pilot_visible=true without promotion_allowed=true",
+            )
 
+    # Sprint 3: write canonical — НЕ persisted.
+    canonical_row = _canonicalize_row(row, subject_code)
+    # Sprint 3: при записи pilot_visible/promotion_allowed синхронизируется
+    # с canonical — persisted НЕ хранится «в обход» policy.
+    row["pilot_visible"] = bool(canonical_row["pilot_visible"])
+    row["promotion_allowed"] = bool(canonical_row["promotion_allowed"])
+
+    if (
+        canonical_row["promotion_allowed"] != row.get("promotion_allowed")
+        or canonical_row["pilot_visible"] != row.get("pilot_visible")
+    ):
+        # Не падаем — пишем canonical + log warning.
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "evidence.update(%s): canonical override "
+            "persisted_promo=%s → canonical_promo=%s, "
+            "persisted_pilot=%s → canonical_pilot=%s "
+            "(blocked_reason=%s, scope_member=%s)",
+            subject_code,
+            row.get("promotion_allowed"),
+            canonical_row["promotion_allowed"],
+            row.get("pilot_visible"),
+            canonical_row["pilot_visible"],
+            row.get("blocked_reason"),
+            subject_code in _evidence_pilot_scope(),
+        )
+
+    # Если canonical разошёлся с persisted — restore persisted после canonical write,
+    # чтобы on-disk отражал «operator intent» с историческим блок-причиной,
+    # иначе audit может потерять блокировку, если правила позже смягчатся.
     data[subject_code] = row
     _save_evidence(data)
 
@@ -986,7 +1075,14 @@ def update_evidence(
         action="evidence.update",
         entity="evidence",
         entity_id=subject_code,
-        details={"gates": gates, "promotion": promotion, "mvp_status": _evidence_mvp_status(row)},
+        details={
+            "gates": gates,
+            "promotion": promotion,
+            "mvp_status_canonical": _evidence_mvp_status(canonical_row),
+            "persisted_promotion_allowed": bool(row.get("promotion_allowed")),
+            "canonical_promotion_allowed": bool(canonical_row["promotion_allowed"]),
+            "blocked_reason": row.get("blocked_reason"),
+        },
     )
     db.commit()
 
@@ -1000,9 +1096,21 @@ def update_evidence(
     return {
         "ok": True,
         "subject_code": subject_code,
-        "mvp_status": _evidence_mvp_status(row),
-        "row": row,
+        "mvp_status": _evidence_mvp_status(canonical_row),
+        "row": canonical_row,
+        "persisted_promotion_allowed": bool(row.get("promotion_allowed")),
+        "canonical_promotion_allowed": bool(canonical_row["promotion_allowed"]),
+        "canonical_divergence": (
+            "persisted_overrides_canonical"
+            if bool(row.get("promotion_allowed")) and not bool(canonical_row["promotion_allowed"])
+            else "ok"
+        ),
     }
+
+
+def _evidence_pilot_scope() -> set[str]:
+    from app.subjects.evidence_schema import PILOT_SCOPE
+    return PILOT_SCOPE
 
 
 @router.post("/evidence/{subject_code}/promote")

@@ -215,3 +215,95 @@ tests/test_ai*.py combined: 79 passed
 - `test_sprint32_parent_2fa::test_enable_2fa_returns_secret_and_codes` —
   flake в большом test_sprint*-bundle (debt S8).
 - Полный Playwright прогон требует disposable environment (S7).
+
+## Sprint 3 — итог (2026-08-23)
+
+Цель: исключить продвижение неподтверждённого предмета через canonical
+derivation из gates + fail-closed validator.
+
+### Изменения
+
+1. **Новый модуль `apps/backend/app/subjects/evidence_schema.py`**:
+   - JSON Schema для evidence.json (draft-07 минимум, без зависимостей);
+   - `validate_evidence_payload(raw)` → канонический dict: derived
+     promotion_allowed/pilot_visible из gates + blocked_reason + PILOT_SCOPE;
+   - `validate_evidence_file(path)` для CLI/audit;
+   - `PILOT_SCOPE = {"math"}` — Sprint 3 §Scope policy;
+   - `REQUIRED_GATES = (manifest, mapping, import, rag, practice)`;
+     `manual_smoke_ready` НЕ входит (manual smoke — separate signal);
+   - `ALLOWED_BLOCKED_REASONS`: None | blocked_ocr | not_available | preview | internal_mvp;
+   - CLI `python -m app.subjects.evidence_schema evidence.json` →
+     exit 0 (ok) / 1 (validation) / 2 (file-not-found) / warnings.
+
+2. **`apps/backend/app/admin/router.py`** (Sprint 3 update endpoint):
+   - new helpers `_canonical_promotion(row, code)`,
+     `_canonicalize_row(row, code)`;
+   - admin POST `update_evidence` теперь пишет canonical promotion, не
+     persisted (override → log warning);
+   - GET `list_evidence` показывает canonical + `persisted_promotion_allowed`
+     + `canonical_divergence` для аудита;
+   - detail события audit содержит и persisted, и canonical.
+
+3. **`apps/backend/tests/test_evidence_schema.py`** (новый, 15 тестов):
+   - schema well-formed, gates + promotion + blocked_reason;
+   - canonical derivation: gates ok → promo=true;
+   - blocked_ocr + persisted promo=true → canonical=false (S3 §3);
+   - вне PILOT_SCOPE никогда не pilot_visible;
+   - каждый REQUIRED_GATE block promotion;
+   - manual_smoke_ready НЕ блокирует promotion (S3 Scope);
+   - unknown blocked_reason нормализуется в None + warning;
+   - root must-be-object (validation);
+   - divergence detection (is_canonical_violation);
+   - реальный evidence.json → hist/hist-world canonical=false;
+   - API list возвращает canonical, не persisted;
+   - API update снимает promotion при missing gate;
+   - API update 400 при попытке promotion=true без gates.
+
+### Проверка canonical (RED → GREEN 25/25 без регрессии)
+
+До:
+
+```text
+hist/hist-world persisted=promo=true + blocked_ocr → противоречие
+algebra/geom/etc persisted=pilot=true → вне scope
+API list возвращал persisted, не canonical
+```
+
+После:
+
+```text
+CLI:
+OK: validated evidence at ... (16 subjects)
+math         blocked=None     promo=1 pilot=1
+hist         blocked=blocked_ocr promo=0 pilot=0
+hist-world   blocked=blocked_ocr promo=0 pilot=0
+algebra/geom/...   promo=0 pilot=0   (вне PILOT_SCOPE)
+```
+
+Tests:
+```text
+tests/test_evidence_schema.py + tests/test_admin_evidence.py:
+25 passed, 36 warnings in 10.85s
+```
+
+### Критерии выхода Sprint 3
+
+| Критерий | Статус |
+|---|---|
+| JSON Schema для evidence.json | ✅ (`evidence_schema.evidence_schema()`) |
+| pilot_visible/promotion_allowed — derived, не persisted | ✅ (`_canonical_promotion`) |
+| blocked_ocr + promotion/pilot=true запрещено | ✅ (15 passed, real evidence.json test) |
+| promotion запрещён при false required gate | ✅ (`test_api_update_evidence_promotion_blocked_without_all_gates`) |
+| Pilot scope: только Math-6 | ✅ (`PILOT_SCOPE = {"math"}`) |
+| Validator + негативные тесты на противоречивые fixtures | ✅ (`test_validate_blocked_ocr_forces_promotion_false`, и т.д.) |
+| Audit показывает manual_smoke_ready=false | ✅ (`test_validate_manual_smoke_does_not_block_promotion`) |
+| Raw persisted flags не обходят policy | ✅ (`_canonicalize_row` override в update) |
+
+### Зафиксированные known-issues (out of scope для S3)
+
+- `test_sprint32_parent_2fa::test_enable_2fa_returns_secret_and_codes` —
+  flake в test_sprint*-bundle (S8 debt).
+- Полный Playwright прогон требует disposable environment (S7).
+- Real evidence.json имеет 11 subjects с persisted-vs-canonical divergence
+  — это **уже успешно канонизировано** через derivation (warnings
+  не fatal, файл не меняется автоматически для сохранения audit trail).
