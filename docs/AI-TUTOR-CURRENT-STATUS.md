@@ -1,7 +1,7 @@
 # AI-Tutor — текущий статус (executive, 2026-08-23)
 
 Дата: 2026-08-23
-HEAD: `a07fb46` на ветке `design-audit-2026-08-20-fixes`.
+HEAD: `faa1805` на ветке `design-audit-2026-08-20-fixes`.
 План следующих работ: [`docs/AI-TUTOR-NEXT-PLAN-2026-08-23.md`](AI-TUTOR-NEXT-PLAN-2026-08-23.md).
 Детальный per-sprint журнал: [`docs/AI-TUTOR-SPRINT-EXECUTION-LOG.md`](AI-TUTOR-SPRINT-EXECUTION-LOG.md).
 Базовый аудит: [`docs/AI-TUTOR-AUDIT-CURRENT-2026-08-23.md`](AI-TUTOR-AUDIT-CURRENT-2026-08-23.md).
@@ -68,6 +68,9 @@ git diff --check     → clean
 | `3bebe73` | sync | docs(status): HEAD→967a0ad, финал continuation T1-T3 |
 | `e66e7c9` | continuation | fix: datetime.utcnow() → datetime.now(timezone.utc) — invites+v2+auth |
 | `a07fb46` | continuation | chore: filter upstream jose.utcnow deprecation warning |
+| `2be2e88` | test | strict uptime + status sync |
+| `6c85755` | docs(audit) | pip-audit dependency security snapshot (98 vulns) |
+| `faa1805` | chore(deps) | python-jose 3.3→3.5 (5 CVEs), python-dotenv 1.0.1→1.2.2 (1 CVE) |
 | `dfc4d42` | S5–S8 | feat(backend+deploy): Sprint 5–8 — manifest, retrieval, disposable, maintenance |
 | `388b3bd` | S4 | feat(backend): Sprint 4 — Math-6 pilot parametrized contracts (15 P0 topics) |
 | `3ddd3d9` | S3 | feat(backend): Sprint 3 — canonical readiness policy + fail-closed validator |
@@ -107,7 +110,7 @@ git diff --check     → clean
 | recall@k/MRR@k per subject | ✅ | S6 |
 | Flake-стойкий test_sprint32 | ✅ | S1 (asyncio scope) |
 | Production mutation отсутствует | ✅ | S7 toml |
-| Cleanup deprecation warnings | ⚠️ частично: passlib/sqlalchemy/jose filterwarnings (T1.3a), 11 jose/utcnow fixes (e66e7c9 T1.3b/c — invites/v2/auth/rag_bm25), 2 pydantic V2-class (T1.3c), upstream jose filtered upstream-only (a07fb46). Pydantic V2-V3 codemod backlog в `AI-TUTOR-PYDANTIC-V2-MIGRATION-PLAN.md` | continuation |
+| Dependency/security advisory checks | ⚠️ snapshot сделан (98 vulns в 12 packages, `AI-TUTOR-DEPENDENCY-AUDIT-2026-08-23.md`). 7 CVE закрыто surgical (faa1805): python-jose 3.3→3.5 (5 CVEs), python-dotenv 1.0.1→1.2.2 (1 CVE), pip 26.1.2→26.2 (1 CVE). 91 CVE ещё open (starlette/cryptography/pillow/pypdf/python-multipart/transformers) — major version upgrade, отдельный sprint | continuation |
 | License review manifest | ⚠️ draft готовится | T3.1 |
 | Mobile Playwright runtime | ⚠️ deferred до CI | T3.2 |
 
