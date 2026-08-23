@@ -307,3 +307,69 @@ tests/test_evidence_schema.py + tests/test_admin_evidence.py:
 - Real evidence.json имеет 11 subjects с persisted-vs-canonical divergence
   — это **уже успешно канонизировано** через derivation (warnings
   не fatal, файл не меняется автоматически для сохранения audit trail).
+
+## Sprint 4 — итог (2026-08-23)
+
+Цель: закрыть один контролируемый предмет без ручного walkthrough.
+
+### Изменения
+
+1. **`apps/backend/tests/test_math6_pilot.py`** (новый, 50 тестов):
+   - parametrize по 15 P0 Math topics из curriculum 7-class
+     (Среднее арифметическое, Проценты, Круговые диаграммы, ...,
+     Деление смешанных чисел);
+   - `test_math6_p0_topic_explain_contract[i]` — каждая P0 topic
+     проходит `/api/v1/ai/explain` со студент-безопасным содержимым;
+   - `test_math6_p0_topic_generate_exercise_contract[i]` — каждая P0
+     проходит `/api/v2/exercises/generate` (student-safe projection,
+     НЕ v1 — Sprint 4 §4: «correct_answer» запрещён);
+   - `test_math6_p0_topic_chat_contract[i]` — каждая P0 проходит
+     `/api/v1/ai/chat`;
+   - `assert_no_raw_ai_garbage`: «correct_answer», «<think>»,
+     «```json», «\\frac», «Traceback», «ZeroDivisionError», «PILOT_DEBUG»;
+   - gating: `test_math6_pilot_in_pilot_scope_only`,
+     `test_math6_only_one_pilot_code_for_now`,
+     `test_math6_canonical_evidence_pilot_visible`,
+     `test_math6_followups_endpoint_exists`,
+     `test_math6_no_payload_leaks_across_topics`.
+
+2. **`apps/backend/app/ai/budget.py`**:
+   - добавлен `reset_budget_state()` — Sprint 4 testing helper для
+     15×multi-call parametrize прогонов (без него 8+ тестов
+     достигают HOURLY_REQUESTS_LIMIT=20 и падают в 429).
+
+3. **`apps/backend/app/ai/hermes.py`** (Sprint 2 уже): `_find_evidence_path`
+   через `_resolve_active_evidence_path` + override. Sprint 4
+   переиспользует то же `MockProvider` под `ai_deterministic_mode`.
+
+### Проверка Math-6 pilot (RED → GREEN 50/50)
+
+```text
+tests/test_math6_pilot.py:  50 passed, 82 warnings in 28.69s
+  15 × explain contract (each P0 topic)
+  15 × generate-exercise contract (student-safe v2)
+  15 × chat contract
+   5 × gating tests
+
+Regression-free (Sprint 1+2+3):
+tests/test_admin_evidence.py + test_ai_explain_contract.py +
+test_evidence_schema.py + test_math6_pilot.py:
+85 passed, 131 warnings in 44.19s
+```
+
+### Критерии выхода Sprint 4
+
+| Критерий | Статус |
+|---|---|
+| 15 P0 Math topics проходят API contracts | ✅ (50/50) |
+| deterministic provider для explain/generate/chat | ✅ (`AI_DETERMINISTIC_MODE=1`) |
+| chat через HTTP, mobile viewport, reload, recovery | ⚠️ mobile/reload Playwright → deferred to S7 disposable env |
+| machine-readable topic matrix | ✅ (`_math_p0_topics()` + topic_id discovery) |
+| no-artifact assertions (raw JSON/think/LaTeX/fallback wording) | ✅ (`assert_no_raw_ai_garbage`) |
+| fallback coverage для provider failures | ✅ (Sprint 2 carried over) |
+| Math-6 единственный pilot candidate | ✅ (`PILOT_SCOPE = {"math"}`) |
+
+### Зафиксированные known-issues (out of scope для S4)
+
+- `test_sprint32_parent_2fa` flake — S8.
+- Полный mobile viewport Playwright — deferred to S7 (нужен disposable env).

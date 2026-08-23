@@ -94,6 +94,17 @@ _INMEM: dict[int, dict[str, int]] = {}
 _INMEM_DATE: dict[int, str] = {}
 
 
+def reset_budget_state() -> None:
+    """Sprint 4 (testing): сбросить in-memory budget dict между тестами.
+
+    Продакшн НЕ использует _INMEM (только если Redis недоступен).
+    Тесты с parametrize (15 topics × multi-call) могут исчерпать per-user
+    budget между модулями, поэтому fixture явно сбрасывает.
+    """
+    _INMEM.clear()
+    _INMEM_DATE.clear()
+
+
 def _today() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%d")
 
