@@ -81,6 +81,17 @@ def build_manifest(paths: Iterable[str]) -> dict[str, object]:
             "curl -sk -w '\\nREADY_HTTP=%{http_code}\\n' https://localhost/ready",
             "curl -sk -w '\\nHEALTH_HTTP=%{http_code}\\n' https://localhost/health",
         ] if runtime_services else [],
+        "release_gate": (
+            "math_only_scope_and_external_evidence_required"
+            if runtime_services
+            else "docs_only"
+        ),
+        "required_evidence": (
+            ["scope_snapshot", "backup_offsite", "restore_drill", "student_smoke"]
+            if runtime_services
+            else []
+        ),
+        "can_deploy": not runtime_services,
         "notes": [
             "Run backup/offsite before runtime production mutation." if runtime_services else "Docs-only change: no production deploy required.",
             "Do not advance .mvp-rescue-commit for ad-hoc targeted deploys unless full marker workflow is intentionally executed.",
@@ -105,7 +116,7 @@ def main() -> int:
             print(f"test: {test}")
         for step in manifest["deploy_steps"]:  # type: ignore[index]
             print(f"deploy: {step}")
-    return 0
+    return 0 if manifest["can_deploy"] else 2
 
 
 if __name__ == "__main__":
