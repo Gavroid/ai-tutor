@@ -19,7 +19,7 @@ import logging
 import math
 import re
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Iterable
 
 logger = logging.getLogger(__name__)
@@ -166,7 +166,10 @@ def recency_boost(
     if not created_at:
         return base_score
     if reference_time is None:
-        reference_time = datetime.utcnow()
+        # Sprint continuation T1.3b: datetime.utcnow() deprecated в Python 3.12+.
+        # Используем timezone-aware now() затем убираем tzinfo, чтобы
+        # сохранить naive-UTC семантику сравнения с created_at (sqlite naive).
+        reference_time = datetime.now(timezone.utc).replace(tzinfo=None)
     # Если timezone-aware — convert to naive UTC
     if hasattr(created_at, "tzinfo") and created_at.tzinfo is not None:
         created_at = created_at.replace(tzinfo=None)
