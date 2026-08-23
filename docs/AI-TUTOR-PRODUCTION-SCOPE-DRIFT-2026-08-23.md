@@ -30,6 +30,26 @@ pilot_visible=["math"]
 promotion_allowed=["math"]
 ```
 
+## Автоматический drift-check
+
+Добавлены:
+
+```text
+scripts/production_scope_dry_run.py
+tests/test_production_scope_dry_run.py
+```
+
+Проверки:
+
+```text
+scope validator tests: 2 passed
+actual production snapshot: exit 2
+blockers: unexpected_pilot_subjects, unexpected_promotion_subjects
+can_release: false
+```
+
+Validator не пишет marker, не вызывает deploy и не меняет данные.
+
 ## Вывод
 
 Production runtime отстаёт от локального fail-closed policy и сейчас **не соответствует Math-6-only pilot scope**. Это release blocker.
