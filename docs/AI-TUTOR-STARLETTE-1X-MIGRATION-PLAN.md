@@ -86,13 +86,14 @@ API change defaults may shift; behavior changes.
 ### Pre-migration (2-4 часа)
 
 1. Создать ветку `feature/starlette-upgrade-1.3.1` от текущего HEAD.
-2. Bump `starlette==1.3.1` в `requirements.txt`.
+2. Bump `starlette==1.3.1` в `apps/backend/requirements.txt` (корневого
+   `requirements.txt` в репозитории нет).
 3. Прогнать `pytest tests/ -x` — собрать список **первого** failure.
 4. Не пытаться fix'ить cascade. Каждое failure → отдельная запись.
 
 ### Phase 1: критические URL/host regressions (1-2 часа)
 
-5. Audit all 26 `Request`-usage мест:
+5. Audit all 26 `Request`-usage мест в `apps/backend/app`:
    ```bash
    grep -rn 'request\.url\|req\.url' apps/backend/app/ | grep -v test_
    ```
@@ -137,8 +138,8 @@ API change defaults may shift; behavior changes.
 ### Phase 6: actual upgrade + verification (2-3 часа)
 
 20. `starlette==1.3.1` + `fastapi` track + `cryptography>=50`
-    + `python-multipart>=0.0.31` in `requirements.txt`.
-21. `pip install --quiet -r requirements.txt` локально.
+    + `python-multipart>=0.0.31` in `apps/backend/requirements.txt`.
+21. `pip install --quiet -r apps/backend/requirements.txt` локально.
 22. Прогнать все audit categories по новой.
 23. **Re-run pip-audit**:
     ```
