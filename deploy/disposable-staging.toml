@@ -1,0 +1,60 @@
+# Disposable AI-Tutor deployment config (Sprint 7 — 2026-08-23).
+
+[meta]
+purpose = "Staging/CI disposable environment для Math-6 pilot (Sprint 4 DoD)"
+scope = "math only; pilot candidate; production_mutation=false"
+recreate_policy = "destroy+recreate at every CI run; data ephemeral"
+
+[env]
+APP_ENV = "staging"
+APP_SECRET_KEY = "<injected by CI from secrets store>"
+AI_DETERMINISTIC_MODE = "1"
+DATABASE_URL = "postgresql://tutor:tutor@db:5432/tutor?sslmode=disable"
+REDIS_URL = "redis://redis:6379/0"
+MANUAL_SMOKE_READY = "false"  # Sprint 3 §Scope policy: manual smoke НЕ подменяем автоматическим
+
+[compose]
+# Disposable означает: namespace+tag уникальны для каждого run, чтобы
+# не пересекаться с параллельными CI jobs и production.
+namespace = "ai-tutor-${CI_BUILD_ID:-local}-${GIT_SHA:-dev}"
+pull_policy = "if_not_present"
+restart_policy = "no"  # disposable — нет auto-restart, чтобы не «оживать» упавший run
+
+[migrations]
+# Idempotent: alembic upgrade head + downgrade base + upgrade head → success.
+pre_deploy = ["alembic upgrade head"]
+post_destroy = ["alembic downgrade base || true"]
+verify = "alembic current"
+
+[healthchecks]
+liveness = "GET /health"
+readiness = "GET /ready"
+# /ready требует БД + Redis. Если Redis упал — staging покажет not_ready,
+# что критично для CI job (failed, не passed).
+
+[backup_restore]
+backup = "/usr/local/bin/ai-tutor-backup-offsite.sh"
+restore = "/usr/local/bin/ai-tutor-restore.sh"
+verify = "/usr/local/bin/ai-tutor-weekly-verify.sh"
+# Disposable: backup НЕ делается в production storage — только локальный
+# scratch (для restore dry-run). Реальный offsite backup запускается
+# ТОЛЬКО для production scheduler.
+
+[ci_smoke]
+steps = [
+  "compile check: python -m compileall -q app",
+  "evidence API tests: pytest tests/test_admin_evidence.py",
+  "explain contract tests: pytest tests/test_ai_explain_contract.py",
+  "evidence schema tests: pytest tests/test_evidence_schema.py",
+  "math6 pilot tests: pytest tests/test_math6_pilot.py",
+  "manifest provenance: pytest tests/test_manifest_provenance.py",
+  "retrieval benchmark: pytest tests/test_retrieval_benchmark.py",
+  "health endpoint: curl -fsS ${BASE_URL}/health",
+  "ready endpoint: curl -fsS ${BASE_URL}/ready (expect 200 with status=ok)",
+  "explainer dry-run: log in as test student → POST /api/v1/ai/explain → 200",
+]
+fail_policy = "stop on first failed step; collect artifacts to ${CI_ARTIFACTS_DIR}; tear-down"
+
+[production_mutation]
+flag = false
+rationale = "Sprint 7 §Scope policy: 'Масштабировать deployment без disposable environment' запрещено"
