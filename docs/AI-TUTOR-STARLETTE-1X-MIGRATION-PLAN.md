@@ -158,7 +158,7 @@ API change defaults may shift; behavior changes.
 ## Что я **точно НЕ** делаю в этом plan'е
 
 - ❌ Не upgrade'ю starlette в текущей ветке.
-- ❌ Не применяю changes к `requirements.txt` для starlette.
+- ❌ Не применяю changes к `apps/backend/requirements.txt` для starlette.
 - ❌ Не меняю `pyproject.toml` deps (не существует).
 - ❌ Не делаю speculative fixes под возможный 1.x.
 
