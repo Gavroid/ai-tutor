@@ -35,6 +35,7 @@ export default function Header({ user, backHref, title, backLabel = "Назад"
         </div>
 
         <div className="flex shrink-0 items-center justify-end gap-2">
+          {user && <a href="/feedback" className="prism-pill hidden sm:inline-flex" aria-label="Оставить фидбек об уроке">💬 Фидбек</a>}
           {user && <span className="prism-pill hidden md:inline-flex">{user.role} · {user.display_name || user.email}</span>}
           {user && <button onClick={logout} className="prism-action">Выйти</button>}
         </div>

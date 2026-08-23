@@ -109,6 +109,13 @@ export const api = {
   teacherGetRagJob: (jobId: string) => request<RagRebuildJob>(`/api/v1/teacher/rag/jobs/${jobId}`),
   learningAnalytics: (days: number = 30) => request<LearningAnalytics>(`/api/v1/analytics/learning?days=${days}`),
 
+  // Sprint P1 (2026-08-23): feedback from Kirill / parent.
+  feedback: (data: { feeling: string; comment: string; topic_id: number | null }) =>
+    request<{ ok: true; id: number }>("/api/v1/feedback", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
   // AI
   aiPing: () => request<{ ok: boolean; model: string | null }>("/api/v1/ai/ping"),
   // Sprint 7.1 — AI-ответы теперь с content_html (server-rendered sanitized Markdown).
