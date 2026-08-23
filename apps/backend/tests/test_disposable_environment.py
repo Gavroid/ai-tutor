@@ -217,3 +217,70 @@ def test_restore_test_script_exists():
 def test_smoke_helper_exists():
     smoke = REPO_ROOT / "deploy" / "smoke" / "ws-test.py"
     assert smoke.exists(), f"{smoke} отсутствует"
+
+
+# === T2.1 (sprint-continuation): /health payload schema + monotonicity =========
+
+
+def test_health_payload_schema_contract(disposable_client):
+    """T2.1: GET /health возвращает строго ожидаемую schema (liveness probe).
+
+    K8s liveness-probe parsers требуют стабильный contract. Изменения
+    schema (новые ключи, missing ключи) → false negative liveness.
+    """
+    c = disposable_client
+    r = c.get("/health")
+    assert r.status_code == 200, r.text
+    body = r.json()
+    expected_keys = {
+        "status", "service", "env", "version", "uptime_seconds", "started_at",
+    }
+    actual_keys = set(body.keys())
+    assert actual_keys == expected_keys, (
+        f"/health schema drift: expected={expected_keys}, actual={actual_keys}"
+    )
+    # Smoke каждое поле.
+    assert body["status"] == "ok"
+    assert isinstance(body["service"], str) and body["service"]
+    assert body["env"] in ("development", "staging", "production", "test")
+    assert isinstance(body["version"], str) and body["version"]
+    assert isinstance(body["uptime_seconds"], int)
+    assert body["uptime_seconds"] >= 0
+    assert isinstance(body["started_at"], str)
+
+
+def test_health_uptime_is_monotonic(disposable_client):
+    """T2.1: на повторных вызовах uptime_seconds не убывает."""
+    import time as _t
+
+    c = disposable_client
+    r1 = c.get("/health").json()
+    _t.sleep(0.05)  # 50ms
+    r2 = c.get("/health").json()
+    assert r2["uptime_seconds"] >= r1["uptime_seconds"], (
+        f"uptime regressed: {r1['uptime_seconds']} → {r2['uptime_seconds']}"
+    )
+    # started_at должен быть стабилен.
+    assert r1["started_at"] == r2["started_at"], (
+        f"started_at дрейфит между вызовами: {r1['started_at']} vs {r2['started_at']}"
+    )
+
+
+def test_ready_payload_structure_contract(disposable_client):
+    """T2.1: GET /ready — структура status + reason обязательна."""
+    c = disposable_client
+    r = c.get("/ready")
+    if r.status_code == 200:
+        body = r.json()
+        assert body.get("status") == "ok"
+    elif r.status_code == 503:
+        body = r.json()
+        assert body.get("status") == "not_ready"
+        # reason обязателен по существующему contract'у, generic string.
+        assert isinstance(body.get("reason"), str)
+        # НЕ должно быть утечки internal details (traceback, sql state).
+        rt = r.text.lower()
+        assert "traceback" not in rt
+        assert "select 1" not in rt  # debug SQL — публичный endpoint
+    else:
+        pytest.fail(f"unexpected /ready status {r.status_code}: {r.text}")

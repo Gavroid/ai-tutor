@@ -1,7 +1,7 @@
 # AI-Tutor — текущий статус (executive, 2026-08-23)
 
 Дата: 2026-08-23
-HEAD: `2164a1f` на ветке `design-audit-2026-08-20-fixes`.
+HEAD: `b85e9fd` на ветке `design-audit-2026-08-20-fixes`.
 План следующих работ: [`docs/AI-TUTOR-NEXT-PLAN-2026-08-23.md`](AI-TUTOR-NEXT-PLAN-2026-08-23.md).
 Детальный per-sprint журнал: [`docs/AI-TUTOR-SPRINT-EXECUTION-LOG.md`](AI-TUTOR-SPRINT-EXECUTION-LOG.md).
 Базовый аудит: [`docs/AI-TUTOR-AUDIT-CURRENT-2026-08-23.md`](AI-TUTOR-AUDIT-CURRENT-2026-08-23.md).
@@ -62,7 +62,8 @@ git diff --check     → clean
 | SHA | Sprint | Title |
 |---|---|---|
 | `c77a92e` | post-Sprint-8 | docs(status): sync CURRENT-STATUS.md to actual post-Sprint-8 state |
-| `2164a1f` | continuation | chore(sprint-continuation): deprecation cleanup + status split + new plan |
+| `2164a1f` | continuation T1 | chore: deprecation cleanup + status split + new plan |
+| `b85e9fd` | continuation T2 | fix: Pydantic V1→V2 Config migration + flake-guard runner |
 | `dfc4d42` | S5–S8 | feat(backend+deploy): Sprint 5–8 — manifest, retrieval, disposable, maintenance |
 | `388b3bd` | S4 | feat(backend): Sprint 4 — Math-6 pilot parametrized contracts (15 P0 topics) |
 | `3ddd3d9` | S3 | feat(backend): Sprint 3 — canonical readiness policy + fail-closed validator |
