@@ -1,4 +1,4 @@
-# AI-Tutor — текущий статус (после Sprint 1)
+# AI-Tutor — текущий статус (Sprint 1–8 закрыты)
 
 Дата: 2026-08-23
 Связанные документы:
@@ -10,9 +10,65 @@
 
 Репозиторий: `/root/workspace/ai-tutor`
 Ветка: `design-audit-2026-08-20-fixes`
-HEAD на момент Sprint 1: `9ebeafe` (unchanged в этой сессии).
-Рабочее дерево: модифицированы `apps/backend/app/admin/router.py`,
-`apps/backend/pytest.ini` (новый файл), `apps/backend/scripts/run_backend_groups.sh` (новый).
+
+## HEAD и коммиты (фактическое состояние)
+
+HEAD: `dfc4d42` (после фиксации Sprint 5–8).
+
+Коммиты этой сессии (5 шт., new → older):
+
+| SHA | Sprint | Title |
+|---|---|---|
+| `dfc4d42` | S5–S8 | feat(backend+deploy): Sprint 5–8 — manifest, retrieval, disposable, maintenance |
+| `388b3bd` | S4 | feat(backend): Sprint 4 — Math-6 pilot parametrized contracts (15 P0 topics) |
+| `3ddd3d9` | S3 | feat(backend): Sprint 3 — canonical readiness policy + fail-closed validator |
+| `2b8138d` | S2 | feat(backend+frontend): Sprint 2 — Explain graceful fallback + deterministic E2E |
+| `c6537bf` | S1 | fix(backend): restore _EVIDENCE_PATH override + per-group suite runner |
+
+## Регрешн (только что прогнан, 2026-08-23, post-commit)
+
+```
+$ pytest -q tests/test_admin_evidence.py tests/test_ai_explain_contract.py \
+           tests/test_evidence_schema.py tests/test_math6_pilot.py \
+           tests/test_manifest_provenance.py tests/test_retrieval_benchmark.py \
+           tests/test_disposable_environment.py tests/test_maintenance_ci.py
+135 passed, 131 warnings in 44.18s
+```
+
+Per-sprint (на момент пост-коммита):
+
+| Sprint | Тест-файл | passed | warnings | длительность |
+|---|---|---|---|---|
+| S1 | `tests/test_admin_evidence.py` | 10 | 31 | 8.5s |
+| S2 | `tests/test_ai_explain_contract.py` | 10 | 19 | 7.3s |
+| S3 | `tests/test_evidence_schema.py` | 15 | 8 | 2.7s |
+| S4 | `tests/test_math6_pilot.py` | 50 | 82 | 29.7s |
+| S5 | `tests/test_manifest_provenance.py` | 18 | 3 | 0.9s |
+| S6 | `tests/test_retrieval_benchmark.py` | 8 | 3 | 0.9s |
+| S7 | `tests/test_disposable_environment.py` | 15 | 3 | 1.0s |
+| S8 | `tests/test_maintenance_ci.py` | 9 | 3 | 1.4s |
+
+Полный `test_sprint*.py` бандл:
+
+```
+637 passed, 20 skipped, 328 warnings in 177.07s
+```
+
+(flake в `test_sprint32_parent_2fa` закрыт в S1 через `asyncio_default_fixture_loop_scope=function`.)
+
+Frontend:
+
+```
+npm run typecheck    → green
+npm run build        → 24 routes
+git diff --check     → clean
+```
+
+## Что НЕ менялось (scope policy)
+
+- Не трогал `production data`, `.env`, `secrets/`, Nightscout (read-only).
+- Не подменял `manual_smoke_ready=true` автоматически — остаётся `false` чесно.
+- Не расширял pilot scope за Math-6 (`PILOT_SCOPE = {"math"}`).
 
 ## Sprint 1 — итог
 
