@@ -49,6 +49,8 @@ import logging
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+from app.subjects.evidence_schema import validate_evidence_payload
+
 logger = logging.getLogger(__name__)
 
 
@@ -215,26 +217,34 @@ def _try_load_evidence_json() -> dict[str, SubjectEvidence] | None:
         except (OSError, PermissionError):
             continue
         try:
-            raw = json.loads(path.read_text(encoding="utf-8"))
-            out: dict[str, SubjectEvidence] = {}
-            for code, row in raw.items():
-                out[code] = SubjectEvidence(
-                    code=code,
-                    manifest_ready=bool(row.get("manifest_ready", False)),
-                    mapping_ready=bool(row.get("mapping_ready", False)),
-                    import_ready=bool(row.get("import_ready", False)),
-                    rag_ready=bool(row.get("rag_ready", False)),
-                    practice_ready=bool(row.get("practice_ready", False)),
-                    manual_smoke_ready=bool(row.get("manual_smoke_ready", False)),
-                    pilot_visible=bool(row.get("pilot_visible", False)),
-                    promotion_allowed=bool(row.get("promotion_allowed", False)),
-                    blocked_reason=row.get("blocked_reason"),
-                )
+            out = _load_evidence_file(path)
             logger.info("Loaded subject evidence from %s (%d subjects)", path, len(out))
             return out
         except Exception as exc:  # noqa: BLE001
             logger.warning("Failed to parse %s: %s", path, exc)
     return None
+
+
+def _load_evidence_file(path: Path) -> dict[str, SubjectEvidence]:
+    """Load persisted evidence and derive public promotion flags fail-closed."""
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    canonical = validate_evidence_payload(raw)
+    out: dict[str, SubjectEvidence] = {}
+    for code, view in canonical.items():
+        gates = view["gates"]
+        out[code] = SubjectEvidence(
+            code=code,
+            manifest_ready=bool(gates["manifest_ready"]),
+            mapping_ready=bool(gates["mapping_ready"]),
+            import_ready=bool(gates["import_ready"]),
+            rag_ready=bool(gates["rag_ready"]),
+            practice_ready=bool(gates["practice_ready"]),
+            manual_smoke_ready=bool(view["manual_smoke_ready"]),
+            pilot_visible=bool(view["pilot_visible"]),
+            promotion_allowed=bool(view["promotion_allowed"]),
+            blocked_reason=view["blocked_reason"],
+        )
+    return out
 
 
 # Lazy-loaded cache: один раз прочитали evidence.json и закешировали.

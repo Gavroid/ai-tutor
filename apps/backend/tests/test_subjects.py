@@ -97,12 +97,14 @@ def test_list_subjects_returns_seed(seeded_client):
     codes = {x["code"] for x in data}
     assert codes == {x["code"] for x in CURRICULUM_7_CLASS}
     for subj in data:
-        # Все 12 subjects в CURRICULUM_7_CLASS теперь mvp_ready после P1-P8.
-        assert subj["mvp_status"] == "mvp_ready", (
-            f"{subj['code']}: {subj['mvp_status']} != mvp_ready"
-        )
-        assert subj["pilot_visible"] is True
-        assert subj["promotion_allowed"] is True
+        if subj["code"] == "math":
+            assert subj["mvp_status"] == "mvp_ready"
+            assert subj["pilot_visible"] is True
+            assert subj["promotion_allowed"] is True
+        else:
+            assert subj["mvp_status"] != "mvp_ready"
+            assert subj["pilot_visible"] is False
+            assert subj["promotion_allowed"] is False
         assert subj["manifest_ready"] is True
         assert subj["mapping_ready"] is True
         assert subj["import_ready"] is True
@@ -127,10 +129,9 @@ def test_pilot_visible_only_for_math_after_evidence_policy(seeded_client):
     r = seeded_client.get("/api/v1/subjects")
     assert r.status_code == 200
     data = r.json()
-    # Все 12 subjects имеют pilot_visible=true (в evidence.json все promoted).
+    # Только Math-6 разрешён в текущем pilot scope.
     pilot_codes = sorted([x["code"] for x in data if x["pilot_visible"]])
-    assert len(pilot_codes) == 12
-    # promotion_allowed — также все 12.
+    assert pilot_codes == ["math"]
     promotion_codes = sorted([x["code"] for x in data if x["promotion_allowed"]])
     assert promotion_codes == pilot_codes
 
@@ -407,16 +408,16 @@ def test_algebra_does_not_become_mvp_ready_without_explicit_evidence(seeded_clie
     assert algebra["route_ready"] is True
     assert algebra["source_topic_count"] == 19
     assert algebra["practice_topic_count"] == 19
-    # Все gates закрыты (P5–P8), algebra promoted.
+    # Даже при закрытых технических gates Algebra не входит в Math-6 pilot scope.
     assert algebra["manifest_ready"] is True
     assert algebra["mapping_ready"] is True
     assert algebra["import_ready"] is True
     assert algebra["rag_ready"] is True
     assert algebra["practice_ready"] is True
     assert algebra["manual_smoke_ready"] is True
-    assert algebra["promotion_allowed"] is True
-    assert algebra["pilot_visible"] is True
-    assert algebra["mvp_status"] == "mvp_ready"
+    assert algebra["promotion_allowed"] is False
+    assert algebra["pilot_visible"] is False
+    assert algebra["mvp_status"] != "mvp_ready"
 
 
 def test_all_seeded_subjects_have_route_coverage(seeded_client):
