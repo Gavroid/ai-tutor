@@ -775,10 +775,15 @@ class AIService:
             _record_ai("explain", "rag_error")
             logger.warning("AI explain RAG failure → fallback (no RAG context): %s", e)
             rag_context, sources = None, []
+        # S3.1 (2026-09-01, D2.8): multi-explain через style. Router может
+        # установить thread-local _explain_style перед вызовом. По умолчанию — стандартный.
+        from app.ai import _thread_local
+        style = getattr(_thread_local, "explain_style", "default")
         system = prompts.explain_topic_system(
             subject.name, topic.name,
             user.student_profile.grade if user.student_profile else 7,
             rag_context=rag_context,
+            style=style,
         )
         req = AIRequest(
             messages=[AIMessage(role="system", content=system), AIMessage(role="user", content="Объясни тему.")],
@@ -1184,10 +1189,32 @@ class AIService:
         subject_name: str | None = None,
         topic_name: str | None = None,
     ) -> AIResponse:
-        """Свободный диалог с AI-репетитором."""
-        sys = prompts.BASE_SYSTEM
-        if subject_name and topic_name:
-            sys += f"\n\nКонтекст: предмет «{subject_name}», тема «{topic_name}»."
+        """Свободный диалог с AI-репетитором.
+
+        S3.4 + S3.5 (2026-09-01, D4.2 + D2.3): использует chat_with_guards_system
+        с offtopic-guard (мягкий разворот к учёбе) и honest refuse («пока не умею»).
+        Также: pre-AI эвристика is_likely_offtopic() отдаёт короткий стандартный
+        разворот без обращения к провайдеру для явно offtopic-сообщений
+        (экономия AI-бюджета на 20/час, D5.1).
+        """
+        # S3.4 pre-filter: если последнее user-сообщение явно offtopic — сразу
+        # мягкий разворот, без вызова провайдера.
+        last_user_msg = next(
+            (m.get("content", "") for m in reversed(history) if m.get("role") == "user"),
+            "",
+        )
+        if prompts.is_likely_offtopic(last_user_msg):
+            return AIResponse(
+                content=(
+                    "Это интересно, но я помогаю только с учёбой. "
+                    "Может, посмотрим задачу по теме, которую сейчас проходим? "
+                    "Нажми «Объясни тему» или «Дай задание»."
+                ),
+                model="offtopic-guard",
+                sources=[],
+            )
+
+        sys = prompts.chat_with_guards_system(subject_name, topic_name)
         msgs: list[AIMessage] = [AIMessage(role="system", content=sys)]
         for m in history:
             r = m.get("role")

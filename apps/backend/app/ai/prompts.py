@@ -45,8 +45,16 @@ BASE_SYSTEM = """Ты — доброжелательный персональн�
 - Вместо «ты не способен» → «после нескольких упражнений результат улучшится»."""
 
 
-def explain_topic_system(subject_name: str, topic_name: str, grade: int, rag_context: str | None = None) -> str:
+def explain_topic_system(subject_name: str, topic_name: str, grade: int, rag_context: str | None = None, style: str = "default") -> str:
     """Sprint 3.5.2: добавлен rag_context (контекст из загруженных учебников).
+
+    S3.1 (2026-09-01, D2.8): добавлен style для multi-explain. Поддерживаемые стили:
+    - "default" — стандартное объяснение простыми словами.
+    - "simpler" — ещё проще: для тех, кто не понял с первого раза.
+    - "example" — упор на 2-3 примера из жизни/игр/аниме/спорта.
+    - "schema" — структурное описание: правило + признаки + пример + частые ошибки.
+    - "questions" — сократический режим: 3-4 наводящих вопроса БЕЗ прямого ответа.
+    - "freeform" — свободный ввод пользователя, AI интерпретирует.
 
     Если rag_context задан — AI должен использовать его как основу для ответа.
     Без RAG (rag_context=None) — отвечает "из головы", как раньше.
@@ -54,9 +62,52 @@ def explain_topic_system(subject_name: str, topic_name: str, grade: int, rag_con
     base = (
         BASE_SYSTEM
         + f"\n\nКОНТЕКСТ ЗАДАНИЯ: предмет «{subject_name}», тема «{topic_name}», {grade} класс."
-        + "\n\nРЕЖИМ: ОБЪЯСНЕНИЕ. Объясни тему простыми словами, приведи 1 пример, "
-        + "задай 1 проверочный вопрос. Будь кратким (200–400 слов)."
     )
+
+    style_block = {
+        "default": (
+            "\n\nРЕЖИМ: ОБЪЯСНЕНИЕ. Объясни тему простыми словами, приведи 1 пример, "
+            "задай 1 проверочный вопрос. Будь кратким (200–400 слов)."
+        ),
+        "simpler": (
+            "\n\nРЕЖИМ: ОБЪЯСНЕНИЕ ПРОЩЕ. Объясни тему совсем простыми словами, как младшему брату. "
+            "Избегай сложных терминов; если термин неизбежен — сразу дай определение в одно предложение. "
+            "Приведи 1 бытовой пример. Задай 1 простой проверочный вопрос. 150–300 слов."
+        ),
+        "example": (
+            "\n\nРЕЖИМ: ОБЪЯСНЕНИЕ ЧЕРЕЗ ПРИМЕРЫ. Объясни тему через 2–3 примера из жизни, "
+            "игр, аниме или спорта, знакомых семикласснику. Каждый пример — отдельный абзац. "
+            "После примеров — 1 вопрос на применение. 200–400 слов."
+        ),
+        "schema": (
+            "\n\nРЕЖИМ: СТРУКТУРНАЯ СХЕМА. Оформи ответ в 4 блока: "
+            "(1) Ключевое правило темы — 1-2 предложения. "
+            "(2) Главные признаки — список 3-5 пунктов. "
+            "(3) Один разобранный пример. "
+            "(4) Частые ошибки учеников — 2-3 пункта. "
+            "Будь кратким и структурным."
+        ),
+        "questions": (
+            "\n\nРЕЖИМ: СОКРАТОВСКИЙ. НЕ давай прямого ответа. Задай 3-4 наводящих вопроса, "
+            "которые помогут ученику самому прийти к пониманию. "
+            "Тон: дружелюбный, без снисходительности. Будь кратким."
+        ),
+        "freeform": (
+            "\n\nРЕЖИМ: СВОБОДНЫЙ ЗАПРОС. Ученик сам попросил объяснить тему в особом формате. "
+            "Уважай просьбу: если просил «на примере из игр» — дай примеры из игр. "
+            "Если просил «очень коротко» — дай 2-3 предложения. "
+            "Если формат непонятен — спроси уточнение. 150–300 слов."
+        ),
+    }.get(style)
+    if style_block is None:
+        # Unknown style — fall back to default with warning tone
+        style_block = (
+            f"\n\nРЕЖИМ: ОБЪЯСНЕНИЕ (стиль «{style}» не распознан, использую стандартный). "
+            "Объясни тему простыми словами, приведи 1 пример, задай 1 проверочный вопрос. "
+            "200–400 слов."
+        )
+    base += style_block
+
     if rag_context:
         base += (
             "\n\nВАЖНО: используй контекст ниже как основу для ответа. "
@@ -65,6 +116,78 @@ def explain_topic_system(subject_name: str, topic_name: str, grade: int, rag_con
             f"{rag_context}"
         )
     return base
+
+
+# === S3.4 Offtopic guard + S3.5 Honest refuse (D2.3, D4.2) ============
+
+
+# Сигнальные слова/паттерны, которые помогают классифицировать запрос как
+# offtopic (D4.2). Используются простой эвристикой до отправки в AI.
+OFFTOPIC_KEYWORDS: tuple[str, ...] = (
+    # Развлечения
+    "фильм", "сериал", "игра престолов", "майнкрафт", "roblox", "minecraft",
+    "ютуб", "youtube", "тикток", "tiktok", " twitch", "twitch",
+    # Секс/отношения/запрещёнка
+    "секс", "порно", "эрот", "знакомств", "тиндер", "tinder",
+    "девушк", "парн", "интим",
+    # Взрослые темы
+    "алкоголь", "пиво", "водка", "вино", "курит", "наркот",
+    "оружие", "наркотик",
+    # Прочее (неучебное)
+    "погода", "гороскоп", "прикол", "мем", "анекдот",
+)
+
+
+def is_likely_offtopic(text: str) -> bool:
+    """S3.4 (D4.2): быстрая эвристика для offtopic запросов.
+
+    True если найдено offtopic-ключевое слово (регистронезависимо).
+    False в остальных случаях (включая неучебные запросы, которые
+    AI разберёт сам через Socratic off-topic guard в chat_with_guards_system).
+    """
+    text_lower = text.lower()
+    for kw in OFFTOPIC_KEYWORDS:
+        if kw in text_lower:
+            return True
+    return False
+
+
+def chat_with_guards_system(subject_name: str | None = None, topic_name: str | None = None) -> str:
+    """S3.4 + S3.5 (D4.2 + D2.3): system prompt для chat с offtopic-guard и honest refuse.
+
+    Содержит инструкции для AI:
+    - Если запрос offtopic (фильмы, секс, алкоголь, ...) — мягко развернуть к учёбе.
+    - Если тема не покрыта (AI не знает) — честно отказать («пока не умею»).
+    - Сократический режим по умолчанию: «реши за меня» → наводящие вопросы.
+    """
+    base = BASE_SYSTEM
+
+    if subject_name and topic_name:
+        base += f"\n\nКонтекст: предмет «{subject_name}», тема «{topic_name}»."
+
+    # D4.2: offtopic-guard
+    base += (
+        "\n\nПРАВИЛА ОБЩЕНИЯ С УЧЕНИКОМ (7 класс):\n"
+        "1. УЧЁБНЫЙ КОНТЕКСТ: ты — репетитор по школьной программе 7 класса. "
+        "Отвечай на вопросы по математике, русскому, физике, истории и другим предметам школьной программы.\n"
+        "2. ОФФТОПИК-ЗАЩИТА (D4.2): если ученик задаёт вопрос НЕ по учёбе (фильмы, игры, развлечения, "
+        "личная жизнь, запрещённые темы), мягко разверни к учёбе. "
+        "Пример: «Это интересно, но я помогаю только с учёбой. Может, посмотрим задачу по теме X?» "
+        "Не читай нотации, не повторяй причину отказа. Одного мягкого разворота достаточно.\n"
+        "3. ЧЕСТНЫЙ ОТКАЗ (D2.3): если ты НЕ ЗНАЕШЬ ответ на учебный вопрос (тема за пределами "
+        "твоих знаний, узкоспециальный вопрос), честно скажи «Пока не умею это объяснять — "
+        "это за пределами моей программы. Давай вернёмся к теме, которую я знаю лучше». "
+        "НЕ выдумывай ответ.\n"
+        "4. СОКРАТИЧЕСКИЙ РЕЖИМ (D4.1): если ученик просит «реши за меня» или «дай готовый ответ» — "
+        "НЕ давай прямого ответа. Задай 2-3 наводящих вопроса, которые помогут ученику "
+        "самому прийти к решению. Тон: дружелюбный, без снисходительности.\n"
+        "5. КОРОТКИЕ ОТВЕТЫ: до 200 слов на обычный вопрос. По сложной теме — до 400 слов. "
+        "Не пиши лекции."
+    )
+    return base
+
+
+# === Hint system (legacy) ==============================================
 
 
 def hint_system() -> str:
@@ -149,15 +272,62 @@ def check_answer_system(question_text: str, correct_answer: str, user_answer: st
     )
 
 
-def generate_exercise_system(subject_name: str, topic_name: str, difficulty: int) -> str:
-    return (
+def _get_rag_context_for_topic(topic_id: int | None) -> str:
+    """Sprint 2026-08-22 P11: top-1 RAG chunk text для topic.
+
+    Возвращает первое содержательное предложение из импортированных
+    RagChunk для этого topic_id. Используется в generate_exercise_system
+    чтобы дать LLM контекст реального учебника при генерации упражнений.
+    """
+    if topic_id is None:
+        return ""
+    try:
+        from app.db.session import SessionLocal
+        from app.rag_models import RagChunk, LearningMaterial
+        sess = SessionLocal()
+        try:
+            chunk = sess.query(RagChunk).join(
+                LearningMaterial, RagChunk.material_id == LearningMaterial.id
+            ).filter(
+                LearningMaterial.topic_id == topic_id,
+                RagChunk.text.isnot(None),
+                RagChunk.text != "",
+            ).order_by(RagChunk.id.asc()).first()
+            if chunk and chunk.text:
+                import re as _re
+                for sent in _re.split(r"[.!?\n]+", chunk.text):
+                    sent = sent.strip()
+                    if len(sent) >= 40:
+                        return sent[:400]
+                return chunk.text[:400]
+            return ""
+        finally:
+            sess.close()
+    except Exception:
+        return ""
+
+
+def generate_exercise_system(
+    subject_name: str,
+    topic_name: str,
+    difficulty: int,
+    topic_id: int | None = None,
+) -> str:
+    base = (
         BASE_SYSTEM
         + f"\n\nРЕЖИМ: ГЕНЕРАЦИЯ ЗАДАНИЯ. Предмет «{subject_name}», тема «{topic_name}», сложность {difficulty}/5."
-        + "\nВерни СТРОГО JSON без markdown-блоков:"
+    )
+    # Sprint 2026-08-22 P11: добавить RAG context если есть импортированные chunks.
+    rag = _get_rag_context_for_topic(topic_id)
+    if rag:
+        base += f"\n\nКОНТЕКСТ ИЗ УЧЕБНИКА: «{rag}».\nСформулируй задание НА ОСНОВЕ этого фрагмента."
+    base += (
+        "\nВерни СТРОГО JSON без markdown-блоков:"
         + ' {"question_text": string, "type": "single"|"multiple"|"numeric"|"text"|"fill"|"code",'
         + ' "options": [string]?|null, "correct_answer": string, "explanation": string,'
         + ' "typical_mistakes": [string]}.'
     )
+    return base
 
 
 def quiz_system(subject_name: str, topic_name: str, difficulty: int, count: int) -> str:
