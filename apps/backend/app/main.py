@@ -699,6 +699,9 @@ def create_app() -> FastAPI:
     app.include_router(student_materials_router)
     app.include_router(notifications_router)
     app.include_router(feedback_router)  # Sprint P1
+    # S3.6 (2026-09-01): bug/error report (отдельный router, не Sprint P1)
+    from app.feedback.report_router import router as feedback_report_router
+    app.include_router(feedback_report_router)
     app.include_router(ws_router)
     app.include_router(ws_more_router)
     app.include_router(oauth_router)
