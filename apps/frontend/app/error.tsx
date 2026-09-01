@@ -1,19 +1,30 @@
 "use client";
 
 /**
- * Sprint 16.2 P2-5: Next.js error boundary для неперехваченных React exceptions.
+ * Sprint 16.2 P2-5 + Sprint 3.7 polish: Next.js error boundary для
+ * неперехваченных React exceptions.
  *
  * T1D-friendly:
  * - Спокойное сообщение без давления ("что-то пошло не так")
  * - Кнопка "Попробовать снова" (retry)
  * - Кнопка "На главную" (не вынуждает user решать проблему)
- * - Можно скопировать ID ошибки в поддержку
+ * - Можно скопировать ID ошибки + последние crash-события в поддержку
  *
  * Если ошибка произошла во время T1D-эпизода (гипо/гипер), user может
  * просто нажать "На главную" — ничего не потеряется.
+ *
+ * Sprint 3.7 polish:
+ * - report(error) → ring buffer в localStorage (см. lib/crash-reporter.ts)
+ * - Кнопка "Скопировать диагностику" копирует JSON с последними 20 событиями
+ *   (включая это) — родитель или Кирилл могут прислать в поддержку.
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import {
+  formatCrashesForCopy,
+  getRecentCrashes,
+  report as reportCrash,
+} from "@/lib/crash-reporter";
 
 export default function ErrorPage({
   error,
@@ -22,11 +33,41 @@ export default function ErrorPage({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [copied, setCopied] = useState<"idle" | "ok" | "fail">("idle");
+
   useEffect(() => {
-    // Sprint 16.2 P2-5: structured log в консоль для debugging
-    // В production: можно подключить Sentry / logrocket здесь
+    // console — для debugging в devtools.
     console.error("Unhandled error:", error);
+    // Ring buffer в localStorage (Sprint 3.7 polish).
+    reportCrash(error, { kind: "boundary", digest: error.digest });
   }, [error]);
+
+  async function copyDiagnostics() {
+    const text = formatCrashesForCopy();
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // Fallback для старых iOS Safari (нет clipboard API на http://).
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        if (!ok) throw new Error("execCommand copy failed");
+      }
+      setCopied("ok");
+      setTimeout(() => setCopied("idle"), 2500);
+    } catch {
+      setCopied("fail");
+      setTimeout(() => setCopied("idle"), 3500);
+    }
+  }
+
+  const recentCount = getRecentCrashes().length;
 
   return (
     <main
@@ -69,6 +110,27 @@ export default function ErrorPage({
             На главную
           </a>
         </div>
+
+        {/* Sprint 3.7: copy diagnostics — последние {recentCount} событий. */}
+        {recentCount > 0 && (
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={copyDiagnostics}
+              className="min-h-[40px] px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-md font-medium hover:bg-slate-200 transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-slate-400 inline-flex items-center gap-2"
+              data-testid="crash-copy-btn"
+            >
+              {copied === "ok"
+                ? "✅ Скопировано"
+                : copied === "fail"
+                  ? "⚠️ Не вышло — покажи код поддержке"
+                  : `📋 Скопировать диагностику (${recentCount})`}
+            </button>
+            <p className="text-xs text-slate-400">
+              В поддержку: вставь JSON из буфера вместе с кодом ошибки.
+            </p>
+          </div>
+        )}
 
         {/* Технический ID ошибки — для поддержки */}
         {error.digest && (
