@@ -83,6 +83,19 @@ class QuestionOut(BaseModel):
     explanation: str
 
 
+class UnderstandCheckOut(BaseModel):
+    """S3.2 (2026-09-01, D1.4): проверка понимания — 2-3 вопроса «своими словами?».
+
+    Ученик после решения задачи должен объяснить тему своими словами.
+    AI задаёт 3 коротких вопроса БЕЗ правильных ответов (Socratic).
+    """
+    topic_id: int
+    subject_name: str
+    topic_name: str
+    questions: list[str]
+    style: str = "questions"
+
+
 class QuizOut(BaseModel):
     questions: list[QuestionOut]
 
@@ -390,3 +403,116 @@ def hint_metrics_summary(
         }
         for r in rows
     ]
+
+
+@router.get("/understand-check/{topic_id}", response_model=UnderstandCheckOut)
+async def understand_check(
+    topic_id: int,
+    db: Session = Depends(get_db),
+    current: user_models.User = Depends(get_current_user),
+) -> UnderstandCheckOut:
+    """S3.2 (2026-09-01, D1.4): проверка понимания после успешного ответа.
+
+    Возвращает 3 коротких вопроса «своими словами?» (Socratic).
+    Бюджет НЕ расходуется: вопросы генерируются из prompts шаблона без AI-провайдера,
+    чтобы не съедать 20/час на побочные проверки.
+    """
+    topic = db.get(subj_models.Topic, topic_id)
+    if topic is None:
+        raise HTTPException(404, "Topic not found")
+    questions = _socratic_questions_for(topic.section.subject.name, topic.name)
+    return UnderstandCheckOut(
+        topic_id=topic.id,
+        subject_name=topic.section.subject.name,
+        topic_name=topic.name,
+        questions=questions,
+        style="questions",
+    )
+
+
+def _socratic_questions_for(subject_name: str, topic_name: str) -> list[str]:
+    """S3.2: 3 вопроса «своими словами?» (deterministic, без AI).
+
+    Использует 3 шаблона, чтобы ученик мог объяснить тему тремя способами:
+    - "Объясни своими словами..."
+    - "Приведи пример из жизни..."
+    - "Где это пригодится?"
+    """
+    return [
+        f"Объясни своими словами, в чём суть темы «{topic_name}» по предмету «{subject_name}».",
+        f"Приведи пример из жизни или из игры, где встречается «{topic_name}».",
+        f"Где ещё пригодится «{topic_name}»? Зачем взрослому это знать?",
+    ]
+
+
+@router.post("/understand-check-ai/{topic_id}", response_model=UnderstandCheckOut)
+async def understand_check_ai(
+    topic_id: int,
+    db: Session = Depends(get_db),
+    current: user_models.User = Depends(get_current_user),
+) -> UnderstandCheckOut:
+    """S3.2 advanced (2026-09-01, D1.4): AI-сгенерированные Socratic вопросы.
+
+    Использует prompts.explain_topic_system(style="questions") для
+    динамических вопросов «своими словами?» — расходует AI-бюджет.
+    Лучше для personalized обучения, но дороже.
+    """
+    from app.ai import prompts as _prompts
+    from app.ai import _thread_local
+    _thread_local.explain_style = "questions"
+
+    topic = db.get(subj_models.Topic, topic_id)
+    if topic is None:
+        raise HTTPException(404, "Topic not found")
+    _enforce_budget(current)
+    svc = get_ai_service()
+    try:
+        from app.ai.explain_runner import run_explain as _run_explain  # type: ignore
+    except ImportError:
+        _run_explain = None  # type: ignore
+
+    subject = topic.section.subject
+    grade = current.student_profile.grade if current.student_profile else 7
+    sys_prompt = _prompts.explain_topic_system(
+        subject.name, topic.name, grade, rag_context=None, style="questions"
+    )
+    req = _build_request(sys_prompt, "Дай 3 коротких вопроса на проверку понимания.")
+    res = await svc.provider.complete(req)
+
+    return UnderstandCheckOut(
+        topic_id=topic.id,
+        subject_name=subject.name,
+        topic_name=topic.name,
+        questions=_parse_questions(res.content),
+        style="questions",
+    )
+
+
+def _build_request(sys_prompt: str, user_msg: str):
+    """S3.2: локальный билдер AIRequest (избегаем circular import)."""
+    from app.ai.models import AIRequest, AIMessage
+    return AIRequest(
+        messages=[AIMessage(role="system", content=sys_prompt), AIMessage(role="user", content=user_msg)],
+        mode="explain",
+        max_tokens=300,
+    )
+
+
+def _parse_questions(content: str) -> list[str]:
+    """S3.2: парсим AI-output в список вопросов (по строкам/нумерации)."""
+    import re
+    # Strip code blocks and JSON; ищем строки, начинающиеся с 1./1)/•/-/?.
+    lines = [l.strip() for l in content.splitlines() if l.strip()]
+    out: list[str] = []
+    for line in lines:
+        m = re.match(r"^(?:\d+[.)]|[•\-?])\s+(.+)", line)
+        if m and len(m.group(1)) > 3:
+            out.append(m.group(1))
+        if len(out) >= 5:  # hard cap
+            break
+    if not out:
+        # Fallback: первая non-empty строка как один вопрос
+        out = [content.strip().split("\n")[0][:500]] if content.strip() else [
+            "Объясни своими словами эту тему."
+        ]
+    return out[:3]
