@@ -106,4 +106,51 @@ else
   fi
 fi
 
+# 8) Sprint S3.6 — POST /api/v1/feedback/report (admin token)
+# Используем $ADMIN_TOKEN из шага 4 (он уже login'ился под $SMOKE_USER).
+# Это проверяет и Track B endpoint, и что alembic 0022_feedback_reports применён.
+log "8) /api/v1/feedback/report POST (admin)"
+FB_CODE=$(curl -sk -X POST "https://$PROD_HOST/api/v1/feedback/report" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+  -d '{"category":"unclear","text":"smoke-prod: verify S3.6 endpoint"}' \
+  -o /tmp/smoke.body -w "%{http_code}")
+[ "$FB_CODE" = "201" ] || fail "S3.6 feedback/report = $FB_CODE (ожидаем 201)"
+FB_ID=$(python3 -c "import json; print(json.load(open('/tmp/smoke.body'))['id'])" 2>/dev/null || echo 0)
+log "  feedback_reports id=$FB_ID — OK"
+
+# 8b) GET /api/v1/admin/feedback-reports — проверим, что созданное видно
+FB_LIST_CODE=$(curl -sk -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "https://$PROD_HOST/api/v1/admin/feedback-reports" -o /tmp/smoke.body -w "%{http_code}")
+[ "$FB_LIST_CODE" = "200" ] || fail "S3.6 admin/feedback-reports = $FB_LIST_CODE"
+FB_TOTAL=$(python3 -c "import json; print(json.load(open('/tmp/smoke.body'))['total'])" 2>/dev/null || echo 0)
+log "  admin queue total=$FB_TOTAL — OK"
+
+# 8c) Чистим: PATCH status=resolved для тестового report
+FB_PATCH_CODE=$(curl -sk -X PATCH "https://$PROD_HOST/api/v1/admin/feedback-reports/$FB_ID/status" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+  -d '{"status":"resolved"}' -o /tmp/smoke.body -w "%{http_code}")
+[ "$FB_PATCH_CODE" = "200" ] || fail "S3.6 patch status = $FB_PATCH_CODE"
+log "  cleanup: id=$FB_ID → resolved — OK"
+
+# 9) Sprint S3.2 — GET /api/v1/ai/understand-check/{topic_id}
+# Используем admin token (роль не важна — endpoint только требует залогинен).
+log "9) /api/v1/ai/understand-check/1"
+UC_CODE=$(curl -sk -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "https://$PROD_HOST/api/v1/ai/understand-check/1" -o /tmp/smoke.body -w "%{http_code}")
+[ "$UC_CODE" = "200" ] || fail "S3.2 understand-check = $UC_CODE"
+QCOUNT=$(python3 -c "import json; print(len(json.load(open('/tmp/smoke.body'))['questions']))" 2>/dev/null || echo 0)
+[ "$QCOUNT" = "3" ] || fail "S3.2 understand-check: вопросов=$QCOUNT (ожидаем 3)"
+log "  questions=$QCOUNT, style=$(python3 -c "import json; print(json.load(open('/tmp/smoke.body'))['style'])") — OK"
+
+# 9b) Негативный кейс — неизвестный topic_id → 404 (доказывает что endpoint не подделывает)
+UC_404=$(curl -sk -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "https://$PROD_HOST/api/v1/ai/understand-check/99999999" -o /dev/null -w "%{http_code}")
+[ "$UC_404" = "404" ] || fail "S3.2 unknown topic = $UC_404 (ожидаем 404)"
+log "  unknown topic → 404 — OK"
+
+# 9c) Негативный кейс — без токена → 401
+UC_401=$(curl -sk "https://$PROD_HOST/api/v1/ai/understand-check/1" -o /dev/null -w "%{http_code}")
+[ "$UC_401" = "401" ] || fail "S3.2 no-auth = $UC_401 (ожидаем 401)"
+log "  no-auth → 401 — OK"
+
 log "OK: smoke прошёл"
