@@ -77,8 +77,10 @@ export default function RootLayout({
             __html: `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                  navigator.serviceWorker.register('/sw.js').then(
-                    (reg) => console.log('[SW] Registered scope:', reg.scope),
+                  // S0.5 (2026-08-31): no console.log in production code.
+                  // Success is silent; only surface registration failures so
+                  // an offline-capable regression can't pass unnoticed.
+                  navigator.serviceWorker.register('/sw.js').catch(
                     (err) => console.warn('[SW] Registration failed:', err)
                   );
                 });
