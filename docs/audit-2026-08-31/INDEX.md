@@ -24,5 +24,6 @@
 - Checkout: грязный (25 modified, ~107 untracked) — закрыто в Sprint S0 (см. `AI-TUTOR-SPRINT-S0-REPORT-2026-09-01.md`).
 - S2: **263/263 topics × ≥10 fallback = 2630 practice tasks** (см. `AI-TUTOR-SPRINT-S2-S3-REPORT-2026-09-01.md`).
 - S3: multi-explain (6 styles) + offtopic-guard + honest refuse + Socratic. 24/24 unit tests.
+- **Production deploy 2026-09-01**: `https://school.431a.ru` жив, /health/ready/api/v2/health = 200, **280/280 topics practice coverage**, smoke основной PASSED. 5 fix-операций на проде (см. `AI-TUTOR-DEPLOY-REPORT-2026-09-01.md`).
 
 Исторические аудиты (только как история): `docs/audit-2026-08-23/`, `docs/AI-TUTOR-FINAL-POST-EXECUTION-AUDIT-2026-08-25.md`.
