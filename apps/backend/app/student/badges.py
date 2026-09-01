@@ -107,6 +107,80 @@ BADGES: list[BadgeSpec] = [
         icon="❓",
         criteria={"min_questions_to_ai": 1},
     ),
+    # === Sprint 3.8 — gamification v2: streak + diversity + time-of-day ===
+    # T1D-friendly: все streak-бейджи только положительные (за достижение).
+    # Пропуск дня НЕ штрафуется — `returned_after_pause` наоборот ПООЩРЯЕТ
+    # возвращение. Это сознательное отличие от типичной gamification.
+    BadgeSpec(
+        slug="streak_3",
+        title="Три дня подряд",
+        description="Активность 3 дня подряд. Первый ритм!",
+        icon="🔥",
+        criteria={"min_streak_days": 3},
+    ),
+    BadgeSpec(
+        slug="streak_7",
+        title="Неделя знаний",
+        description="Активность 7 дней подряд. Стабильный ритм.",
+        icon="🌟",
+        criteria={"min_streak_days": 7},
+    ),
+    BadgeSpec(
+        slug="streak_30",
+        title="Месяц знаний",
+        description="Активность 30 дней подряд. Настоящий мастер привычки.",
+        icon="🏅",
+        criteria={"min_streak_days": 30},
+    ),
+    BadgeSpec(
+        slug="returned_after_pause",
+        title="Возвращение",
+        description="Ты вернулся после паузы ≥2 дней. Это и есть главное достижение.",
+        icon="🌱",
+        criteria={"returned_after_2plus_days": 1},
+    ),
+    BadgeSpec(
+        slug="polymath_week",
+        title="Полиматч недели",
+        description="3+ разных предмета за последние 7 дней. Широкий кругозор.",
+        icon="🧭",
+        criteria={"min_subjects_in_7d": 3},
+    ),
+    BadgeSpec(
+        slug="early_bird",
+        title="Утренняя пташка",
+        description="Задача решена утром (07:00–10:00 по локальному времени ученика).",
+        icon="🌅",
+        criteria={"time_of_day": "morning"},
+    ),
+    BadgeSpec(
+        slug="night_owl",
+        title="Сова",
+        description="Задача решена вечером (20:00–23:00 по локальному времени ученика).",
+        icon="🌙",
+        criteria={"time_of_day": "evening"},
+    ),
+    BadgeSpec(
+        slug="weekend_warrior",
+        title="Герой выходных",
+        description="Задача решена в выходной. Учёба без расписания.",
+        icon="🎯",
+        criteria={"weekend_attempt": 1},
+    ),
+    BadgeSpec(
+        slug="perfect_five",
+        title="Пятёрка подряд",
+        description="5 правильных ответов подряд без единой ошибки.",
+        icon="🎖️",
+        criteria={"min_consecutive_correct": 5},
+    ),
+    BadgeSpec(
+        slug="ten_in_a_row",
+        title="Десятка подряд",
+        description="10 правильных ответов подряд. Серия-мастерство.",
+        icon="🏆",
+        criteria={"min_consecutive_correct": 10},
+    ),
 ]
 
 
@@ -178,25 +252,21 @@ def award_badge(
 def evaluate_and_award_badges(
     db: Session,
     user_id: int,
-    stats: dict,
+    stats: dict | None = None,
 ) -> list[str]:
     """Проверить статистику и присудить подходящие баджи.
 
     Args:
         db: SQLAlchemy session.
         user_id: пользователь.
-        stats: статистика, собранная из БД:
-            - total_attempts: int
-            - quality_5_no_hint: int   (правильных без подсказки)
-            - returned_to_incorrect: int
-            - max_mastery: float (0..1)
-            - easy_solved: int
-            - questions_to_ai: int
+        stats: статистика (если None — собирается автоматически через collect_stats).
 
-    Returns:
-        Список slug'ов баджей, присуждённых в этом вызове.
+    Возвращает список slug'ов баджей, присуждённых в этом вызове.
+    Sprint 3.8: добавлены streak/diversity/time-of-day/consecutive_correct.
     """
     seed_badge_definitions(db)  # idempotent
+    if stats is None:
+        stats = collect_stats(db, user_id)
     awarded: list[str] = []
     total = stats.get("total_attempts", 0)
 
@@ -237,24 +307,82 @@ def evaluate_and_award_badges(
         if award_badge(db, user_id, "asked_question"):
             awarded.append("asked_question")
 
+    # === Sprint 3.8: gamification v2 ===
+    # streak-based (позитивные — за достижение)
+    streak = stats.get("current_streak_days", 0)
+    for slug, threshold in [
+        ("streak_3", 3),
+        ("streak_7", 7),
+        ("streak_30", 30),
+    ]:
+        if streak >= threshold:
+            if award_badge(db, user_id, slug, {"streak": streak}):
+                awarded.append(slug)
+
+    # returned_after_pause — НЕ штраф, а позитив: «ты вернулся»
+    if stats.get("returned_after_pause", 0) >= 1:
+        if award_badge(db, user_id, "returned_after_pause"):
+            awarded.append("returned_after_pause")
+
+    # polymath_week: 3+ предмета за 7 дней
+    if stats.get("subjects_in_last_7d", 0) >= 3:
+        if award_badge(db, user_id, "polymath_week", {
+            "subjects": stats["subjects_in_last_7d"],
+        }):
+            awarded.append("polymath_week")
+
+    # time-of-day (по локальному TZ ученика)
+    if stats.get("morning_attempt", 0) >= 1:
+        if award_badge(db, user_id, "early_bird"):
+            awarded.append("early_bird")
+    if stats.get("evening_attempt", 0) >= 1:
+        if award_badge(db, user_id, "night_owl"):
+            awarded.append("night_owl")
+
+    # weekend_attempt
+    if stats.get("weekend_attempt", 0) >= 1:
+        if award_badge(db, user_id, "weekend_warrior"):
+            awarded.append("weekend_warrior")
+
+    # consecutive_correct (5 и 10)
+    cc = stats.get("max_consecutive_correct", 0)
+    for slug, threshold in [
+        ("perfect_five", 5),
+        ("ten_in_a_row", 10),
+    ]:
+        if cc >= threshold:
+            if award_badge(db, user_id, slug, {"run": cc}):
+                awarded.append(slug)
+
     return awarded
 
 
 def collect_stats(db: Session, user_id: int) -> dict:
-    """Собрать статистику пользователя из БД (1 запрос на показатель)."""
+    """Собрать статистику пользователя из БД (1 запрос на показатель).
+
+    Sprint 3.8: добавлены поля для gamification v2:
+    - current_streak_days: текущая серия (считаем в Python через _compute_streak)
+    - returned_after_pause: 1 если последний attempt был после паузы ≥2 дней
+    - subjects_in_last_7d: кол-во уникальных subject_id за 7 дней
+    - morning/evening/weekend: 1 если хотя бы один attempt в это окно
+    - max_consecutive_correct: длина самой длинной серии правильных ответов
+    """
+    from datetime import datetime, timedelta, timezone
+    from zoneinfo import ZoneInfo
+
+    from app.config import get_settings
+    from app.parents.service import _compute_streak
     from app.progress import models as prog_models
 
     s = db
-    # total_attempts (с learned signals)
+    # total_attempts
     total = s.execute(
         select(func.count(prog_models.Attempt.id)).where(
             prog_models.Attempt.user_id == user_id
         )
     ).scalar() or 0
 
-    # quality_5: correct=1 + с быстрой подсказкой (=0) → маловероятно по нашим данным;
-    # считаем проще: все правильные попытки без использования hint (если есть колонка).
-    # Т.к. у нас Hint не хранится в Attempt явно, считаем все correct=1 как proxy.
+    # quality_5: все правильные attempts (proxy без колонки hint)
     quality_5_no_hint = s.execute(
         select(func.count(prog_models.Attempt.id)).where(
             prog_models.Attempt.user_id == user_id,
@@ -262,8 +390,7 @@ def collect_stats(db: Session, user_id: int) -> dict:
         )
     ).scalar() or 0
 
-    # returned_to_incorrect: топики, по которым есть хотя бы одна ошибка + хотя бы одна последующая успешная попытка
-    # Сложная логика — упростим: если хотя бы 1 ошибка и 1 успех — proxy
+    # returned_to_incorrect: если есть хотя бы 1 ошибка + 1 успех
     incorrect_count = s.execute(
         select(func.count(prog_models.Attempt.id)).where(
             prog_models.Attempt.user_id == user_id,
@@ -280,11 +407,104 @@ def collect_stats(db: Session, user_id: int) -> dict:
     ).scalar()
     max_mastery = float(max_mastery_row) if max_mastery_row is not None else 0.0
 
-    # easy_solved: правильных attempts с difficulty ≤ 2 (rough proxy)
-    easy_solved = total  # в нашей БД нет difficulty на Attempt; ставим = total как proxy
-
-    # questions_to_ai: пока нет отдельного счётчика, ставим = total_attempts (как минимум 1)
+    # easy_solved / questions_to_ai proxies
+    easy_solved = total
     questions_to_ai = total
+
+    # === Sprint 3.8: gamification v2 stats ===
+    # Загружаем все attempts с временной меткой — для streak + time-of-day +
+    # consecutive_correct. На пилотной нагрузке (<10k attempts на user) это OK.
+    all_attempts = s.execute(
+        select(
+            prog_models.Attempt.created_at,
+            prog_models.Attempt.is_correct,
+            prog_models.Attempt.topic_id,
+        )
+        .where(prog_models.Attempt.user_id == user_id)
+        .order_by(prog_models.Attempt.created_at.asc())
+    ).all()
+
+    # TZ: используем настройку приложения (Europe/Moscow по дефолту).
+    student_tz = ZoneInfo(get_settings().student_timezone or "Europe/Moscow")
+    today = datetime.now(student_tz).date()
+
+    # unique active dates (для streak)
+    active_dates: set[str] = set()
+    # (date, subject_id) → для diversity за 7 дней
+    # Связь Attempt.topic_id → subject_id через Section
+    from app.subjects import models as subj_models
+
+    subject_ids_by_topic: dict[int, int] = {}
+    topic_ids = {row.topic_id for row in all_attempts if row.topic_id is not None}
+    if topic_ids:
+        rows = s.execute(
+            select(subj_models.Topic.id, subj_models.Section.subject_id)
+            .join(subj_models.Section, subj_models.Topic.section_id == subj_models.Section.id)
+            .where(subj_models.Topic.id.in_(topic_ids))
+        ).all()
+        for tid, sid in rows:
+            subject_ids_by_topic[tid] = sid
+
+    # time-of-day buckets
+    morning_count = 0  # 07:00–10:00
+    evening_count = 0  # 20:00–23:00
+    weekend_count = 0  # Sat/Sun
+    active_dates_in_7d: set[str] = set()
+    subjects_in_7d: set[int] = set()
+    seven_days_ago = today - timedelta(days=7)
+
+    # consecutive correct (по created_at asc, ищем самую длинную серию is_correct=True)
+    max_consecutive_correct = 0
+    current_run = 0
+
+    for row in all_attempts:
+        ts = row.created_at
+        if ts is None:
+            continue
+        # ts хранится в UTC (TIMESTAMP WITHOUT TZ); конвертим в student TZ
+        if isinstance(ts, datetime):
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            local_dt = ts.astimezone(student_tz)
+            d = local_dt.date()
+            active_dates.add(d.isoformat())
+            if d >= seven_days_ago:
+                active_dates_in_7d.add(d.isoformat())
+                sid = subject_ids_by_topic.get(row.topic_id or -1)
+                if sid is not None:
+                    subjects_in_7d.add(sid)
+            # time-of-day
+            h = local_dt.hour
+            if 7 <= h < 10:
+                morning_count += 1
+            elif 20 <= h < 23:
+                evening_count += 1
+            # weekend
+            wd = local_dt.weekday()  # 0=Mon, 6=Sun
+            if wd >= 5:
+                weekend_count += 1
+
+        # consecutive correct: считаем по исходному (asc) порядку
+        if row.is_correct:
+            current_run += 1
+            if current_run > max_consecutive_correct:
+                max_consecutive_correct = current_run
+        else:
+            current_run = 0
+
+    current_streak_days, _, _ = _compute_streak(active_dates, today.isoformat())
+
+    # returned_after_pause: предпоследний attempt был ≥2 дней назад, последний — сегодня.
+    # Простой proxy: если total >= 2 и last attempt <= today, и (today - second_last date) >= 2.
+    returned_after_pause = 0
+    if len(active_dates) >= 2:
+        sorted_dates = sorted(active_dates)
+        last = sorted_dates[-1]
+        second_last = sorted_dates[-2]
+        last_d = today.__class__.fromisoformat(last)
+        prev_d = today.__class__.fromisoformat(second_last)
+        if last_d == today and (last_d - prev_d).days >= 2:
+            returned_after_pause = 1
 
     return {
         "total_attempts": int(total),
@@ -293,4 +513,12 @@ def collect_stats(db: Session, user_id: int) -> dict:
         "max_mastery": max_mastery,
         "easy_solved": int(easy_solved),
         "questions_to_ai": int(questions_to_ai),
+        # Sprint 3.8 gamification v2:
+        "current_streak_days": int(current_streak_days),
+        "returned_after_pause": int(returned_after_pause),
+        "subjects_in_last_7d": len(subjects_in_7d),
+        "morning_attempt": 1 if morning_count >= 1 else 0,
+        "evening_attempt": 1 if evening_count >= 1 else 0,
+        "weekend_attempt": 1 if weekend_count >= 1 else 0,
+        "max_consecutive_correct": int(max_consecutive_correct),
     }

@@ -47,22 +47,28 @@ def new_student():
 
 
 class TestBadgeCatalog:
-    def test_badge_catalog_has_10_badges(self):
-        assert len(BADGES) >= 8, f"Только {len(BADGES)} баджей в каталоге"
+    def test_badge_catalog_has_20_badges(self):
+        # Sprint 7.5: 10 бейджей за усилие.
+        # Sprint 3.8: +10 бейджей за streak/diversity/time-of-day/consecutive
+        # (все T1D-friendly — без штрафов).
+        assert len(BADGES) == 20, f"Ожидаем 20 (10 Sprint 7.5 + 10 Sprint 3.8), получили {len(BADGES)}"
 
-    def test_no_streak_or_timer_badges(self):
-        """T1D: ни streak'ов, ни обратных таймеров, ни штрафов за паузу."""
-        bad_keywords = ["streak", "consecutive", "under pressure", "missed", "penalty"]
+    def test_no_t1d_hostile_keywords(self):
+        """T1D: ни штрафов, ни 'under pressure', ни 'missed' формулировок.
+
+        Sprint 3.8 ДОБАВИЛ streak/consecutive бейджи, но они позитивные.
+        Поэтому здесь проверяем ТОЛЬКО явно враждебные к T1D keywords,
+        а не 'streak'/'consecutive' вообще.
+        """
+        bad_keywords = ["under pressure", "missed", "penalty", "lost"]
         for badge in BADGES:
             text = (
-                badge.slug
-                + " "
-                + badge.title
-                + " "
-                + badge.description
+                badge.slug + " " + badge.title + " " + badge.description
             ).lower()
             for kw in bad_keywords:
-                assert kw not in text, f"Бейдж {badge.slug} содержит T1D-нарушающее: '{kw}'"
+                assert kw not in text, (
+                    f"Бейдж {badge.slug} содержит T1D-нарушающее: '{kw}'"
+                )
 
     def test_all_badges_have_unique_slugs(self):
         slugs = [b.slug for b in BADGES]
@@ -208,12 +214,27 @@ class TestBadgesEndpoint:
 
 
 class TestBadgesNotStreak:
-    """T1D: категорически НЕ должно быть баджей, связанных со streak'ами."""
+    """T1D: бейджи за streak существуют (Sprint 3.8), но ТОЛЬКО положительные.
 
-    def test_no_streak_in_catalog(self):
-        slugs = [b.slug for b in BADGES]
-        titles = [b.title.lower() for b in BADGES]
-        descs = [b.description.lower() for b in BADGES]
-        all_text = " ".join(slugs + titles + descs)
-        for bad_word in ["streak", "серия подряд", "consecutive days"]:
-            assert bad_word not in all_text, f"T1D-violating keyword: {bad_word}"
+    Здесь проверяем:
+    - нет ключевых слов, означающих НАКАЗАНИЕ за пропуск
+    - есть явные позитивные формулировки
+    """
+
+    def test_no_t1d_punitive_keywords(self):
+        all_text = " ".join(
+            [b.slug + " " + b.title.lower() + " " + b.description.lower() for b in BADGES]
+        )
+        for bad_word in ["штраф", "penalty", "lost your", "сгорела"]:
+            assert bad_word not in all_text, f"T1D-punitive keyword: {bad_word}"
+
+    def test_streak_badges_are_positive(self):
+        """Sprint 3.8 streak_* бейджи должны поощрять, а не давить."""
+        streak_slugs = {"streak_3", "streak_7", "streak_30", "returned_after_pause"}
+        for badge in BADGES:
+            if badge.slug in streak_slugs:
+                # Каждый streak-бейдж должен иметь позитивную формулировку
+                # (без "сгорела", "потерял" и т.п.)
+                assert "сгорел" not in badge.description.lower()
+                assert "потерял" not in badge.description.lower()
+                assert "lost" not in badge.description.lower()
