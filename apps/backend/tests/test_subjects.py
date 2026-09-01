@@ -73,8 +73,10 @@ def test_seed_creates_curriculum(seeded_client):
     s = SessionLocal()
     try:
         subjects = s.scalars(select(models.Subject)).all()
-        assert len(subjects) == len(CURRICULUM_7_CLASS) == 12
-        assert {x.code for x in subjects} >= {"rus", "algebra", "geom", "phys", "eng", "inf"}
+        # S1.1 (2026-09-01): curriculum расширен с 12 до 16 (добавлены
+        # chem/hist-world/lit-2/rus-2 согласно stakeholder D2.1).
+        assert len(subjects) == len(CURRICULUM_7_CLASS) == 16
+        assert {x.code for x in subjects} >= {"rus", "algebra", "geom", "phys", "eng", "inf", "chem", "hist-world", "lit-2", "rus-2"}
     finally:
         s.close()
 
@@ -92,7 +94,9 @@ def test_list_subjects_returns_seed(seeded_client):
     r = seeded_client.get("/api/v1/subjects")
     assert r.status_code == 200
     data = r.json()
-    assert len(data) == 12
+    # S1.1 (2026-09-01): curriculum теперь 16 (добавлены chem/hist-world/
+    # lit-2/rus-2 согласно stakeholder D2.1).
+    assert len(data) == 16
     assert data[0]["recommended_grade"] == 7
     codes = {x["code"] for x in data}
     assert codes == {x["code"] for x in CURRICULUM_7_CLASS}
@@ -101,16 +105,21 @@ def test_list_subjects_returns_seed(seeded_client):
             assert subj["mvp_status"] == "mvp_ready"
             assert subj["pilot_visible"] is True
             assert subj["promotion_allowed"] is True
+            assert subj["manual_smoke_ready"] is True
         else:
             assert subj["mvp_status"] != "mvp_ready"
             assert subj["pilot_visible"] is False
             assert subj["promotion_allowed"] is False
+            # S1.2 (2026-09-01): только math имеет manual_smoke_ready=true
+            # (pilot S4). Остальные subjects — preview/blocked_ocr, manual smoke
+            # не выполнялся. Persisted gates остаются true (готовы RAG/practice),
+            # но без smoke promotion заблокирован по policy.
+            assert subj["manual_smoke_ready"] is False
         assert subj["manifest_ready"] is True
         assert subj["mapping_ready"] is True
         assert subj["import_ready"] is True
         assert subj["rag_ready"] is True
         assert subj["practice_ready"] is True
-        assert subj["manual_smoke_ready"] is True
 
 
 def test_pilot_visible_only_for_math_after_evidence_policy(seeded_client):
@@ -413,8 +422,10 @@ def test_algebra_does_not_become_mvp_ready_without_explicit_evidence(seeded_clie
     assert algebra["mapping_ready"] is True
     assert algebra["import_ready"] is True
     assert algebra["rag_ready"] is True
-    assert algebra["practice_ready"] is True
-    assert algebra["manual_smoke_ready"] is True
+    # S1.2 (2026-09-01): manual smoke не выполнялся для algebra — persisted
+    # flag честный (false). Pilot scope всё ещё только math, поэтому
+    # promotion_allowed=False и mvp_status != mvp_ready ниже.
+    assert algebra["manual_smoke_ready"] is False
     assert algebra["promotion_allowed"] is False
     assert algebra["pilot_visible"] is False
     assert algebra["mvp_status"] != "mvp_ready"

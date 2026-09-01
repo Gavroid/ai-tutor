@@ -40,7 +40,9 @@ def test_remaining_subjects_import_writes_to_staging_sqlite(tmp_path) -> None:
     )
 
     assert result["decision"] == "staging_import_executed"
-    assert result["material_count"] == 151
-    assert result["chunk_count"] == 151
-    assert result["rows_written"] == 302
+    # S1.1 (2026-09-01): curriculum 12→16 (добавлены chem/hist-world/lit-2/
+    # rus-2). Material/chunk count вырос с 151 до 189. rows_written = 189*2 = 378.
+    assert result["material_count"] == 189
+    assert result["chunk_count"] == 189
+    assert result["rows_written"] == 378
     assert result["production_mutation"] is False

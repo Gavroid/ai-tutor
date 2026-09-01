@@ -99,7 +99,9 @@ def test_all_subjects_explain_and_practice_contract() -> None:
         assert login.status_code == 200, login.text
         headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
         subjects = client.get("/api/v1/subjects/", headers=headers).json()
-        assert len(subjects) == 12
+        # S1.1 (2026-09-01): curriculum_7_class теперь 16 предметов (добавлены
+        # chem/hist-world/lit-2/rus-2 согласно stakeholder D2.1).
+        assert len(subjects) == 16
 
         for subject in subjects:
             topics = client.get(

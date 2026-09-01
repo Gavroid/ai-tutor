@@ -18,7 +18,10 @@ def test_remaining_subjects_manifest_covers_all_non_ready_preview_topics() -> No
     )
 
     assert manifest["subject"] == "remaining_subjects"
-    assert manifest["topic_count"] == expected_count == 151
+    # S1.1 (2026-09-01): curriculum расширен 12→16 (добавлены chem/hist-world/
+    # lit-2/rus-2), topic_count соответственно вырос. После расширения
+    # expected_count = 151 + 4 новых subjects' topics = 151 + 38 = 189.
+    assert manifest["topic_count"] == expected_count == 189
     assert len(manifest["materials"]) == expected_count
     assert len(manifest["chunks"]) == expected_count
     assert len(manifest["fallbacks"]) == expected_count
