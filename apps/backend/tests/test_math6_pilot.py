@@ -25,10 +25,10 @@ os.environ["AI_DETERMINISTIC_MODE"] = "1"
 os.environ["AI_API_KEY"] = "mock-key-for-tests"  # defensive
 
 # Sprint 4: для parametrize-прогонов (15+15+15+5 = ~50 calls) поднимем
-# hourly request limit, иначе 8+ тестов упадут в 429 budget exhaustion.
-# Это не меняет production policy — только тест-окружение.
-os.environ.setdefault("AI_BUDGET_REQUESTS_PER_HOUR", "1000")
-os.environ.setdefault("AI_BUDGET_REQUESTS_PER_DAY", "10000")
+# hourly limit в самой фикстуре `math6_client` через ai_budget.reload_limits.
+# Не делаем этого в module-level os.environ.setdefault — это мутирует env
+# для всех последующих тестов в pytest bundle и ломает ассерты test_sprint80_hourly_budget
+# (которые проверяют дефолтные значения).
 
 import pytest
 from fastapi.testclient import TestClient
@@ -73,10 +73,16 @@ def math6_client():
     engine.dispose()
     Base.metadata.create_all(engine)
 
-    # Sprint 4: сбрасываем in-memory AI budget state, чтобы 15×multi-call
-    # parametrize-прогоны не упёрлись в HOURLY_REQUESTS_LIMIT.
+    # Sprint 4: сбрасываем in-memory AI budget state и поднимаем hourly limit,
+    # чтобы 15×multi-call parametrize-прогоны не упёрлись в HOURLY_REQUESTS_LIMIT.
+    # Per-test override через reload_limits — НЕ через os.environ (S0 fix).
     from app.ai import budget as _budget_mod
 
+    _budget_mod.reload_limits(
+        daily_requests=10_000,
+        daily_tokens=_budget_mod.DAILY_TOKENS_LIMIT,
+        hourly_requests=1_000,
+    )
     _budget_mod.reset_budget_state()
 
     s = SessionLocal()
@@ -108,10 +114,23 @@ def math6_client():
 
     _service._provider_instance = None
 
-    with TestClient(app) as c:
-        yield c
-    app.dependency_overrides.clear()
-    Base.metadata.drop_all(engine)
+    try:
+        with TestClient(app) as c:
+            yield c
+    finally:
+        # S0 fix: восстанавливаем дефолтные лимиты после parametrize-прогонов,
+        # иначе следующие тесты в pytest bundle (test_sprint80_hourly_budget)
+        # увидят 1_000 и упадут на assert <= 100.
+        from app.ai import budget as _budget_teardown
+
+        _budget_teardown.reload_limits(
+            daily_requests=200,
+            daily_tokens=200_000,
+            hourly_requests=20,
+        )
+        _budget_teardown.reset_budget_state()
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(engine)
 
 
 def _login(c: TestClient) -> str:
