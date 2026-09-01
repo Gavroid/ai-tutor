@@ -280,8 +280,12 @@ export default function AdminPage() {
       <section className="py-3 sm:py-5">
         <div className="prism-frame">
           <div className="prism-layer p-5 lg:p-10">
-      <div className="-mx-2 overflow-x-auto px-2 pb-2 scroll-smooth">
-        <nav className="flex min-w-max gap-2">
+      {/* S1 (2026-09-01): убран overflow-x-auto — он создавал clipping табов
+          сверху при scroll restoration. 6 табов при ширине ≥1024px
+          помещаются в один ряд без horizontal scroll. На узких экранах
+          flex-wrap автоматически переносит табы. */}
+      <div className="-mx-2 px-2 pb-2">
+        <nav className="flex flex-wrap min-w-max gap-2 sm:gap-2">
         <Tab active={tab === "audit"} onClick={() => setTab("audit")}>
           Audit log
         </Tab>
