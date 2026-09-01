@@ -829,6 +829,12 @@ class AIService:
             topic_id=topic_id,
             topic_name=topic.name,
         ) if topic_id is not None else []
+        # S1.3 (2026-09-01, D2.2): до license review ученику НЕ показываем
+        # citation references (страницы учебника). _verified_rag_sources уже
+        # фильтрует по topic match, но этого недостаточно — глобально скрываем
+        # для student role. Parent/teacher/admin продолжают видеть (для аудита).
+        if getattr(user, "role", None) == "student":
+            verified_sources = []
         resp.sources = verified_sources
         return resp
 
@@ -1093,13 +1099,15 @@ class AIService:
                     return result
                 except (TypeError, ValueError):
                     _record_ai("generate", "ok", resp=resp, parse_status="error")
-                    raise ValueError("AI did not return a valid structured exercise")
+                    return _fallback_generated_exercise(
+                        subject_name, topic_name, difficulty, topic_id=topic_id
+                    )
             _record_ai("generate", "ok", resp=resp, parse_status="fallback")
             return _fallback_generated_exercise(subject_name, topic_name, difficulty, topic_id=topic_id)
         except Exception as e:
             _record_ai("generate", "error")
-            logger.exception("AI generate failed: %s", e)
-            raise
+            logger.warning("AI generate provider failure → fallback: %s", e)
+            return _fallback_generated_exercise(subject_name, topic_name, difficulty, topic_id=topic_id)
 
     async def generate_quiz(
         self,
@@ -1194,8 +1202,16 @@ class AIService:
             return resp
         except Exception as e:
             _record_ai("chat", "error")
-            logger.exception("AI chat failed: %s", e)
-            raise
+            logger.warning("AI chat provider failure → fallback: %s", e)
+            topic_label = topic_name or "этой темы"
+            return AIResponse(
+                content=(
+                    f"Сейчас репетитор временно недоступен. Но мы можем продолжить тему «{topic_label}»: "
+                    "нажми «Ещё пример» или «Практика», чтобы закрепить правило."
+                ),
+                model="fallback",
+                sources=[],
+            )
 
 
 # Singleton-провайдер (ленивая инициализация)
