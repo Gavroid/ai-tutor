@@ -72,6 +72,13 @@ services:
       - ../data/textbooks/7-class/evidence.json:/opt/ai-tutor/data/textbooks/7-class/evidence.json:ro
       - ../data/textbooks/7-class/mappings:/opt/ai-tutor/data/textbooks/7-class/mappings:ro
     # Backend healthcheck
+    # Sprint 3.9: backend должен резолвить openrouter.ai через host DNS
+    # (SmartDNS на 192.168.1.1 возвращает VPN fake-IP 198.18.0.48).
+    # Без этого Docker DNS резолвит в реальный Cloudflare IP → 403.
+    dns:
+      - 192.168.1.1
+    dns_search:
+      - lan
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
       interval: 30s
