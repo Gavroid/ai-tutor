@@ -47,10 +47,10 @@
 | ~~Backup monitor~~ | ~~Авто-сигнал если backup не создался > 26ч~~ | ~~4 ч~~ | Чтобы не пропустить потерю данных | ✅ реализован в `deploy/monitoring/healthcheck.sh` (Sprint 3.5), cron `*/5 * * * *` на проде, fallback в файл `alert` + лог `ai-tutor-monitor.log`. Ручная проверка 2026-09-01: mtime 30ч → срабатывает алерт-ветка. ⚠️ TELEGRAM creds не заданы → оповещение только в лог, не в мессенджер |
 | ~~S7~~ | ~~Release gate: авто-проверки перед каждым релизом~~ | ~~15 ч~~ | Чтобы баги не попадали на прод | ✅ `.github/workflows/release-gate.yml` (Sprint 3.7) — push/PR в `main` триггерит 3 параллельных проверки: pytest (1340 тестов), tsc+build, prod-smoke через ssh. Smoke.sh обновлён: добавлены проверки S3.2 + S3.6. ci.yml и release-gate.yml оба `--ignore test_mapping_quality_audit` (отдельный issue — модуль удалён, тест не нужен) |
 | ~~Polish~~ | ~~Тёмная тема мобильная, фикс скролла на iOS, краш-логи~~ | ~~8 ч~~ | Без этого Кирилл на телефоне не сможет | ✅ iOS scroll (bc2596b) + dark mode (ThemeToggle wired, default dark) + crash-reporter (коммит `13cf91c`): ring buffer 50 событий в localStorage, кнопка «Скопировать диагностику» в error.tsx. Prod verify 2026-09-01: ThemeToggle переключает, synthetic ErrorEvent → 1 entry в localStorage |
-| **S4** | Геймификация: бейджи, очки за серию правильных ответов | ~25 ч | Мотивация для ребёнка 12-13 лет |
-| **S5** | Родительский дашборд: что выучил, где ошибки, сколько минут | ~30 ч | Родитель видит прогресс, не дёргает ребёнка |
+| **S4** | Геймификация: бейджи, очки за серию правильных ответов | ~25 ч | Мотивация для ребёнка 12-13 лет | ✅ Каталог: 20 бейджей (10 Sprint 7.5 + 10 Sprint 3.8). Streak/diversity/time-of-day/consecutive_correct. T1D-friendly: только положительные streak-бейджи. Prod verify 2026-09-01: каталог = 20, evaluate endpoint работает, новые бейджи вручаются корректно (коммит `eb0492f`). |
+| **S5** | Родительский дашборд: что выучил, где ошибки, сколько минут | ~30 ч | Родитель видит прогресс, не дёргает ребёнка | ✅ Реализован Sprint 9 + 32 (2FA) + 39 (PDF экспорт) + 49 (Grafana метрики). Endpoints: `/parents/children`, `/parents/students/{id}/dashboard` (метрики + streak + weak_topics + subject_mastery + daily_activity_30d), `/parents/students/{id}/dashboard.pdf`, `/parents/2fa/*`, `/parents/invite`. Privacy: чат и pause не видны. |
 | **S6** | Walk-through для Кирилла (2 часа живого занятия, фидбек) | ~3 ч | Реальная проверка что MVP удобен |
-| **ИТОГО бэклог** | **~58 часов** | (= ~7 рабочих дней) |
+| **ИТОГО бэклог** | **~3 часа** | (только S6 — живое тестирование) |
 
 ---
 
