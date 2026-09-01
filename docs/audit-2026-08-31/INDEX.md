@@ -21,6 +21,8 @@
 - Prod: health/ready 200; 16 предметов в API, открыт только math.
 - Prod БД: 17 users, 16 subjects, 280 topics, 1637 rag_chunks, 479 attempts, alembic 0021.
 - Backend tests: **1340 passed / 0 failed / 30 skipped** (Sprint S0, после фикса test_all_subject_contracts module-level env).
-- Checkout: грязный (25 modified, ~107 untracked) — закрыто в Sprint S0 (см. `AI-TUTOR-SPRINT-S0-REPORT-2026-08-31.md`).
+- Checkout: грязный (25 modified, ~107 untracked) — закрыто в Sprint S0 (см. `AI-TUTOR-SPRINT-S0-REPORT-2026-09-01.md`).
+- S2: **263/263 topics × ≥10 fallback = 2630 practice tasks** (см. `AI-TUTOR-SPRINT-S2-S3-REPORT-2026-09-01.md`).
+- S3: multi-explain (6 styles) + offtopic-guard + honest refuse + Socratic. 24/24 unit tests.
 
 Исторические аудиты (только как история): `docs/audit-2026-08-23/`, `docs/AI-TUTOR-FINAL-POST-EXECUTION-AUDIT-2026-08-25.md`.
