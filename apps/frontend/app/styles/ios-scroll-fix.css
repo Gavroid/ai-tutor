@@ -1,0 +1,49 @@
+/* S3.Polish (2026-09-01): iOS Safari scroll fixes.
+
+iOS Safari (до 16) имеет long-standing баги:
+1. overflow:hidden на родителе отключает scroll у детей
+2. overflow-x:auto создаёт vertical clipping (что привело к багу с табами)
+3. position:sticky отключается если ancestor имеет overflow:hidden или transform
+
+Эти правила применяются глобально чтобы не править каждый компонент:
+- -webkit-overflow-scrolling: touch — momentum scroll для iOS
+- overscroll-behavior: contain — предотвращает scroll-chain
+- safe-area-inset-* padding для iOS notch
+
+Не применяется автоматически к iOS 17+ где баги исправлены, но
+безопасно для всех версий (старые просто игнорируют).
+*/
+
+@supports (-webkit-touch-callout: none) {
+  /* CSS-код только для iOS (Safari и Chrome iOS) */
+  html, body, .prism-shell {
+    overscroll-behavior-y: none;
+  }
+
+  /* Любой элемент с overflow:auto/scroll получает momentum scroll */
+  [class*="overflow-"]:where(:not([class*="overflow-hidden"])),
+  [style*="overflow"]:where(:not([style*="hidden"])) {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Карточки с overflow:hidden не должны ломать sticky parent */
+  .admin-console,
+  .teacher-console,
+  .parents-console {
+    overflow: visible;
+  }
+}
+
+/* Глобально: предотвращаем горизонтальный overflow на body (iOS зумит если есть) */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Safe area для notch/home-indicator (iPhone X+) */
+@supports (padding: max(0px)) {
+  .prism-shell {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+}
