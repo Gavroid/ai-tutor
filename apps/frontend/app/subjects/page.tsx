@@ -92,28 +92,57 @@ export default function HomePage() {
                   Ребёнку показываются только пилотные предметы.
                 </p>
               )}
-              {isOperator && (
-                <p className="mt-3 text-xs text-[color:var(--prism-muted)]">
-                  Режим оператора: видны все subjects с полным pipeline status.
-                </p>
-              )}
-              {aiOk === true && aiModel && <p className="mt-3 text-xs text-[color:var(--prism-muted)]">Модель: {aiModel}</p>}
-              <div className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/40 p-3">
-                <div className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--prism-muted)]">Стоит повторить</div>
-                {review.length > 0 ? (
-                  <div className="mt-2 grid gap-2">
-                    {review.slice(0, 3).map((r) => (
-                      <Link key={r.topic_id} href={`/topics/${r.topic_id}`} className="prism-review-row block rounded-2xl border border-[color:var(--prism-line)] px-3 py-2">
-                        <div className="truncate text-sm font-black">{r.topic_name}</div>
-                        <div className="mt-0.5 text-xs text-[color:var(--prism-muted)]">Уверенность {Math.round(r.mastery_score * 100)}%</div>
-                      </Link>
-                    ))}
+              {/* Sprint 3.9.7.3: убрал «Режим оператора: видны все subjects» —
+                  это техническая деталь для разработчика, не для ребёнка/родителя.
+                  Сейчас её и так нет в production-ветке (только для admin). */}
+              {/* Sprint 3.9.7.3: убрал «Модель: openai/gpt-5.6-luna» —
+                  для ребёнка это техническая информация, которая его отвлекает.
+                  Модель видна только в /admin/ai-providers (Sprint 3.9.6). */}
+              {/* Sprint 3.9.7.3: блок «Стоит повторить» вынесен из правого
+                  сайдбара в отдельную секцию во всю ширину — пользователь
+                  сказал «растянуть по ширине экрана чтобы убрать пустоты».
+                  Сейчас он перенесён НИЖЕ этого aside, во всю ширину. */}
+            </aside>
+
+            {/* Sprint 3.9.7.3: новая полноширинная секция «Стоит повторить». */}
+            <section className="prism-card pad glow">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">
+                  Стоит повторить
+                </div>
+                {review.length > 0 && (
+                  <div className="text-xs text-[color:var(--prism-muted)]">
+                    Показано: {Math.min(review.length, 6)} из {review.length}
                   </div>
-                ) : (
-                  <p className="mt-2 text-sm text-[color:var(--prism-muted)]">Пока нечего повторять — начни урок или диагностику.</p>
                 )}
               </div>
-            </aside>
+              {review.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {review.slice(0, 6).map((r) => (
+                    <Link
+                      key={r.topic_id}
+                      href={`/topics/${r.topic_id}`}
+                      className="prism-review-row block rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/40 px-4 py-3 hover:border-[color:var(--prism-accent)] transition-colors"
+                    >
+                      <div className="truncate text-base font-black">{r.topic_name}</div>
+                      <div className="mt-1 flex items-center gap-2 text-xs text-[color:var(--prism-muted)]">
+                        <span>Уверенность {Math.round(r.mastery_score * 100)}%</span>
+                        {r.subject_name && (
+                          <>
+                            <span aria-hidden="true">·</span>
+                            <span className="truncate">{r.subject_name}</span>
+                          </>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-[color:var(--prism-muted)]">
+                  Пока нечего повторять — начни урок или диагностику.
+                </p>
+              )}
+            </section>
           </div>
 
 

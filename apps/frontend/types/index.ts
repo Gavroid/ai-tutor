@@ -148,6 +148,9 @@ export type MaterialDraftOut = {
 export type Topic = {
   id: number;
   section_id: number;
+  // Sprint 3.9.7.3: добавлено чтобы /topics/{id} мог строить back-link
+  // на /subjects/{subject_id} (страница со списком тем предмета).
+  subject_id?: number;
   name: string;
   description: string | null;
   difficulty: number;

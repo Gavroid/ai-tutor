@@ -250,10 +250,24 @@ def get_topic(topic_id: int, db: Session = Depends(get_db)):
     if cached is not None:
         return cached
 
-    t = db.get(models.Topic, topic_id)
-    if t is None:
+    # Sprint 3.9.7.3: загружаем с JOIN чтобы получить subject_id для
+    # back-link из /topics/{id} на /subjects/{subject_id}.
+    from sqlalchemy import select
+    from app.subjects.models import Topic, Section, Subject
+
+    stmt = (
+        select(Topic, Section.subject_id)
+        .join(Section, Topic.section_id == Section.id)
+        .where(Topic.id == topic_id)
+    )
+    row = db.execute(stmt).first()
+    if row is None:
         raise HTTPException(404, "Topic not found")
-    return t
+    topic, subject_id = row
+    # pydantic from_attributes mode использует атрибуты объекта.
+    # Подменяем subject_id динамически.
+    topic.subject_id = subject_id  # type: ignore[attr-defined]
+    return topic
 
 
 def _followups_for_topic(topic: models.Topic) -> list[schemas.TopicFollowupOut]:

@@ -80,6 +80,9 @@ class TopicOut(BaseModel):
 
     id: int
     section_id: int
+    # Sprint 3.9.7.3: добавляем subject_id чтобы фронт мог строить
+    # back-link на /subjects/{subject_id} (страница со списком тем предмета).
+    subject_id: int = 0
     name: str
     description: str | None
     difficulty: int

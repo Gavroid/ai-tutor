@@ -406,7 +406,15 @@ export default function TopicPage() {
 
   return (
     <main className="split-shell min-h-dvh">
-      <Header user={user} backHref="/subjects" backLabel="Все предметы" title={topic?.name || "Тема"} />
+      {/* Sprint 3.9.7.3: back-link ведёт на страницу текущего предмета
+          (/subjects/{subject_id}), а не в общий каталог /subjects —
+          так Кирилл сразу попадает в список тем именно этого предмета. */}
+      <Header
+        user={user}
+        backHref={topic?.subject_id ? `/subjects/${topic.subject_id}` : "/subjects"}
+        backLabel={topic?.subject_id ? "← К темам предмета" : "← Все предметы"}
+        title={topic?.name || "Тема"}
+      />
 
       <MobileLessonTabs activePane={activePane} onPaneChange={setActivePane} />
 
