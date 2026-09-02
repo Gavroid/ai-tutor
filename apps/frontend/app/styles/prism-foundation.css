@@ -23,12 +23,15 @@
   --color-sunset-orange: #ff8a1f;
   --color-night-purple: #26124d;
 
-  --color-bg:           #160b2f;
-  --color-surface:      #fff7fb;
-  --color-surface-2:    #ffeef7;
-  --color-surface-3:    #ffd7ee;
-  --color-border:       rgba(255, 143, 222, 0.32);
-  --color-border-strong:rgba(25, 246, 255, 0.45);
+  /* Sprint 3.9.2: light mode tokens (правильные).
+     Раньше :root имел тёмные bg + тёмные fg — это была инверсия,
+     которая ломала светлую тему. Теперь bg светлый, fg тёмный. */
+  --color-bg:           #f7f7fb;
+  --color-surface:      #ffffff;
+  --color-surface-2:    #f4f0fa;
+  --color-surface-3:    #e9e3f5;
+  --color-border:       rgba(83, 58, 253, 0.18);
+  --color-border-strong:rgba(25, 246, 255, 0.34);
 
   --color-fg:           #171022;
   --color-fg-muted:     #4a3d5d;
@@ -40,7 +43,7 @@
   --color-info:    #19bfff;
 
   --font-sans: "Inter", "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Inter", "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Inter", "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
 
   --radius-sm: 8px;
@@ -51,11 +54,11 @@
   --radius-full: 9999px;
 
   --shadow-xs: 0 1px 2px 0 rgb(10 4 28 / 0.06);
-  --shadow-sm: 0 8px 18px -14px rgb(26 9 52 / 0.35);
-  --shadow:    0 18px 42px -24px rgb(26 9 52 / 0.45);
-  --shadow-md: 0 24px 60px -30px rgb(26 9 52 / 0.55), 0 0 0 1px rgba(255, 47, 179, 0.12);
-  --shadow-lg: 0 36px 90px -42px rgb(5 0 20 / 0.65), 0 0 42px rgba(255, 47, 179, 0.18);
-  --shadow-glow: 0 0 0 1px rgba(25, 246, 255, 0.22), 0 0 26px rgba(255, 47, 179, 0.28), 0 10px 34px rgba(47, 124, 255, 0.16);
+  --shadow-sm: 0 8px 18px -14px rgb(26 9 52 / 0.20);
+  --shadow:    0 18px 42px -24px rgb(26 9 52 / 0.28);
+  --shadow-md: 0 24px 60px -30px rgb(26 9 52 / 0.34), 0 0 0 1px rgba(83, 58, 253, 0.10);
+  --shadow-lg: 0 36px 90px -42px rgb(26 9 52 / 0.40), 0 0 32px rgba(83, 58, 253, 0.14);
+  --shadow-glow: 0 0 0 1px rgba(83, 58, 253, 0.14), 0 0 18px rgba(255, 47, 179, 0.20), 0 10px 26px rgba(47, 124, 255, 0.10);
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
