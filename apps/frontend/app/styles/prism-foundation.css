@@ -23,19 +23,20 @@
   --color-sunset-orange: #ff8a1f;
   --color-night-purple: #26124d;
 
-  /* Sprint 3.9.2: light mode tokens (правильные).
-     Раньше :root имел тёмные bg + тёмные fg — это была инверсия,
-     которая ломала светлую тему. Теперь bg светлый, fg тёмный. */
-  --color-bg:           #f7f7fb;
-  --color-surface:      #ffffff;
-  --color-surface-2:    #f4f0fa;
-  --color-surface-3:    #e9e3f5;
-  --color-border:       rgba(83, 58, 253, 0.18);
-  --color-border-strong:rgba(25, 246, 255, 0.34);
+  /* Sprint 3.9.2: только тёмная тема. ThemeToggle убран,
+     светлая палитра здесь оставлена для случая когда пользователь
+     переключится через prefers-color-scheme (но ThemeToggle скрыт).
+     Приоритет значений — dark для нашего use case. */
+  --color-bg:           #0b0620;
+  --color-surface:      #181033;
+  --color-surface-2:    #241447;
+  --color-surface-3:    #321c60;
+  --color-border:       rgba(255, 143, 222, 0.24);
+  --color-border-strong:rgba(25, 246, 255, 0.38);
 
-  --color-fg:           #171022;
-  --color-fg-muted:     #4a3d5d;
-  --color-fg-subtle:    #7b6c91;
+  --color-fg:           #fff7fb;
+  --color-fg-muted:     #d8cce8;
+  --color-fg-subtle:    #a99aba;
 
   --color-success: #14d87a;
   --color-warning: #ffb000;
@@ -53,12 +54,12 @@
   --radius-xl: 34px;
   --radius-full: 9999px;
 
-  --shadow-xs: 0 1px 2px 0 rgb(10 4 28 / 0.06);
-  --shadow-sm: 0 8px 18px -14px rgb(26 9 52 / 0.20);
-  --shadow:    0 18px 42px -24px rgb(26 9 52 / 0.28);
-  --shadow-md: 0 24px 60px -30px rgb(26 9 52 / 0.34), 0 0 0 1px rgba(83, 58, 253, 0.10);
-  --shadow-lg: 0 36px 90px -42px rgb(26 9 52 / 0.40), 0 0 32px rgba(83, 58, 253, 0.14);
-  --shadow-glow: 0 0 0 1px rgba(83, 58, 253, 0.14), 0 0 18px rgba(255, 47, 179, 0.20), 0 10px 26px rgba(47, 124, 255, 0.10);
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.30);
+  --shadow-sm: 0 10px 22px -16px rgb(0 0 0 / 0.55);
+  --shadow:    0 18px 48px -28px rgb(0 0 0 / 0.60);
+  --shadow-md: 0 28px 68px -34px rgb(0 0 0 / 0.70), 0 0 0 1px rgba(255, 47, 179, 0.18);
+  --shadow-lg: 0 44px 100px -48px rgb(0 0 0 / 0.78), 0 0 46px rgba(255, 47, 179, 0.22);
+  --shadow-glow: 0 0 0 1px rgba(25, 246, 255, 0.28), 0 0 30px rgba(255, 47, 179, 0.30), 0 14px 42px rgba(47, 124, 255, 0.20);
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
@@ -67,25 +68,11 @@
   --duration-slow: 320ms;
 }
 
-/* === Dark mode tokens === */
+/* (legacy dark override — оставлен на случай если пользователь случайно
+   переключит тему через prefers-color-scheme или old ThemeToggle.
+   Всегда dark в текущей сборке.) */
 html.dark {
-  --color-bg:           #0b0620;
-  --color-surface:      #181033;
-  --color-surface-2:    #241447;
-  --color-surface-3:    #321c60;
-  --color-border:       rgba(255, 143, 222, 0.24);
-  --color-border-strong:rgba(25, 246, 255, 0.38);
-
-  --color-fg:           #fff7fb;
-  --color-fg-muted:     #d8cce8;
-  --color-fg-subtle:    #a99aba;
-
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.30);
-  --shadow-sm: 0 10px 22px -16px rgb(0 0 0 / 0.55);
-  --shadow:    0 18px 48px -28px rgb(0 0 0 / 0.60);
-  --shadow-md: 0 28px 68px -34px rgb(0 0 0 / 0.70), 0 0 0 1px rgba(255, 47, 179, 0.18);
-  --shadow-lg: 0 44px 100px -48px rgb(0 0 0 / 0.78), 0 0 46px rgba(255, 47, 179, 0.22);
-  --shadow-glow: 0 0 0 1px rgba(25, 246, 255, 0.28), 0 0 30px rgba(255, 47, 179, 0.30), 0 14px 42px rgba(47, 124, 255, 0.20);
+  /* Те же значения что и в :root, потому что мы dark-only. */
 }
 
 /* ============================================================ */

@@ -36,30 +36,16 @@ export const viewport: Viewport = {
  */
 const themeInitScript = `
 (function() {
+  // Sprint 3.9.2: только тёмная тема. ThemeToggle убран,
+  // light/system выбор больше недоступен. Всегда принудительно dark.
   try {
     if (location.hostname === 'school431a.ru') {
       location.replace('https://school.431a.ru' + location.pathname + location.search + location.hash);
       return;
     }
-    // Sprint 3.9.2: уважаем сохранённый выбор пользователя.
-    // Раньше скрипт БЕЗУСЛОВНО добавлял class="dark" на <html>,
-    // что перекрывало ThemeToggle после F5. Теперь:
-    // - если localStorage пустой → 'system' (prefers-color-scheme)
-    // - если есть сохранённый выбор → применяем его
-    var saved = null;
-    try { saved = localStorage.getItem('ai-tutor:theme'); } catch (_) {}
-    var t = (saved === 'light' || saved === 'dark' || saved === 'system') ? saved : 'system';
-    var resolved = (t === 'system')
-      ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-      : t;
-    if (resolved === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    document.documentElement.dataset.theme = t;
+    document.documentElement.classList.add('dark');
+    document.documentElement.dataset.theme = 'dark';
   } catch (e) {
-    // На крайний случай — тёмная (старое поведение, чтобы не было FOUC).
     document.documentElement.classList.add('dark');
     document.documentElement.dataset.theme = 'dark';
   }
