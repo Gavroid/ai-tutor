@@ -47,7 +47,8 @@ services:
     env_file: ../.env
     environment:
       REDIS_URL: redis://redis:6379/0
-      RATE_LIMIT_LOGIN: ${RATE_LIMIT_LOGIN:-10}
+      # Sprint 3.9.5: ×2 — Кирилл попросил. Login 20 попыток / 15 мин на IP.
+      RATE_LIMIT_LOGIN: ${RATE_LIMIT_LOGIN:-20}
       # Trust only the Docker external proxy network for X-Forwarded-For.
       # Without this, login/register rate limits key on the proxy container IP.
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.19.0.0/16}

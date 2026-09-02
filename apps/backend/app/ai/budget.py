@@ -21,11 +21,12 @@ logger = logging.getLogger(__name__)
 
 # Лимиты по умолчанию (на пользователя в день).
 # Можно переопределить через env: AI_BUDGET_REQUESTS_PER_DAY, AI_BUDGET_TOKENS_PER_DAY.
-DAILY_REQUESTS_LIMIT = int(os.environ.get("AI_BUDGET_REQUESTS_PER_DAY", "200"))
-DAILY_TOKENS_LIMIT = int(os.environ.get("AI_BUDGET_TOKENS_PER_DAY", "200000"))
+# Sprint 3.9.5: Кирилл попросил 250 req / 500k токенов.
+DAILY_REQUESTS_LIMIT = int(os.environ.get("AI_BUDGET_REQUESTS_PER_DAY", "250"))
+DAILY_TOKENS_LIMIT = int(os.environ.get("AI_BUDGET_TOKENS_PER_DAY", "500000"))
 # Sprint 80: hourly limit — burst protection (24h limit не защищает от burst).
-# Если за 1 час пользователь сделал >20 запросов → 429 (защита от runaway loops).
-HOURLY_REQUESTS_LIMIT = int(os.environ.get("AI_BUDGET_REQUESTS_PER_HOUR", "20"))
+# Sprint 3.9.5: Кирилл попросил 60/час вместо 20/час.
+HOURLY_REQUESTS_LIMIT = int(os.environ.get("AI_BUDGET_REQUESTS_PER_HOUR", "60"))
 ALERT_THRESHOLD_PCT = int(os.environ.get("AI_BUDGET_ALERT_PCT", "80"))
 
 

@@ -119,11 +119,15 @@ def _ai_response(
 
 
 def _enforce_budget(current: user_models.User) -> None:
-    """AI-budget: 429 если превышен дневной лимит.
+    """AI-budget: 429 если превышен дневной/часовой лимит.
 
     Sprint 69: admin role bypasses budget (operational necessity).
     Admin/teacher используют AI для debugging и tests,
     обычные users (student/parent) ограничены.
+
+    Sprint 3.9.5: понятные сообщения на русском с указанием времени сброса.
+    Кирилл должен понимать: «лимит сбросится в полночь» или
+    «лимит сбросится когда кончится текущий час».
     """
     # Sprint 69: admin bypass — только для оперативных нужд (debugging, tests).
     if current.role == user_models.Role.ADMIN:
@@ -132,11 +136,60 @@ def _enforce_budget(current: user_models.User) -> None:
     try:
         check_and_increment(current.id)
     except BudgetExceeded as e:
-        raise HTTPException(
-            429,
-            f"AI budget exceeded ({e.limit_kind}): {e.used}/{e.limit} (24h). "
-            f"Подожди до завтра или попроси администратора увеличить лимит.",
-        )
+        # Формируем человеческое сообщение на русском с указанием сброса.
+        from datetime import datetime, timedelta, timezone
+
+        now = datetime.now(timezone.utc)
+        if e.limit_kind == "hourly_requests":
+            # Лимит сбрасывается в начале следующего часа (TTL 3600 сек).
+            # Показываем сколько минут осталось.
+            next_hour = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+            mins_left = max(1, int((next_hour - now).total_seconds() // 60))
+            detail = (
+                f"Кирилл, ты сделал уже {e.used} запросов за этот час "
+                f"(лимит {e.limit}). "
+                f"Лимит сбросится через {mins_left} мин, "
+                f"когда закончится текущий час."
+            )
+        elif e.limit_kind == "daily_requests":
+            # Лимит сбрасывается в 00:00 UTC (= 03:00 МСК).
+            next_midnight = (now + timedelta(days=1)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            hours_left = max(1, int((next_midnight - now).total_seconds() // 3600))
+            detail = (
+                f"Кирилл, на сегодня лимит запросов исчерпан "
+                f"({e.used}/{e.limit}). "
+                f"Сбросится через {hours_left} ч, в 03:00 по Москве."
+            )
+        elif e.limit_kind == "daily_tokens":
+            next_midnight = (now + timedelta(days=1)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            hours_left = max(1, int((next_midnight - now).total_seconds() // 3600))
+            used_k = e.used // 1000
+            limit_k = e.limit // 1000
+            detail = (
+                f"Кирилл, на сегодня лимит слов исчерпан "
+                f"({used_k} тыс. из {limit_k} тыс.). "
+                f"Сбросится через {hours_left} ч, в 03:00 по Москве."
+            )
+        elif e.limit_kind == "hourly_tokens":
+            next_hour = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+            mins_left = max(1, int((next_hour - now).total_seconds() // 60))
+            used_k = e.used // 1000
+            limit_k = e.limit // 1000
+            detail = (
+                f"Кирилл, за этот час лимит слов исчерпан "
+                f"({used_k} тыс. из {limit_k} тыс.). "
+                f"Сбросится через {mins_left} мин."
+            )
+        else:
+            detail = (
+                f"AI budget exceeded ({e.limit_kind}): {e.used}/{e.limit}. "
+                f"Подожди до сброса лимита."
+            )
+        raise HTTPException(429, detail)
 
 
 @router.post("/explain")

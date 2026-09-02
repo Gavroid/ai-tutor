@@ -40,7 +40,21 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export class ApiError extends Error {
   constructor(public status: number, public body: any) {
-    super(typeof body === "string" ? body : JSON.stringify(body));
+    // Sprint 3.9.5: показать пользователю detail из FastAPI {"detail": "..."},
+    // а не сырой JSON. FastAPI 422-ошибки могут вернуть массив,
+    // такие оставляем как JSON-stringify для диагностики.
+    let msg: string;
+    if (body && typeof body === "object" && !Array.isArray(body)) {
+      msg =
+        (typeof body.detail === "string" && body.detail) ||
+        (typeof body.message === "string" && body.message) ||
+        JSON.stringify(body);
+    } else if (typeof body === "string") {
+      msg = body;
+    } else {
+      msg = JSON.stringify(body);
+    }
+    super(msg);
   }
 }
 

@@ -362,10 +362,17 @@ def create_app() -> FastAPI:
             if not allowed:
                 from fastapi.responses import JSONResponse
 
+                # Sprint 3.9.5: понятное сообщение — лимит сбросится через N сек
+                # (окно 60 сек). Считаем сколько секунд до конца текущей минуты.
+                secs_left = max(1, int(window - (now % window)))
                 return JSONResponse(
                     status_code=429,
                     content={
-                        "detail": f"Превышен лимит AI-запросов ({max_calls}/мин). Подождите немного."
+                        "detail": (
+                            f"Слишком часто. Сделано {max_calls} запросов за минуту — "
+                            f"это максимум. Подожди {secs_left} сек, "
+                            f"когда начнётся новая минута."
+                        )
                     },
                 )
 

@@ -54,10 +54,12 @@ class Settings(BaseSettings):
     jwt_access_ttl_minutes: int = 60 * 24  # 24 часа
     jwt_refresh_ttl_days: int = 30
 
-    # Rate limit
+    # Rate limit (Sprint 3.9.5: Кирилл попросил большие лимиты).
+    # rate_limit_login_per_15min: ×2 (10 → 20) — Кирилл плюс тесты,
+    # чтобы не упираться в 15-минутное окно при обычной работе.
     rate_limit_ai_per_minute: int = 30
     rate_limit_register_per_hour: int = 5
-    rate_limit_login_per_15min: int = int(os.getenv("RATE_LIMIT_LOGIN", "10"))
+    rate_limit_login_per_15min: int = int(os.getenv("RATE_LIMIT_LOGIN", "20"))
 
     # Audit log retention
     audit_retention_days: int = 90

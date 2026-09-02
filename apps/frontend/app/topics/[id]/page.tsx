@@ -16,9 +16,9 @@ function extractErrorMessage(err: unknown): string {
     if (err.status === 503 || err.status === 504) {
       return `AI временно недоступен (HTTP ${err.status}). Попробуй позже.`;
     }
-    if (err.status === 429) {
-      return "Слишком много запросов. Подожди минуту и попробуй снова.";
-    }
+    // Sprint 3.9.5: 429-сообщение теперь приходит с backend понятным
+    // человеческим текстом (Кирилл, ты сделал уже… / Слишком часто…).
+    // Не затираем его своим «подожди минуту».
     return err.message;
   }
   if (err instanceof Error) return err.message;
