@@ -98,61 +98,62 @@ export default function HomePage() {
               {/* Sprint 3.9.7.3: убрал «Модель: openai/gpt-5.6-luna» —
                   для ребёнка это техническая информация, которая его отвлекает.
                   Модель видна только в /admin/ai-providers (Sprint 3.9.6). */}
-              {/* Sprint 3.9.7.3: блок «Стоит повторить» вынесен из правого
-                  сайдбара в отдельную секцию во всю ширину — пользователь
-                  сказал «растянуть по ширине экрана чтобы убрать пустоты».
-                  Сейчас он перенесён НИЖЕ этого aside, во всю ширину. */}
+              {/* Sprint 3.9.7.7 (revised): блок «Стоит повторить» был вынесен
+                  из правого сайдбара (Sprint 3.9.7.3), но лежал ВНУТРИ
+                  prism-hero-grid → контейнер ~50% ширины → карточки в 2 ряда.
+                  Теперь он вынесен НАРУЖУ (после </div> prism-layer), на полную
+                  ширину prism-frame — карточки одной строкой. */}
             </aside>
-
-            {/* Sprint 3.9.7.3: новая полноширинная секция «Стоит повторить». */}
-            <section className="prism-card pad glow">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">
-                  Стоит повторить
-                </div>
-                {review.length > 0 && (
-                  <div className="text-xs text-[color:var(--prism-muted)]">
-                    Показано: {Math.min(review.length, 6)} из {review.length}
-                  </div>
-                )}
-              </div>
-              {review.length > 0 ? (
-                // Sprint 3.9.7.7: одна строка на desktop через auto-fit.
-                // На 1280px viewport все 5 карточек помещаются в одну строку,
-                // на mobile (375px) — перенос на несколько строк через minmax(220px, 1fr).
-                // Раньше было grid-cols-3 — на 5 карточках появлялась пустая 3-я ячейка.
-                (
-                  <div
-                    className="grid gap-3"
-                    style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}
-                  >
-                    {review.slice(0, 6).map((r) => (
-                      <Link
-                        key={r.topic_id}
-                        href={`/topics/${r.topic_id}`}
-                        className="prism-review-row block rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/40 px-4 py-3 hover:border-[color:var(--prism-accent)] transition-colors"
-                      >
-                        <div className="truncate text-base font-black">{r.topic_name}</div>
-                        <div className="mt-1 flex items-center gap-2 text-xs text-[color:var(--prism-muted)]">
-                          <span>Уверенность {Math.round(r.mastery_score * 100)}%</span>
-                          {r.subject_name && (
-                            <>
-                              <span aria-hidden="true">·</span>
-                              <span className="truncate">{r.subject_name}</span>
-                            </>
-                          )}
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )
-              ) : (
-                <p className="text-sm text-[color:var(--prism-muted)]">
-                  Пока нечего повторять — начни урок или диагностику.
-                </p>
-              )}
-            </section>
           </div>
+
+          {/* Sprint 3.9.7.7 (revised): блок «Стоит повторить» вынесен ИЗ
+              prism-hero-grid наружу — раньше он лежал внутри hero-grid
+              (grid 2 колонки) и контейнер был ~50% ширины, поэтому
+              grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))
+              давал только 2 колонки в строке (5×220 не помещалось).
+              Теперь блок на всю ширину prism-frame — все 5 карточек
+              в одну строку. */}
+          <section className="prism-card pad glow mt-4 mx-4 lg:mx-7">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">
+                Стоит повторить
+              </div>
+              {review.length > 0 && (
+                <div className="text-xs text-[color:var(--prism-muted)]">
+                  Показано: {Math.min(review.length, 6)} из {review.length}
+                </div>
+              )}
+            </div>
+            {review.length > 0 ? (
+              <div
+                className="grid gap-3"
+                style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}
+              >
+                {review.slice(0, 6).map((r) => (
+                  <Link
+                    key={r.topic_id}
+                    href={`/topics/${r.topic_id}`}
+                    className="prism-review-row block rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/40 px-4 py-3 hover:border-[color:var(--prism-accent)] transition-colors"
+                  >
+                    <div className="truncate text-base font-black">{r.topic_name}</div>
+                    <div className="mt-1 flex items-center gap-2 text-xs text-[color:var(--prism-muted)]">
+                      <span>Уверенность {Math.round(r.mastery_score * 100)}%</span>
+                      {r.subject_name && (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span className="truncate">{r.subject_name}</span>
+                        </>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-[color:var(--prism-muted)]">
+                Пока нечего повторять — начни урок или диагностику.
+              </p>
+            )}
+          </section>
 
 
           <section className="prism-layer px-4 pb-5 lg:px-7 lg:pb-7">
