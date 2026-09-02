@@ -37,6 +37,10 @@
   max-width: 68ch;
   word-wrap: break-word;
   overflow-wrap: anywhere;
+  /* Sprint 3.9.7.2: счётчик mdstep сбрасывается один раз на весь
+     .md-stream — все <ol> внутри получают сквозную нумерацию
+     (1, 2, 3, 4, 5...) независимо от того, сколько их было. */
+  counter-reset: mdstep;
 }
 
 .md-stream > * + * { margin-top: 0.6em; }
@@ -141,15 +145,19 @@
 
 .md-li {
   position: relative;
-  padding: 0.18em 0 0.18em 1.4em;
+  /* Sprint 3.9.7.2: padding-left 2em — оставляем место под маркер + box-shadow,
+     чтобы highlight chip на первой букве не налезал на маркер. */
+  padding: 0.18em 0 0.18em 2em;
   margin: 0;
 }
 
 .md-li::before {
   content: "";
   position: absolute;
-  left: 0.2em;
-  top: 0.7em;
+  /* Sprint 3.9.7.2: top 0.65em — на уровне cap-height первой строки;
+     раньше 0.7em заходил на highlight chip первой буквы. */
+  left: 0.1em;
+  top: 0.65em;
   width: 0.45em;
   height: 0.45em;
   background: linear-gradient(135deg, var(--md-accent), var(--md-cyan));
@@ -163,15 +171,19 @@
   list-style: none;
   padding: 0;
   margin: 0.5em 0;
-  counter-reset: mdstep;
+  /* Sprint 3.9.7.2: НЕ сбрасываем counter на каждом <ol> — продолжаем
+     сквозную нумерацию через все <ol> подряд (1, 2, 3, 4, 5...).
+     counter-reset: mdstep теперь на .md-stream (см. ниже). */
 }
 
 .md-li-step {
   display: grid;
-  grid-template-columns: 1.8em 1fr;
+  grid-template-columns: 2em 1fr;
   align-items: start;
   gap: 0.5em;
   padding: 0.25em 0;
+  /* Sprint 3.9.7.2: каждый li инкрементирует общий счётчик. */
+  counter-increment: mdstep;
 }
 
 .md-li-pill {
@@ -190,6 +202,14 @@
   font-family: var(--font-display);
   margin-top: 0.18em;
   box-shadow: 0 2px 8px color-mix(in srgb, var(--md-accent) 35%, transparent);
+  /* Sprint 3.9.7.2: номер берётся из CSS counter (mdstep).
+     Раньше номер был в HTML (<span class="md-li-pill">${idx + 1</span>),
+     из-за чего каждый новый <ol> начинался с 1 — пользователь видел 1 1 1
+     вместо 1 2 3. Теперь номер генерируется CSS, продолжается через все ol. */
+}
+
+.md-li-pill::before {
+  content: counter(mdstep);
 }
 
 .md-li-text {

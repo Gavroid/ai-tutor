@@ -85,10 +85,26 @@ console.log("\n3. Lists");
 
   const ol = renderMarkdown("1. шаг\n2. шаг\n3. шаг");
   assertContains("ol → md-ol", ol, '<ol class="md-ol">');
-  assertContains("step 1 pill", ol, '<span class="md-li-pill">1</span>');
-  assertContains("step 2 pill", ol, '<span class="md-li-pill">2</span>');
-  assertContains("step 3 pill", ol, '<span class="md-li-pill">3</span>');
+  // Sprint 3.9.7.2: номер берётся из CSS counter, а не из HTML.
+  // Поэтому проверяем что pill пустой (номер приходит из ::before).
+  assertContains("step pill empty (number from CSS)", ol, '<span class="md-li-pill" aria-hidden="true"></span>');
+  assertContains("step pill has md-li-pill class", ol, 'class="md-li-pill"');
+  assertContains("step text wrapped in md-li-text", ol, '<span class="md-li-text">');
   assertNotContains("no list-decimal", ol, 'list-decimal');
+}
+
+// ----- 3b. Multiple <ol> in one document get sequential numbering (CSS counter) -----
+console.log("\n3b. Multiple <ol> — CSS counter mdstep");
+{
+  const md = "1. первый\n2. второй\n\nТекст между списками.\n\n1. снова первый (но counter уже =3)";
+  const html = renderMarkdown(md);
+  // Должно быть ДВА <ol>, не один общий
+  const olCount = (html.match(/<ol class="md-ul"/g) || html.match(/<ol class="md-ol"/g) || []).length;
+  assertContains("two separate <ol> blocks", html, '<ol class="md-ol">');
+  // Pill НЕ содержит HTML-номера
+  assertNotContains("pill has no HTML number", html, 'md-li-pill">1');
+  assertNotContains("pill has no HTML number 2", html, 'md-li-pill">2');
+  assertNotContains("pill has no HTML number 3", html, 'md-li-pill">3');
 }
 
 // ----- 4. Callouts -----

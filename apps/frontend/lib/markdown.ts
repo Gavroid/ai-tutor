@@ -312,6 +312,9 @@ export function renderMarkdown(md: string): string {
     }
 
     // ----- Ordered list (нумерованные пилюли) -----
+    // Sprint 3.9.7.2: номер берётся из CSS counter (mdstep), чтобы
+    // сквозная нумерация работала через несколько <ol> подряд.
+    // Без counter — каждый новый <ol> начинает с 1, что сбивает с толку.
     if (/^\s*\d+\.\s+/.test(line)) {
       const items: string[] = [];
       while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
@@ -320,7 +323,7 @@ export function renderMarkdown(md: string): string {
       }
       out.push(
         `<ol class="md-ol">${items
-          .map((it, idx) => `<li class="md-li md-li-step"><span class="md-li-pill">${idx + 1}</span><span class="md-li-text">${renderInline(it)}</span></li>`)
+          .map((it) => `<li class="md-li md-li-step"><span class="md-li-pill" aria-hidden="true"></span><span class="md-li-text">${renderInline(it)}</span></li>`)
           .join("")}</ol>`
       );
       continue;
