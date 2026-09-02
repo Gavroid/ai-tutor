@@ -144,25 +144,39 @@
 }
 
 .md-li {
-  position: relative;
-  /* Sprint 3.9.7.2: padding-left 2em — оставляем место под маркер + box-shadow,
-     чтобы highlight chip на первой букве не налезал на маркер. */
-  padding: 0.18em 0 0.18em 2em;
+  /* Sprint 3.9.7.4: grid [marker 1em | gap 0.5em | text]. Маркер всегда
+     в своей колонке, текст в своей — физически не пересекутся
+     независимо от ширины highlight chip на первой букве.
+     Старое решение с position:absolute + padding-left переставало
+     работать когда у первой буквы был highlight chip с border 1px +
+     padding 0.06em 0.36em (chip вылезал вверх выше baseline и
+     пересекался с маркером). */
+  display: grid;
+  grid-template-columns: 1em 1fr;
+  gap: 0.55em;
+  align-items: start;
+  padding: 0.22em 0;
   margin: 0;
 }
 
-.md-li::before {
-  content: "";
-  position: absolute;
-  /* Sprint 3.9.7.2: top 0.65em — на уровне cap-height первой строки;
-     раньше 0.7em заходил на highlight chip первой буквы. */
-  left: 0.1em;
-  top: 0.65em;
-  width: 0.45em;
-  height: 0.45em;
-  background: linear-gradient(135deg, var(--md-accent), var(--md-cyan));
+.md-li-marker {
+  /* Спринт 3.9.7.4: маркер как отдельный span — gradient кружок
+     по центру первой строки. Не absolute, поэтому никогда не
+     накладывается на текст. */
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-top: 0.6em; /* baseline-align с первой строкой текста */
   border-radius: 50%;
+  background: linear-gradient(135deg, var(--md-accent), var(--md-cyan));
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-accent) 18%, transparent);
+}
+
+.md-li-text {
+  /* Спринт 3.9.7.4: span для текста — позволяет grid держать текст
+     во второй колонке. */
+  flex: 1;
+  min-width: 0;
 }
 
 /* ----------- Ordered list (нумерованные пилюли) ----------- */
@@ -457,6 +471,12 @@
   }
   .md-li-step {
     grid-template-columns: 1.6em 1fr;
+  }
+  .md-li-marker {
+    /* Mobile: чуть больше маркер для tap-friendliness. */
+    width: 0.6em;
+    height: 0.6em;
+    margin-top: 0.55em;
   }
   .md-codeblock-pre {
     font-size: 0.82em;

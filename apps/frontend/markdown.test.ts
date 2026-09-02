@@ -80,6 +80,10 @@ console.log("\n3. Lists");
   const ul = renderMarkdown("- первый\n- второй\n- третий");
   assertContains("ul → md-ul", ul, '<ul class="md-ul">');
   assertContains("li → md-li", ul, '<li class="md-li">');
+  // Sprint 3.9.7.4: маркер вынесен в отдельный span (md-li-marker),
+  // текст в .md-li-text — grid layout, пересечений не будет.
+  assertContains("ul marker span", ul, '<span class="md-li-marker" aria-hidden="true"></span>');
+  assertContains("ul text wrapper", ul, '<span class="md-li-text">');
   // ❌ Старый list-disc НЕ должен попасть.
   assertNotContains("no list-disc", ul, 'list-disc');
 

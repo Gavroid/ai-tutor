@@ -297,6 +297,10 @@ export function renderMarkdown(md: string): string {
     }
 
     // ----- Unordered list (с акцентными маркерами) -----
+    // Sprint 3.9.7.4: маркер вынесен в отдельный span (как у ol) чтобы
+    // избежать перекрытия highlight chip на первой букве. Каждый li —
+    // это grid [marker 1.4em | gap 0.5em | text]. Маркер и текст физически
+    // не могут пересечься независимо от ширины highlight chip.
     if (/^\s*[-*]\s+/.test(line)) {
       const items: string[] = [];
       while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
@@ -305,7 +309,10 @@ export function renderMarkdown(md: string): string {
       }
       out.push(
         `<ul class="md-ul">${items
-          .map((it) => `<li class="md-li">${renderInline(it)}</li>`)
+          .map(
+            (it) =>
+              `<li class="md-li"><span class="md-li-marker" aria-hidden="true"></span><span class="md-li-text">${renderInline(it)}</span></li>`
+          )
           .join("")}</ul>`
       );
       continue;
