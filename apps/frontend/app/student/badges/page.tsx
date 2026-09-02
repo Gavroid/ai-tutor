@@ -1,19 +1,48 @@
-import Link from "next/link";
+"use client";
+
+// Sprint 3.10 — редизайн /student/badges под prism-shell.
+// Sprint 7.1: парсим markdown в реальном времени во время WS-стрима.
+
+import { useEffect, useState } from "react";
+import Header from "@/components/Header";
+import { api } from "@/lib/api";
 import StudentBadgesClient from "./client";
 
 export default function StudentBadgesPage() {
+  const [user, setUser] = useState<{ display_name: string } | null>(null);
+
+  useEffect(() => {
+    api
+      .me()
+      .then((u) => setUser({ display_name: u.display_name }))
+      .catch(() => setUser(null));
+  }, []);
+
   return (
-    <main className="mx-auto max-w-3xl p-6">
-      <header className="border-b border-slate-200 pb-4">
-        <Link href="/subjects" className="text-sm text-sky-600 hover:underline">
-          ← Все предметы
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold">Мои достижения</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Баджи за усилие (не за streak). Получай их, пробуя новое и возвращаясь к сложному.
-        </p>
-      </header>
-      <StudentBadgesClient />
+    <main className="prism-shell admin-console min-h-dvh">
+      <Header user={null} backHref="/subjects" backLabel="К предметам" title="Достижения" />
+      <section className="py-3 sm:py-5">
+        <div className="prism-frame">
+          <div className="prism-layer p-5 lg:p-10">
+            {/* Sprint 3.10: оборачиваем в admin-content-zone для scroll
+                (как у /admin/ai-providers Sprint 3.9.6.2). */}
+            <section className="admin-content-zone mt-4 space-y-6">
+              <div className="prism-kicker">Sprint 3.10 · Gamification</div>
+              <h1 className="text-3xl font-black tracking-[-0.04em] text-[color:var(--prism-ink)]">
+                Достижения и серии
+              </h1>
+              <p className="text-sm leading-6 text-[color:var(--prism-muted)] max-w-3xl">
+                Баджи за <strong>усилие</strong>, а не за streak — за возвращение к сложному, за своими словами,
+                за разнообразие предметов. Получай их, пробуя новое.
+                {user?.display_name && (
+                  <> Текущий пользователь: <strong>{user.display_name}</strong>.</>
+                )}
+              </p>
+              <StudentBadgesClient />
+            </section>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
