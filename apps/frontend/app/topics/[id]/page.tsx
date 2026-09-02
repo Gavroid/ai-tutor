@@ -412,7 +412,10 @@ export default function TopicPage() {
       <Header
         user={user}
         backHref={topic?.subject_id ? `/subjects/${topic.subject_id}` : "/subjects"}
-        backLabel={topic?.subject_id ? "← К темам предмета" : "← Все предметы"}
+        /* Sprint 3.9.7.5: Header.tsx автоматически добавляет префикс «← »,
+            поэтому в backLabel только текст, без стрелки. Иначе получалось
+            «← ← К темам предмета» (задублированная стрелка). */
+        backLabel={topic?.subject_id ? "К темам предмета" : "Все предметы"}
         title={topic?.name || "Тема"}
       />
 

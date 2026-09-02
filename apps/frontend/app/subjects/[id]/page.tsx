@@ -99,6 +99,8 @@ export default function SubjectPage() {
 
   return (
     <main className="prism-shell">
+      {/* Sprint 3.9.7.5: Header.tsx автоматически добавляет префикс «← »,
+          поэтому в backLabel только текст, без стрелки. */}
       <Header user={user} backHref="/subjects" backLabel="Все предметы" title={subject ? `${subject.icon || "📘"} ${subject.name}` : "Предмет"} />
       <section className="py-3 sm:py-5">
         <div className="prism-frame">
@@ -108,41 +110,49 @@ export default function SubjectPage() {
               <h1 className="prism-title"><span className="accent">{subject?.icon || "📘"}</span> {subject?.name || "Загружаем"}</h1>
               {subject?.description && <p className="prism-copy">{subject.description}</p>}
             </section>
-            <aside className="prism-card pad glow">
-              <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">Readiness Panel</div>
-              <div className="mt-5 grid grid-cols-2 gap-3">
-                <Readiness label="Тем" value={topics.length || "—"} />
-                <Readiness label="Статус" value={statusLabelFor(subject?.mvp_status ?? "preview")} />
-                <Readiness label="RAG" value={subject?.rag_ready ? "ON" : "OFF"} hot={!!subject?.rag_ready} />
-                <Readiness label="Practice" value={subject?.practice_ready ? "ON" : "Preview"} hot={!!subject?.practice_ready} />
-                {routePlan.length > 0 && (
-                  <Readiness
-                    label="Маршрут"
-                    value={`${routePlan.length}/${routePlan.length}`}
-                    hot
-                  />
-                )}
-                {routePlan.length > 0 && <Readiness label="Контроль" value={routeSummary.checkpoints} hot />}
-              </div>
-              {isOperator && (
-                <div className="mt-4 rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/40 p-3 text-[10px] uppercase tracking-[0.14em]">
-                  <div className="text-[color:var(--prism-muted)]">Evidence gates (оператор)</div>
-                  <div className="mt-2 grid grid-cols-2 gap-1">
-                    <EvidenceBadge label="manifest" ready={!!subject?.manifest_ready} />
-                    <EvidenceBadge label="mapping" ready={!!subject?.mapping_ready} />
-                    <EvidenceBadge label="import" ready={!!subject?.import_ready} />
-                    <EvidenceBadge label="rag" ready={!!subject?.rag_ready} />
-                    <EvidenceBadge label="practice" ready={!!subject?.practice_ready} />
-                    <EvidenceBadge label="smoke" ready={!!subject?.manual_smoke_ready} />
-                  </div>
-                  <div className={`mt-3 text-center font-black ${subject?.pilot_visible ? "text-[color:var(--prism-green)]" : "text-[color:var(--prism-amber)]"}`}>
-                    {subject?.pilot_visible ? "✓ pilot-visible для ребёнка" : "✗ скрыт от ребёнка"}
-                  </div>
-                </div>
-              )}
-              {subject && <p className="mt-5 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-4 text-sm text-[color:var(--prism-muted)]"><b>{subject.mvp_status === "mvp_ready" ? "MVP-ready." : "Preview-предмет."}</b> {subject.support_note}</p>}
-            </aside>
           </div>
+
+          {/* Sprint 3.9.7.5: Readiness Panel вынесен из правого сайдбара в
+              отдельную полноширинную секцию — пользователь сказал
+              «растянуть по ширине экрана чтобы убрать пустоты». */}
+          <section className="prism-card pad glow mt-4 mx-4 lg:mx-7">
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">Readiness Panel</div>
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              <Readiness label="Тем" value={topics.length || "—"} />
+              <Readiness label="Статус" value={statusLabelFor(subject?.mvp_status ?? "preview")} />
+              <Readiness label="RAG" value={subject?.rag_ready ? "ON" : "OFF"} hot={!!subject?.rag_ready} />
+              <Readiness label="Practice" value={subject?.practice_ready ? "ON" : "Preview"} hot={!!subject?.practice_ready} />
+              {routePlan.length > 0 && (
+                <Readiness
+                  label="Маршрут"
+                  value={`${routePlan.length}/${routePlan.length}`}
+                  hot
+                />
+              )}
+              {routePlan.length > 0 && <Readiness label="Контроль" value={routeSummary.checkpoints} hot />}
+            </div>
+            {isOperator && (
+              <div className="mt-4 rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/40 p-3 text-[10px] uppercase tracking-[0.14em]">
+                <div className="text-[color:var(--prism-muted)]">Evidence gates (оператор)</div>
+                <div className="mt-2 grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-6">
+                  <EvidenceBadge label="manifest" ready={!!subject?.manifest_ready} />
+                  <EvidenceBadge label="mapping" ready={!!subject?.mapping_ready} />
+                  <EvidenceBadge label="import" ready={!!subject?.import_ready} />
+                  <EvidenceBadge label="rag" ready={!!subject?.rag_ready} />
+                  <EvidenceBadge label="practice" ready={!!subject?.practice_ready} />
+                  <EvidenceBadge label="smoke" ready={!!subject?.manual_smoke_ready} />
+                </div>
+                <div className={`mt-3 text-center font-black ${subject?.pilot_visible ? "text-[color:var(--prism-green)]" : "text-[color:var(--prism-amber)]"}`}>
+                  {subject?.pilot_visible ? "✓ pilot-visible для ребёнка" : "✗ скрыт от ребёнка"}
+                </div>
+              </div>
+            )}
+            {subject && (
+              <p className="mt-5 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-4 text-sm text-[color:var(--prism-muted)]">
+                <b>{subject.mvp_status === "mvp_ready" ? "MVP-ready." : "Preview-предмет."}</b> {subject.support_note}
+              </p>
+            )}
+          </section>
 
           <section className="prism-layer px-4 pb-5 lg:px-7 lg:pb-7">
             {loading && <div className="prism-card pad">Загружаем темы…</div>}
