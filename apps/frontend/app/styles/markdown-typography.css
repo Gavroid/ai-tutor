@@ -394,24 +394,18 @@
   }
 }
 
-/* ----------- Анимация появления блоков (fade+translateY) ----------- */
+/* ----------- Анимация появления (Sprint 3.9.7.1 — отключена) -----------
+   Sprint 3.9.7 добавлял animation: md-fade-in-up 220ms на .md-stream > *,
+   но это вызывало моргание всех блоков при каждом ре-рендере
+   (dangerouslySetInnerHTML полностью пересобирает DOM, и анимация
+   запускается снова). У Кирилла это проявлялось при нажатии кнопок
+   в чате и на практике.
 
-.md-stream > * {
-  animation: md-fade-in-up 220ms ease-out both;
-}
+   Альтернатива (fade-in только нового блока при streaming) требует
+   MutationObserver и усложняет парсер. Для MVP отключаем полностью —
+   ущерба UX нет, моргание убрано. */
 
-@keyframes md-fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ----------- Accessibility: отключаем анимации ----------- */
+/* ----------- Accessibility: зарезервировано для будущего ----------- */
 
 @media (prefers-reduced-motion: reduce) {
   .md-stream > * {
