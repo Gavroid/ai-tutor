@@ -117,26 +117,35 @@ export default function HomePage() {
                 )}
               </div>
               {review.length > 0 ? (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {review.slice(0, 6).map((r) => (
-                    <Link
-                      key={r.topic_id}
-                      href={`/topics/${r.topic_id}`}
-                      className="prism-review-row block rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/40 px-4 py-3 hover:border-[color:var(--prism-accent)] transition-colors"
-                    >
-                      <div className="truncate text-base font-black">{r.topic_name}</div>
-                      <div className="mt-1 flex items-center gap-2 text-xs text-[color:var(--prism-muted)]">
-                        <span>Уверенность {Math.round(r.mastery_score * 100)}%</span>
-                        {r.subject_name && (
-                          <>
-                            <span aria-hidden="true">·</span>
-                            <span className="truncate">{r.subject_name}</span>
-                          </>
-                        )}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
+                // Sprint 3.9.7.7: одна строка на desktop через auto-fit.
+                // На 1280px viewport все 5 карточек помещаются в одну строку,
+                // на mobile (375px) — перенос на несколько строк через minmax(220px, 1fr).
+                // Раньше было grid-cols-3 — на 5 карточках появлялась пустая 3-я ячейка.
+                (
+                  <div
+                    className="grid gap-3"
+                    style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}
+                  >
+                    {review.slice(0, 6).map((r) => (
+                      <Link
+                        key={r.topic_id}
+                        href={`/topics/${r.topic_id}`}
+                        className="prism-review-row block rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/40 px-4 py-3 hover:border-[color:var(--prism-accent)] transition-colors"
+                      >
+                        <div className="truncate text-base font-black">{r.topic_name}</div>
+                        <div className="mt-1 flex items-center gap-2 text-xs text-[color:var(--prism-muted)]">
+                          <span>Уверенность {Math.round(r.mastery_score * 100)}%</span>
+                          {r.subject_name && (
+                            <>
+                              <span aria-hidden="true">·</span>
+                              <span className="truncate">{r.subject_name}</span>
+                            </>
+                          )}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )
               ) : (
                 <p className="text-sm text-[color:var(--prism-muted)]">
                   Пока нечего повторять — начни урок или диагностику.
