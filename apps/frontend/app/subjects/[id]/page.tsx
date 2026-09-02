@@ -104,10 +104,37 @@ export default function SubjectPage() {
       <Header user={user} backHref="/subjects" backLabel="Все предметы" title={subject ? `${subject.icon || "📘"} ${subject.name}` : "Предмет"} />
       <section className="py-3 sm:py-5">
         <div className="prism-frame">
+          {/* Sprint 3.9.7.6: prism-hero-grid → одна колонка на всю ширину.
+              Раньше было 2 колонки (1.05fr | 360px min) — на длинных названиях
+              предмета (например «Математика (6 класс - повторение пройденного материала)»)
+              правая колонка вылезала за hero и обрезалась.
+              Readiness Panel унесён в отдельную секцию ниже. */}
           <div className="prism-layer prism-hero-grid subject-compact-hero">
             <section>
               <div className="prism-kicker">Subject Object · Route Map</div>
-              <h1 className="prism-title"><span className="accent">{subject?.icon || "📘"}</span> {subject?.name || "Загружаем"}</h1>
+              {/* Sprint 3.9.7.6: разделяем название по скобкам — основная часть в <h1>,
+                  подзаголовок в скобках в <p> под ним. Если скобок нет —
+                  показываем весь текст в <h1>. */}
+              {(() => {
+                const fullName = subject?.name || "Загружаем";
+                const match = /^(.*?)\s*\((.+)\)\s*$/.exec(fullName);
+                if (match) {
+                  const [, main, sub] = match;
+                  return (
+                    <>
+                      <h1 className="prism-title subject-title-wide">
+                        <span className="accent">{subject?.icon || "📘"}</span> {main.trim()}
+                      </h1>
+                      <p className="prism-title-subtitle">{sub.trim()}</p>
+                    </>
+                  );
+                }
+                return (
+                  <h1 className="prism-title subject-title-wide">
+                    <span className="accent">{subject?.icon || "📘"}</span> {fullName}
+                  </h1>
+                );
+              })()}
               {subject?.description && <p className="prism-copy">{subject.description}</p>}
             </section>
           </div>
