@@ -88,7 +88,13 @@ _KNOWN_OCR_BLOCKED: set[str] = {
 }
 
 
-_PILOT_SCOPE: set[str] = {"math"}
+_PILOT_SCOPE: set[str] = {
+    "math",
+    # Sprint 3.9.3: auto-smoke прошёл для всех 16 предметов
+    # (/api/v1/ai/explain + /v2/exercises/generate + /answer все 200).
+    "algebra", "eng", "bio", "hist-world", "geo", "geom", "inf",
+    "hist", "lit", "lit-2", "soc", "rus", "rus-2", "phys", "chem",
+}
 
 
 @dataclass(frozen=True)

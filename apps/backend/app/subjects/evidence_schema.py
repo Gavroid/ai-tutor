@@ -48,7 +48,12 @@ ALL_FIELDS: tuple[str, ...] = ALL_GATES + PROMOTION_FIELDS + ("blocked_reason",)
 # Pilot scope (Sprint 3 §Scope policy: только Math-6).
 # Реальный код предмета в системе = "math". Algebra/geometry — это вложенные
 # секции внутри math subject, см. CURRICULUM_7_CLASS.
-PILOT_SCOPE: set[str] = {"math"}
+# Sprint 3.9.3: auto-smoke прошёл для всех 16 предметов.
+PILOT_SCOPE: set[str] = {
+    "math",
+    "algebra", "eng", "bio", "hist-world", "geo", "geom", "inf",
+    "hist", "lit", "lit-2", "soc", "rus", "rus-2", "phys", "chem",
+}
 
 # Допустимые значения blocked_reason.
 ALLOWED_BLOCKED_REASONS: set[str | None] = {
