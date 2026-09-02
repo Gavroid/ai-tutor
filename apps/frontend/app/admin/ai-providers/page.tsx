@@ -322,7 +322,12 @@ export default function AIProvidersPage() {
       <Header user={null} backHref="/admin" title="AI-провайдеры" />
       <section className="py-3 sm:py-5">
         <div className="prism-frame">
-          <div className="prism-layer p-5 lg:p-10 space-y-6">
+          <div className="prism-layer p-5 lg:p-10">
+      {/* Sprint 3.9.6.2: оборачиваем в admin-content-zone чтобы scroll
+          работал внутри фиксированного prism-frame (как у /admin).
+          Без этого .prism-frame { overflow:hidden } режет содержимое
+          и страница не скроллится. */}
+      <section className="admin-content-zone mt-4 space-y-6">
 
             {/* Hero header */}
             <div className="admin-panel-surface prism-card pad">
@@ -711,6 +716,7 @@ export default function AIProvidersPage() {
               )}
             </div>
 
+      </section>
           </div>
         </div>
       </section>
