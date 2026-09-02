@@ -146,18 +146,6 @@ export function LessonRail({
 
       {actionError && <div role="alert" className="split-callout danger">{actionError}</div>}
 
-      <div className={`split-callout ${nextStep.tone === "review" ? "warn" : ""}`}>
-        <div className="split-kicker">Следующий шаг</div>
-        <div className="mt-2 text-base font-black text-[color:var(--split-ink)]">{nextStep.title}</div>
-        <p className="mt-1 text-xs leading-5 text-[color:var(--split-muted)]">{nextStep.body}</p>
-        <button type="button" onClick={primaryAction.onClick} disabled={primaryAction.disabled} className="split-button split-button-primary mt-3 w-full">
-          {primaryAction.label}
-        </button>
-        {nextStep.action === "next_topic" && !nextTopicId && (
-          <p className="mt-2 text-xs text-[color:var(--split-muted)]">Маршрут завершён — можно закрепить тему ещё одним заданием.</p>
-        )}
-      </div>
-
       <div className="mt-auto space-y-3">
         <SessionTimer initialMinutesElapsed={timerMinutes} />
         <CGMStatus />
