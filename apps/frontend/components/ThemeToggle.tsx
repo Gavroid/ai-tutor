@@ -57,7 +57,26 @@ export default function ThemeToggle() {
       onClick={mounted ? toggle : undefined}
       aria-label="Переключить тему"
       data-testid="theme-toggle"
-      className="rounded-full border border-white/20 bg-white/80 px-3 py-2 text-xs font-black text-[#171022] shadow-glow backdrop-blur hover:bg-white dark:bg-[#181033]/85 dark:text-white"
+      className={[
+        // Sprint 3.9.1: контрастная в обеих темах (раньше была
+        // bg-white/80 + dark:bg-[#181033]/85 — в light mode сливалась
+        // с белым header).
+        // Используем glass-effect: полупрозрачный фон + жирная граница
+        // + backdrop-blur → видна поверх любого header.
+        "pointer-events-auto",
+        "inline-flex items-center gap-1.5",
+        "min-h-[36px] px-3 py-2",
+        "rounded-full",
+        "border-2 border-white/40 dark:border-white/30",
+        "bg-slate-900/85 text-white",
+        "dark:bg-white/90 dark:text-slate-900",
+        "shadow-lg shadow-black/20",
+        "backdrop-blur-md",
+        "text-xs font-black tracking-wide",
+        "transition-colors",
+        "hover:bg-slate-900/95 dark:hover:bg-white",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400",
+      ].join(" ")}
     >
       {mounted ? label : "…"}
     </button>

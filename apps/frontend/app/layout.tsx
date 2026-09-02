@@ -6,7 +6,6 @@ import "./styles/split-lesson.css";
 import "./styles/console-surfaces.css";
 import "./styles/mobile-chat.css";
 import CrashReporterInit from "@/components/CrashReporterInit";
-import ThemeToggle from "@/components/ThemeToggle";
 
 export const metadata: Metadata = {
   title: "AI-репетитор 7 класса",
@@ -75,13 +74,9 @@ export default function RootLayout({
         </div>
         {/* Sprint 3.7: client-side crash reporter init (no-op рендер). */}
         <CrashReporterInit />
-        {/* Sprint 3.7 polish: theme switcher (light/dark/system).
-            Fixed top-right, поверх контента, но не блокирует клики по кнопкам ниже. */}
-        <div className="fixed right-3 top-3 z-40 sm:right-4 sm:top-4 pointer-events-none">
-          <div className="pointer-events-auto">
-            <ThemeToggle />
-          </div>
-        </div>
+        {/* Sprint 3.7 polish: theme switcher — теперь встроен в Header,
+            не поверх fixed (раньше перекрывал «Фидбек/Выйти» в правом
+            верхнем углу в light mode). */}
         {/* Sprint 98: register service worker для PWA offline support. */}
         <script
           dangerouslySetInnerHTML={{

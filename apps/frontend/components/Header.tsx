@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import type { User } from "@/types";
+import ThemeToggle from "@/components/ThemeToggle";
 
 interface HeaderProps {
   user: User | null;
@@ -36,6 +37,9 @@ export default function Header({ user, backHref, title, backLabel = "Назад"
 
         <div className="flex shrink-0 items-center justify-end gap-2">
           {user && <a href="/feedback" className="prism-pill hidden sm:inline-flex" aria-label="Оставить фидбек об уроке">💬 Фидбек</a>}
+          {/* Sprint 3.9.1: theme switcher встроен в Header (раньше был
+              fixed поверх шапки — перекрывал «Фидбек» в light mode). */}
+          <ThemeToggle />
           {user && <span className="prism-pill hidden md:inline-flex">{user.role} · {user.display_name || user.email}</span>}
           {user && <button onClick={logout} className="prism-action">Выйти</button>}
         </div>
