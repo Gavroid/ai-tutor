@@ -1,0 +1,450 @@
+/* ============================================================
+   Sprint 3.9.7 — Типографика и дизайн AI-ответов в чате.
+   ============================================================
+   Правила:
+   - Только тёмная тема. Цвета через CSS-переменные (--prism-*).
+   - Fluid-размеры через clamp() — 16-17px body, line-height 1.65-1.75.
+   - max-width текста ~68ch.
+   - prefers-reduced-motion: уважаем.
+   ============================================================ */
+
+:root {
+  --md-accent: var(--prism-accent, #818cf8);
+  --md-accent-2: var(--prism-accent-2, #6b4dff);
+  --md-cyan: var(--prism-cyan, #22e7ff);
+  --md-warm: var(--prism-warm, #ff9b42);
+  --md-rose: #ff6b8a;
+  --md-emerald: #4ade80;
+  --md-amber: #fbbf24;
+  --md-indigo: #818cf8;
+  --md-ink: var(--prism-ink, #f4f7ff);
+  --md-muted: var(--prism-muted, #d4dcf2);
+  --md-panel: var(--prism-panel-solid, #101426);
+  --md-line: var(--prism-line, rgba(244, 247, 255, .13));
+  --md-line-strong: rgba(244, 247, 255, .22);
+  --md-bg: var(--prism-bg, #080a12);
+  --md-text: #e6ebf5;
+  --md-text-muted: #a8b3cf;
+}
+
+/* ----------- Базовый контейнер ответа ----------- */
+
+.md-stream {
+  font-family: var(--font-sans);
+  font-size: clamp(15.5px, 0.95rem + 0.15vw, 17px);
+  line-height: 1.68;
+  color: var(--md-text);
+  max-width: 68ch;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+.md-stream > * + * { margin-top: 0.6em; }
+.md-stream > :first-child { margin-top: 0; }
+.md-stream > :last-child { margin-bottom: 0; }
+
+/* ----------- Параграф и текст ----------- */
+
+.md-p {
+  margin: 0;
+  color: var(--md-text);
+}
+
+/* ----------- Заголовки ----------- */
+
+.md-h1,
+.md-h2,
+.md-h3 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--md-ink);
+  letter-spacing: -0.02em;
+  line-height: 1.18;
+  margin: 1.1em 0 0.3em;
+  scroll-margin-top: 80px;
+}
+
+.md-h1 {
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 1.875rem);
+  border-left: 4px solid var(--md-accent);
+  padding-left: 0.55em;
+}
+.md-h2 {
+  font-size: clamp(1.25rem, 1.1rem + 0.7vw, 1.5rem);
+}
+.md-h3 {
+  font-size: clamp(1.1rem, 1rem + 0.5vw, 1.25rem);
+  color: var(--md-ink);
+  opacity: 0.95;
+}
+
+/* ----------- Highlight chip для **терминов** ----------- */
+
+.md-strong {
+  font-weight: 700;
+  color: var(--md-ink);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--md-accent) 18%, transparent) 0%,
+    color-mix(in srgb, var(--md-accent) 12%, transparent) 100%
+  );
+  padding: 0.06em 0.36em;
+  margin: 0 0.05em;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--md-accent) 30%, transparent);
+  font-feature-settings: "ss01";
+  /* Поддержка числовых таблиц внутри highlight (вариантные фичи). */
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------- Inline code ----------- */
+
+.md-code-inline {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  background: color-mix(in srgb, var(--md-bg) 70%, var(--md-panel) 30%);
+  border: 1px solid var(--md-line);
+  border-radius: 6px;
+  padding: 0.08em 0.42em;
+  color: color-mix(in srgb, var(--md-cyan) 90%, white 10%);
+  white-space: nowrap;
+}
+
+/* ----------- Blockquote (слова репетитора) ----------- */
+
+.md-quote {
+  margin: 0.5em 0;
+  padding: 0.55em 0.9em;
+  border-left: 3px solid var(--md-accent);
+  background: color-mix(in srgb, var(--md-panel) 60%, transparent);
+  border-radius: 0 10px 10px 0;
+  font-style: italic;
+  color: color-mix(in srgb, var(--md-ink) 88%, transparent);
+  font-size: 0.96em;
+}
+
+/* ----------- HR ----------- */
+
+.md-hr {
+  border: none;
+  border-top: 1px solid var(--md-line);
+  margin: 1em 0;
+}
+
+/* ----------- Unordered list ----------- */
+
+.md-ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.4em 0 0.4em 0;
+}
+
+.md-li {
+  position: relative;
+  padding: 0.18em 0 0.18em 1.4em;
+  margin: 0;
+}
+
+.md-li::before {
+  content: "";
+  position: absolute;
+  left: 0.2em;
+  top: 0.7em;
+  width: 0.45em;
+  height: 0.45em;
+  background: linear-gradient(135deg, var(--md-accent), var(--md-cyan));
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-accent) 18%, transparent);
+}
+
+/* ----------- Ordered list (нумерованные пилюли) ----------- */
+
+.md-ol {
+  list-style: none;
+  padding: 0;
+  margin: 0.5em 0;
+  counter-reset: mdstep;
+}
+
+.md-li-step {
+  display: grid;
+  grid-template-columns: 1.8em 1fr;
+  align-items: start;
+  gap: 0.5em;
+  padding: 0.25em 0;
+}
+
+.md-li-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6em;
+  height: 1.6em;
+  padding: 0 0.4em;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--md-accent), var(--md-accent-2));
+  color: white;
+  font-weight: 800;
+  font-size: 0.78em;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-display);
+  margin-top: 0.18em;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--md-accent) 35%, transparent);
+}
+
+.md-li-text {
+  flex: 1;
+}
+
+/* ----------- Callout blocks (💡 ⚠️ 📌 ✅ ❌) ----------- */
+
+.md-callout {
+  display: grid;
+  grid-template-columns: 1.6em 1fr;
+  gap: 0.7em;
+  align-items: flex-start;
+  padding: 0.7em 0.9em;
+  margin: 0.6em 0;
+  border-radius: 12px;
+  border-left: 3px solid var(--md-accent);
+  background: color-mix(in srgb, var(--md-panel) 70%, transparent);
+  font-size: 0.97em;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Sprint 3.9.7: «2026» — тонкий conic-gradient бордер 1px, 12% opacity.
+   Реализуем через ::after с mask чтобы не было полного overflow. */
+.md-callout::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  padding: 1px;
+  background: conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--md-accent) 80%, transparent),
+    color-mix(in srgb, var(--md-cyan) 80%, transparent),
+    color-mix(in srgb, var(--md-pink, #ff4dc4) 80%, transparent),
+    color-mix(in srgb, var(--md-accent) 80%, transparent)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.md-callout-icon {
+  font-size: 1.05em;
+  line-height: 1.4;
+  font-family: var(--font-display);
+}
+
+.md-callout-body {
+  flex: 1;
+  color: var(--md-text);
+}
+
+.md-callout-tip {
+  border-left-color: var(--md-indigo);
+  background: color-mix(in srgb, var(--md-indigo) 8%, var(--md-panel));
+}
+.md-callout-warn {
+  border-left-color: var(--md-amber);
+  background: color-mix(in srgb, var(--md-amber) 8%, var(--md-panel));
+}
+.md-callout-note {
+  border-left-color: var(--md-cyan);
+  background: color-mix(in srgb, var(--md-cyan) 8%, var(--md-panel));
+}
+.md-callout-ok {
+  border-left-color: var(--md-emerald);
+  background: color-mix(in srgb, var(--md-emerald) 8%, var(--md-panel));
+}
+.md-callout-err {
+  border-left-color: var(--md-rose);
+  background: color-mix(in srgb, var(--md-rose) 8%, var(--md-panel));
+}
+
+/* ----------- Code block с header + copy button ----------- */
+
+.md-codeblock {
+  position: relative;
+  margin: 0.7em 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--md-line-strong);
+  background: color-mix(in srgb, var(--md-bg) 88%, #050811 12%);
+  box-shadow: 0 18px 50px -36px rgba(0, 0, 0, 0.8);
+}
+
+.md-codeblock-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6em;
+  padding: 0.45em 0.7em;
+  background: color-mix(in srgb, var(--md-panel) 70%, transparent);
+  border-bottom: 1px solid var(--md-line);
+}
+
+.md-codeblock-lang {
+  font-family: var(--font-mono);
+  font-size: 0.72em;
+  font-weight: 600;
+  text-transform: lowercase;
+  letter-spacing: 0.06em;
+  color: var(--md-text-muted);
+}
+
+.md-codeblock-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  font-family: var(--font-sans);
+  font-size: 0.78em;
+  font-weight: 600;
+  padding: 0.3em 0.6em;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--md-line);
+  color: var(--md-text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.md-codeblock-copy:hover {
+  background: color-mix(in srgb, var(--md-accent) 18%, transparent);
+  color: var(--md-ink);
+  border-color: color-mix(in srgb, var(--md-accent) 40%, transparent);
+}
+
+.md-codeblock-copy:active {
+  transform: scale(0.97);
+}
+
+.md-codeblock-copy-ok {
+  background: color-mix(in srgb, var(--md-emerald) 25%, transparent);
+  border-color: var(--md-emerald);
+  color: var(--md-emerald);
+}
+
+.md-codeblock-pre {
+  margin: 0;
+  padding: 0.85em 1em;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  line-height: 1.55;
+  color: #e6ebf5;
+  font-variant-numeric: tabular-nums;
+}
+
+.md-codeblock-code {
+  background: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+  color: inherit !important;
+  font: inherit !important;
+}
+
+/* ----------- Formula block ----------- */
+
+.md-formula {
+  font-family: var(--font-mono);
+  text-align: center;
+  font-size: 1.1em;
+  letter-spacing: 0.02em;
+  padding: 0.7em 1em;
+  margin: 0.6em 0;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--md-bg) 65%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--md-cyan) 35%, transparent);
+  color: color-mix(in srgb, var(--md-cyan) 80%, white 20%);
+  font-variant-numeric: tabular-nums;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+/* ----------- Streaming cursor (мягкая pulsing dot) ----------- */
+
+.md-cursor {
+  display: inline-block;
+  vertical-align: -0.12em;
+  width: 0.55em;
+  height: 0.55em;
+  margin-left: 0.18em;
+  background: var(--md-accent);
+  border-radius: 50%;
+  animation: md-cursor-pulse 1s ease-in-out infinite;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--md-accent) 25%, transparent);
+}
+
+@keyframes md-cursor-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.78);
+  }
+}
+
+/* ----------- Анимация появления блоков (fade+translateY) ----------- */
+
+.md-stream > * {
+  animation: md-fade-in-up 220ms ease-out both;
+}
+
+@keyframes md-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ----------- Accessibility: отключаем анимации ----------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .md-stream > * {
+    animation: none !important;
+  }
+  .md-cursor {
+    animation: none !important;
+    opacity: 0.6;
+  }
+  .md-codeblock-copy:active {
+    transform: none !important;
+  }
+}
+
+/* ----------- Mobile ----------- */
+
+@media (max-width: 640px) {
+  .md-stream {
+    font-size: 16px;
+    line-height: 1.62;
+  }
+  .md-h1 { font-size: 1.3rem; }
+  .md-h2 { font-size: 1.15rem; }
+  .md-h3 { font-size: 1.05rem; }
+  .md-callout {
+    grid-template-columns: 1.4em 1fr;
+    gap: 0.5em;
+    padding: 0.55em 0.7em;
+  }
+  .md-li-step {
+    grid-template-columns: 1.6em 1fr;
+  }
+  .md-codeblock-pre {
+    font-size: 0.82em;
+  }
+}

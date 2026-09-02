@@ -1,16 +1,22 @@
 /**
- * Минимальный безопасный Markdown → HTML парсер для AI-ответов.
+ * Sprint 3.9.7 — Безопасный Markdown → HTML парсер для AI-ответов.
  *
- * Sprint 7.1: фронт парсит markdown в реальном времени во время WS-стрима,
- * чтобы избежать "||жирный||" в чате.
+ * Допустимое подмножество:
+ *   - **жирный**, *курсив*, `код`
+ *   - # заголовки (h1-h3)
+ *   - - список, 1. нумерованный
+ *   - > blockquote («слова репетитора»)
+ *   - --- hr
+ *   - ```code block``` (опционально с языком после ```)
+ *   - 💡/⚠️/📌/✅/❌ в начале строки → callout-блок
+ *   - $...$ или строки начинающиеся с "=" → формула
  *
  * Безопасность:
- *   - НЕ используем innerHTML для пользовательского ввода.
- *   - HTML-теги из AI-вывода экранируются.
- *   - Разрешено только наше подмножество markdown:
- *     **жирный**, *курсив*, `код`, # заголовки (h1-h3), - список, 1. нумерованный,
- *     > blockquote, --- hr, ```code block```, переводы строк.
- *   - Запрещены: [ссылки](), ![картинки](), html. Markdown tables are rendered into safe responsive tables.
+ *   - HTML экранируется через ESCAPE_HTML.
+ *   - Никаких внешних markdown-библиотек (только собственный парсер).
+ *   - Streaming-safe: незакрытые конструкции на промежуточных чанках
+ *     парсятся в текущем состоянии без поломок.
+ *   - Только тёмная тема — все цвета через md-* классы (CSS-переменные).
  */
 
 const ESCAPE_HTML = (s: string): string =>
@@ -82,19 +88,21 @@ function findUnescapedStar(text: string, from: number): number {
   return -1;
 }
 
+/**
+ * Sprint 3.9.7: **жирный** → highlight chip с фоном accent + radius 6px.
+ * Также поддерживает `код` с правильным контрастом в dark mode.
+ */
 function renderInline(text: string): string {
   const tokens = parseInline(text);
   return tokens
     .map((tok) => {
       switch (tok.type) {
         case "bold":
-          return `<strong>${ESCAPE_HTML(tok.text)}</strong>`;
+          return `<span class="md-strong">${ESCAPE_HTML(tok.text)}</span>`;
         case "italic":
           return `<em>${ESCAPE_HTML(tok.text)}</em>`;
         case "code":
-          return `<code class="rounded bg-slate-100 px-1 py-0.5 text-sm">${ESCAPE_HTML(
-            tok.text
-          )}</code>`;
+          return `<code class="md-code-inline">${ESCAPE_HTML(tok.text)}</code>`;
         default:
           return ESCAPE_HTML(tok.text);
       }
@@ -130,6 +138,48 @@ function renderTable(rows: string[][]): string {
     .join("")}</tbody></table></div>`;
 }
 
+/**
+ * Sprint 3.9.7: callout для строк начинающихся с 💡 ⚠️ 📌 ✅ ❌.
+ * Семантический класс для каждого иконки.
+ *
+ * Используем флаг `u` чтобы корректно работать с surrogate pairs
+ * (большинство emoji — 2 UTF-16 code units). Также явно перечисляем
+ * варианты с variation selector (\uFE0F) — без этого ⚠️ не матчится.
+ */
+const CALLOUT_ICONS: Record<string, string> = {
+  "💡": "tip",
+  "⚠": "warn", // ⚠️
+  "⚠️": "warn",
+  "📌": "note",
+  "✅": "ok",
+  "❌": "err",
+};
+
+const CALLOUT_RE = /^([💡⚠️📌✅❌])\s*(.+)$/u;
+
+function detectCallout(line: string): { kind: string; text: string } | null {
+  const trimmed = line.trim();
+  const m = CALLOUT_RE.exec(trimmed);
+  if (!m) return null;
+  const [, icon, text] = m;
+  const kind = CALLOUT_ICONS[icon] ?? CALLOUT_ICONS[icon.charAt(0)] ?? "note";
+  return { kind, text };
+}
+
+/**
+ * Sprint 3.9.7: формула. Распознаём $...$ (inline) или строки начинающиеся с "=".
+ * Не пытаемся рендерить LaTeX (no KaTeX) — только центрированный .md-formula блок.
+ */
+function detectFormula(line: string): string | null {
+  const trimmed = line.trim();
+  // Inline $...$
+  const m = /^\$([^$]+)\$$/.exec(trimmed);
+  if (m) return m[1];
+  // Строка-формула (начинается с = или содержит много операторов).
+  if (/^=\s*[^\s]/.test(trimmed)) return trimmed.substring(1).trim();
+  return null;
+}
+
 /** Парсит Markdown → HTML. Безопасен для dangerouslySetInnerHTML. */
 export function renderMarkdown(md: string): string {
   if (!md) return "";
@@ -137,17 +187,34 @@ export function renderMarkdown(md: string): string {
   const out: string[] = [];
   let i = 0;
   let inCodeBlock = false;
+  let codeLang = "";
   let codeBuf: string[] = [];
+
   while (i < lines.length) {
     const line = lines[i];
+
+    // ----- Code block -----
     if (inCodeBlock) {
       if (line.trim().startsWith("```")) {
+        // Sprint 3.9.7: code block с header (язык) и кнопкой copy.
+        // data-md-copy — атрибут для React island который вешает handler.
+        const langLabel = codeLang || "text";
         out.push(
-          `<pre class="overflow-x-auto rounded-lg bg-slate-900 p-3 text-sm text-slate-100"><code>${ESCAPE_HTML(
-            codeBuf.join("\n")
-          )}</code></pre>`
+          `<div class="md-codeblock" data-md-copy-wrapper>` +
+            `<div class="md-codeblock-head">` +
+              `<span class="md-codeblock-lang">${ESCAPE_HTML(langLabel)}</span>` +
+              `<button type="button" class="md-codeblock-copy" data-md-copy="${ESCAPE_HTML(codeBuf.join("\n"))}" aria-label="Скопировать код">` +
+                `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>` +
+                `<span>Скопировать</span>` +
+              `</button>` +
+            `</div>` +
+            `<pre class="md-codeblock-pre"><code class="md-codeblock-code">${ESCAPE_HTML(
+              codeBuf.join("\n")
+            )}</code></pre>` +
+          `</div>`
         );
         codeBuf = [];
+        codeLang = "";
         inCodeBlock = false;
         i++;
         continue;
@@ -157,12 +224,20 @@ export function renderMarkdown(md: string): string {
       continue;
     }
     if (line.trim().startsWith("```")) {
+      // Sprint 3.9.7: ```python → lang="python"
+      const langMatch = /^```\s*([a-zA-Z0-9_+-]*)/.exec(line.trim());
+      codeLang = langMatch ? langMatch[1] : "";
       inCodeBlock = true;
       i++;
       continue;
     }
-    // Markdown table: header row + optional separator + body rows.
-    if (isTableRow(line) && i + 1 < lines.length && (isTableSeparator(lines[i + 1]) || isTableRow(lines[i + 1]))) {
+
+    // ----- Table -----
+    if (
+      isTableRow(line) &&
+      i + 1 < lines.length &&
+      (isTableSeparator(lines[i + 1]) || isTableRow(lines[i + 1]))
+    ) {
       const rows: string[][] = [splitTableRow(line)];
       i++;
       if (i < lines.length && isTableSeparator(lines[i])) i++;
@@ -174,33 +249,54 @@ export function renderMarkdown(md: string): string {
       continue;
     }
 
-    // Заголовки
-    const hMatch = /^(#{1,3})\s+(.+)$/.exec(line);
-    if (hMatch) {
-      const level = hMatch[1].length;
-      out.push(`<h${level} class="mt-3 mb-1 font-semibold text-slate-900">${renderInline(
-        hMatch[2]
-      )}</h${level}>`);
-      i++;
-      continue;
-    }
-    // Цитата
-    if (line.startsWith("> ")) {
+    // ----- Callout -----
+    const callout = detectCallout(line);
+    if (callout) {
       out.push(
-        `<blockquote class="my-2 border-l-4 border-slate-300 pl-3 italic text-slate-700">${renderInline(
-          line.substring(2)
-        )}</blockquote>`
+        `<aside class="md-callout md-callout-${callout.kind}" role="note">` +
+          `<span class="md-callout-icon" aria-hidden="true">${line.trim().charAt(0)}</span>` +
+          `<div class="md-callout-body">${renderInline(callout.text)}</div>` +
+        `</aside>`
       );
       i++;
       continue;
     }
-    // Горизонтальная линия
-    if (/^---+\s*$/.test(line)) {
-      out.push('<hr class="my-3 border-slate-200" />');
+
+    // ----- Formula -----
+    const formula = detectFormula(line);
+    if (formula) {
+      out.push(`<div class="md-formula">${ESCAPE_HTML(formula)}</div>`);
       i++;
       continue;
     }
-    // Ненумерованный список
+
+    // ----- Heading -----
+    const hMatch = /^(#{1,3})\s+(.+)$/.exec(line);
+    if (hMatch) {
+      const level = hMatch[1].length;
+      const cls = `md-h${level}`;
+      out.push(`<h${level} class="${cls}">${renderInline(hMatch[2])}</h${level}>`);
+      i++;
+      continue;
+    }
+
+    // ----- Blockquote (слова репетитора) -----
+    if (line.startsWith("> ")) {
+      out.push(
+        `<blockquote class="md-quote">${renderInline(line.substring(2))}</blockquote>`
+      );
+      i++;
+      continue;
+    }
+
+    // ----- Horizontal rule -----
+    if (/^---+\s*$/.test(line)) {
+      out.push('<hr class="md-hr" />');
+      i++;
+      continue;
+    }
+
+    // ----- Unordered list (с акцентными маркерами) -----
     if (/^\s*[-*]\s+/.test(line)) {
       const items: string[] = [];
       while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
@@ -208,13 +304,14 @@ export function renderMarkdown(md: string): string {
         i++;
       }
       out.push(
-        `<ul class="my-2 ml-5 list-disc text-slate-900">${items
-          .map((it) => `<li>${renderInline(it)}</li>`)
+        `<ul class="md-ul">${items
+          .map((it) => `<li class="md-li">${renderInline(it)}</li>`)
           .join("")}</ul>`
       );
       continue;
     }
-    // Нумерованный список
+
+    // ----- Ordered list (нумерованные пилюли) -----
     if (/^\s*\d+\.\s+/.test(line)) {
       const items: string[] = [];
       while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
@@ -222,36 +319,58 @@ export function renderMarkdown(md: string): string {
         i++;
       }
       out.push(
-        `<ol class="my-2 ml-5 list-decimal text-slate-900">${items
-          .map((it) => `<li>${renderInline(it)}</li>`)
+        `<ol class="md-ol">${items
+          .map((it, idx) => `<li class="md-li md-li-step"><span class="md-li-pill">${idx + 1}</span><span class="md-li-text">${renderInline(it)}</span></li>`)
           .join("")}</ol>`
       );
       continue;
     }
-    // Пустая строка → конец абзаца
+
+    // ----- Empty line -----
     if (!line.trim()) {
       i++;
       continue;
     }
-    // Обычный текст (может быть несколько подряд идущих строк)
+
+    // ----- Paragraph (multi-line) -----
     const paragraphLines: string[] = [line];
     i++;
-    while (i < lines.length && lines[i].trim() && !isTableRow(lines[i]) && !/^#{1,3}\s/.test(lines[i]) && !/^\s*[-*]\s/.test(lines[i]) && !/^\s*\d+\.\s/.test(lines[i]) && !lines[i].startsWith("> ") && !lines[i].trim().startsWith("```")) {
+    while (
+      i < lines.length &&
+      lines[i].trim() &&
+      !isTableRow(lines[i]) &&
+      !/^#{1,3}\s/.test(lines[i]) &&
+      !/^\s*[-*]\s/.test(lines[i]) &&
+      !/^\s*\d+\.\s/.test(lines[i]) &&
+      !lines[i].startsWith("> ") &&
+      !lines[i].trim().startsWith("```") &&
+      !CALLOUT_RE.test(lines[i].trim()) &&
+      !detectFormula(lines[i])
+    ) {
       paragraphLines.push(lines[i]);
       i++;
     }
-    out.push(
-      `<p class="my-2 leading-relaxed text-slate-900">${renderInline(
-        paragraphLines.join(" ")
-      )}</p>`
-    );
+    out.push(`<p class="md-p">${renderInline(paragraphLines.join(" "))}</p>`);
   }
+
+  // Незакрытый code block в конце стрима — рендерим то что есть.
   if (inCodeBlock && codeBuf.length > 0) {
+    const langLabel = codeLang || "text";
     out.push(
-      `<pre class="overflow-x-auto rounded-lg bg-slate-900 p-3 text-sm text-slate-100"><code>${ESCAPE_HTML(
-        codeBuf.join("\n")
-      )}</code></pre>`
+      `<div class="md-codeblock" data-md-copy-wrapper>` +
+        `<div class="md-codeblock-head">` +
+          `<span class="md-codeblock-lang">${ESCAPE_HTML(langLabel)}</span>` +
+          `<button type="button" class="md-codeblock-copy" data-md-copy="${ESCAPE_HTML(codeBuf.join("\n"))}" aria-label="Скопировать код">` +
+            `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>` +
+            `<span>Скопировать</span>` +
+          `</button>` +
+        `</div>` +
+        `<pre class="md-codeblock-pre"><code class="md-codeblock-code">${ESCAPE_HTML(
+          codeBuf.join("\n")
+        )}</code></pre>` +
+      `</div>`
     );
   }
+
   return out.join("");
 }

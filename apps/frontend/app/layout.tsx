@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+// Sprint 3.9.7: шрифты через next/font/google (cyrillic+latin subset).
+import { inter, interDisplay, jetbrainsMono } from "./fonts";
 import "./styles/prism-foundation.css";
 import "./styles/prism-v3.css";
 import "./styles/split-lesson.css";
@@ -56,7 +58,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ru">
+    <html lang="ru" className={`${inter.variable} ${interDisplay.variable} ${jetbrainsMono.variable}`}>
       <head>
         <meta name="color-scheme" content="dark" />
         {/* Sprint 33: FOUC prevention — выполняется до hydration */}

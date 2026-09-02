@@ -1,38 +1,71 @@
 "use client";
 
+// Sprint 3.9.7 — рендер AI-ответов.
+// - Streaming cursor: мягкая pulsing dot 6px (вместо ▍).
+// - Copy handler: вешает onclick на все [data-md-copy] элементы
+//   после монтирования / обновления HTML.
+
+import { useEffect, useRef } from "react";
 import { renderMarkdown } from "@/lib/markdown";
 
 interface SafeMarkdownProps {
   text: string;
-  /** Если true — рендерит в typewriter-стиле, когда text растёт по чанкам. */
+  /** Если true — рендерит в typewriter-стиле с pulsing dot cursor. */
   streaming?: boolean;
   className?: string;
 }
 
-/**
- * Безопасный рендер Markdown для AI-ответов.
- *
- * Sprint 7.1: заменяет `whitespace-pre-wrap` текст с raw-разметкой
- * на безопасный HTML-рендер:
- *   - **жирный**, *курсив*, `код`
- *   - # заголовки h1-h3, > blockquote, --- hr
- *   - - список, 1. нумерованный, ```code block```
- *   - авто-экранирование HTML для всего, что не входит в подмножество
- *
- * Использует dangerouslySetInnerHTML после того, как наш парсер сделал
- * весь escape — никаких external library с известными XSS.
- */
 export default function SafeMarkdown({
   text,
   streaming = false,
   className = "",
 }: SafeMarkdownProps) {
-  // streaming: добавляем курсор в конце во время печатания
+  const ref = useRef<HTMLDivElement>(null);
   const html = renderMarkdown(text || "");
-  const cursor = streaming ? '<span class="animate-pulse">▍</span>' : "";
+  const cursor = streaming ? '<span class="md-cursor" aria-hidden="true"></span>' : "";
+
+  // Sprint 3.9.7: вешаем handler копирования для всех кнопок с data-md-copy.
+  useEffect(() => {
+    if (!ref.current) return;
+    const buttons = ref.current.querySelectorAll<HTMLButtonElement>("[data-md-copy]");
+    const onClick = async (ev: Event) => {
+      const btn = ev.currentTarget as HTMLButtonElement;
+      const value = btn.getAttribute("data-md-copy") ?? "";
+      try {
+        await navigator.clipboard.writeText(value);
+        const original = btn.innerHTML;
+        btn.classList.add("md-codeblock-copy-ok");
+        btn.innerHTML = btn.innerHTML.replace("Скопировать", "Скопировано ✓");
+        setTimeout(() => {
+          btn.classList.remove("md-codeblock-copy-ok");
+          btn.innerHTML = original;
+        }, 1500);
+      } catch {
+        // Fallback — execCommand.
+        const ta = document.createElement("textarea");
+        ta.value = value;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand("copy");
+        } catch {
+          /* ignore */
+        }
+        document.body.removeChild(ta);
+      }
+    };
+    buttons.forEach((b) => b.addEventListener("click", onClick));
+    return () => {
+      buttons.forEach((b) => b.removeEventListener("click", onClick));
+    };
+  }, [html]);
+
   return (
     <div
-      className={className}
+      ref={ref}
+      className={`md-stream ${className}`}
       dangerouslySetInnerHTML={{ __html: html + cursor }}
     />
   );

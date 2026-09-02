@@ -43,9 +43,13 @@
   --color-danger:  #ff3b6b;
   --color-info:    #19bfff;
 
-  --font-sans: "Inter", "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Inter", "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "JetBrains Mono", "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  /* Sprint 3.9.7: переменные шрифты подключены через next/font в app/fonts.ts.
+     --font-sans / --font-display / --font-mono устанавливаются через
+     `${inter.variable}` className на <html>. Здесь — fallback для SSR до
+     загрузки webfont. */
+  --font-sans: var(--__font-sans, "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+  --font-display: var(--__font-display, "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+  --font-mono: var(--__font-mono, "JetBrains Mono", "SF Mono", "Cascadia Code", Menlo, Consolas, monospace);
 
   --radius-sm: 8px;
   --radius:    14px;
