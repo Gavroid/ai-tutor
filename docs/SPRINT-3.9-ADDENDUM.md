@@ -97,3 +97,40 @@
 - **Sprint 3.9.7:** per-subject routing для остальных AI-endpoint'ов (generate, check, hint).
 - **Sprint 3.9.8:** просмотр usage-статистики по каждой модели (сколько раз использовалась, сколько токенов).
 - **Sprint 3.9.9:** шифрование ключей с per-provider salt (доп. защита).
+
+---
+
+## Sprint 3.9.6.1 (polish /admin/ai-providers)
+
+**Запрос:** «Поравь дизайн, как остальных страниц админки, этим невозможно пользоваться. Так же добавь поле поиска при выборе моделей от провайдера.»
+
+**Проблемы:**
+- Страница использовала свои CSS-классы (`var(--bg)`, `var(--fg)`, `var(--border)`) и не вписывалась в prism-shell дизайн остальной админки.
+- 421 модель OpenRouter — слишком длинный список чтобы скролтить без фильтра.
+
+**Изменения:**
+- `Header` + `prism-shell admin-console` + `prism-frame` + `prism-layer` обёртка (как у остальных админ-страниц).
+- Все карточки: `admin-panel-surface` + `prism-card` + `prism-card.pad`.
+- Кнопки: `prism-action` / `prism-action primary` (вместо `button[bg-accent]`).
+- Inputs/selects: `prism-input`.
+- **Hero header:** `prism-kicker` + заголовок `tracking-[-0.04em]` + описание + 2 кнопки.
+- **Поиск моделей:** `type="search"` input с фильтрацией по `model_name` / `display_name`, чекбокс «Только активные», счётчик «Показано: X / Y», empty-state «Ничего не найдено».
+- **PRIMARY / FALLBACK dropdown'ы:** uppercase tracking-wider labels, `prism-input`.
+
+**Commit:** `7168d69`. На проде: `20260902T122122Z-7168d69`.
+
+---
+
+## Sprint 3.9.6.2 (scroll fix)
+
+**Запрос:** «стало лучше но все три блока непомещаются и не скролятся».
+
+**Проблема:** я использовал `prism-shell > prism-frame > prism-layer` без обёртки `admin-content-zone`. CSS `.prism-frame { overflow:hidden }` и `.prism-shell { overflow-x:hidden }` резали контент — страница не скроллилась.
+
+**Fix:** обернул содержимое в `<section className="admin-content-zone mt-4 space-y-6">`. Этот класс добавляет `flex: 1 1 auto; min-height: 0; overflow: auto; scrollbar-gutter: stable` — даёт scroll внутри фиксированного `prism-frame`.
+
+**Verify:**
+- `scrollHeight: 738px > clientHeight: 620px` → `canScroll: true`.
+- После `zone.scrollTop = scrollHeight` → `currentScroll: 118` ✓.
+
+**Commit:** `cb8f968`. На проде: `20260902T123013Z-cb8f968`.
