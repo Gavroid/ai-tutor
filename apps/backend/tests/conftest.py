@@ -26,6 +26,7 @@ from app.subjects import models as _subjects_models  # noqa: F401, E402
 from app.progress import models as _progress_models  # noqa: F401, E402
 from app.diagnostics import models as _diagnostics_models  # noqa: F401, E402
 from app.admin import models as _admin_models  # noqa: F401, E402
+from app.admin import ai_providers as _ai_providers_models  # noqa: F401, E402  # Sprint 3.9.6
 from app.notifications import models as _notifications_models  # noqa: F401, E402
 from app.auth import password_reset_models as _password_reset_models  # noqa: F401, E402
 from app import rag_models as _rag_models  # noqa: F401, E402  # Sprint 3.5.2: RagChunk для persistent RAG

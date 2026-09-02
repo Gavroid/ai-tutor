@@ -7,6 +7,7 @@ Sprint 8.1 (частично): baseline Pydantic-схема `GeneratedMaterial` 
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -14,7 +15,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.ai import prompts, sanitize
-from app.ai.hermes import _strip_reasoning_blocks
+from app.ai.hermes import HermesProvider, _strip_reasoning_blocks
 from app.ai.types import AIMessage, AIRequest, AIResponse, AIProvider
 from app.config import get_settings
 from app.subjects import models as subj_models
@@ -949,6 +950,89 @@ class AIService:
         self.provider = provider
         self._settings = get_settings()
 
+    # ----- Sprint 3.9.6: Subject-specific provider resolution -----
+
+    def _build_provider_from_config(self, cfg: dict[str, Any]) -> AIProvider:
+        """Создаёт HermesProvider из dict конфига (resolve_provider_for_subject)."""
+        return HermesProvider(
+            base_url=cfg["base_url"],
+            api_key=cfg["api_key"],
+            model=cfg["model_name"],
+            timeout=self._settings.ai_timeout_seconds,
+            max_retries=self._settings.ai_max_retries,
+            max_input_chars=self._settings.ai_max_input_chars,
+        )
+
+    def resolve_provider_for_subject(self, db: Session, subject_id: int | None) -> AIProvider:
+        """Резолвит провайдера для предмета.
+
+        Если subject_id is None или для предмета не настроено — возвращает
+        дефолтный self.provider (как было до Sprint 3.9.6).
+        """
+        if subject_id is None:
+            return self.provider
+        try:
+            from app.admin.ai_providers_service import resolve_provider_for_subject
+
+            cfg = resolve_provider_for_subject(db, subject_id)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Subject provider resolve failed: %r", exc)
+            return self.provider
+        if cfg is None:
+            return self.provider
+        return self._build_provider_from_config(cfg)
+
+    async def _complete_with_fallback(
+        self, db: Session, subject_id: int | None, req: AIRequest
+    ) -> tuple[AIResponse, str]:
+        """Вызов AI с fallback на env-default если subject-провайдер не ответил.
+
+        Возвращает (response, used_provider_label) где label — что использовалось:
+        "subject:Physics" / "fallback:Chemistry" / "default".
+        """
+        from app.admin.ai_providers_service import resolve_provider_for_subject, resolve_fallback_for_subject
+
+        primary_cfg = None
+        fallback_cfg = None
+        if subject_id is not None:
+            try:
+                primary_cfg = resolve_provider_for_subject(db, subject_id)
+                fallback_cfg = resolve_fallback_for_subject(db, subject_id)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Subject/fallback resolve failed: %r", exc)
+
+        # 1) Try primary.
+        if primary_cfg is not None:
+            provider = self._build_provider_from_config(primary_cfg)
+            try:
+                resp = await provider.complete(req)
+                return resp, f"subject:{primary_cfg['provider_name']}/{primary_cfg['model_name']}"
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "Subject primary provider failed (%s/%s): %r — trying fallback",
+                    primary_cfg["provider_name"],
+                    primary_cfg["model_name"],
+                    exc,
+                )
+
+        # 2) Try fallback.
+        if fallback_cfg is not None:
+            provider = self._build_provider_from_config(fallback_cfg)
+            try:
+                resp = await provider.complete(req)
+                return resp, f"fallback:{fallback_cfg['provider_name']}/{fallback_cfg['model_name']}"
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "Subject fallback provider failed (%s/%s): %r — using env default",
+                    fallback_cfg["provider_name"],
+                    fallback_cfg["model_name"],
+                    exc,
+                )
+
+        # 3) Env default (singleton provider).
+        resp = await self.provider.complete(req)
+        return resp, "default"
+
     async def explain_topic(
         self, db: Session, user: user_models.User, topic: subj_models.Topic
     ) -> AIResponse:
@@ -964,7 +1048,7 @@ class AIService:
             # Внутренний _build_rag_context уже ловит подмножество ошибок,
             # но persistent search/embedding может падать вне его try.
             _record_ai("explain", "rag_error")
-            logger.warning("AI explain RAG failure → fallback (no RAG context): %s", e)
+            logger.warning("AI explain RAG failure → fallback (no RAG context): %r", e)
             rag_context, sources = None, []
         # S3.1 (2026-09-01, D2.8): multi-explain через style. Router может
         # установить thread-local _explain_style перед вызовом. По умолчанию — стандартный.
@@ -983,7 +1067,8 @@ class AIService:
         )
         resp: AIResponse | None = None
         try:
-            resp = await self.provider.complete(req)
+            # Sprint 3.9.6: subject-aware provider с fallback на env-default.
+            resp, used_label = await self._complete_with_fallback(db, subject.id, req)
             resp.content = _clean_student_visible_text(resp.content)
             used_fallback = False
             if len(resp.content.strip()) < 250:

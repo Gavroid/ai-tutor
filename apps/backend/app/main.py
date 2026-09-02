@@ -702,6 +702,15 @@ def create_app() -> FastAPI:
     app.include_router(materials_router)
     app.include_router(admin_router)
     app.include_router(admin_realtime_router)
+    # Sprint 3.9.6: AI-providers (multi-provider + per-subject routing)
+    from app.admin.ai_providers_router import (
+        router as ai_providers_router,
+        models_router as ai_models_router,
+        subject_ai_router,
+    )
+    app.include_router(ai_providers_router)
+    app.include_router(ai_models_router)
+    app.include_router(subject_ai_router)
     app.include_router(teacher_router)
     app.include_router(student_materials_router)
     app.include_router(notifications_router)

@@ -304,6 +304,12 @@ export default function AdminPage() {
         <Tab active={tab === "realtime"} onClick={() => setTab("realtime")}>
           Realtime
         </Tab>
+        <a
+          href="/admin/ai-providers"
+          className="px-3 py-1.5 rounded-lg text-sm font-medium border border-[var(--border)] hover:bg-[var(--surface)] no-underline"
+        >
+          AI-провайдеры →
+        </a>
         </nav>
       </div>
 
