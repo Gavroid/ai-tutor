@@ -140,12 +140,13 @@ def check_and_increment(user_id: int, *, estimated_output_tokens: int = 0) -> No
     requests_used = _increment(_key(user_id, "req"), DAILY_REQUESTS_LIMIT, ttl=86400)
     if requests_used > DAILY_REQUESTS_LIMIT:
         # Откатим (best-effort): на этом шаге уже поздно — просто raise.
-        raise BudgetExceeded("requests", requests_used, DAILY_REQUESTS_LIMIT)
+        # Sprint 3.9.5: kind="daily_requests" для человеческого сообщения в _enforce_budget.
+        raise BudgetExceeded("daily_requests", requests_used, DAILY_REQUESTS_LIMIT)
 
     # 2) Счётчик токенов
     tokens_used = _increment(_key(user_id, "tok"), DAILY_TOKENS_LIMIT, ttl=86400, by=estimated_output_tokens)
     if tokens_used > DAILY_TOKENS_LIMIT:
-        raise BudgetExceeded("tokens", tokens_used, DAILY_TOKENS_LIMIT)
+        raise BudgetExceeded("daily_tokens", tokens_used, DAILY_TOKENS_LIMIT)
 
 
 def get_usage(user_id: int) -> dict[str, int]:
