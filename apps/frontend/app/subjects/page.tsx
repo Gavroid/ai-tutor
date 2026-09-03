@@ -80,8 +80,11 @@ export default function HomePage() {
 
             <aside className="prism-card pad glow flex flex-col">
               <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">Live System</div>
-              {/* Sprint 3.16: расширяем блок, чтобы закрыть пустоту снизу (filler + flex-grow). */}
-              <div className="mt-4 grid grid-cols-2 gap-2 flex-1 content-start">
+              {/* Sprint 3.16: расширяем блок, чтобы закрыть пустоту снизу.
+                  grid-cols-2 → grid-cols-1 чтобы метрики шли в один столбец и блок
+                  был визуально выше. flex-1 + content-start — метрики прижаты к верху,
+                  а оставшееся место — это просто естественный padding prism-card. */}
+              <div className="mt-4 grid grid-cols-1 gap-2 flex-1 content-start">
                 <Metric label="Предметов" value={subjects.length || "—"} />
                 <Metric label="Пилот" value={pilotVisibleCount || "—"} hot={pilotVisibleCount > 0} />
                 <Metric label="В обработке" value={previewCount || "—"} />
