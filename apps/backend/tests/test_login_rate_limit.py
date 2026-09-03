@@ -41,12 +41,13 @@ def client():
 
 
 def test_login_rate_limit_blocks_after_threshold(client):
-    """После 10 неудачных попыток → 429."""
-    for i in range(10):
+    """После 20 неудачных попыток → 429 (Sprint 3.9.5: лимит ×2 по запросу Кирилла)."""
+    # Sprint 3.9.5: rate_limit_login_per_15min = 20 (было 10).
+    for i in range(20):
         r = client.post("/api/v1/auth/login", json={"email": "kid@x.com", "password": "wrong"})
         assert r.status_code == 401, f"Attempt {i}: {r.status_code}"
 
-    # 11-я попытка должна быть заблокирована
+    # 21-я попытка должна быть заблокирована
     r = client.post("/api/v1/auth/login", json={"email": "kid@x.com", "password": "strongpass1"})
     assert r.status_code == 429
     assert "15 минут" in r.text or "подождите" in r.text.lower()
@@ -54,7 +55,8 @@ def test_login_rate_limit_blocks_after_threshold(client):
 
 def test_successful_login_still_blocked_after_rate_limit(client):
     """Правильный пароль — тоже блокируется (anti-pattern)."""
-    for _ in range(10):
+    # Sprint 3.9.5: rate_limit_login_per_15min = 20.
+    for _ in range(20):
         client.post("/api/v1/auth/login", json={"email": "kid@x.com", "password": "wrong"})
 
     # Правильный пароль
@@ -64,8 +66,8 @@ def test_successful_login_still_blocked_after_rate_limit(client):
 
 def test_log_clear_isolates_tests(client):
     """Два клиента в разных тестах не делят state."""
-    # Первый — забивает
-    for _ in range(10):
+    # Первый — забивает (Sprint 3.9.5: лимит 20/15мин).
+    for _ in range(20):
         client.post("/api/v1/auth/login", json={"email": "kid@x.com", "password": "wrong"})
 
     r1 = client.post("/api/v1/auth/login", json={"email": "kid@x.com", "password": "strongpass1"})
