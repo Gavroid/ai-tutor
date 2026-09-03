@@ -56,6 +56,33 @@ export default function Header({
     };
   }, [user?.role, badgeCountProp]);
 
+  // Sprint 3.13: подписываемся на глобальные события бейджей — при новом
+  // бейдже обновляем pill счётчик без отдельного запроса.
+  useEffect(() => {
+    if (user?.role !== "student") return;
+    let cancelled = false;
+    let cleanup: (() => void) | undefined;
+    (async () => {
+      const { badgeEvents } = await import("@/lib/badge-events");
+      const off = badgeEvents.subscribe(() => {
+        if (cancelled) return;
+        api.studentBadgesCount()
+          .then((s) => {
+            if (!cancelled) {
+              setBadgeCount(s.earned);
+              setBadgeTotal(s.available);
+            }
+          })
+          .catch(() => {});
+      });
+      cleanup = off;
+    })();
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
+  }, [user?.role]);
+
   async function logout() {
     try { await api.logout(); } catch {}
     router.push("/login");

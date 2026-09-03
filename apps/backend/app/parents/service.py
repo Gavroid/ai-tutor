@@ -679,6 +679,28 @@ def child_badges_summary(
     # 5. Latest — самый свежий earned (или None).
     latest = earned_items[0] if earned_items else None
 
+    # Sprint 3.13: считаем "новые с прошлого визита".
+    link = db.execute(
+        select(user_models.ParentStudentLink).where(
+            user_models.ParentStudentLink.parent_id == parent.id,
+            user_models.ParentStudentLink.student_id == student_id,
+        )
+    ).scalar_one_or_none()
+
+    new_since_last_seen: int | None = None
+    new_items: list[schemas.ChildBadgeItem] = []
+    if link is not None and link.last_seen_badges_at is not None:
+        seen_at = link.last_seen_badges_at
+        # Считаем бейджи полученные позже seen_at.
+        new_items = [
+            it for it in earned_items if it.earned_at and it.earned_at > seen_at
+        ]
+        new_since_last_seen = len(new_items)
+    elif link is not None:
+        # Первый визит — все earned считаются "новыми" но это шумно.
+        # Возвращаем None чтобы UI не показывал баннер "X новых" (показать сразу).
+        new_since_last_seen = None
+
     return schemas.ChildBadgeSummary(
         student_id=student_id,
         total_earned=len(earned_items),
@@ -687,4 +709,40 @@ def child_badges_summary(
         latest=latest,
         earned=earned_items,
         locked=locked,
+        new_since_last_seen=new_since_last_seen,
+        new_items=new_items,
     )
+
+
+# === Sprint 3.13: parent — mark badges as seen ===
+def mark_badges_seen(
+    db: Session, parent: user_models.User, student_id: int
+) -> tuple[datetime, int] | None:
+    """Отметить бейджи ребёнка как просмотренные родителем.
+
+    Returns:
+        (marked_at, remaining_new) или None если ребёнок не привязан.
+    """
+    link = db.execute(
+        select(user_models.ParentStudentLink).where(
+            user_models.ParentStudentLink.parent_id == parent.id,
+            user_models.ParentStudentLink.student_id == student_id,
+        )
+    ).scalar_one_or_none()
+    if link is None:
+        return None
+
+    now = datetime.now(timezone.utc)
+    link.last_seen_badges_at = now
+    db.commit()
+
+    # Сколько осталось "новых" после этой отметки (на случай гонки).
+    from app.student.models import UserBadge
+
+    after = db.execute(
+        select(func.count(UserBadge.id)).where(
+            UserBadge.user_id == student_id,
+            UserBadge.awarded_at > now,
+        )
+    ).scalar() or 0
+    return now, int(after)

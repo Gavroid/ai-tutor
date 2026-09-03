@@ -14,6 +14,9 @@ type LinkedStudent = {
   linked_at: string;
 };
 
+// Sprint 3.13: badge counter "N новых с прошлого визита" для каждого ребёнка.
+type NewBadgesByChild = Record<number, number>;
+
 type Overview = {
   student: { id: number; display_name: string; email: string };
   total_attempts: number;
@@ -81,6 +84,8 @@ export default function ParentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [busyInvite, setBusyInvite] = useState(false);
   const [loadingChildren, setLoadingChildren] = useState(true);
+  // Sprint 3.13: количество "новых бейджей с прошлого визита" на каждого ребёнка.
+  const [newBadges, setNewBadges] = useState<NewBadgesByChild>({});
 
   useEffect(() => {
     api.me().then(setUser).catch(() => router.push("/login"));
@@ -98,6 +103,7 @@ export default function ParentsPage() {
           setSelectedId(null);
           setOverview(null);
           setOverviewByChild({});
+          setNewBadges({});
           return;
         }
 
@@ -110,6 +116,22 @@ export default function ParentsPage() {
             .map((result) => result.value),
         );
         setOverviewByChild(loaded);
+
+        // Sprint 3.13: подгружаем "новые бейджи" для каждого ребёнка
+        // параллельно с overview — чтобы список не мигал дважды.
+        const badgeResults = await Promise.allSettled(
+          linkedChildren.map(async (child) => {
+            const data = await api.parentChildBadges(child.student_id);
+            return [child.student_id, data.new_since_last_seen ?? 0] as const;
+          }),
+        );
+        const newBadgesMap: NewBadgesByChild = {};
+        badgeResults.forEach((r) => {
+          if (r.status === "fulfilled") {
+            newBadgesMap[r.value[0]] = r.value[1];
+          }
+        });
+        setNewBadges(newBadgesMap);
 
         const saved = typeof window !== "undefined" ? Number(localStorage.getItem("ai-tutor:parent:selected")) : 0;
         const savedChild = linkedChildren.find((child) => child.student_id === saved);
@@ -200,11 +222,26 @@ export default function ParentsPage() {
                 </div>
               ) : (
                 <div className="mt-4 grid gap-2">
-                  {children.map((child) => (
+                  {children.map((child) => {
+                    const newCount = newBadges[child.student_id] ?? 0;
+                    return (
                     <div key={child.student_id} className={`rounded-3xl border p-3 ${selectedId === child.student_id ? "border-[color:var(--prism-accent)] bg-[color:var(--prism-panel-solid)]/55 shadow-glow" : "border-[color:var(--prism-line)] bg-black/10"}`}>
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <button onClick={() => pickChild(child.student_id)} className="min-w-0 flex-1 text-left">
-                          <div className="font-black text-[color:var(--prism-ink)]">{child.display_name}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-black text-[color:var(--prism-ink)]">{child.display_name}</span>
+                            {/* Sprint 3.13: pill «N новых» рядом с именем. */}
+                            {newCount > 0 && (
+                              <span
+                                className="inline-flex items-center gap-1 rounded-full border border-emerald-400/50 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-black text-emerald-200"
+                                title={`${newCount} ${newCount === 1 ? "новое достижение" : "новых достижений"} с прошлого визита`}
+                                data-testid={`parent-child-new-badges-${child.student_id}`}
+                              >
+                                <span aria-hidden>🏅</span>
+                                +{newCount}
+                              </span>
+                            )}
+                          </div>
                           <div className="mt-1 text-xs text-[color:var(--prism-muted)]">
                             Привязан: {new Date(child.linked_at).toLocaleDateString("ru-RU")}
                             {overviewByChild[child.student_id] && ` · попыток ${overviewByChild[child.student_id].total_attempts}`}
@@ -213,7 +250,8 @@ export default function ParentsPage() {
                         <Link href={`/parent/dashboard/${child.student_id}`} className="prism-action shrink-0 px-4 py-2 text-sm">Дашборд</Link>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </aside>

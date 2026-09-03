@@ -397,6 +397,19 @@ export default function TopicPage() {
         // Sprint 4.3.1: error_type для context-aware hints.
         error_type: r.error_type ?? null,
       });
+      // Sprint 3.13: после успешного ответа проверить бейджи и emit
+      // глобальное событие — toast покажется даже если ученик не на /student/badges.
+      if (r.is_correct) {
+        try {
+          const awarded = await api.studentBadgesEvaluate();
+          if (awarded.length > 0) {
+            const { badgeEvents } = await import("@/lib/badge-events");
+            badgeEvents.emit(awarded);
+          }
+        } catch {
+          // Тихий fallback — evaluate опционален.
+        }
+      }
     } catch (err: unknown) {
       setActionError(extractErrorMessage(err));
     } finally {

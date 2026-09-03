@@ -122,9 +122,26 @@ export default function ParentDashboardPage() {
     try {
       const data = await api.parentChildBadges(studentId);
       setBadges(data);
+      // Sprint 3.13: если родитель открыл дашборд впервые — отмечаем
+      // все бейджи как просмотренные (чтобы при следующем заходе
+      // корректно показать "X новых").
+      if (data.new_since_last_seen === null) {
+        api.parentChildBadgesSeen(studentId).catch(() => {});
+      }
     } catch (e) {
       // Тихо — бейджи это дополнительная фича, не критично.
       if (e instanceof ApiError && e.status === 401) return;
+    }
+  }
+
+  async function dismissNewBadgesBanner() {
+    if (!badges || badges.new_since_last_seen === null) return;
+    try {
+      const r = await api.parentChildBadgesSeen(studentId);
+      // Обновим локальный state.
+      setBadges((prev) => (prev ? { ...prev, new_since_last_seen: 0, new_items: [] } : prev));
+    } catch {
+      // ignore
     }
   }
 
@@ -234,6 +251,54 @@ export default function ParentDashboardPage() {
             <ParentInsight title="Что сделать завтра" body={tomorrowPlan} tone="info" />
             <ParentInsight title="Маршрут" body={routeProgress} tone="neutral" />
           </section>
+
+          {/* Sprint 3.13: баннер «🎉 +X новых с прошлого визита». */}
+          {badges && badges.new_since_last_seen !== null && badges.new_since_last_seen > 0 && (
+            <section className="mt-4" aria-label="Новые достижения ребёнка" data-testid="parent-badges-new-banner">
+              <div className="prism-card pad border border-emerald-400/50 bg-gradient-to-br from-emerald-500/15 via-[color:var(--prism-panel-solid)] to-[color:var(--prism-panel-solid)] shadow-[0_18px_50px_-15px_rgba(16,185,129,0.35)]">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <span aria-hidden className="text-3xl leading-none">🎉</span>
+                    <div>
+                      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300">
+                        С прошлого визита
+                      </div>
+                      <div className="mt-1 text-lg font-black tracking-[-0.02em] text-[color:var(--prism-ink)]">
+                        +{badges.new_since_last_seen}{" "}
+                        {badges.new_since_last_seen === 1 ? "новое достижение" : "новых достижений"}
+                      </div>
+                      {badges.new_items.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {badges.new_items.slice(0, 5).map((b) => (
+                            <span
+                              key={b.slug}
+                              className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2 py-0.5 text-xs"
+                              title={b.title}
+                            >
+                              <span aria-hidden>{b.icon}</span>
+                              {b.title}
+                            </span>
+                          ))}
+                          {badges.new_items.length > 5 && (
+                            <span className="inline-flex items-center rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-200">
+                              +{badges.new_items.length - 5} ещё
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void dismissNewBadgesBanner()}
+                    className="prism-action px-4 py-2 text-sm"
+                  >
+                    Понятно
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Sprint 3.11: бейджи ребёнка (только чтение, без влияния). */}
           {badges && (

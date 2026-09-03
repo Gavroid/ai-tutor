@@ -8,6 +8,7 @@ import "./styles/split-lesson.css";
 import "./styles/console-surfaces.css";
 import "./styles/mobile-chat.css";
 import CrashReporterInit from "@/components/CrashReporterInit";
+import GlobalBadgeToaster from "@/components/GlobalBadgeToaster";
 
 export const metadata: Metadata = {
   title: "AI-репетитор 7 класса",
@@ -75,6 +76,8 @@ export default function RootLayout({
         <div id="main-content" tabIndex={-1}>
           {children}
         </div>
+        {/* Sprint 3.13: глобальный toast о бейджах (слушает события со всех страниц). */}
+        <GlobalBadgeToaster />
         {/* Sprint 3.7: client-side crash reporter init (no-op рендер). */}
         <CrashReporterInit />
         {/* Sprint 3.7 polish: theme switcher — теперь встроен в Header,

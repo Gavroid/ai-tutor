@@ -94,12 +94,37 @@ def child_badges(
     """Sprint 3.11 — все достижения ребёнка для родительского дашборда.
 
     Возвращает earned/locked бейджи + прогресс по категориям + latest.
+    Sprint 3.13: + new_since_last_seen (сколько новых с прошлого визита).
     404 если student не привязан к этому parent.
     """
     summary = service.child_badges_summary(db, current, student_id)
     if summary is None:
         raise HTTPException(404, "Ребёнок не привязан или не найден")
     return summary
+
+
+@router.post(
+    "/students/{student_id}/badges/seen",
+    response_model=schemas.MarkBadgesSeenResponse,
+)
+def mark_child_badges_seen(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_parent()),
+):
+    """Sprint 3.13 — отметить бейджи как просмотренные родителем.
+
+    После этого `new_since_last_seen` сбрасывается в 0 (пока ребёнок не
+    получит новый бейдж). Используется для скрытия баннера "🎉 +X новых".
+    """
+    result = service.mark_badges_seen(db, current, student_id)
+    if result is None:
+        raise HTTPException(404, "Ребёнок не привязан или не найден")
+    marked_at, remaining = result
+    return schemas.MarkBadgesSeenResponse(
+        marked_at=marked_at,
+        remaining_new=remaining,
+    )
 
 
 @router.get("/students/{student_id}/dashboard.pdf")

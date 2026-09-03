@@ -169,6 +169,12 @@ export default function StudentBadgesClient() {
         icon: icons[slug] ?? "🏅",
       }));
       setNewlyAwarded(items);
+      // Sprint 3.13: emit глобальное событие (на случай если открыта
+      // и другая страница — например открыто 2 таба).
+      if (awarded.length > 0) {
+        const { badgeEvents } = await import("@/lib/badge-events");
+        badgeEvents.emit(awarded);
+      }
       await refresh();
     } finally {
       setBusy(false);

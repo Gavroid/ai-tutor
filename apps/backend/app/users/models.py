@@ -107,6 +107,11 @@ class ParentStudentLink(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    # Sprint 3.13: когда родитель последний раз смотрел бейджи ребёнка.
+    # Используется для подсчёта "новых с прошлого визита".
+    last_seen_badges_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class Parent2FA(Base):

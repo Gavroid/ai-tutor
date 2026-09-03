@@ -359,7 +359,27 @@ export const api = {
         category: string;
       }>;
       locked: string[];
+      // Sprint 3.13: "X новых с прошлого визита".
+      new_since_last_seen: number | null;
+      new_items: Array<{
+        slug: string;
+        title: string;
+        description: string;
+        icon: string;
+        earned_at: string;
+        category: string;
+      }>;
     }>(`/api/v1/parents/students/${studentId}/badges`);
+  },
+
+  // Sprint 3.13: parent — отметить бейджи как просмотренные.
+  parentChildBadgesSeen: (studentId: number) => {
+    return request<{
+      marked_at: string;
+      remaining_new: number;
+    }>(`/api/v1/parents/students/${studentId}/badges/seen`, {
+      method: "POST",
+    });
   },
   // Sprint 8.1: streak для ученика.
   studentStreak: () => {

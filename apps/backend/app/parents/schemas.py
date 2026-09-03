@@ -166,6 +166,7 @@ class ChildBadgeSummary(BaseModel):
 
     Sprint 3.11: родительский дашборд показывает все бейджи ребёнка с разбивкой
     по категориям. Read-only — родитель НЕ может influence какие бейджи даются.
+    Sprint 3.13: добавлено new_since_last_seen — счётчик "новых с прошлого визита".
     """
 
     student_id: int
@@ -179,3 +180,15 @@ class ChildBadgeSummary(BaseModel):
     earned: list[ChildBadgeItem]
     # Slug'и заблокированных бейджей (какие есть в каталоге но не earned).
     locked: list[str]
+    # Sprint 3.13: сколько новых бейджей получено с момента последнего просмотра.
+    # None если родитель ещё ни разу не открывал дашборд (тогда показываем все).
+    new_since_last_seen: int | None
+    # Список новых бейджей (title + icon) для краткого превью в баннере.
+    new_items: list[ChildBadgeItem]
+
+
+class MarkBadgesSeenResponse(BaseModel):
+    """Ответ на POST /parents/students/{id}/badges/seen."""
+
+    marked_at: datetime
+    remaining_new: int  # Сколько ещё осталось (на случай гонки).
