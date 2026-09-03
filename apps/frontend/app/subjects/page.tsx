@@ -141,25 +141,18 @@ export default function HomePage() {
 
 
           <section className="prism-layer px-4 pb-5 lg:px-7 lg:pb-7">
-            {/* Sprint 3.17: убрали h2 «Каталог предметов», но mb-4 grid-gap-padder-энд
-                сохраняет то же вертикальное пространство.
-                Описание снизу заменено на «Каталог предметов» (Игорь). */}
-            <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_360px] lg:items-end">
-              <div>
-                {/* h2 удалён — Sprint 3.17. Пространство под h2 сохранено через mb-4. */}
-                <p className="mt-2 max-w-2xl text-sm text-[color:var(--prism-muted)]">
-                  Каталог предметов
-                </p>
-              </div>
-              <input
-                type="search"
-                inputMode="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Поиск: математика, русский, физика…"
-                className="prism-input"
-              />
-            </div>
+            {/* Sprint 3.18: убрали grid lg:grid-cols-[1fr_360px] — на меньших viewport
+                search input накладывался поверх блока «Стоит повторить». Теперь:
+                стек — текст «Каталог предметов», под ним search input на всю ширину. */}
+            <div className="mb-4 max-w-2xl text-sm text-[color:var(--prism-muted)]">Каталог предметов</div>
+            <input
+              type="search"
+              inputMode="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Поиск: математика, русский, физика…"
+              className="prism-input mb-6 w-full"
+            />
 
             {filtered.length > 0 ? (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
