@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import json
+from collections import defaultdict
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -229,8 +231,23 @@ def finish_diagnostic(db: Session, session_id: int, user_id: int) -> models.Diag
         select(models.DiagnosticAnswer).where(models.DiagnosticAnswer.session_id == session_id)
     ).all()
 
+    # Sprint 3.17: раннее завершение без ответов = score 0% (без 400 ошибки).
+    # Длинная форма answers может быть [] — тогда просто "пройдено 0 из N вопросов".
+    # Раньше raise ValueError("No answers recorded") — Игорь жаловался на UX.
     if not answers:
-        raise ValueError("No answers recorded")
+        sess.overall_score = 0.0
+        sess.total_questions = max(sess.total_questions, 0)
+        sess.correct_count = 0
+        sess.weak_topics = json.dumps([], ensure_ascii=False)
+        sess.recommendations = (
+            "Сессия завершена без ответов. Пройдите диагностику ещё раз, чтобы получить рекомендации: "
+            "система покажет, какие темы стоит повторить."
+        )
+        sess.status = "finished"
+        sess.finished_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(sess)
+        return sess
 
     # Считаем по темам
     from collections import defaultdict
