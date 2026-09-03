@@ -306,6 +306,24 @@ async def chat(
             subject_name = t.section.subject.name
             topic_name = t.name
     resp = await svc.chat(payload.history, subject_name, topic_name)
+
+    # Sprint 3.15: честный questions_to_ai для бейджа asked_question.
+    # Инкрементим после УСПЕШНОГО chat (resp получен). Upsert ленивый.
+    from app.student.models import UserCounter
+
+    ctr = db.get(UserCounter, current.id)
+    if ctr is None:
+        ctr = UserCounter(
+            user_id=current.id,
+            easy_solved=0,
+            questions_to_ai=1,
+        )
+        db.add(ctr)
+    else:
+        ctr.questions_to_ai = (ctr.questions_to_ai or 0) + 1
+
+    db.commit()
+
     return _ai_response(resp.content, resp.model)
 
 

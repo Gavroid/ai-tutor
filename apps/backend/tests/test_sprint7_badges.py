@@ -200,6 +200,25 @@ class TestBadgesEndpoint:
         finally:
             db.close()
 
+        # Sprint 3.15: имитация вопроса AI для честной выдачи asked_question.
+        # Теперь бейдж требует questions_to_ai>=1 (не proxy).
+        db = SessionLocal()
+        try:
+            from app.student.models import UserCounter
+
+            ctr = db.get(UserCounter, new_student["student_id"])
+            if ctr is None:
+                db.add(UserCounter(
+                    user_id=new_student["student_id"],
+                    easy_solved=0,
+                    questions_to_ai=1,
+                ))
+            else:
+                ctr.questions_to_ai = (ctr.questions_to_ai or 0) + 1
+            db.commit()
+        finally:
+            db.close()
+
         r = c.post(
             "/api/v1/student/badges/evaluate",
             headers={"Authorization": f"Bearer {token}"},

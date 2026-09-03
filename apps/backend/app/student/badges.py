@@ -846,9 +846,18 @@ def collect_stats(db: Session, user_id: int) -> dict:
     ).scalar()
     max_mastery = float(max_mastery_row) if max_mastery_row is not None else 0.0
 
-    # easy_solved / questions_to_ai proxies
-    easy_solved = total
-    questions_to_ai = total
+    # easy_solved / questions_to_ai (Sprint 3.15: честные счётчики).
+    # Раньше это были proxy = total; теперь читаем из таблицы user_counters.
+    # Если row нет (новый пользователь) — дефолт 0.
+    from app.student.models import UserCounter
+
+    ctr = s.get(UserCounter, user_id)
+    if ctr is not None:
+        easy_solved = ctr.easy_solved or 0
+        questions_to_ai = ctr.questions_to_ai or 0
+    else:
+        easy_solved = 0
+        questions_to_ai = 0
 
     # === Sprint 3.8: gamification v2 stats ===
     # Загружаем все attempts с временной меткой — для streak + time-of-day +

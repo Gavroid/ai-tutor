@@ -339,12 +339,26 @@ class TestIdempotency:
         assert "perfect_five" not in second
 
     def test_old_badges_still_work(self, db_with_student_and_subjects):
-        """Регрессия: 10 старых бейджей Sprint 7.5 не сломаны."""
+        """Регрессия: 10 старых бейджей Sprint 7.5 не сломаны.
+
+        Sprint 3.15: `asked_question` теперь требует реальный chat (questions_to_ai>=1),
+        не proxy. Тест имитирует chat через прямой инкремент в user_counters.
+        """
         db = db_with_student_and_subjects["db"]
         sid = db_with_student_and_subjects["student_id"]
         topics = _all_topics(db)
         today_utc = datetime.now(timezone.utc)
         _add_attempt(db, sid, topics[0].id, True, today_utc)
+        # Sprint 3.15: имитация вопроса AI для честной выдачи asked_question.
+        from app.student.models import UserCounter
+
+        ctr = db.get(UserCounter, sid)
+        if ctr is None:
+            db.add(UserCounter(user_id=sid, easy_solved=0, questions_to_ai=1))
+        else:
+            ctr.questions_to_ai = (ctr.questions_to_ai or 0) + 1
+        db.commit()
+
         awarded = evaluate_and_award_badges(db, sid)
         # Старые бейджи всё ещё работают
         assert "first_step" in awarded

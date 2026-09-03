@@ -52,6 +52,26 @@ class BadgeDefinition(Base):
     criteria_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
 
 
+class UserCounter(Base):
+    """Sprint 3.15: честные счётчики для бейджей all_basics / asked_question.
+
+    Раньше `collect_stats()` использовал proxy `easy_solved = total`, `questions_to_ai = total`
+    — бейджи выдавались нечестно. Теперь счётчики инкрементятся:
+      - easy_solved: каждый correct v2 answer при inst.difficulty <= 2
+      - questions_to_ai: каждый успешный POST /api/v1/ai/chat
+
+    Счётчики стартуют с 0 (ретро-бэкфилл НЕ делается). Уже выданные бейджи НЕ отзываются.
+    """
+
+    __tablename__ = "user_counters"
+
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    easy_solved: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    questions_to_ai: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
 class UserBadge(Base):
     """Факт получения баджа (Sprint 7.5). UNIQUE(user_id, badge_slug) — без дублей."""
 

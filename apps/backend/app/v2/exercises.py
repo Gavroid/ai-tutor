@@ -370,6 +370,23 @@ async def submit_answer(
     )
     db.add(attempt)
 
+    # Sprint 3.15: честный easy_solved для бейджа all_basics.
+    # Инкрементим ТОЛЬКО при correct answer и difficulty <= 2 (базовый уровень).
+    # Upsert: row создаётся лениво при первом инкременте.
+    if is_correct and (inst.difficulty or 0) <= 2:
+        from app.student.models import UserCounter
+
+        ctr = db.get(UserCounter, current.id)
+        if ctr is None:
+            ctr = UserCounter(
+                user_id=current.id,
+                easy_solved=1,
+                questions_to_ai=0,
+            )
+            db.add(ctr)
+        else:
+            ctr.easy_solved = (ctr.easy_solved or 0) + 1
+
     # Upsert Progress (replicate logic из progress.service.record_attempt)
     prog = db.scalar(
         select(progress_models.Progress).where(
