@@ -43,8 +43,12 @@ function buildParentRecommendations(overview: Overview): string[] {
   if (overview.accuracy < 0.6) {
     recommendations.push("Сделайте короткое повторение: пусть ребёнок объяснит правило своими словами перед новой задачей.");
   }
-  if (overview.weak_topics.length > 0) {
-    recommendations.push(`Вернитесь к теме «${overview.weak_topics[0].topic_name}» и решите 2–3 простые задачи.`);
+  // Sprint 3.17: до 5 тем в рекомендациях (как у ученика в /subjects).
+  const weakForRecs = overview.weak_topics.slice(0, 5);
+  for (const topic of weakForRecs) {
+    recommendations.push(
+      `Вернитесь к теме «${topic.topic_name}» (mastery ${Math.round(topic.mastery * 100)}%) и решите 2–3 простые задачи.`
+    );
   }
   const recentActive = overview.daily_activity.slice(-7).some((day) => day.attempts > 0);
   if (!recentActive) {
@@ -53,7 +57,8 @@ function buildParentRecommendations(overview: Overview): string[] {
   if (recommendations.length === 0) {
     recommendations.push("Темп нормальный: продолжайте короткие регулярные занятия и добавьте одну задачу на закрепление.");
   }
-  return recommendations.slice(0, 3);
+  // Sprint 3.17: max=5 рекомендаций (Игорь).
+  return recommendations.slice(0, 5);
 }
 
 function summarizeActivity(days: Array<{ date: string; attempts: number }>) {
