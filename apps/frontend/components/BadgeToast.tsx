@@ -21,8 +21,8 @@ export interface BadgeToastProps {
 /**
  * Sprint 3.11 — toast «🎉 Новый бейдж!»
  *
- * Показывает стек карточек (одна за другой если бейджей несколько).
- * Появляется в правом нижнем углу, исчезает через durationMs.
+ * Sprint 3.14: размер увеличен, расположение — по центру экрана (overlay),
+ * backdrop blur + кнопка-CTA «Все достижения» (крупная, ведёт на /student/badges).
  *
  * T1D-friendly: нет таймера обратного отсчёта, нет давления.
  * Просто позитивное уведомление.
@@ -51,60 +51,90 @@ export default function BadgeToast({
       data-testid="badge-toast"
       role="status"
       aria-live="polite"
-      className="fixed bottom-4 right-4 z-50 max-w-[min(92vw,360px)] animate-[badge-toast-in_220ms_ease-out]"
+      // Sprint 3.14: overlay на весь экран, центрирование через flex.
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
     >
-      <div className="prism-card pad border border-emerald-400/40 bg-gradient-to-br from-emerald-500/20 via-[color:var(--prism-panel-solid)] to-[color:var(--prism-panel-solid)] shadow-[0_20px_60px_-15px_rgba(16,185,129,0.4)]">
-        <div className="flex items-start gap-3">
-          <span aria-hidden className="text-3xl leading-none">
-            🎉
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300">
+      {/* Backdrop — кликабельный для закрытия. */}
+      <button
+        type="button"
+        aria-label="Закрыть"
+        onClick={() => {
+          setVisible(false);
+          onDismiss?.();
+        }}
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-default animate-[badge-toast-backdrop-in_180ms_ease-out]"
+      />
+
+      {/* Карточка по центру. */}
+      <div
+        data-testid="badge-toast-card"
+        className="relative w-full max-w-md rounded-3xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/20 via-[color:var(--prism-panel-solid)] to-[color:var(--prism-panel-solid)] p-6 shadow-[0_30px_80px_-15px_rgba(16,185,129,0.45)] animate-[badge-toast-in_240ms_ease-out]"
+      >
+        {/* Кнопка закрытия (X) в углу. */}
+        <button
+          type="button"
+          onClick={() => {
+            setVisible(false);
+            onDismiss?.();
+          }}
+          aria-label="Закрыть"
+          className="absolute right-3 top-3 rounded-full p-1.5 text-[color:var(--prism-muted)] hover:bg-white/10 hover:text-[color:var(--prism-ink)]"
+        >
+          <span aria-hidden className="text-lg leading-none">✕</span>
+        </button>
+
+        {/* Header: 🎉 + kicker. */}
+        <div className="flex items-center gap-3">
+          <span aria-hidden className="text-5xl leading-none">🎉</span>
+          <div>
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-300">
               Новый бейдж!
             </div>
-            <div className="mt-1 space-y-1.5">
-              {badges.slice(0, 3).map((b) => (
-                <div key={b.slug} className="flex items-center gap-2">
-                  <span aria-hidden className="text-2xl leading-none">
-                    {b.icon}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-black text-[color:var(--prism-ink)]">
-                      {b.title}
-                    </div>
-                    {b.description && (
-                      <div className="truncate text-[11px] text-[color:var(--prism-muted)]">
-                        {b.description}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {badges.length > 3 && (
-                <div className="text-xs text-[color:var(--prism-muted)]">
-                  и ещё {badges.length - 3}...
-                </div>
-              )}
+            <div className="mt-0.5 text-xs text-[color:var(--prism-muted)]">
+              {badges.length === 1
+                ? "Ты только что получил достижение"
+                : `Ты получил ${badges.length} новых достижений`}
             </div>
-            <a
-              href="/student/badges"
-              className="mt-2 inline-block text-[11px] font-black uppercase tracking-[0.14em] text-emerald-300 hover:text-emerald-200"
-            >
-              Все достижения →
-            </a>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setVisible(false);
-              onDismiss?.();
-            }}
-            aria-label="Закрыть"
-            className="shrink-0 rounded p-1 text-[color:var(--prism-muted)] hover:text-[color:var(--prism-ink)]"
-          >
-            ✕
-          </button>
         </div>
+
+        {/* Список бейджей. */}
+        <div className="mt-5 space-y-3">
+          {badges.slice(0, 4).map((b) => (
+            <div
+              key={b.slug}
+              data-testid="badge-toast-item"
+              className="flex items-start gap-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/5 p-3"
+            >
+              <span aria-hidden className="shrink-0 text-3xl leading-none">{b.icon}</span>
+              <div className="min-w-0 flex-1">
+                <div className="text-base font-black text-[color:var(--prism-ink)]">
+                  {b.title}
+                </div>
+                {b.description && (
+                  <div className="mt-0.5 text-sm leading-snug text-[color:var(--prism-muted)]">
+                    {b.description}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+          {badges.length > 4 && (
+            <div className="text-sm text-[color:var(--prism-muted)] text-center">
+              и ещё {badges.length - 4}...
+            </div>
+          )}
+        </div>
+
+        {/* Кнопка-CTA — primary, ведёт на /student/badges. */}
+        <a
+          href="/student/badges"
+          data-testid="badge-toast-cta"
+          className="prism-action primary mt-5 flex w-full items-center justify-center gap-2 px-6 py-3 text-sm font-black uppercase tracking-[0.16em]"
+        >
+          Все достижения
+          <span aria-hidden>→</span>
+        </a>
       </div>
     </div>
   );
