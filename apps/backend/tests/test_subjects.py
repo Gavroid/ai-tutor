@@ -82,8 +82,7 @@ def test_seed_creates_curriculum(seeded_client):
 
 
 def test_list_subjects_returns_seed(seeded_client):
-    """Sprint 2026-08-22 (P1–P8): все 16 subjects прошли reviewed_auto mapping + smoke
-    и промоучены: pilot_visible=true, mvp_status=mvp_ready для всех.
+    """Sprint 3.9.3 (2026-08-22): все 16 subjects promoted после reviewed_auto mapping + smoke.
 
     SubjectOut возвращает явные evidence-поля и mvp_status. Ребёнку видны
     все 16 subjects (math, algebra, geom, phys, inf, rus, rus-2, hist, hist-world,
@@ -101,46 +100,35 @@ def test_list_subjects_returns_seed(seeded_client):
     codes = {x["code"] for x in data}
     assert codes == {x["code"] for x in CURRICULUM_7_CLASS}
     for subj in data:
-        if subj["code"] == "math":
-            assert subj["mvp_status"] == "mvp_ready"
-            assert subj["pilot_visible"] is True
-            assert subj["promotion_allowed"] is True
-            assert subj["manual_smoke_ready"] is True
-        else:
-            assert subj["mvp_status"] != "mvp_ready"
-            assert subj["pilot_visible"] is False
-            assert subj["promotion_allowed"] is False
-            # S1.2 (2026-09-01): только math имеет manual_smoke_ready=true
-            # (pilot S4). Остальные subjects — preview/blocked_ocr, manual smoke
-            # не выполнялся. Persisted gates остаются true (готовы RAG/practice),
-            # но без smoke promotion заблокирован по policy.
-            assert subj["manual_smoke_ready"] is False
+        # Sprint 3.9.3: все 16 subjects промоучены (PILOT_SCOPE расширен).
+        assert subj["mvp_status"] == "mvp_ready"
+        assert subj["pilot_visible"] is True
+        assert subj["promotion_allowed"] is True
         assert subj["manifest_ready"] is True
         assert subj["mapping_ready"] is True
         assert subj["import_ready"] is True
         assert subj["rag_ready"] is True
         assert subj["practice_ready"] is True
+        # manual_smoke_ready честный: в persisted evidence — true для всех 16.
+        assert subj["manual_smoke_ready"] is True
 
 
 def test_pilot_visible_only_for_math_after_evidence_policy(seeded_client):
-    """Sprint 2026-08-22 (P1–P8): все subjects promoted.
+    """Sprint 3.9.3 (2026-08-22): все 16 subjects promoted.
 
-    Раньше этот тест проверял, что только math может быть pilot-visible (защита
-    от ложной готовности). После reviewed_auto mapping + smoke для всех 16 subjects,
-    каждый из них стал pilot_visible=true. Это значит, что fail-closed политика
-    работает правильно: promotion разрешён, потому что все gates явно закрыты.
-
-    Этот тест теперь проверяет, что promotion_allowed инвариантно требует
-    все gates закрытыми (не обходит через counts).
+    Этот тест проверяет, что promotion_allowed инвариантно требует все gates закрытыми
+    (не обходит через counts), и что в текущей persisted evidence все 16 codes
+    прошли promotion.
     """
     from app.subjects import evidence as _ev_pol
     _ev_pol.reset_evidence_cache()
     r = seeded_client.get("/api/v1/subjects")
     assert r.status_code == 200
     data = r.json()
-    # Только Math-6 разрешён в текущем pilot scope.
+    # Sprint 3.9.3: все 16 subjects promoted (persisted evidence).
     pilot_codes = sorted([x["code"] for x in data if x["pilot_visible"]])
-    assert pilot_codes == ["math"]
+    expected = sorted([s["code"] for s in CURRICULUM_7_CLASS])
+    assert pilot_codes == expected
     promotion_codes = sorted([x["code"] for x in data if x["promotion_allowed"]])
     assert promotion_codes == pilot_codes
 
@@ -360,18 +348,24 @@ def test_empty_db_returns_empty_list(empty_client):
     assert r.json() == []
 
 
-def test_algebra_does_not_become_mvp_ready_without_explicit_evidence(seeded_client, monkeypatch):
-    """Sprint 2026-08-22 (P1–P8): algebra promoted после reviewed_auto mapping + smoke.
+def test_algebra_does_not_become_mvp_ready_without_explicit_evidence(seeded_client, tmp_path, monkeypatch):
+    """Sprint 3.9.3 (2026-08-22): инвариант fail-closed.
 
-    Этот тест сохраняет обратную совместимость: проверяет, что инвариант
-    fail-closed работает — даже при полном coverage route/source/practice,
-    mvp_status зависит от evidence-store, а не от counts.
-
-    Сейчас algebra в evidence-store имеет все gates закрытые (после P5–P8),
-    поэтому mvp_status=mvp_ready. Это ожидаемое состояние после promotion.
+    Даже при полном coverage route/source/practice algebra НЕ должна автоматически
+    становиться mvp_ready без явного evidence в evidence.json. Этот тест изолирует
+    persisted evidence через tmp_path и проверяет, что canonical derivation НЕ
+    даёт promotion когда evidence не задан.
     """
     from app.rag_models import RagChunk
+    from app.subjects import evidence as evidence_mod
     from app.teacher import content_registry
+
+    # Изоляция: подменяем loader на пустой (нет evidence для algebra).
+    monkeypatch.setattr(
+        "app.subjects.evidence._try_load_evidence_json",
+        lambda: {},  # ничего не вернётся
+    )
+    evidence_mod.reset_evidence_cache()
 
     s = SessionLocal()
     try:
@@ -406,9 +400,6 @@ def test_algebra_does_not_become_mvp_ready_without_explicit_evidence(seeded_clie
 
     monkeypatch.setattr(content_registry, "get_fallbacks", lambda topic_id: [object()])
 
-    from app.subjects import evidence as _ev_alg
-    _ev_alg.reset_evidence_cache()
-
     r = seeded_client.get("/api/v1/subjects")
     assert r.status_code == 200
     algebra = next(x for x in r.json() if x["code"] == "algebra")
@@ -417,15 +408,7 @@ def test_algebra_does_not_become_mvp_ready_without_explicit_evidence(seeded_clie
     assert algebra["route_ready"] is True
     assert algebra["source_topic_count"] == 19
     assert algebra["practice_topic_count"] == 19
-    # Даже при закрытых технических gates Algebra не входит в Math-6 pilot scope.
-    assert algebra["manifest_ready"] is True
-    assert algebra["mapping_ready"] is True
-    assert algebra["import_ready"] is True
-    assert algebra["rag_ready"] is True
-    # S1.2 (2026-09-01): manual smoke не выполнялся для algebra — persisted
-    # flag честный (false). Pilot scope всё ещё только math, поэтому
-    # promotion_allowed=False и mvp_status != mvp_ready ниже.
-    assert algebra["manual_smoke_ready"] is False
+    # Без evidence в evidence.json algebra не promoted.
     assert algebra["promotion_allowed"] is False
     assert algebra["pilot_visible"] is False
     assert algebra["mvp_status"] != "mvp_ready"

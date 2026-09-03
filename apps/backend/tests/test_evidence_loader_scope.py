@@ -55,7 +55,10 @@ def test_evidence_loader_canonicalizes_pilot_scope_and_blocked_reason(
     evidence.reset_evidence_cache()
 
     assert evidence.get_evidence_for("math").pilot_visible is True
-    assert evidence.get_evidence_for("algebra").pilot_visible is False
-    assert evidence.get_evidence_for("algebra").promotion_allowed is False
+    # Sprint 3.9.3 (2026-08-22): algebra В PILOT_SCOPE (все 16 promoted),
+    # canonical derivation возвращает promotion_allowed=True.
+    assert evidence.get_evidence_for("algebra").pilot_visible is True
+    assert evidence.get_evidence_for("algebra").promotion_allowed is True
+    # hist заблокирован canonical (blocked_ocr) → promotion_allowed=False.
     assert evidence.get_evidence_for("hist").pilot_visible is False
     assert evidence.get_evidence_for("hist").promotion_allowed is False

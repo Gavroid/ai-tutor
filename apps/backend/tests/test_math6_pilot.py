@@ -315,10 +315,17 @@ def test_math6_pilot_in_pilot_scope_only(math6_client):
 
 
 def test_math6_only_one_pilot_code_for_now(math6_client):
-    """Sprint 3 §Scope policy: pilot scope = только Math-6, ровно 1 код."""
+    """Sprint 3.9.3 (2026-08-22): pilot scope расширен с {math} до всех 16 subjects.
+
+    Math-6 остаётся фокусным pilot candidate (15 P0 topics), но не единственным
+    в PILOT_SCOPE. Тест проверяет, что scope расширен согласованно с curriculum.
+    """
+    from app.subjects.curriculum_7_class import CURRICULUM_7_CLASS
     from app.subjects.evidence_schema import PILOT_SCOPE
 
-    assert PILOT_SCOPE == {"math"}, PILOT_SCOPE
+    expected = {s["code"] for s in CURRICULUM_7_CLASS}
+    assert PILOT_SCOPE == expected, PILOT_SCOPE
+    assert "math" in PILOT_SCOPE  # гарантия что math остался в scope
 
 
 def test_math6_canonical_evidence_pilot_visible():
