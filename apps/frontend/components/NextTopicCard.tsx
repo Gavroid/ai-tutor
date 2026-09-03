@@ -86,25 +86,17 @@ export default function NextTopicCard({ next, onRefresh }: NextTopicCardProps) {
               Текущее освоение: {Math.round(mastery_score * 100)}%
             </p>
           )}
-          <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">{encouragement}</p>
         </div>
       </div>
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <p className="flex-1 text-sm text-[color:var(--prism-muted)]">{encouragement}</p>
         <Link
           href={`/topics/${topic_id}`}
-          className="flex-1 rounded-md bg-sky-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-sky-500"
+          className="inline-flex items-center justify-center rounded-lg bg-[color:var(--prism-accent)] px-4 py-2 text-sm font-bold text-[color:var(--prism-bg)] hover:opacity-90"
         >
-          {isWeak ? "Повторить →" : "Начать →"}
+          {isWeak ? "Повторить" : "Начать"}
         </Link>
-        {onRefresh && (
-          <button
-            onClick={onRefresh}
-            className="rounded-md bg-slate-200 px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
-          >
-            🔄
-          </button>
-        )}
       </div>
     </div>
   );

@@ -29,7 +29,8 @@ export default function StudentBadgesPage() {
             {/* Sprint 3.10: оборачиваем в admin-content-zone для scroll
                 (как у /admin/ai-providers Sprint 3.9.6.2). */}
             <section className="admin-content-zone mt-4 space-y-6">
-              <div className="prism-kicker">Sprint 3.10 · Gamification</div>
+              {/* Sprint 3.16: убрали «Sprint 3.10 · Gamification» kicker —
+                  внутренний пейвол, не нужен ребёнку. */}
               <h1 className="text-3xl font-black tracking-[-0.04em] text-[color:var(--prism-ink)]">
                 Достижения и серии
               </h1>

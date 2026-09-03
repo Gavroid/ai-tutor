@@ -277,12 +277,13 @@ export default function StudentBadgesClient() {
     const pct = Math.round((earnedItems.length / total) * 100);
     return (
       <section className="mt-8 first:mt-0">
-        <div className="flex items-center gap-3 mb-4">
+        {/* Sprint 3.16: центрирование для согласованного UI. */}
+        <div className="flex flex-col items-center text-center gap-1 mb-4">
           <span className="text-2xl" aria-hidden="true">{icon}</span>
           <h2 className="text-lg font-black tracking-[-0.02em] text-[color:var(--prism-ink)]">
             {title}
           </h2>
-          <span className="text-xs font-bold text-[color:var(--prism-muted)] ml-auto">
+          <span className="text-xs font-bold text-[color:var(--prism-muted)]">
             {earnedItems.length} / {total} · {pct}%
           </span>
         </div>
@@ -324,26 +325,30 @@ export default function StudentBadgesClient() {
       {/* Sprint 3.13: toast рендерится глобально через GlobalBadgeToaster в layout.
           Локальный <BadgeToast> убран чтобы не было дублей. */}
 
-      {/* Streak + Next topic — без изменений (Sprint 8.1, 8.2). */}
-      {streak && (
-        <div className="mt-6">
-          <StreakCard streak={streak} />
-        </div>
-      )}
-      {nextTopic && (
-        <div className="mt-6">
-          <NextTopicCard
-            next={nextTopic}
-            onRefresh={() => {
-              void api.recommendNext(3).then(setNextTopic).catch(() => {});
-            }}
-          />
+      {/* Sprint 3.16: streak + next topic — в одну строку (экономия вертикали). */}
+      {(streak || nextTopic) && (
+        <div className="mt-6 grid gap-3 md:grid-cols-2">
+          {streak && (
+            <div>
+              <StreakCard streak={streak} />
+            </div>
+          )}
+          {nextTopic && (
+            <div>
+              <NextTopicCard
+                next={nextTopic}
+                onRefresh={() => {
+                  void api.recommendNext(3).then(setNextTopic).catch(() => {});
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
 
-      {/* Sprint 3.10: статистика по badge. */}
+      {/* Sprint 3.10: статистика по badge (Sprint 3.16: text-center для согласованного UI). */}
       <div className="mt-8 grid gap-3 grid-cols-2 sm:grid-cols-3">
-        <div className="rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-4">
+        <div className="rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-4 text-center">
           <div className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--prism-muted)]">
             Получено
           </div>
@@ -352,7 +357,7 @@ export default function StudentBadgesClient() {
           </div>
           <div className="text-xs text-[color:var(--prism-muted)]">из {badges.length}</div>
         </div>
-        <div className="rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-4">
+        <div className="rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-4 text-center">
           <div className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--prism-muted)]">
             Прогресс
           </div>
@@ -363,7 +368,7 @@ export default function StudentBadgesClient() {
           </div>
           <div className="text-xs text-[color:var(--prism-muted)]">всего достижений</div>
         </div>
-        <div className="rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-4">
+        <div className="rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-4 text-center">
           <div className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--prism-muted)]">
             Категорий
           </div>
