@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -193,8 +193,9 @@ def expire_stale_diagnostic_sessions(db: Session, ttl_hours: int = 24) -> int:
     Полезно вызывать периодически (cron) или вручную через /admin/endpoint.
     Возвращает количество завершённых сессий.
     """
-    from datetime import datetime, timedelta, timezone
-
+    # Sprint 3.17: убран inline-импорт `from datetime import datetime, timedelta, timezone`
+    # — он делал datetime module-level local variable, что ломало finish_diagnostic
+    # (UnboundLocalError) из-за Python scope rules. Используем top-level import.
     cutoff = datetime.now(timezone.utc) - timedelta(hours=ttl_hours)
 
     stale = db.scalars(
@@ -283,7 +284,6 @@ def finish_diagnostic(db: Session, session_id: int, user_id: int) -> models.Diag
         rec_lines = ["Отличный результат! Можно двигаться дальше."]
     sess.recommendations = "\n".join(rec_lines)
     sess.status = "finished"
-    from datetime import datetime, timezone
 
     sess.finished_at = datetime.now(timezone.utc)
     db.commit()
