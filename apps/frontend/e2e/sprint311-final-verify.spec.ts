@@ -42,7 +42,7 @@ test.describe("Sprint 3.11 — финальный verify", () => {
     // Pill в Header.
     const pill = page.getByTestId("header-badges-pill");
     await expect(pill).toBeVisible({ timeout: 10_000 });
-    await expect(pill).toContainText("44");
+    await expect(pill).toContainText("60");
 
     // Категории (Sprint 3.10: render by category name).
     await expect(page.getByText("Количество решённых").first()).toBeVisible();
@@ -77,7 +77,7 @@ test.describe("Sprint 3.11 — финальный verify", () => {
 
     const card = page.getByTestId("parent-badges-card");
     await expect(card).toBeVisible({ timeout: 5_000 });
-    await expect(card).toContainText("44");
+    await expect(card).toContainText("60");
 
     // 4 категории.
     await expect(page.getByTestId("parent-badges-cat-count")).toBeVisible();
