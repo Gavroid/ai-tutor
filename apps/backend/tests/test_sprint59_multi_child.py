@@ -147,7 +147,9 @@ def test_parent_with_one_child(client):
     children = r2.json()
     assert len(children) == 1
     assert children[0]["display_name"] == "C1"
-    assert children[0]["email"] == "c1@example.com"
+    # Sprint 3.15: email ребёнка НЕ возвращается в /parents/children —
+    # privacy fix (см. test_parent_no_email_leak.py). Раньше тест проверял
+    # email=c1@example.com, но это нарушение parent-child privacy.
 
 
 def test_parent_with_two_children(client, parent_with_2_children):

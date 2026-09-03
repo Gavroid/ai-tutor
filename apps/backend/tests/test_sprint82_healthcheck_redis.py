@@ -53,7 +53,10 @@ def test_ready_endpoint_returns_db_reason():
 # === Integration tests ===
 
 def test_ready_returns_redis_unavailable_when_redis_down(client):
-    """Sprint 82: Redis down → 200 + status=not_ready + reason=redis_unavailable."""
+    """Sprint 82: Redis down → 503 + status=not_ready + reason=redis_unavailable.
+
+    Sprint 3.15: HTTP-семантика readiness — 503 на not_ready (K8s-style).
+    """
     # Mock DB connection to succeed
     with patch("app.main.engine") as mock_engine:
         mock_conn = MagicMock()
@@ -65,14 +68,14 @@ def test_ready_returns_redis_unavailable_when_redis_down(client):
         # Mock _get_redis to return None (Redis unavailable)
         with patch("app.main._get_redis", return_value=None):
             r = client.get("/ready")
-            assert r.status_code == 200
+            assert r.status_code == 503, r.text
             data = r.json()
             assert data["status"] == "not_ready"
             assert data["reason"] == "redis_unavailable"
 
 
 def test_ready_returns_ready_when_all_healthy(client):
-    """Sprint 82: DB OK + Redis OK → status=ready."""
+    """Sprint 82: DB OK + Redis OK → status=ready + 200."""
     # Mock DB connection to succeed
     with patch("app.main.engine") as mock_engine:
         mock_conn = MagicMock()
@@ -94,7 +97,10 @@ def test_ready_returns_ready_when_all_healthy(client):
 
 
 def test_ready_returns_redis_error_when_ping_fails(client):
-    """Sprint 82: Redis ping raises → reason=redis_error."""
+    """Sprint 82: Redis ping raises → 503 + reason=redis_error.
+
+    Sprint 3.15: HTTP-семантика readiness — 503 на not_ready (K8s-style).
+    """
     with patch("app.main.engine") as mock_engine:
         mock_conn = MagicMock()
         mock_conn.__enter__ = MagicMock(return_value=mock_conn)
@@ -109,7 +115,7 @@ def test_ready_returns_redis_error_when_ping_fails(client):
 
         with patch("app.main._get_redis", return_value=mock_redis):
             r = client.get("/ready")
-            assert r.status_code == 200
+            assert r.status_code == 503, r.text
             data = r.json()
             assert data["status"] == "not_ready"
             assert data["reason"] == "redis_unavailable"  # also treated as unavailable

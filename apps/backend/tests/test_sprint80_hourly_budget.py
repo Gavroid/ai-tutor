@@ -61,7 +61,11 @@ def test_get_usage_includes_hourly():
 
 @pytest.mark.asyncio
 async def test_hourly_limit_raises_budget_exceeded(monkeypatch):
-    """Sprint 80: > 20 req/hour → BudgetExceeded."""
+    """Sprint 80: > HOURLY_REQUESTS_LIMIT req/hour → BudgetExceeded.
+
+    Sprint 3.9.5: default HOURLY_REQUESTS_LIMIT=60 (Кирилл попросил). Тест
+    использует 70 как значение больше default, чтобы не зависеть от env override.
+    """
     from app.ai import budget as budget_module
 
     # Mock _increment чтобы always возвращать > limit
@@ -69,7 +73,7 @@ async def test_hourly_limit_raises_budget_exceeded(monkeypatch):
 
     def mock_increment(key, limit, ttl, by=1):
         counter[0] += 1
-        return 25  # больше HOURLY_REQUESTS_LIMIT
+        return 70  # больше HOURLY_REQUESTS_LIMIT (default 60 после Sprint 3.9.5)
 
     monkeypatch.setattr(budget_module, "_increment", mock_increment)
     monkeypatch.setattr(budget_module, "_try_redis", lambda: None)
@@ -78,11 +82,15 @@ async def test_hourly_limit_raises_budget_exceeded(monkeypatch):
         budget_module.check_and_increment(user_id=42)
 
     assert exc.value.limit_kind == "hourly_requests"
-    assert exc.value.used == 25
+    assert exc.value.used == 70
 
 
 def test_hourly_limit_default_value():
-    """Sprint 80: HOURLY_REQUESTS_LIMIT по умолчанию 20."""
+    """Sprint 80 + 3.9.5: HOURLY_REQUESTS_LIMIT по умолчанию 60 (Кирилл попросил больше).
+
+    Первоначальный default был 20; Sprint 3.9.5 расширил до 60 по запросу пользователя
+    (см. app/ai/budget.py:28-29). Тест отражает актуальный дефолт.
+    """
     import os
     # Remove env var to test default
     old = os.environ.pop("AI_BUDGET_REQUESTS_PER_HOUR", None)
@@ -92,8 +100,8 @@ def test_hourly_limit_default_value():
         from app.ai import budget as budget_module
         importlib.reload(budget_module)
 
-        # Default should be 20 if env is not set
-        assert budget_module.HOURLY_REQUESTS_LIMIT == 20
+        # Sprint 3.9.5: default = 60 (Кирилл попросил), см. app/ai/budget.py:29.
+        assert budget_module.HOURLY_REQUESTS_LIMIT == 60
     finally:
         if old is not None:
             os.environ["AI_BUDGET_REQUESTS_PER_HOUR"] = old
