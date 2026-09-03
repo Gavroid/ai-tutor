@@ -271,6 +271,50 @@ def test_dashboard_with_attempts(client):
     assert body["time_stats"]["total_attempts"] == 5
 
 
+def test_dashboard_recommendations_up_to_5_weak_topics(client):
+    """Sprint 3.19 (audit D1): рекомендации дашборда — до 5 слабых тем
+    (как у ученика в /subjects и в /parents). Раньше backend
+    `_parent_recommendations` добавлял только weak_topics[0] → Игорь видел
+    «1 у родителя, 5 у ученика» на /parent/dashboard/[id]."""
+    kid_id = _get_kid_id(client)
+    kid = _token(client, "kid@example.com")
+
+    # 6 разных тем, все попытки неверные → mastery 0.0 < 0.6 → weak topics
+    for topic_id in range(1, 7):
+        client.post(
+            "/api/v1/progress/attempts",
+            json={
+                "topic_id": topic_id,
+                "question_text": f"q{topic_id}",
+                "user_answer": "wrong",
+                "correct_answer": "right",
+                "is_correct": False,
+                "score": 0.0,
+            },
+            headers=_h(kid),
+        )
+
+    mom = _token(client, "mom@example.com")
+    r = client.get(
+        f"/api/v1/parents/students/{kid_id}/dashboard",
+        headers=_h(mom),
+    )
+    assert r.status_code == 200
+    body = r.json()
+    weak_recs = [rec for rec in body["recommendations"] if rec["title"] == "Повторить слабую тему"]
+    assert len(body["weak_topics"]) >= 5
+    assert len(weak_recs) >= 5, (
+        f"ожидали ≥5 weak-topic рекомендаций, получили {len(weak_recs)}: "
+        f"{body['recommendations']}"
+    )
+    # общий cap — 5 (как у ученика)
+    assert len(body["recommendations"]) <= 5
+    # каждая weak-рекомендация несёт свою тему
+    rec_topics = {rec["topic_id"] for rec in weak_recs}
+    assert None not in rec_topics
+    assert len(rec_topics) == len(weak_recs)
+
+
 def test_dashboard_streak_calculation(client):
     """Сегодняшние attempts → current_streak = 1."""
     kid_id = _get_kid_id(client)

@@ -321,14 +321,17 @@ def _parent_recommendations(
 ) -> list[schemas.ParentRecommendation]:
     recs: list[schemas.ParentRecommendation] = []
     if weak_topics:
-        first = weak_topics[0]
-        recs.append(schemas.ParentRecommendation(
-            title="Повторить слабую тему",
-            detail=f"Начните с темы «{first.topic_name}»: mastery {round(first.mastery * 100)}%, попыток {first.attempts_count}.",
-            tone="warning",
-            topic_id=first.topic_id,
-            topic_name=first.topic_name,
-        ))
+        # Sprint 3.19 (audit D1): до 5 weak-topic рекомендаций — как у ученика
+        # в /subjects и как в /parents (9b1e0f4). Раньше была только
+        # weak_topics[0] → «1 у родителя, 5 у ученика» на /parent/dashboard/[id].
+        for topic in weak_topics[:5]:
+            recs.append(schemas.ParentRecommendation(
+                title="Повторить слабую тему",
+                detail=f"Начните с темы «{topic.topic_name}»: mastery {round(topic.mastery * 100)}%, попыток {topic.attempts_count}.",
+                tone="warning",
+                topic_id=topic.topic_id,
+                topic_name=topic.topic_name,
+            ))
     if due_count > 0:
         recs.append(schemas.ParentRecommendation(
             title="Сделать повторение",
@@ -353,7 +356,8 @@ def _parent_recommendations(
             detail="Критичных слабых сигналов нет. Можно продолжать следующую P0/P1 тему.",
             tone="success",
         ))
-    return recs[:3]
+    # Sprint 3.19: cap 3 → 5 (как у ученика; weak-рекомендации идут первыми).
+    return recs[:5]
 
 
 def child_dashboard(
