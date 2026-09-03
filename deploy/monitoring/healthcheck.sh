@@ -3,7 +3,8 @@
 # Запускается через cron каждые 5 минут.
 # Алерты в Telegram (если TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID заданы).
 #
-# Cron: */5 * * * * /etc/cron.d/ai-tutor-monitor (source'ит /etc/ai-tutor/.env для TELEGRAM_*)
+# Cron: */5 * * * * /etc/cron.d/ai-tutor-monitor (source'ит /opt/ai-tutor/.env для TELEGRAM_*)
+# Sprint 3.15: путь к env исправлен на /opt/ai-tutor/.env (главный deploy-файл на проде).
 #
 # Sprint 3.5.1: BACKUP_DIR по умолчанию = /opt/ai-tutor/deploy/backup/_out
 # (где backup.sh пишет). Старое значение /var/backups/ai-tutor было offsite-dest
