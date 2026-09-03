@@ -92,8 +92,8 @@ def _algebra_topic_id(s=None) -> int:
             s.close()
 
 
-def _gen_correct_v2(client: TestClient, h: dict, topic_id: int) -> str:
-    """Pilot Core helper: generate + возврат correct_answer (через БД)."""
+def _gen_correct_v2(client: TestClient, h: dict, topic_id: int) -> tuple[int, str]:
+    """Generate + возврат (exercise_id, correct_answer) для ТОГО ЖЕ упражнения."""
     from app.ai.models import GeneratedExerciseInstance
 
     gen = client.post(
@@ -103,7 +103,7 @@ def _gen_correct_v2(client: TestClient, h: dict, topic_id: int) -> str:
     ).json()
     with SessionLocal() as s:
         inst = s.get(GeneratedExerciseInstance, gen["exercise_id"])
-        return inst.correct_answer
+        return gen["exercise_id"], inst.correct_answer
 
 
 def _submit_v2(client: TestClient, h: dict, topic_id: int, answer: str) -> dict:
@@ -129,18 +129,9 @@ def test_progress_record_attempt(client):
     token = _login(client)
     h = {"Authorization": f"Bearer {token}"}
     tid = _algebra_topic_id()
-    correct = _gen_correct_v2(client, h, tid)
+    ex_id, correct = _gen_correct_v2(client, h, tid)
     r = client.post(
-        f"/api/v2/exercises/1/answer",  # exercise_id=1 (первый)
-        headers=h,
-        json={"user_answer": correct},
-    )
-    # exercise_id=1 не подойдёт — нужно знать id. Делаем напрямую через generate.
-    gen = client.post(
-        "/api/v2/exercises/generate", headers=h, json={"topic_id": tid}
-    ).json()
-    r = client.post(
-        f"/api/v2/exercises/{gen['exercise_id']}/answer",
+        f"/api/v2/exercises/{ex_id}/answer",
         headers=h,
         json={"user_answer": correct},
     )
@@ -154,21 +145,16 @@ def test_progress_mastery_updates(client):
     tid = _algebra_topic_id()
     # 3 правильных
     for _ in range(3):
-        correct = _gen_correct_v2(client, h, tid)
-        gen = client.post(
-            "/api/v2/exercises/generate", headers=h, json={"topic_id": tid}
-        ).json()
+        ex_id, correct = _gen_correct_v2(client, h, tid)
         client.post(
-            f"/api/v2/exercises/{gen['exercise_id']}/answer",
+            f"/api/v2/exercises/{ex_id}/answer",
             headers=h,
             json={"user_answer": correct},
         )
     # 1 неправильный
-    gen = client.post(
-        "/api/v2/exercises/generate", headers=h, json={"topic_id": tid}
-    ).json()
+    wrong_ex_id, _ = _gen_correct_v2(client, h, tid)
     client.post(
-        f"/api/v2/exercises/{gen['exercise_id']}/answer",
+        f"/api/v2/exercises/{wrong_ex_id}/answer",
         headers=h,
         json={"user_answer": "intentionally wrong answer"},
     )
