@@ -2,15 +2,18 @@
 
 // Sprint 3.10 — редизайн /student/badges под prism-shell (как у /parents,
 // /admin/ai-providers, /subjects). Список бейджей 4 категориями:
-//   - Количество (count): 1, 5, 10, 50, 100, 200, 300, ..., 1500 (всего 15)
-//   - Усилие (effort): explained_in_own_words, returned_to_hard, mastered_topic,
-//             all_basics, asked_question, five/twenty/fifty_quality_correct,
-//             mastered_five_topics, review_count_10/50 (всего 11)
-//   - Серии (streak): streak_3/7/14/30/60/100/180/365 + returned_after_pause (9)
-//   - Контекст (context): polymath_week, early_bird, night_owl, weekend_warrior,
-//             perfect_five, ten/twenty/fifty_in_a_row, morning_streak_5 (всего 9)
+//   - Количество (count): 1, 5, 10, 50, 100, 200, ..., 1500 (всего 15)
+//   - Усилие (effort): explained, quality_correct thresholds (5/20/50),
+//             mastered, review_count, correct_count thresholds (25/75/150/500)
+//             (всего 15)
+//   - Серии (streak): streak_3/7/14/30/45/60/100/180/365, streak_correct,
+//             returned_after_pause, returned_twice/five (всего 15)
+//   - Контекст (context): polymath_week, early_bird, night_owl, weekend_*,
+//             perfect_five, ten/twenty/fifty_in_a_row, morning_streak,
+//             lunch_*, late_night_hero (всего 15)
 //
-// Sprint 3.11: расширенный каталог + BadgeToast при получении новых достижений.
+// Sprint 3.11: расширенный каталог (44 бейджа) + BadgeToast.
+// Sprint 3.12: расширен до 60 бейджей (15 в каждой категории).
 //
 // Полученные — prism-card с gradient-glow, иконка + title + дата.
 // Не получены — prism-card с opacity, 🔒.
@@ -81,16 +84,26 @@ const BADGE_CATEGORIES: Record<string, string> = {
   review_count_10: "effort",
   review_count_50: "effort",
   asked_question: "effort",
+  correct_count_25: "effort",
+  correct_count_75: "effort",
+  correct_count_150: "effort",
+  correct_count_500: "effort",
   // Серии / возвращение (streak).
   streak_3: "streak",
   streak_7: "streak",
   streak_14: "streak",
   streak_30: "streak",
+  streak_45: "streak",
   streak_60: "streak",
   streak_100: "streak",
   streak_180: "streak",
   streak_365: "streak",
   returned_after_pause: "streak",
+  streak_correct_5: "streak",
+  streak_correct_14: "streak",
+  streak_correct_30: "streak",
+  returned_twice: "streak",
+  returned_five: "streak",
   // Контекст (время, разнообразие, серии-правильности).
   polymath_week: "context",
   early_bird: "context",
@@ -101,6 +114,12 @@ const BADGE_CATEGORIES: Record<string, string> = {
   twenty_in_a_row: "context",
   fifty_in_a_row: "context",
   morning_streak_5: "context",
+  lunch_learner: "context",
+  lunch_master: "context",
+  late_night_hero: "context",
+  weekend_regular_2: "context",
+  weekend_master_8: "context",
+  morning_streak_14: "context",
 };
 
 const CATEGORY_META: Record<string, { label: string; icon: string }> = {

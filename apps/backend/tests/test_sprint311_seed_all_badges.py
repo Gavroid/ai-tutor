@@ -4,15 +4,17 @@
 test_admin.py (Base.metadata.create_all + SessionLocal). Это даёт чистые данные
 для каждого теста.
 
-Sprint 3.11 update: каталог расширен с 20 до 53 бейджей:
-- count: 5 → 15 (200, 300, ..., 1500)
-- effort: 5 → 9 (quality_correct thresholds, mastered_five, review_count)
-- streak: 4 → 8 (14, 60, 100, 180, 365)
-- context: 6 → 11 (20_in_a_row, 50_in_a_row, morning_streak_5)
+Sprint 3.11 update: каталог расширен с 20 до 44 бейджей.
+Sprint 3.12 update: каталог расширен до 60 бейджей (15 в каждой из 4 категорий):
+- count: 15 (1, 5, 10, 50, 100, 200, ..., 1500)
+- effort: 15 (quality_correct + mastered + review_count + correct_count thresholds)
+- streak: 15 (3..365 milestones + streak_correct + returned_after_pause + returned_Nx)
+- context: 15 (polymath_week + early_bird + night_owl + weekend_* + perfect_five +
+              ten/twenty/fifty_in_a_row + morning_streak + lunch_* + late_night_hero)
 
 Покрывает:
-- Сценарий «с нуля» → seed_all → 53/53 бейджа
-- Idempotency (повторный запуск → 0 awarded, 53 already_had)
+- Сценарий «с нуля» → seed_all → 60/60 бейджей
+- Idempotency (повторный запуск → 0 awarded, 60 already_had)
 - Все 4 категории (count, effort, streak, context) дают бейджи
 - Evidence сохраняется в БД как JSON
 
@@ -40,7 +42,7 @@ from scripts.seed_all_badges import (  # noqa: E402
 
 
 EXPECTED_BADGES = set(SEED_EVIDENCE.keys())
-TOTAL_BADGES = 44  # Sprint 3.11: count=15, effort=11, streak=9, context=9
+TOTAL_BADGES = 60  # Sprint 3.12: 15 в каждой из 4 категорий
 
 
 @pytest.fixture()
@@ -120,8 +122,10 @@ def test_seed_all_persists_to_database(db_session):
 
 
 def test_seed_all_categories_covered(db_session):
-    """Все 4 категории (count, effort, streak, context) покрыты seed_all."""
-    # Категории из client.tsx (Sprint 3.11: расширенные).
+    """Все 4 категории (count, effort, streak, context) покрыты seed_all.
+
+    Sprint 3.12: каждая категория содержит ровно 15 бейджей.
+    """
     COUNT_BADGES = {
         "first_step", "five_solved", "ten_solved", "fifty_solved", "hundred_solved",
         "two_hundred_solved", "three_hundred_solved", "four_hundred_solved",
@@ -134,15 +138,21 @@ def test_seed_all_categories_covered(db_session):
         "fifty_quality_correct", "returned_to_hard", "mastered_topic",
         "mastered_five_topics", "all_basics", "review_count_10",
         "review_count_50", "asked_question",
+        "correct_count_25", "correct_count_75", "correct_count_150", "correct_count_500",
     }
     STREAK_BADGES = {
-        "streak_3", "streak_7", "streak_14", "streak_30", "streak_60",
-        "streak_100", "streak_180", "streak_365", "returned_after_pause",
+        "streak_3", "streak_7", "streak_14", "streak_30", "streak_45",
+        "streak_60", "streak_100", "streak_180", "streak_365",
+        "returned_after_pause",
+        "streak_correct_5", "streak_correct_14", "streak_correct_30",
+        "returned_twice", "returned_five",
     }
     CONTEXT_BADGES = {
         "polymath_week", "early_bird", "night_owl", "weekend_warrior",
         "perfect_five", "ten_in_a_row", "twenty_in_a_row", "fifty_in_a_row",
         "morning_streak_5",
+        "lunch_learner", "lunch_master", "late_night_hero",
+        "weekend_regular_2", "weekend_master_8", "morning_streak_14",
     }
 
     expected_categories = COUNT_BADGES | EFFORT_BADGES | STREAK_BADGES | CONTEXT_BADGES
@@ -151,11 +161,11 @@ def test_seed_all_categories_covered(db_session):
         f"  missing: {expected_categories - EXPECTED_BADGES}\n"
         f"  extra:   {EXPECTED_BADGES - expected_categories}"
     )
-    # Sprint 3.11: убедимся что каждая категория содержит 15 бейджей
-    # (по запросу пользователя — каждая категория до 15).
-    # Sprint 3.11: count=15, effort=11, streak=9, context=9 — не все 15 в этом
-    # спринте, но count уже 15. Остальные будут расширены в Sprint 3.12.
-    assert len(COUNT_BADGES) == 15, f"count должен быть 15, got {len(COUNT_BADGES)}"
+    # Sprint 3.12: ровно 15 в каждой категории.
+    assert len(COUNT_BADGES) == 15, f"count != 15: {len(COUNT_BADGES)}"
+    assert len(EFFORT_BADGES) == 15, f"effort != 15: {len(EFFORT_BADGES)}"
+    assert len(STREAK_BADGES) == 15, f"streak != 15: {len(STREAK_BADGES)}"
+    assert len(CONTEXT_BADGES) == 15, f"context != 15: {len(CONTEXT_BADGES)}"
 
 
 def test_seed_one_awards_single_badge(db_session):

@@ -363,6 +363,122 @@ BADGES: list[BadgeSpec] = [
         icon="☀️",
         criteria={"min_morning_streak_days": 5},
     ),
+    # === Sprint 3.12: расширение effort/streak/context до 15 в каждой ===
+    # effort (11 → 15): правильные ответы по порогам + weekend-регулярность.
+    BadgeSpec(
+        slug="correct_count_25",
+        title="Двадцать пять правильных",
+        description="25 правильных ответов. Базис уверенности.",
+        icon="🎓",
+        criteria={"min_correct_count": 25},
+    ),
+    BadgeSpec(
+        slug="correct_count_75",
+        title="Семьдесят пять правильных",
+        description="75 правильных ответов. Точный фундамент.",
+        icon="📐",
+        criteria={"min_correct_count": 75},
+    ),
+    BadgeSpec(
+        slug="correct_count_150",
+        title="Полтораста правильных",
+        description="150 правильных ответов. Серьёзная точность.",
+        icon="📊",
+        criteria={"min_correct_count": 150},
+    ),
+    BadgeSpec(
+        slug="correct_count_500",
+        title="Полтысячи правильных",
+        description="500 правильных ответов. Уровень эксперта.",
+        icon="🏅",
+        criteria={"min_correct_count": 500},
+    ),
+    # streak (9 → 15): промежуточные milestones + возвраты.
+    BadgeSpec(
+        slug="streak_45",
+        title="Полтора месяца",
+        description="Активность 45 дней подряд. Между месяцем и двумя.",
+        icon="✨",
+        criteria={"min_streak_days": 45},
+    ),
+    BadgeSpec(
+        slug="streak_correct_5",
+        title="Пять точных дней",
+        description="5 дней подряд где хотя бы 1 ответ правильный. Точный ритм.",
+        icon="🎯",
+        criteria={"min_correct_streak_days": 5},
+    ),
+    BadgeSpec(
+        slug="streak_correct_14",
+        title="Две недели точности",
+        description="14 дней подряд с правильными ответами. Точность — привычка.",
+        icon="✦",
+        criteria={"min_correct_streak_days": 14},
+    ),
+    BadgeSpec(
+        slug="streak_correct_30",
+        title="Месяц точности",
+        description="30 дней подряд с правильными ответами. Уровень мастера.",
+        icon="🎖️",
+        criteria={"min_correct_streak_days": 30},
+    ),
+    BadgeSpec(
+        slug="returned_twice",
+        title="Два возврата",
+        description="2 раза вернулся после паузы ≥2 дней. Упорство.",
+        icon="🌿",
+        criteria={"min_pause_return_count": 2},
+    ),
+    BadgeSpec(
+        slug="returned_five",
+        title="Пять возвратов",
+        description="5 раз вернулся после паузы ≥2 дней. Неугасающий интерес.",
+        icon="🌳",
+        criteria={"min_pause_return_count": 5},
+    ),
+    # context (9 → 15): lunch/late-night + weekend_unique + morning_streak.
+    BadgeSpec(
+        slug="lunch_learner",
+        title="Обеденный ученик",
+        description="Задача решена в обед (12:00–14:00). Учёба в перерыве.",
+        icon="🍱",
+        criteria={"min_lunch_count": 1},
+    ),
+    BadgeSpec(
+        slug="lunch_master",
+        title="Обеденный мастер",
+        description="10 задач решено в обед (12:00–14:00). Привычка.",
+        icon="🍱",
+        criteria={"min_lunch_count": 10},
+    ),
+    BadgeSpec(
+        slug="late_night_hero",
+        title="Полуночник",
+        description="Задача решена ночью (23:00–02:00). Время — не помеха.",
+        icon="🌃",
+        criteria={"min_late_night_count": 1},
+    ),
+    BadgeSpec(
+        slug="weekend_regular_2",
+        title="Два выходных",
+        description="Активность в 2 разных выходных дня. Регулярность.",
+        icon="📅",
+        criteria={"min_weekend_unique_dates": 2},
+    ),
+    BadgeSpec(
+        slug="weekend_master_8",
+        title="Мастер выходных",
+        description="Активность в 8 разных выходных дней. Учёба без расписания.",
+        icon="🏖️",
+        criteria={"min_weekend_unique_dates": 8},
+    ),
+    BadgeSpec(
+        slug="morning_streak_14",
+        title="Утренний ритм",
+        description="14 дней подряд с утренней активностью. Утро — время для учения.",
+        icon="🌅",
+        criteria={"min_morning_streak_days": 14},
+    ),
 ]
 
 
@@ -508,6 +624,18 @@ def evaluate_and_award_badges(
         if award_badge(db, user_id, "mastered_five_topics", {"count": stats["mastered_topics_count"]}):
             awarded.append("mastered_five_topics")
 
+    # Sprint 3.12: correct_count thresholds — точные правильные ответы.
+    cc = stats.get("correct_count", 0)
+    for slug, threshold in [
+        ("correct_count_25", 25),
+        ("correct_count_75", 75),
+        ("correct_count_150", 150),
+        ("correct_count_500", 500),
+    ]:
+        if cc >= threshold:
+            if award_badge(db, user_id, slug, {"correct_count": cc}):
+                awarded.append(slug)
+
     # all_basics (≥1 easy solved)
     if stats.get("easy_solved", 0) >= 1:
         if award_badge(db, user_id, "all_basics"):
@@ -536,6 +664,7 @@ def evaluate_and_award_badges(
         ("streak_7", 7),
         ("streak_14", 14),
         ("streak_30", 30),
+        ("streak_45", 45),
         ("streak_60", 60),
         ("streak_100", 100),
         ("streak_180", 180),
@@ -543,6 +672,27 @@ def evaluate_and_award_badges(
     ]:
         if streak >= threshold:
             if award_badge(db, user_id, slug, {"streak": streak}):
+                awarded.append(slug)
+
+    # Sprint 3.12: streak_correct_N — дни подряд с правильным ответом.
+    correct_streak = stats.get("correct_streak_days", 0)
+    for slug, threshold in [
+        ("streak_correct_5", 5),
+        ("streak_correct_14", 14),
+        ("streak_correct_30", 30),
+    ]:
+        if correct_streak >= threshold:
+            if award_badge(db, user_id, slug, {"correct_streak": correct_streak}):
+                awarded.append(slug)
+
+    # Sprint 3.12: pause_return_count — сколько раз был пропуск ≥2 дней.
+    prc = stats.get("pause_return_count", 0)
+    for slug, threshold in [
+        ("returned_twice", 2),
+        ("returned_five", 5),
+    ]:
+        if prc >= threshold:
+            if award_badge(db, user_id, slug, {"returns": prc}):
                 awarded.append(slug)
 
     # returned_after_pause — НЕ штраф, а позитив: «ты вернулся»
@@ -570,6 +720,31 @@ def evaluate_and_award_badges(
         if award_badge(db, user_id, "weekend_warrior"):
             awarded.append("weekend_warrior")
 
+    # Sprint 3.12: weekend_unique_dates thresholds.
+    wud = stats.get("weekend_unique_dates", 0)
+    for slug, threshold in [
+        ("weekend_regular_2", 2),
+        ("weekend_master_8", 8),
+    ]:
+        if wud >= threshold:
+            if award_badge(db, user_id, slug, {"unique_weekends": wud}):
+                awarded.append(slug)
+
+    # Sprint 3.12: lunch_learner, lunch_master.
+    lunch_n = stats.get("lunch_count", 0)
+    for slug, threshold in [
+        ("lunch_learner", 1),
+        ("lunch_master", 10),
+    ]:
+        if lunch_n >= threshold:
+            if award_badge(db, user_id, slug, {"lunch": lunch_n}):
+                awarded.append(slug)
+
+    # Sprint 3.12: late_night_hero.
+    if stats.get("late_night_count", 0) >= 1:
+        if award_badge(db, user_id, "late_night_hero"):
+            awarded.append("late_night_hero")
+
     # consecutive_correct (5, 10, 20, 50)
     cc = stats.get("max_consecutive_correct", 0)
     for slug, threshold in [
@@ -583,9 +758,14 @@ def evaluate_and_award_badges(
                 awarded.append(slug)
 
     # morning_streak_5 (Sprint 3.11) — 5 дней подряд с утренней активностью.
-    if stats.get("morning_streak_days", 0) >= 5:
-        if award_badge(db, user_id, "morning_streak_5", {"streak": stats["morning_streak_days"]}):
-            awarded.append("morning_streak_5")
+    ms = stats.get("morning_streak_days", 0)
+    for slug, threshold in [
+        ("morning_streak_5", 5),
+        ("morning_streak_14", 14),
+    ]:
+        if ms >= threshold:
+            if award_badge(db, user_id, slug, {"streak": ms}):
+                awarded.append(slug)
 
     return awarded
 
@@ -716,6 +896,16 @@ def collect_stats(db: Session, user_id: int) -> dict:
     # активностью (07:00–10:00 по локальному TZ ученика).
     morning_dates: set[str] = set()
 
+    # Sprint 3.12: lunch (12:00–14:00) и late-night (23:00–02:00).
+    lunch_count = 0
+    late_night_count = 0
+    # Уникальные weekend-даты (для бейджей weekend_2x, weekend_4x).
+    weekend_unique_dates: set[str] = set()
+    # Даты с хотя бы одним правильным ответом (для streak_correct_N).
+    correct_dates: set[str] = set()
+    # Кол-во возвращений после паузы ≥2 дней за всё время (для returned_Nx).
+    pause_return_count = 0
+
     # consecutive correct (по created_at asc, ищем самую длинную серию is_correct=True)
     max_consecutive_correct = 0
     current_run = 0
@@ -741,18 +931,32 @@ def collect_stats(db: Session, user_id: int) -> dict:
             if 7 <= h < 10:
                 morning_count += 1
                 morning_dates.add(d.isoformat())
+            elif 12 <= h < 14:
+                # Sprint 3.12: lunch (12:00–14:00).
+                lunch_count += 1
             elif 20 <= h < 23:
                 evening_count += 1
+            elif h >= 23 or h < 2:
+                # Sprint 3.12: late-night (23:00–02:00 следующего дня).
+                late_night_count += 1
             # weekend
             wd = local_dt.weekday()  # 0=Mon, 6=Sun
             if wd >= 5:
                 weekend_count += 1
+                weekend_unique_dates.add(d.isoformat())
 
         # consecutive correct: считаем по исходному (asc) порядку
         if row.is_correct:
             current_run += 1
             if current_run > max_consecutive_correct:
                 max_consecutive_correct = current_run
+            # Sprint 3.12: дата с правильным ответом — для streak_correct_N.
+            if isinstance(ts, datetime):
+                if ts.tzinfo is None:
+                    ts_utc = ts.replace(tzinfo=timezone.utc)
+                else:
+                    ts_utc = ts
+                correct_dates.add(ts_utc.astimezone(student_tz).date().isoformat())
         else:
             current_run = 0
 
@@ -761,6 +965,20 @@ def collect_stats(db: Session, user_id: int) -> dict:
     # Sprint 3.11: morning_streak_days — текущая серия дней подряд с утренней
     # активностью. Используем ту же логику _compute_streak что и для общей серии.
     morning_streak_days, _, _ = _compute_streak(morning_dates, today.isoformat())
+
+    # Sprint 3.12: correct_streak_days — текущая серия дней подряд где был
+    # хотя бы 1 правильный ответ (для streak_correct_5/14/30).
+    correct_streak_days, _, _ = _compute_streak(correct_dates, today.isoformat())
+
+    # Sprint 3.12: pause_return_count — сколько раз за всё время был пропуск
+    # ≥2 дней между двумя активными датами. Считаем по отсортированному списку.
+    if len(active_dates) >= 2:
+        sorted_dates = sorted(active_dates)
+        for i in range(1, len(sorted_dates)):
+            prev_d = today.__class__.fromisoformat(sorted_dates[i - 1])
+            curr_d = today.__class__.fromisoformat(sorted_dates[i])
+            if (curr_d - prev_d).days >= 2:
+                pause_return_count += 1
 
     # returned_after_pause: предпоследний attempt был ≥2 дней назад, последний — сегодня.
     # Простой proxy: если total >= 2 и last attempt <= today, и (today - second_last date) >= 2.
@@ -794,4 +1012,12 @@ def collect_stats(db: Session, user_id: int) -> dict:
         "review_count_total": int(review_count_total),
         "mastered_topics_count": int(mastered_topics_count),
         "morning_streak_days": int(morning_streak_days),
+        # Sprint 3.12 — ещё метрики для расширения каталога:
+        "lunch_count": int(lunch_count),
+        "late_night_count": int(late_night_count),
+        "weekend_unique_dates": len(weekend_unique_dates),
+        "correct_streak_days": int(correct_streak_days),
+        "pause_return_count": int(pause_return_count),
+        # Также явно прокинем correct_count и easy_correct_count для новых effort бейджей.
+        "correct_count": int(quality_5_no_hint),  # alias для total correct
     }

@@ -40,17 +40,26 @@ _BADGE_CATEGORY: dict[str, str] = {
     "mastered_five_topics": "effort", "all_basics": "effort",
     "review_count_10": "effort", "review_count_50": "effort",
     "asked_question": "effort",
+    "correct_count_25": "effort", "correct_count_75": "effort",
+    "correct_count_150": "effort", "correct_count_500": "effort",
     # streak — серии.
     "streak_3": "streak", "streak_7": "streak", "streak_14": "streak",
-    "streak_30": "streak", "streak_60": "streak", "streak_100": "streak",
-    "streak_180": "streak", "streak_365": "streak",
+    "streak_30": "streak", "streak_45": "streak", "streak_60": "streak",
+    "streak_100": "streak", "streak_180": "streak", "streak_365": "streak",
     "returned_after_pause": "streak",
+    "streak_correct_5": "streak", "streak_correct_14": "streak",
+    "streak_correct_30": "streak",
+    "returned_twice": "streak", "returned_five": "streak",
     # context — контекст и время.
     "polymath_week": "context", "early_bird": "context",
     "night_owl": "context", "weekend_warrior": "context",
     "perfect_five": "context", "ten_in_a_row": "context",
     "twenty_in_a_row": "context", "fifty_in_a_row": "context",
     "morning_streak_5": "context",
+    "lunch_learner": "context", "lunch_master": "context",
+    "late_night_hero": "context",
+    "weekend_regular_2": "context", "weekend_master_8": "context",
+    "morning_streak_14": "context",
 }
 
 

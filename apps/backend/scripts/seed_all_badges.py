@@ -97,6 +97,26 @@ SEED_EVIDENCE = {
     "twenty_in_a_row": {"consecutive_correct": 20},
     "fifty_in_a_row": {"consecutive_correct": 50},
     "morning_streak_5": {"streak": 5},
+    # Sprint 3.12: расширение effort/streak/context до 15 в каждой.
+    # effort
+    "correct_count_25": {"correct_count": 25},
+    "correct_count_75": {"correct_count": 75},
+    "correct_count_150": {"correct_count": 150},
+    "correct_count_500": {"correct_count": 500},
+    # streak
+    "streak_45": {"streak_days": 45},
+    "streak_correct_5": {"correct_streak": 5},
+    "streak_correct_14": {"correct_streak": 14},
+    "streak_correct_30": {"correct_streak": 30},
+    "returned_twice": {"returns": 2},
+    "returned_five": {"returns": 5},
+    # context
+    "lunch_learner": {"lunch": 1},
+    "lunch_master": {"lunch": 10},
+    "late_night_hero": {"late_night": 1},
+    "weekend_regular_2": {"unique_weekends": 2},
+    "weekend_master_8": {"unique_weekends": 8},
+    "morning_streak_14": {"streak": 14},
 }
 
 
