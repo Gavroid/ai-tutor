@@ -24,7 +24,9 @@ import StreakCard from "@/components/StreakCard";
 import NextTopicCard from "@/components/NextTopicCard";
 import Skeleton from "@/components/Skeleton";
 import ErrorState from "@/components/ErrorState";
-import BadgeToast, { type BadgeToastItem } from "@/components/BadgeToast";
+import { type BadgeToastItem } from "@/components/BadgeToast";
+// Sprint 3.13: toast рендерится глобально через GlobalBadgeToaster в layout.
+// Локальный <BadgeToast> убран чтобы не было дублей.
 
 type BadgeOut = {
   slug: string;
@@ -319,11 +321,8 @@ export default function StudentBadgesClient() {
         </div>
       )}
 
-      {/* Sprint 3.11: toast с превью новых бейджей (в правом нижнем углу). */}
-      <BadgeToast
-        badges={newlyAwarded}
-        onDismiss={() => setNewlyAwarded([])}
-      />
+      {/* Sprint 3.13: toast рендерится глобально через GlobalBadgeToaster в layout.
+          Локальный <BadgeToast> убран чтобы не было дублей. */}
 
       {/* Streak + Next topic — без изменений (Sprint 8.1, 8.2). */}
       {streak && (
