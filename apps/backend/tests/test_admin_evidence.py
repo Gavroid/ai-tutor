@@ -198,18 +198,32 @@ def test_update_evidence_rejects_promotion_without_all_gates(admin_client):
     assert "missing gates" in r.json()["detail"]
 
 
-def test_update_evidence_rejects_pilot_without_promotion(admin_client):
-    c, _ = admin_client
-    # algebra: все gates закрыты, но promotion_allowed=false. Поставим pilot_visible=true напрямую.
-    # Сначала закроем gates.
-    for g in ("mapping_ready", "import_ready", "rag_ready", "practice_ready", "manual_smoke_ready"):
-        c.post("/api/v1/admin/evidence/algebra", json={"gates": {g: True}})
-    r = c.post(
-        "/api/v1/admin/evidence/algebra",
-        json={"pilot_visible": True},
-    )
-    assert r.status_code == 400
-    assert "promotion_allowed" in r.json()["detail"]
+def test_update_evidence_rejects_pilot_without_promotion_safety_net():
+    """Sprint 3.9.3 (2026-08-22): guard утратил смысл.
+
+    После расширения PILOT_SCOPE до 16 subjects, canonical derivation даёт
+    pilot_visible=True автоматически при закрытых gates. Тест-сценарий
+    'pilot_visible=True при promotion_allowed=False' больше не воспроизводим:
+    canonical write синхронизирует оба флага. Guard в router.py:1027 сохранён
+    как safety-net для persisted-only запросов (если понадобится отдельный flow).
+
+    Здесь мы smoke-проверяем, что canonical write работает согласованно.
+    """
+    from app.admin.router import _canonical_promotion
+    # algebra в PILOT_SCOPE + закрытые gates → canonical promo=True.
+    row = {
+        "manifest_ready": True, "mapping_ready": True, "import_ready": True,
+        "rag_ready": True, "practice_ready": True, "manual_smoke_ready": True,
+        "blocked_reason": None,
+    }
+    promo, pilot = _canonical_promotion(row, "algebra")
+    assert promo is True
+    assert pilot is True
+
+    # Subject вне PILOT_SCOPE (гипотетически) → canonical promo=False.
+    promo2, pilot2 = _canonical_promotion(row, "nonexistent_subject")
+    assert promo2 is False
+    assert pilot2 is False
 
 
 def test_promote_evidence_sets_pilot_and_promotion(admin_client):

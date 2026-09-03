@@ -82,7 +82,9 @@ def test_budget_check_and_increment_over_limit(fresh_budget):
     with pytest.raises(BudgetExceeded) as exc_info:
         budget.check_and_increment(user_id=42)
 
-    assert exc_info.value.limit_kind == "requests"
+    # Sprint 3.15: limit_kind переименован в daily_requests для disambiguation
+    # между daily/hourly requests/tokens (router.py:140-186 обрабатывает оба).
+    assert exc_info.value.limit_kind == "daily_requests"
     assert exc_info.value.used == 3
     assert exc_info.value.limit == 2
 

@@ -44,7 +44,7 @@ class TestBudgetInMemoryFallback:
             budget.check_and_increment(user_id=1)
         with pytest.raises(budget.BudgetExceeded) as exc:
             budget.check_and_increment(user_id=1)
-        assert exc.value.limit_kind == "requests"
+        assert exc.value.limit_kind == "daily_requests"
         assert exc.value.used == 4
         assert exc.value.limit == 3
 
