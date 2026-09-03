@@ -108,9 +108,9 @@ def _all_topics(db) -> list:
 # ============== Catalog tests ==============
 
 class TestCatalogV2:
-    def test_catalog_has_20_badges_total(self, db_with_student_and_subjects):
-        # 10 старых (Sprint 7.5) + 10 новых (Sprint 3.8)
-        assert len(BADGES) == 20
+    def test_catalog_has_60_badges_total(self, db_with_student_and_subjects):
+        # Sprint 3.12: 20 (7.5+3.8) → 44 (3.11) → 60 (3.12): 15 на категорию.
+        assert len(BADGES) == 60
 
     def test_catalog_new_badges_seeded(self, db_with_student_and_subjects):
         db = db_with_student_and_subjects["db"]

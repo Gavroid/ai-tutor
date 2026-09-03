@@ -47,11 +47,9 @@ def new_student():
 
 
 class TestBadgeCatalog:
-    def test_badge_catalog_has_20_badges(self):
-        # Sprint 7.5: 10 бейджей за усилие.
-        # Sprint 3.8: +10 бейджей за streak/diversity/time-of-day/consecutive
-        # (все T1D-friendly — без штрафов).
-        assert len(BADGES) == 20, f"Ожидаем 20 (10 Sprint 7.5 + 10 Sprint 3.8), получили {len(BADGES)}"
+    def test_badge_catalog_has_60_badges(self):
+        # Sprint 3.12: 20 (7.5+3.8) → 44 (3.11) → 60 (3.12): 15 на категорию.
+        assert len(BADGES) == 60, f"Ожидаем 60 (15×4 категории), получили {len(BADGES)}"
 
     def test_no_t1d_hostile_keywords(self):
         """T1D: ни штрафов, ни 'under pressure', ни 'missed' формулировок.
