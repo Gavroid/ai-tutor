@@ -124,13 +124,18 @@ export default function DiagnosticPage() {
             )}
 
             {result && (
-              <section className="rounded-3xl border border-emerald-300/30 bg-emerald-400/10 p-5">
-                <h2 className="text-3xl font-black text-[color:var(--prism-ink)]">Готово</h2>
-                <p className="mt-2 text-sm text-[color:var(--prism-muted)]">Правильных ответов: {result.correct_count} из {result.total_questions} ({Math.round(result.overall_score * 100)}%)</p>
-                {result.recommendations && <div className="mt-4 whitespace-pre-wrap rounded-2xl bg-black/10 p-4 text-sm text-[color:var(--prism-ink)]">{result.recommendations}</div>}
-                <div className="mt-4 flex flex-col gap-2 sm:flex-row"><button onClick={reset} className="prism-action primary">Пройти ещё раз</button><Link href="/subjects" className="prism-action">На главную</Link></div>
-              </section>
-            )}
+                          <section className="rounded-3xl border border-emerald-300/30 bg-emerald-400/10 p-5">
+                            <h2 className="text-3xl font-black text-[color:var(--prism-ink)]">Готово</h2>
+                            <p className="mt-2 text-sm text-[color:var(--prism-muted)]">
+                              Правильных ответов: {result.correct_count} из {result.total_questions} ({Math.round(result.overall_score * 100)}%)
+                            </p>
+                            <p className="mt-1 text-xs text-[color:var(--prism-muted)]">
+                              Процент считается по фактически отвеченным вопросам. Завершение до окончания диагностики не уменьшает результат.
+                            </p>
+                            {result.recommendations && <div className="mt-4 whitespace-pre-wrap rounded-2xl bg-black/10 p-4 text-sm text-[color:var(--prism-ink)]">{result.recommendations}</div>}
+                            <div className="mt-4 flex flex-col gap-2 sm:flex-row"><button onClick={reset} className="prism-action primary">Пройти ещё раз</button><Link href="/subjects" className="prism-action">На главную</Link></div>
+                          </section>
+                        )}
           </section>
         </div>
           </div>
