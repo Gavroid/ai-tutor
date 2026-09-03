@@ -49,26 +49,54 @@ from app.student.badges import (
 
 # 20 slugs с фиктивным evidence (для теста UI — реальная проверка не нужна).
 SEED_EVIDENCE = {
+    # Количество решённых
     "first_step": {"total": 1},
     "five_solved": {"total": 5},
     "ten_solved": {"total": 10},
     "fifty_solved": {"total": 50},
     "hundred_solved": {"total": 100},
+    "two_hundred_solved": {"total": 200},
+    "three_hundred_solved": {"total": 300},
+    "four_hundred_solved": {"total": 400},
+    "five_hundred_solved": {"total": 500},
+    "six_hundred_solved": {"total": 600},
+    "seven_hundred_solved": {"total": 700},
+    "eight_hundred_solved": {"total": 800},
+    "nine_hundred_solved": {"total": 900},
+    "thousand_solved": {"total": 1000},
+    "fifteen_hundred_solved": {"total": 1500},
+    # Усилие / качество
     "explained_in_own_words": {"quality_5_no_hint": 1},
+    "five_quality_correct": {"quality_correct": 5},
+    "twenty_quality_correct": {"quality_correct": 20},
+    "fifty_quality_correct": {"quality_correct": 50},
     "returned_to_hard": {"returned_count": 1},
     "mastered_topic": {"mastery_avg": 0.85},
+    "mastered_five_topics": {"count": 5},
     "all_basics": {"easy_solved": True},
+    "review_count_10": {"review_count": 10},
+    "review_count_50": {"review_count": 50},
     "asked_question": {"questions_asked": 1},
+    # Серии
     "streak_3": {"streak_days": 3},
     "streak_7": {"streak_days": 7},
+    "streak_14": {"streak_days": 14},
     "streak_30": {"streak_days": 30},
+    "streak_60": {"streak_days": 60},
+    "streak_100": {"streak_days": 100},
+    "streak_180": {"streak_days": 180},
+    "streak_365": {"streak_days": 365},
     "returned_after_pause": {"pause_days": 3},
+    # Контекст
     "polymath_week": {"distinct_subjects_7d": 3},
     "early_bird": {"hour": 8},
     "night_owl": {"hour": 21},
     "weekend_warrior": {"weekend_count": 1},
     "perfect_five": {"consecutive_correct": 5},
     "ten_in_a_row": {"consecutive_correct": 10},
+    "twenty_in_a_row": {"consecutive_correct": 20},
+    "fifty_in_a_row": {"consecutive_correct": 50},
+    "morning_streak_5": {"streak": 5},
 }
 
 

@@ -147,3 +147,35 @@ class ChildDashboard(BaseModel):
     last_activity_label: str
 
     privacy_note: str
+
+
+# === Sprint 3.11: parent badges view ===
+class ChildBadgeItem(BaseModel):
+    """Один бейдж ребёнка для родительского дашборда."""
+
+    slug: str
+    title: str
+    description: str
+    icon: str
+    earned_at: datetime
+    category: str  # count / effort / streak / context
+
+
+class ChildBadgeSummary(BaseModel):
+    """Сводка по бейджам ребёнка для родителя.
+
+    Sprint 3.11: родительский дашборд показывает все бейджи ребёнка с разбивкой
+    по категориям. Read-only — родитель НЕ может influence какие бейджи даются.
+    """
+
+    student_id: int
+    total_earned: int
+    total_available: int
+    # Прогресс по категориям: {"count": "5 / 15", "effort": "3 / 11", ...}
+    by_category: dict[str, str]
+    # Последний полученный бейдж (или null если ещё нет ни одного).
+    latest: ChildBadgeItem | None
+    # Все earned бейджи (новые первые).
+    earned: list[ChildBadgeItem]
+    # Slug'и заблокированных бейджей (какие есть в каталоге но не earned).
+    locked: list[str]

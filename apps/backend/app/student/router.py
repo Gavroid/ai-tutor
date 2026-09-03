@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.common.deps import User, current_user
@@ -279,6 +279,44 @@ def trigger_badge_evaluation(
     seed_badge_definitions(db)
     stats = collect_stats(db, current.id)
     return evaluate_and_award_badges(db, current.id, stats)
+
+
+# === Sprint 3.11: лёгкий endpoint для счётчика в Header ===
+class BadgeSummaryOut(BaseModel):
+    earned: int
+    available: int
+    slug_titles: dict[str, str]
+    slug_icons: dict[str, str]
+
+
+@router.get("/badges/summary", response_model=BadgeSummaryOut)
+def badges_summary(
+    db: Session = Depends(get_db),
+    current: User = Depends(current_user),
+):
+    """Краткая сводка по бейджам для Header: счётчик + title/icon.
+
+    Лёгкий endpoint, можно дёргать часто (на каждой странице).
+    """
+    from app.student.models import BadgeDefinition, UserBadge
+
+    # Idempotent seed.
+    seed_badge_definitions(db)
+
+    defs = db.execute(select(BadgeDefinition)).scalars().all()
+    slug_titles = {d.slug: d.title for d in defs}
+    slug_icons = {d.slug: d.icon for d in defs}
+
+    earned_count = db.execute(
+        select(func.count(UserBadge.id)).where(UserBadge.user_id == current.id)
+    ).scalar() or 0
+
+    return BadgeSummaryOut(
+        earned=int(earned_count),
+        available=len(defs),
+        slug_titles=slug_titles,
+        slug_icons=slug_icons,
+    )
 
 
 # === Sprint 8.1: streak для самого ученика ===

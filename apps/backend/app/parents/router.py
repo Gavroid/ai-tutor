@@ -82,6 +82,26 @@ def child_dashboard(
     return dash
 
 
+@router.get(
+    "/students/{student_id}/badges",
+    response_model=schemas.ChildBadgeSummary,
+)
+def child_badges(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current: User = Depends(require_parent()),
+):
+    """Sprint 3.11 — все достижения ребёнка для родительского дашборда.
+
+    Возвращает earned/locked бейджи + прогресс по категориям + latest.
+    404 если student не привязан к этому parent.
+    """
+    summary = service.child_badges_summary(db, current, student_id)
+    if summary is None:
+        raise HTTPException(404, "Ребёнок не привязан или не найден")
+    return summary
+
+
 @router.get("/students/{student_id}/dashboard.pdf")
 def child_dashboard_pdf(
     student_id: int,

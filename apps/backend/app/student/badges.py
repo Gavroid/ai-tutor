@@ -181,6 +181,188 @@ BADGES: list[BadgeSpec] = [
         icon="🏆",
         criteria={"min_consecutive_correct": 10},
     ),
+    # === Sprint 3.11: расширение каталога ===
+    # Категория «count» (количество решённых задач) — расширена до 15.
+    # Категория «effort» (усилие и качество) — добавлены пороги по качеству,
+    # mastery и SM-2 повторениям.
+    # Категория «streak» (серии) — добавлены промежуточные milestone'ы.
+    # Категория «context» (контекст и время) — расширены серии правильных.
+    #
+    # Все бейджи остаются ПОЗИТИВНЫМИ (за достижение), без штрафов за пропуск.
+    # T1D-friendly: пропуск дня — это нормально, бейдж «returned_after_pause»
+    # наоборот ПООЩРЯЕТ возвращение.
+    # === Количество решённых (count): 200–1500 ===
+    BadgeSpec(
+        slug="two_hundred_solved",
+        title="Двести задач",
+        description="Решены 200 задач. Серьёзный объём.",
+        icon="🎖️",
+        criteria={"min_attempts": 200},
+    ),
+    BadgeSpec(
+        slug="three_hundred_solved",
+        title="Триста задач",
+        description="Решены 300 задач. Методичная работа.",
+        icon="🏅",
+        criteria={"min_attempts": 300},
+    ),
+    BadgeSpec(
+        slug="four_hundred_solved",
+        title="Четыреста задач",
+        description="Решены 400 задач. Системный подход.",
+        icon="🎗️",
+        criteria={"min_attempts": 400},
+    ),
+    BadgeSpec(
+        slug="five_hundred_solved",
+        title="Пятьсот задач",
+        description="Решены 500 задач. Половина тысячи.",
+        icon="💎",
+        criteria={"min_attempts": 500},
+    ),
+    BadgeSpec(
+        slug="six_hundred_solved",
+        title="Шестьсот задач",
+        description="Решены 600 задач. Ровный темп.",
+        icon="🔷",
+        criteria={"min_attempts": 600},
+    ),
+    BadgeSpec(
+        slug="seven_hundred_solved",
+        title="Семьсот задач",
+        description="Решены 700 задач. Крепкая база.",
+        icon="✨",
+        criteria={"min_attempts": 700},
+    ),
+    BadgeSpec(
+        slug="eight_hundred_solved",
+        title="Восемьсот задач",
+        description="Решены 800 задач. Большой опыт.",
+        icon="🛡️",
+        criteria={"min_attempts": 800},
+    ),
+    BadgeSpec(
+        slug="nine_hundred_solved",
+        title="Девятьсот задач",
+        description="Решены 900 задач. Почти тысяча.",
+        icon="⚜️",
+        criteria={"min_attempts": 900},
+    ),
+    BadgeSpec(
+        slug="thousand_solved",
+        title="Тысяча задач",
+        description="Решены 1000 задач. Тысяча!",
+        icon="👑",
+        criteria={"min_attempts": 1000},
+    ),
+    BadgeSpec(
+        slug="fifteen_hundred_solved",
+        title="Полторы тысячи",
+        description="Решены 1500 задач. Уровень мастера.",
+        icon="🌠",
+        criteria={"min_attempts": 1500},
+    ),
+    # === Усилие и качество (effort): больше порогов ===
+    BadgeSpec(
+        slug="five_quality_correct",
+        title="Пятёрка безупречности",
+        description="5 точных правильных ответов (score ≥ 0.9). Качество.",
+        icon="✨",
+        criteria={"min_quality_correct": 5},
+    ),
+    BadgeSpec(
+        slug="twenty_quality_correct",
+        title="Двадцать точных",
+        description="20 точных правильных ответов. Стабильность.",
+        icon="💫",
+        criteria={"min_quality_correct": 20},
+    ),
+    BadgeSpec(
+        slug="fifty_quality_correct",
+        title="Полтинник мастерства",
+        description="50 точных правильных ответов. Настоящий мастер.",
+        icon="🌟",
+        criteria={"min_quality_correct": 50},
+    ),
+    BadgeSpec(
+        slug="mastered_five_topics",
+        title="Пять освоенных тем",
+        description="5 тем с mastery ≥ 80%. Темы пройдены.",
+        icon="🏛️",
+        criteria={"min_mastered_topics": 5},
+    ),
+    BadgeSpec(
+        slug="review_count_10",
+        title="Повторяй-ка",
+        description="10 повторений по spaced repetition (SM-2). Память крепнет.",
+        icon="📖",
+        criteria={"min_review_count": 10},
+    ),
+    BadgeSpec(
+        slug="review_count_50",
+        title="Крепкая память",
+        description="50 повторений по SM-2. Темы держатся в голове.",
+        icon="📚",
+        criteria={"min_review_count": 50},
+    ),
+    # === Серии (streak): промежуточные milestones ===
+    BadgeSpec(
+        slug="streak_14",
+        title="Две недели",
+        description="Активность 14 дней подряд. Устоявшийся ритм.",
+        icon="⭐",
+        criteria={"min_streak_days": 14},
+    ),
+    BadgeSpec(
+        slug="streak_60",
+        title="Два месяца",
+        description="Активность 60 дней подряд. Стабильность.",
+        icon="🏆",
+        criteria={"min_streak_days": 60},
+    ),
+    BadgeSpec(
+        slug="streak_100",
+        title="Сотня дней",
+        description="Активность 100 дней подряд. Серьёзный результат.",
+        icon="💯",
+        criteria={"min_streak_days": 100},
+    ),
+    BadgeSpec(
+        slug="streak_180",
+        title="Полгода",
+        description="Активность 180 дней подряд. Полгода без пауз.",
+        icon="🌞",
+        criteria={"min_streak_days": 180},
+    ),
+    BadgeSpec(
+        slug="streak_365",
+        title="Целый год",
+        description="Активность 365 дней подряд. Год знаний.",
+        icon="🎊",
+        criteria={"min_streak_days": 365},
+    ),
+    # === Контекст (context): расширенные серии правильных + утро ===
+    BadgeSpec(
+        slug="twenty_in_a_row",
+        title="Двадцатка подряд",
+        description="20 правильных ответов подряд. Серия-мастерство.",
+        icon="👑",
+        criteria={"min_consecutive_correct": 20},
+    ),
+    BadgeSpec(
+        slug="fifty_in_a_row",
+        title="Полтинник-серия",
+        description="50 правильных ответов подряд. Уровень легенды.",
+        icon="🌠",
+        criteria={"min_consecutive_correct": 50},
+    ),
+    BadgeSpec(
+        slug="morning_streak_5",
+        title="Утренняя серия",
+        description="5 дней подряд с утренней активностью (07:00–10:00).",
+        icon="☀️",
+        criteria={"min_morning_streak_days": 5},
+    ),
 ]
 
 
@@ -263,6 +445,7 @@ def evaluate_and_award_badges(
 
     Возвращает список slug'ов баджей, присуждённых в этом вызове.
     Sprint 3.8: добавлены streak/diversity/time-of-day/consecutive_correct.
+    Sprint 3.11: расширен каталог (53 бейджа) — count/streak/context thresholds.
     """
     seed_badge_definitions(db)  # idempotent
     if stats is None:
@@ -270,14 +453,26 @@ def evaluate_and_award_badges(
     awarded: list[str] = []
     total = stats.get("total_attempts", 0)
 
-    # first_step, five_solved, ten_solved, fifty_solved, hundred_solved
-    for slug, threshold in [
+    # first_step, five_solved, ten_solved, fifty_solved, hundred_solved,
+    # 200..1500 (Sprint 3.11).
+    count_thresholds = [
         ("first_step", 1),
         ("five_solved", 5),
         ("ten_solved", 10),
         ("fifty_solved", 50),
         ("hundred_solved", 100),
-    ]:
+        ("two_hundred_solved", 200),
+        ("three_hundred_solved", 300),
+        ("four_hundred_solved", 400),
+        ("five_hundred_solved", 500),
+        ("six_hundred_solved", 600),
+        ("seven_hundred_solved", 700),
+        ("eight_hundred_solved", 800),
+        ("nine_hundred_solved", 900),
+        ("thousand_solved", 1000),
+        ("fifteen_hundred_solved", 1500),
+    ]
+    for slug, threshold in count_thresholds:
         if total >= threshold:
             if award_badge(db, user_id, slug, {"total": total}):
                 awarded.append(slug)
@@ -286,6 +481,17 @@ def evaluate_and_award_badges(
     if stats.get("quality_5_no_hint", 0) >= 1:
         if award_badge(db, user_id, "explained_in_own_words"):
             awarded.append("explained_in_own_words")
+
+    # quality_correct thresholds (Sprint 3.11) — точные правильные ответы.
+    quality_correct = stats.get("quality_correct_count", 0)
+    for slug, threshold in [
+        ("five_quality_correct", 5),
+        ("twenty_quality_correct", 20),
+        ("fifty_quality_correct", 50),
+    ]:
+        if quality_correct >= threshold:
+            if award_badge(db, user_id, slug, {"quality_correct": quality_correct}):
+                awarded.append(slug)
 
     # returned_to_hard
     if stats.get("returned_to_incorrect", 0) >= 1:
@@ -297,6 +503,11 @@ def evaluate_and_award_badges(
         if award_badge(db, user_id, "mastered_topic", {"max_mastery": stats["max_mastery"]}):
             awarded.append("mastered_topic")
 
+    # mastered_five_topics (Sprint 3.11) — 5 тем с mastery ≥80%.
+    if stats.get("mastered_topics_count", 0) >= 5:
+        if award_badge(db, user_id, "mastered_five_topics", {"count": stats["mastered_topics_count"]}):
+            awarded.append("mastered_five_topics")
+
     # all_basics (≥1 easy solved)
     if stats.get("easy_solved", 0) >= 1:
         if award_badge(db, user_id, "all_basics"):
@@ -307,13 +518,28 @@ def evaluate_and_award_badges(
         if award_badge(db, user_id, "asked_question"):
             awarded.append("asked_question")
 
+    # review_count thresholds (Sprint 3.11) — SM-2 повторения.
+    review_total = stats.get("review_count_total", 0)
+    for slug, threshold in [
+        ("review_count_10", 10),
+        ("review_count_50", 50),
+    ]:
+        if review_total >= threshold:
+            if award_badge(db, user_id, slug, {"review_count": review_total}):
+                awarded.append(slug)
+
     # === Sprint 3.8: gamification v2 ===
     # streak-based (позитивные — за достижение)
     streak = stats.get("current_streak_days", 0)
     for slug, threshold in [
         ("streak_3", 3),
         ("streak_7", 7),
+        ("streak_14", 14),
         ("streak_30", 30),
+        ("streak_60", 60),
+        ("streak_100", 100),
+        ("streak_180", 180),
+        ("streak_365", 365),
     ]:
         if streak >= threshold:
             if award_badge(db, user_id, slug, {"streak": streak}):
@@ -344,15 +570,22 @@ def evaluate_and_award_badges(
         if award_badge(db, user_id, "weekend_warrior"):
             awarded.append("weekend_warrior")
 
-    # consecutive_correct (5 и 10)
+    # consecutive_correct (5, 10, 20, 50)
     cc = stats.get("max_consecutive_correct", 0)
     for slug, threshold in [
         ("perfect_five", 5),
         ("ten_in_a_row", 10),
+        ("twenty_in_a_row", 20),
+        ("fifty_in_a_row", 50),
     ]:
         if cc >= threshold:
             if award_badge(db, user_id, slug, {"run": cc}):
                 awarded.append(slug)
+
+    # morning_streak_5 (Sprint 3.11) — 5 дней подряд с утренней активностью.
+    if stats.get("morning_streak_days", 0) >= 5:
+        if award_badge(db, user_id, "morning_streak_5", {"streak": stats["morning_streak_days"]}):
+            awarded.append("morning_streak_5")
 
     return awarded
 
@@ -387,6 +620,32 @@ def collect_stats(db: Session, user_id: int) -> dict:
         select(func.count(prog_models.Attempt.id)).where(
             prog_models.Attempt.user_id == user_id,
             prog_models.Attempt.is_correct == True,  # noqa: E712
+        )
+    ).scalar() or 0
+
+    # Sprint 3.11: quality_correct — точные правильные ответы (score ≥ 0.9).
+    # Используется для бейджей five/twenty/fifty_quality_correct.
+    quality_correct_count = s.execute(
+        select(func.count(prog_models.Attempt.id)).where(
+            prog_models.Attempt.user_id == user_id,
+            prog_models.Attempt.is_correct == True,  # noqa: E712
+            prog_models.Attempt.score >= 0.9,
+        )
+    ).scalar() or 0
+
+    # Sprint 3.11: review_count_total — сумма SM-2 повторений по всем темам.
+    # Используется для бейджей review_count_10 / review_count_50.
+    review_count_total = s.execute(
+        select(func.coalesce(func.sum(prog_models.Progress.review_count), 0)).where(
+            prog_models.Progress.user_id == user_id
+        )
+    ).scalar() or 0
+
+    # Sprint 3.11: mastered_topics_count — кол-во тем с mastery ≥ 0.8.
+    mastered_topics_count = s.execute(
+        select(func.count(prog_models.Progress.id)).where(
+            prog_models.Progress.user_id == user_id,
+            prog_models.Progress.mastery_score >= 0.8,
         )
     ).scalar() or 0
 
@@ -453,6 +712,10 @@ def collect_stats(db: Session, user_id: int) -> dict:
     subjects_in_7d: set[int] = set()
     seven_days_ago = today - timedelta(days=7)
 
+    # Sprint 3.11: для бейджа morning_streak_5 — множество дат с утренней
+    # активностью (07:00–10:00 по локальному TZ ученика).
+    morning_dates: set[str] = set()
+
     # consecutive correct (по created_at asc, ищем самую длинную серию is_correct=True)
     max_consecutive_correct = 0
     current_run = 0
@@ -477,6 +740,7 @@ def collect_stats(db: Session, user_id: int) -> dict:
             h = local_dt.hour
             if 7 <= h < 10:
                 morning_count += 1
+                morning_dates.add(d.isoformat())
             elif 20 <= h < 23:
                 evening_count += 1
             # weekend
@@ -493,6 +757,10 @@ def collect_stats(db: Session, user_id: int) -> dict:
             current_run = 0
 
     current_streak_days, _, _ = _compute_streak(active_dates, today.isoformat())
+
+    # Sprint 3.11: morning_streak_days — текущая серия дней подряд с утренней
+    # активностью. Используем ту же логику _compute_streak что и для общей серии.
+    morning_streak_days, _, _ = _compute_streak(morning_dates, today.isoformat())
 
     # returned_after_pause: предпоследний attempt был ≥2 дней назад, последний — сегодня.
     # Простой proxy: если total >= 2 и last attempt <= today, и (today - second_last date) >= 2.
@@ -521,4 +789,9 @@ def collect_stats(db: Session, user_id: int) -> dict:
         "evening_attempt": 1 if evening_count >= 1 else 0,
         "weekend_attempt": 1 if weekend_count >= 1 else 0,
         "max_consecutive_correct": int(max_consecutive_correct),
+        # Sprint 3.11 — расширенные метрики для новых бейджей:
+        "quality_correct_count": int(quality_correct_count),
+        "review_count_total": int(review_count_total),
+        "mastered_topics_count": int(mastered_topics_count),
+        "morning_streak_days": int(morning_streak_days),
     }

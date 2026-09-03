@@ -19,6 +19,39 @@ from app.progress import models as prog_models
 from app.subjects import models as subj_models
 from app.users import models as user_models
 from app.parents import schemas
+from app.student import badges as student_badges  # Sprint 3.11
+
+
+# Sprint 3.11: маппинг slug → category для родительского дашборда.
+# Должно совпадать с BADGE_CATEGORIES в apps/frontend/app/student/badges/client.tsx.
+_BADGE_CATEGORY: dict[str, str] = {
+    # count — количество решённых задач.
+    "first_step": "count", "five_solved": "count", "ten_solved": "count",
+    "fifty_solved": "count", "hundred_solved": "count",
+    "two_hundred_solved": "count", "three_hundred_solved": "count",
+    "four_hundred_solved": "count", "five_hundred_solved": "count",
+    "six_hundred_solved": "count", "seven_hundred_solved": "count",
+    "eight_hundred_solved": "count", "nine_hundred_solved": "count",
+    "thousand_solved": "count", "fifteen_hundred_solved": "count",
+    # effort — усилие и качество.
+    "explained_in_own_words": "effort", "five_quality_correct": "effort",
+    "twenty_quality_correct": "effort", "fifty_quality_correct": "effort",
+    "returned_to_hard": "effort", "mastered_topic": "effort",
+    "mastered_five_topics": "effort", "all_basics": "effort",
+    "review_count_10": "effort", "review_count_50": "effort",
+    "asked_question": "effort",
+    # streak — серии.
+    "streak_3": "streak", "streak_7": "streak", "streak_14": "streak",
+    "streak_30": "streak", "streak_60": "streak", "streak_100": "streak",
+    "streak_180": "streak", "streak_365": "streak",
+    "returned_after_pause": "streak",
+    # context — контекст и время.
+    "polymath_week": "context", "early_bird": "context",
+    "night_owl": "context", "weekend_warrior": "context",
+    "perfect_five": "context", "ten_in_a_row": "context",
+    "twenty_in_a_row": "context", "fifty_in_a_row": "context",
+    "morning_streak_5": "context",
+}
 
 
 def create_invite_for_parent(db: Session, parent: user_models.User) -> str:
@@ -571,4 +604,78 @@ def child_dashboard(
             "Родитель видит агрегированные метрики. Содержимое чатов ребёнка "
             "с AI-репетитором не отображается (приватность)."
         ),
+    )
+
+
+# === Sprint 3.11: parent badges view ===
+def child_badges_summary(
+    db: Session, parent: user_models.User, student_id: int
+) -> schemas.ChildBadgeSummary | None:
+    """Получить сводку по бейджам ребёнка для родительского дашборда.
+
+    Returns:
+        ChildBadgeSummary или None если ребёнок не привязан к этому родителю.
+    """
+    if not _ensure_parent_of(db, parent, student_id):
+        return None
+
+    from app.student.models import BadgeDefinition, UserBadge
+
+    # 1. Каталог (slug → title, description, icon).
+    defs = db.execute(select(BadgeDefinition)).scalars().all()
+    catalog: dict[str, BadgeDefinition] = {d.slug: d for d in defs}
+    total_available = len(defs)
+
+    # 2. Все earned бейджи ребёнка (newest first).
+    earned_rows = db.execute(
+        select(UserBadge).where(UserBadge.user_id == student_id)
+        .order_by(UserBadge.awarded_at.desc())
+    ).scalars().all()
+
+    earned_items: list[schemas.ChildBadgeItem] = []
+    earned_slugs: set[str] = set()
+    for ub in earned_rows:
+        d = catalog.get(ub.badge_slug)
+        if d is None:
+            continue
+        earned_items.append(
+            schemas.ChildBadgeItem(
+                slug=ub.badge_slug,
+                title=d.title,
+                description=d.description,
+                icon=d.icon,
+                earned_at=ub.awarded_at,
+                category=_BADGE_CATEGORY.get(ub.badge_slug, "context"),
+            )
+        )
+        earned_slugs.add(ub.badge_slug)
+
+    # 3. Прогресс по категориям.
+    # Считаем размер каждой категории по каталогу.
+    cat_total: dict[str, int] = {"count": 0, "effort": 0, "streak": 0, "context": 0}
+    cat_earned: dict[str, int] = {"count": 0, "effort": 0, "streak": 0, "context": 0}
+    for slug in catalog:
+        cat = _BADGE_CATEGORY.get(slug, "context")
+        cat_total[cat] = cat_total.get(cat, 0) + 1
+        if slug in earned_slugs:
+            cat_earned[cat] = cat_earned.get(cat, 0) + 1
+    by_category: dict[str, str] = {
+        cat: f"{cat_earned[cat]} / {cat_total[cat]}"
+        for cat in ("count", "effort", "streak", "context")
+    }
+
+    # 4. Locked — slug'и которые есть в каталоге но не earned.
+    locked = [slug for slug in catalog if slug not in earned_slugs]
+
+    # 5. Latest — самый свежий earned (или None).
+    latest = earned_items[0] if earned_items else None
+
+    return schemas.ChildBadgeSummary(
+        student_id=student_id,
+        total_earned=len(earned_items),
+        total_available=total_available,
+        by_category=by_category,
+        latest=latest,
+        earned=earned_items,
+        locked=locked,
     )

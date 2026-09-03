@@ -324,6 +324,43 @@ export const api = {
       method: "POST",
     });
   },
+
+  // Sprint 3.11: лёгкий endpoint для счётчика в Header.
+  studentBadgesCount: () => {
+    return request<{
+      earned: number;
+      available: number;
+      slug_titles: Record<string, string>;
+      slug_icons: Record<string, string>;
+    }>("/api/v1/student/badges/summary");
+  },
+
+  // Sprint 3.11: parent → достижения ребёнка.
+  parentChildBadges: (studentId: number) => {
+    return request<{
+      student_id: number;
+      total_earned: number;
+      total_available: number;
+      by_category: Record<string, string>;
+      latest: {
+        slug: string;
+        title: string;
+        description: string;
+        icon: string;
+        earned_at: string;
+        category: string;
+      } | null;
+      earned: Array<{
+        slug: string;
+        title: string;
+        description: string;
+        icon: string;
+        earned_at: string;
+        category: string;
+      }>;
+      locked: string[];
+    }>(`/api/v1/parents/students/${studentId}/badges`);
+  },
   // Sprint 8.1: streak для ученика.
   studentStreak: () => {
     return request<{

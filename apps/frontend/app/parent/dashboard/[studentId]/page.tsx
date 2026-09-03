@@ -88,11 +88,16 @@ export default function ParentDashboardPage() {
     showWeakTopics: true,
     showActivity: true,
   });
+  // Sprint 3.11: бейджи ребёнка для отображения на дашборде.
+  const [badges, setBadges] = useState<Awaited<
+    ReturnType<typeof api.parentChildBadges>
+  > | null>(null);
 
   useEffect(() => {
     api.me().then(setUser).catch(() => router.push("/login"));
     if (!studentId || Number.isNaN(studentId)) return;
     refresh();
+    refreshBadges();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentId]);
 
@@ -110,6 +115,16 @@ export default function ParentDashboardPage() {
       setError(e instanceof Error ? e.message : "Ошибка загрузки дашборда");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function refreshBadges() {
+    try {
+      const data = await api.parentChildBadges(studentId);
+      setBadges(data);
+    } catch (e) {
+      // Тихо — бейджи это дополнительная фича, не критично.
+      if (e instanceof ApiError && e.status === 401) return;
     }
   }
 
@@ -219,6 +234,103 @@ export default function ParentDashboardPage() {
             <ParentInsight title="Что сделать завтра" body={tomorrowPlan} tone="info" />
             <ParentInsight title="Маршрут" body={routeProgress} tone="neutral" />
           </section>
+
+          {/* Sprint 3.11: бейджи ребёнка (только чтение, без влияния). */}
+          {badges && (
+            <section className="mt-4" aria-label="Достижения ребёнка">
+              <div className="prism-card pad" data-testid="parent-badges-card">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="prism-kicker">Достижения</div>
+                    <div className="mt-2 flex items-baseline gap-2">
+                      <span className="text-3xl font-black tabular-nums text-[color:var(--prism-accent)]">
+                        {badges.total_earned}
+                      </span>
+                      <span className="text-sm text-[color:var(--prism-muted)]">
+                        из {badges.total_available}
+                      </span>
+                    </div>
+                  </div>
+                  {badges.latest && (
+                    <div className="hidden sm:flex items-center gap-2 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+                      <span aria-hidden className="text-xl">{badges.latest.icon}</span>
+                      <div className="min-w-0">
+                        <div className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-300/80">
+                          Последний
+                        </div>
+                        <div className="truncate font-black">{badges.latest.title}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Прогресс по категориям. */}
+                <div className="mt-4 grid gap-2 grid-cols-2 sm:grid-cols-4">
+                  {(["count", "effort", "streak", "context"] as const).map((cat) => {
+                    const value = badges.by_category[cat] ?? "0 / 0";
+                    const labels: Record<string, string> = {
+                      count: "Количество",
+                      effort: "Усилие",
+                      streak: "Серии",
+                      context: "Контекст",
+                    };
+                    const icons: Record<string, string> = {
+                      count: "🎯",
+                      effort: "✨",
+                      streak: "🔥",
+                      context: "🌅",
+                    };
+                    return (
+                      <div
+                        key={cat}
+                        className="rounded-2xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-3"
+                        data-testid={`parent-badges-cat-${cat}`}
+                      >
+                        <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-[color:var(--prism-muted)]">
+                          <span aria-hidden>{icons[cat]}</span>
+                          {labels[cat]}
+                        </div>
+                        <div className="mt-1 text-lg font-black tabular-nums text-[color:var(--prism-ink)]">
+                          {value}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Превью последних 5 earned. */}
+                {badges.earned.length > 0 && (
+                  <div className="mt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.14em] text-[color:var(--prism-muted)]">
+                      Недавние достижения
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {badges.earned.slice(0, 5).map((b) => (
+                        <div
+                          key={b.slug}
+                          title={`${b.title} — ${new Date(b.earned_at).toLocaleDateString("ru-RU")}`}
+                          className="flex items-center gap-1.5 rounded-full border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 px-3 py-1.5 text-sm"
+                        >
+                          <span aria-hidden>{b.icon}</span>
+                          <span className="font-black">{b.title}</span>
+                        </div>
+                      ))}
+                      {badges.earned.length > 5 && (
+                        <div className="rounded-full border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 px-3 py-1.5 text-sm text-[color:var(--prism-muted)]">
+                          +{badges.earned.length - 5} ещё
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <p className="mt-3 text-xs text-[color:var(--prism-muted)]">
+                  Родитель видит только список достижений. Содержание чатов ребёнка
+                  с репетитором остаётся приватным.
+                </p>
+              </div>
+            </section>
+          )}
 
           <section className="mt-4 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
             <div className="prism-card pad">

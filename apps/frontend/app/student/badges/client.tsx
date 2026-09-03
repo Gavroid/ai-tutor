@@ -2,12 +2,15 @@
 
 // Sprint 3.10 — редизайн /student/badges под prism-shell (как у /parents,
 // /admin/ai-providers, /subjects). Список бейджей 4 категориями:
-//   - Количество (first_step, five_solved, ten_solved, fifty_solved, hundred_solved)
-//   - Усилие (explained_in_own_words, returned_to_hard, mastered_topic,
-//             all_basics, asked_question)
-//   - Серии (streak_3, streak_7, streak_30, returned_after_pause)
-//   - Контекст (polymath_week, early_bird, night_owl, weekend_warrior,
-//             perfect_five, ten_in_a_row)
+//   - Количество (count): 1, 5, 10, 50, 100, 200, 300, ..., 1500 (всего 15)
+//   - Усилие (effort): explained_in_own_words, returned_to_hard, mastered_topic,
+//             all_basics, asked_question, five/twenty/fifty_quality_correct,
+//             mastered_five_topics, review_count_10/50 (всего 11)
+//   - Серии (streak): streak_3/7/14/30/60/100/180/365 + returned_after_pause (9)
+//   - Контекст (context): polymath_week, early_bird, night_owl, weekend_warrior,
+//             perfect_five, ten/twenty/fifty_in_a_row, morning_streak_5 (всего 9)
+//
+// Sprint 3.11: расширенный каталог + BadgeToast при получении новых достижений.
 //
 // Полученные — prism-card с gradient-glow, иконка + title + дата.
 // Не получены — prism-card с opacity, 🔒.
@@ -18,6 +21,7 @@ import StreakCard from "@/components/StreakCard";
 import NextTopicCard from "@/components/NextTopicCard";
 import Skeleton from "@/components/Skeleton";
 import ErrorState from "@/components/ErrorState";
+import BadgeToast, { type BadgeToastItem } from "@/components/BadgeToast";
 
 type BadgeOut = {
   slug: string;
@@ -47,23 +51,45 @@ type NextTopic = {
 };
 
 // Категории бейджей (Sprint 3.10: для визуальной группировки).
+// Sprint 3.11: расширено до 44 бейджей.
 const BADGE_CATEGORIES: Record<string, string> = {
-  // Количество решенных задач.
+  // Количество решенных задач (count).
   first_step: "count",
   five_solved: "count",
   ten_solved: "count",
   fifty_solved: "count",
   hundred_solved: "count",
-  // Усилие / качество.
+  two_hundred_solved: "count",
+  three_hundred_solved: "count",
+  four_hundred_solved: "count",
+  five_hundred_solved: "count",
+  six_hundred_solved: "count",
+  seven_hundred_solved: "count",
+  eight_hundred_solved: "count",
+  nine_hundred_solved: "count",
+  thousand_solved: "count",
+  fifteen_hundred_solved: "count",
+  // Усилие / качество (effort).
   explained_in_own_words: "effort",
+  five_quality_correct: "effort",
+  twenty_quality_correct: "effort",
+  fifty_quality_correct: "effort",
   returned_to_hard: "effort",
   mastered_topic: "effort",
+  mastered_five_topics: "effort",
   all_basics: "effort",
+  review_count_10: "effort",
+  review_count_50: "effort",
   asked_question: "effort",
-  // Серии / возвращение.
+  // Серии / возвращение (streak).
   streak_3: "streak",
   streak_7: "streak",
+  streak_14: "streak",
   streak_30: "streak",
+  streak_60: "streak",
+  streak_100: "streak",
+  streak_180: "streak",
+  streak_365: "streak",
   returned_after_pause: "streak",
   // Контекст (время, разнообразие, серии-правильности).
   polymath_week: "context",
@@ -72,6 +98,9 @@ const BADGE_CATEGORIES: Record<string, string> = {
   weekend_warrior: "context",
   perfect_five: "context",
   ten_in_a_row: "context",
+  twenty_in_a_row: "context",
+  fifty_in_a_row: "context",
+  morning_streak_5: "context",
 };
 
 const CATEGORY_META: Record<string, { label: string; icon: string }> = {
@@ -87,7 +116,8 @@ export default function StudentBadgesClient() {
   const [streak, setStreak] = useState<Streak | null>(null);
   const [nextTopic, setNextTopic] = useState<NextTopic | null>(null);
   const [busy, setBusy] = useState(false);
-  const [newlyAwarded, setNewlyAwarded] = useState<string[]>([]);
+  // Sprint 3.11: теперь хранит {slug, title, icon} для toast.
+  const [newlyAwarded, setNewlyAwarded] = useState<BadgeToastItem[]>([]);
 
   async function refresh() {
     setBusy(true);
@@ -110,9 +140,17 @@ export default function StudentBadgesClient() {
     setBusy(true);
     try {
       const awarded: string[] = await api.studentBadgesEvaluate();
-      setNewlyAwarded(awarded);
+      // Достаём title + icon для каждого нового бейджа из каталога.
+      const summary = await api.studentBadgesCount().catch(() => null);
+      const titles = summary?.slug_titles ?? {};
+      const icons = summary?.slug_icons ?? {};
+      const items: BadgeToastItem[] = awarded.map((slug) => ({
+        slug,
+        title: titles[slug] ?? slug,
+        icon: icons[slug] ?? "🏅",
+      }));
+      setNewlyAwarded(items);
       await refresh();
-      setTimeout(() => setNewlyAwarded([]), 5000);
     } finally {
       setBusy(false);
     }
@@ -252,9 +290,15 @@ export default function StudentBadgesClient() {
       {newlyAwarded.length > 0 && (
         <div className="mt-4 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-3 text-sm text-emerald-200">
           🎉 Получены новые достижения:{" "}
-          <strong>{newlyAwarded.join(", ")}</strong>
+          <strong>{newlyAwarded.map((b) => b.title).join(", ")}</strong>
         </div>
       )}
+
+      {/* Sprint 3.11: toast с превью новых бейджей (в правом нижнем углу). */}
+      <BadgeToast
+        badges={newlyAwarded}
+        onDismiss={() => setNewlyAwarded([])}
+      />
 
       {/* Streak + Next topic — без изменений (Sprint 8.1, 8.2). */}
       {streak && (
