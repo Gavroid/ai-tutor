@@ -78,20 +78,18 @@ export default function HomePage() {
               </div>
             </section>
 
-            <aside className="prism-card pad glow">
+            <aside className="prism-card pad glow flex flex-col">
               <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">Live System</div>
-              <div className="mt-4 grid grid-cols-2 gap-2">
+              {/* Sprint 3.16: расширяем блок, чтобы закрыть пустоту снизу (filler + flex-grow). */}
+              <div className="mt-4 grid grid-cols-2 gap-2 flex-1 content-start">
                 <Metric label="Предметов" value={subjects.length || "—"} />
                 <Metric label="Пилот" value={pilotVisibleCount || "—"} hot={pilotVisibleCount > 0} />
                 <Metric label="В обработке" value={previewCount || "—"} />
                 <Metric label="OCR-blocked" value={blockedCount || "—"} />
                 <Metric label="AI" value={aiOk === null ? "…" : aiOk ? "ON" : "OFF"} hot={!!aiOk} />
               </div>
-              {!isOperator && pilotVisibleCount > 0 && (
-                <p className="mt-3 text-xs text-[color:var(--prism-muted)]">
-                  Ребёнку показываются только пилотные предметы.
-                </p>
-              )}
+              {/* Sprint 3.16: убрали текст «Ребёнку показываются только пилотные предметы»
+                  — для ребёнка/родителя это внутренняя кухня pilot-scope, ничего полезного. */}
               {/* Sprint 3.9.7.3: убрал «Режим оператора: видны все subjects» —
                   это техническая деталь для разработчика, не для ребёнка/родителя.
                   Сейчас её и так нет в production-ветке (только для admin). */}
@@ -159,8 +157,8 @@ export default function HomePage() {
           <section className="prism-layer px-4 pb-5 lg:px-7 lg:pb-7">
             <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_360px] lg:items-end">
               <div>
-                <div className="prism-kicker">Subject Gallery</div>
-                <h2 className="mt-2 text-3xl font-black tracking-[-0.05em] sm:text-5xl">
+                {/* Sprint 3.16: убрали «Subject Gallery» kicker — лишний заголовок перед Каталогом. */}
+                <h2 className="text-3xl font-black tracking-[-0.05em] sm:text-5xl">
                   {isOperator ? "Каталог предметов · оператор" : "Каталог предметов"}
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm text-[color:var(--prism-muted)]">
