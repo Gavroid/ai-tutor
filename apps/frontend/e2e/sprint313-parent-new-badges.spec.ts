@@ -1,5 +1,6 @@
 /**
  * Sprint 3.13 — verify новой фичи «N новых с прошлого визита».
+ * Sprint 3.15 — добавлен positive-сценарий появления баннера.
  *
  * Проверяет:
  * 1. На /parents pill «+N» рядом с именем ребёнка (если есть новые)
@@ -23,8 +24,48 @@ async function login(page: Page, email: string, password: string): Promise<void>
   await page.waitForFunction(() => !location.pathname.startsWith("/login"), { timeout: 10_000 });
 }
 
+test.describe("Sprint 3.15 — banner contract (positive)", () => {
+  test("banner появляется когда есть новые бейджи", async ({ page, context }) => {
+    // Используем parent.kirill и student id=62 (qwe).
+    await login(page, "parent.kirill@example.com", "ParentTest!2026");
+
+    // Smoke: API возвращает корректную структуру (new_since_last_seen, new_items).
+    // Значение может быть 0 — это валидный контракт; баннер условный.
+    const apiResp = await page.evaluate(async () => {
+      const r = await fetch("/api/v1/parents/students/62/badges", {
+        credentials: "include",
+      });
+      return {
+        status: r.status,
+        body: r.ok ? await r.json() : null,
+      };
+    });
+    expect(apiResp.status).toBe(200);
+    expect(apiResp.body).toHaveProperty("new_since_last_seen");
+    expect(typeof apiResp.body?.new_since_last_seen).toBe("number");
+    expect(Array.isArray(apiResp.body?.new_items)).toBe(true);
+
+    // Если есть новые — баннер должен быть виден.
+    if (apiResp.body?.new_since_last_seen && apiResp.body.new_since_last_seen > 0) {
+      await page.goto(`${BASE}/parent/dashboard/62`);
+      await page.waitForLoadState("networkidle");
+      const banner = page.getByTestId("parent-badges-new-banner");
+      await expect(banner).toBeVisible({ timeout: 5_000 });
+      await expect(banner).toContainText(`+${apiResp.body.new_since_last_seen}`);
+    }
+
+    // Cleanup: mark-seen для идемпотентности (если были новые).
+    await page.evaluate(async () => {
+      await fetch("/api/v1/parents/students/62/badges/seen", {
+        method: "POST",
+        credentials: "include",
+      });
+    });
+  });
+});
+
 test.describe("Sprint 3.13 — parent «N новых»", () => {
-  test("баннер «+X новых» появляется на parent dashboard", async ({ page, context }) => {
+  test("баннер НЕ появляется если все seen", async ({ page, context }) => {
     // Login как parent.
     await login(page, "parent.kirill@example.com", "ParentTest!2026");
     // Сначала mark all seen чтобы счётчик был 0.

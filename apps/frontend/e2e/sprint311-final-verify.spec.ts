@@ -33,7 +33,7 @@ test.describe("Sprint 3.11 — финальный verify", () => {
     await context.close();
   });
 
-  test("student /badges: 4 категории + 44 бейджа", async ({ page, context }) => {
+  test("student /badges: 4 категории + 60 бейджей", async ({ page, context }) => {
     await context.clearCookies();
     await login(page, "qwe@ru.ru", "QweTest!2026");
     await page.goto(`${BASE}/student/badges`);
@@ -61,7 +61,7 @@ test.describe("Sprint 3.11 — финальный verify", () => {
     await page.goto(`${BASE}/student/badges`);
     await page.waitForLoadState("networkidle");
 
-    // Evaluate — все 44 уже есть, новых не будет. Но toast всё равно появится (пустым или не появится).
+    // Evaluate — все 60 уже есть, новых не будет. Но toast всё равно появится (пустым или не появится).
     // Проверяем что нет JS-ошибки.
     const evaluateBtn = page.getByRole("button", { name: /Проверить новые/i });
     await evaluateBtn.click();
@@ -86,10 +86,12 @@ test.describe("Sprint 3.11 — финальный verify", () => {
     await expect(page.getByTestId("parent-badges-cat-context")).toBeVisible();
   });
 
-  test("anonymous видит error на /student/badges", async ({ page, context }) => {
+  test("anonymous видит redirect на /login", async ({ page, context }) => {
     await context.clearCookies();
     await page.goto(`${BASE}/student/badges`);
+    // SPA: middleware редиректит anon на /login.
     await page.waitForLoadState("networkidle");
-    // ErrorState или редирект — оба варианта ОК.
+    // Проверяем что URL содержит /login (redirector /api или client-side).
+    await expect(page).toHaveURL(/\/login/, { timeout: 5_000 });
   });
 });

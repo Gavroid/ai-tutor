@@ -60,11 +60,20 @@ export function useBadgeEventDedup(handler: (e: BadgeEvent) => void): void {
     const lastShownAt = lastShown.get(e.slugs.join(","));
     if (lastShownAt && Date.now() - lastShownAt < 2000) return;
     lastShown.set(e.slugs.join(","), Date.now());
+    _trimLastShown();
     handler(e);
   });
 }
 
+// Sprint 3.15: bound для защиты от неограниченного роста Map (YAGNI LRU — просто clear при > 50).
+// Максимум 50 записей — на реальной нагрузке (десятки бейджей/сессию) этот лимит недостижим.
 const lastShown = new Map<string, number>();
+const MAX_LAST_SHOWN = 50;
+function _trimLastShown(): void {
+  if (lastShown.size > MAX_LAST_SHOWN) {
+    lastShown.clear();
+  }
+}
 
 /** Хук для текущего списка pending бейджей (для глобального toast). */
 export function useBadgeToastQueue(): {

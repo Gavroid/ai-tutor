@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export interface BadgeToastItem {
   slug: string;
@@ -126,15 +127,15 @@ export default function BadgeToast({
           )}
         </div>
 
-        {/* Кнопка-CTA — primary, ведёт на /student/badges. */}
-        <a
+        {/* Кнопка-CTA — primary, ведёт на /student/badges (Sprint 3.15: next/link вместо <a> для SPA-навигации). */}
+        <Link
           href="/student/badges"
           data-testid="badge-toast-cta"
           className="prism-action primary mt-5 flex w-full items-center justify-center gap-2 px-6 py-3 text-sm font-black uppercase tracking-[0.16em]"
         >
           Все достижения
           <span aria-hidden>→</span>
-        </a>
+        </Link>
       </div>
     </div>
   );
