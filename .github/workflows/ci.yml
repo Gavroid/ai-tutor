@@ -57,10 +57,8 @@ jobs:
           UPLOAD_DIR: "/tmp/ai-tutor-test-uploads"
         run: |
           . .venv/bin/activate
-          # Sprint 3.7: --ignore для test_mapping_quality_audit.py — он импортирует
-          # scripts/mapping_quality_audit, который удалён из репо (отдельный issue,
-          # не блокер для CI). Убрать когда восстановим модуль.
-          pytest --ignore=tests/test_mapping_quality_audit.py --tb=short -q
+          # Sprint 3.15: test_mapping_quality_audit удалён (модуль scripts/mapping_quality_audit не существует).
+          pytest --tb=short -q
 
   frontend:
     name: Frontend (tsc + lint + build)
