@@ -63,8 +63,8 @@ export default function HomePage() {
       <section className="py-3 sm:py-5">
         <div className="prism-frame">
           <div className="prism-layer prism-hero-grid">
+            {/* Sprint 3.17: убрали kicker «Explore · Student Mission Control». */}
             <section>
-              <div className="prism-kicker">Explore · Student Mission Control</div>
               <h1 className="prism-title">Выбери <span className="accent">траекторию</span> обучения</h1>
               <p className="prism-copy">
                 Не лента предметов, а рабочая карта: готовые темы, повторение, слабые места и понятный следующий шаг в одном экране.
@@ -78,42 +78,24 @@ export default function HomePage() {
               </div>
             </section>
 
-            <aside className="prism-card pad glow flex flex-col">
+            {/* Sprint 3.17: Live System растягивается на всю высоту hero-блока.
+                flex-col + h-full + grid-cols-2 для 5 метрик (3 ряда: 2+2+1)
+                визуально заполняет столбец. Сами карточки — компактные (p-3). */}
+            <aside className="prism-card pad glow flex flex-col h-full">
               <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">Live System</div>
-              {/* Sprint 3.16: расширяем блок, чтобы закрыть пустоту снизу.
-                  grid-cols-2 → grid-cols-1 чтобы метрики шли в один столбец и блок
-                  был визуально выше. flex-1 + content-start — метрики прижаты к верху,
-                  а оставшееся место — это просто естественный padding prism-card. */}
-              <div className="mt-4 grid grid-cols-1 gap-2 flex-1 content-start">
+              <div className="mt-4 grid grid-cols-2 gap-2 flex-1 content-start">
                 <Metric label="Предметов" value={subjects.length || "—"} />
                 <Metric label="Пилот" value={pilotVisibleCount || "—"} hot={pilotVisibleCount > 0} />
                 <Metric label="В обработке" value={previewCount || "—"} />
                 <Metric label="OCR-blocked" value={blockedCount || "—"} />
                 <Metric label="AI" value={aiOk === null ? "…" : aiOk ? "ON" : "OFF"} hot={!!aiOk} />
-              </div>
-              {/* Sprint 3.16: убрали текст «Ребёнку показываются только пилотные предметы»
-                  — для ребёнка/родителя это внутренняя кухня pilot-scope, ничего полезного. */}
-              {/* Sprint 3.9.7.3: убрал «Режим оператора: видны все subjects» —
-                  это техническая деталь для разработчика, не для ребёнка/родителя.
-                  Сейчас её и так нет в production-ветке (только для admin). */}
-              {/* Sprint 3.9.7.3: убрал «Модель: openai/gpt-5.6-luna» —
-                  для ребёнка это техническая информация, которая его отвлекает.
-                  Модель видна только в /admin/ai-providers (Sprint 3.9.6). */}
-              {/* Sprint 3.9.7.7 (revised): блок «Стоит повторить» был вынесен
-                  из правого сайдбара (Sprint 3.9.7.3), но лежал ВНУТРИ
-                  prism-hero-grid → контейнер ~50% ширины → карточки в 2 ряда.
-                  Теперь он вынесен НАРУЖУ (после </div> prism-layer), на полную
-                  ширину prism-frame — карточки одной строкой. */}
+                </div>
             </aside>
           </div>
 
           {/* Sprint 3.9.7.7 (revised): блок «Стоит повторить» вынесен ИЗ
-              prism-hero-grid наружу — раньше он лежал внутри hero-grid
-              (grid 2 колонки) и контейнер был ~50% ширины, поэтому
-              grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))
-              давал только 2 колонки в строке (5×220 не помещалось).
-              Теперь блок на всю ширину prism-frame — все 5 карточек
-              в одну строку. */}
+              prism-hero-grid наружу — на всю ширину prism-frame, 5 карточек
+              в одну строку. max=5 (как у parent — Sprint 3.17). */}
           <section className="prism-card pad glow mt-4 mx-4 lg:mx-7">
             <div className="flex items-center justify-between mb-3">
               <div className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">
@@ -159,16 +141,14 @@ export default function HomePage() {
 
 
           <section className="prism-layer px-4 pb-5 lg:px-7 lg:pb-7">
+            {/* Sprint 3.17: убрали h2 «Каталог предметов», но mb-4 grid-gap-padder-энд
+                сохраняет то же вертикальное пространство.
+                Описание снизу заменено на «Каталог предметов» (Игорь). */}
             <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_360px] lg:items-end">
               <div>
-                {/* Sprint 3.16: убрали «Subject Gallery» kicker — лишний заголовок перед Каталогом. */}
-                <h2 className="text-3xl font-black tracking-[-0.05em] sm:text-5xl">
-                  {isOperator ? "Каталог предметов · оператор" : "Каталог предметов"}
-                </h2>
+                {/* h2 удалён — Sprint 3.17. Пространство под h2 сохранено через mb-4. */}
                 <p className="mt-2 max-w-2xl text-sm text-[color:var(--prism-muted)]">
-                  {isOperator
-                    ? "Видны все subjects и их evidence-статусы. Только pilot_visible=true показывается ребёнку."
-                    : "Доступны только предметы, прошедшие полную evidence-проверку и помеченные pilot_visible."}
+                  Каталог предметов
                 </p>
               </div>
               <input
@@ -286,11 +266,12 @@ function EvidenceBadge({ label, ready }: { label: string; ready: boolean }) {
   );
 }
 
+// Sprint 3.17: компактная карточка p-3, чтобы Live System заполнял высоту hero-блока.
 function Metric({ label, value, hot = false }: { label: string; value: string | number; hot?: boolean }) {
   return (
-    <div className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/50 p-4">
+    <div className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/50 p-3">
       <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[color:var(--prism-muted)]">{label}</div>
-      <div className={`mt-1 text-3xl font-black ${hot ? "text-[color:var(--prism-green)]" : ""}`}>{value}</div>
+      <div className={`mt-1 text-2xl font-black ${hot ? "text-[color:var(--prism-green)]" : ""}`}>{value}</div>
     </div>
   );
 }
