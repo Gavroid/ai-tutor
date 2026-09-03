@@ -121,7 +121,7 @@ export default function HomePage() {
               </div>
               {review.length > 0 && (
                 <div className="text-xs text-[color:var(--prism-muted)]">
-                  Показано: {Math.min(review.length, 6)} из {review.length}
+                  Показано: {Math.min(review.length, 5)} из {review.length}
                 </div>
               )}
             </div>
@@ -130,7 +130,8 @@ export default function HomePage() {
                 className="grid gap-3"
                 style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}
               >
-                {review.slice(0, 6).map((r) => (
+                {/* Sprint 3.16: единый лимит с учеником (5). */}
+                {review.slice(0, 5).map((r) => (
                   <Link
                     key={r.topic_id}
                     href={`/topics/${r.topic_id}`}

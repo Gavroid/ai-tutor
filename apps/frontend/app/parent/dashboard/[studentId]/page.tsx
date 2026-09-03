@@ -438,6 +438,7 @@ export default function ParentDashboardPage() {
                 <div className="prism-card pad">
                   <div className="prism-kicker">Weak Signals</div>
                   <div className="mt-4 grid gap-2">
+                    {/* Sprint 3.16: единый лимит с /subjects (5). */}
                     {dash.weak_topics.slice(0, 5).map((w) => (
                       <Link key={w.topic_id} href={`/topics/${w.topic_id}`} className="rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-3 hover:border-[color:var(--prism-accent)]">
                         <div className="font-black">{w.subject_name}: {w.topic_name}</div>
