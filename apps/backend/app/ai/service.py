@@ -1011,95 +1011,9 @@ class AIService:
         return resp, "default"
 
     async def explain_topic(self, db: Session, user: user_models.User, topic: subj_models.Topic) -> AIResponse:
-        subject = topic.section.subject
-        # Sprint 3.5.2: RAG — найти релевантные chunk'и из загруженных учебников
-        # и добавить в system prompt как контекст. Без RAG AI отвечает "из головы".
-        # Sprint 4.1.3: возвращает (context_str, sources) — sources для UI.
-        rag_context, sources = ("", [])
-        try:
-            rag_context, sources = await self._build_rag_context(db, topic)
-        except Exception as e:
-            # Sprint 2 (P0): RAG failure → graceful fallback (без 500).
-            # Внутренний _build_rag_context уже ловит подмножество ошибок,
-            # но persistent search/embedding может падать вне его try.
-            _record_ai("explain", "rag_error")
-            logger.warning("AI explain RAG failure → fallback (no RAG context): %r", e)
-            rag_context, sources = None, []
-        # S3.1 (2026-09-01, D2.8): multi-explain через style. Router может
-        # установить thread-local _explain_style перед вызовом. По умолчанию — стандартный.
-        from app.ai import _thread_local
-
-        style = getattr(_thread_local, "explain_style", "default")
-        system = prompts.explain_topic_system(
-            subject.name,
-            topic.name,
-            user.student_profile.grade if user.student_profile else 7,
-            rag_context=rag_context,
-            style=style,
-        )
-        req = AIRequest(
-            messages=[AIMessage(role="system", content=system), AIMessage(role="user", content="Объясни тему.")],
-            mode="explain",
-            max_tokens=900,
-        )
-        resp: AIResponse | None = None
-        try:
-            # Sprint 3.9.6: subject-aware provider с fallback на env-default.
-            resp, used_label = await self._complete_with_fallback(db, subject.id, req)
-            resp.content = _clean_student_visible_text(resp.content)
-            used_fallback = False
-            if len(resp.content.strip()) < 250:
-                retry_req = AIRequest(
-                    messages=req.messages
-                    + [
-                        AIMessage(
-                            role="user",
-                            content="Ответ слишком короткий. Дай полноценное объяснение: определение, правило, пример и проверочный вопрос. Не обрывай фразы.",
-                        )
-                    ],
-                    mode="explain",
-                    max_tokens=1100,
-                    temperature=0.4,
-                )
-                retry_resp = await self.provider.complete(retry_req)
-                retry_resp.content = _clean_student_visible_text(retry_resp.content)
-                if len(retry_resp.content.strip()) >= 250:
-                    resp = retry_resp
-                else:
-                    resp.content = _fallback_explanation(subject.name, topic.name)
-                    used_fallback = True
-        except Exception as e:
-            # Sprint 2 (P0): graceful fallback на недоступность провайдера,
-            # чтобы AI временно недоступен НЕ превращался в 500 с traceback.
-            # Различаем budget (429 в роутере) и provider-failure (200 + safe fallback).
-            _record_ai("explain", "error")
-            logger.warning("AI explain provider failure → fallback: %s", e)
-            fallback = AIResponse(
-                content=_fallback_explanation(subject.name, topic.name),
-                model="fallback",
-                sources=[],
-            )
-            _record_ai("explain", "ok", resp=fallback)
-            resp = fallback
-
-        topic_id = getattr(topic, "id", None)
-        verified_sources = (
-            _verified_rag_sources(
-                sources,
-                topic_id=topic_id,
-                topic_name=topic.name,
-            )
-            if topic_id is not None
-            else []
-        )
-        # S1.3 (2026-09-01, D2.2): до license review ученику НЕ показываем
-        # citation references (страницы учебника). _verified_rag_sources уже
-        # фильтрует по topic match, но этого недостаточно — глобально скрываем
-        # для student role. Parent/teacher/admin продолжают видеть (для аудита).
-        if getattr(user, "role", None) == "student":
-            verified_sources = []
-        resp.sources = verified_sources
-        return resp
+        # Sprint 3.29: body moved to app.ai._explain.explain_topic (zero behavior change).
+        from app.ai._explain import explain_topic as _explain_topic_impl
+        return await _explain_topic_impl(self, db, user, topic)
 
     async def _build_rag_context(
         self, db: Session, topic: subj_models.Topic, top_k: int = 3
