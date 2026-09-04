@@ -18,6 +18,7 @@
 - /api/v1/admin/telegram-code — только admin, rate-limit 20/час на admin_id.
 - audit log: action='telegram.code.issue' / 'telegram.bind.success' / 'telegram.bind.failed'.
 """
+
 from __future__ import annotations
 
 import secrets
@@ -120,11 +121,10 @@ class TestTelegramBindCodes:
         issue_code(email="alice2@example.com")
         from app.db.session import engine
         from sqlalchemy import text
+
         with engine.connect() as conn:
             rows = conn.execute(
-                text(
-                    "SELECT id FROM telegram_bind_codes WHERE email = :e AND used_at IS NULL"
-                ),
+                text("SELECT id FROM telegram_bind_codes WHERE email = :e AND used_at IS NULL"),
                 {"e": "alice2@example.com"},
             ).fetchall()
         assert len(rows) == 1, f"ожидаем 1 активный код, найдено {len(rows)}"
@@ -150,9 +150,7 @@ class TestTelegramBindCodes:
         self._make_user(email="dave@example.com")
         issue_code(email="dave@example.com")  # чтобы коды вообще были
         with pytest.raises(ValueError, match="invalid.*code"):
-            validate_and_bind(
-                email="dave@example.com", code="DEADBEEF", chat_id=999888777
-            )
+            validate_and_bind(email="dave@example.com", code="DEADBEEF", chat_id=999888777)
 
     def test_validate_and_bind_rejects_expired_code(self, db_setup):
         """Просроченный код (>15 мин) → ValueError."""
@@ -161,15 +159,14 @@ class TestTelegramBindCodes:
         # Вручную сдвигаем expires_at на 20 мин назад
         from app.db.session import engine
         from sqlalchemy import text
+
         with engine.begin() as conn:
             conn.execute(
                 text("UPDATE telegram_bind_codes SET expires_at = :exp WHERE code = :c"),
                 {"exp": (datetime.now(UTC) - timedelta(minutes=20)).isoformat(), "c": code},
             )
         with pytest.raises(ValueError, match="expired"):
-            validate_and_bind(
-                email="eve@example.com", code=code, chat_id=111111111
-            )
+            validate_and_bind(email="eve@example.com", code=code, chat_id=111111111)
 
     def test_issue_code_unknown_email_raises(self, db_setup):
         """issue_code для несуществующего email → ValueError."""

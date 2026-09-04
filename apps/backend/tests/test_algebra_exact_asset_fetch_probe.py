@@ -41,10 +41,12 @@ def test_evaluate_extracted_text_fails_closed_when_too_short_or_missing_terms() 
 
 
 def test_summarize_probe_rows_counts_pass_fail() -> None:
-    summary = summarize_probe_rows([
-        {"status": "pass", "source_key": "wallace_algebra"},
-        {"status": "fail", "source_key": "im_first_edition"},
-    ])
+    summary = summarize_probe_rows(
+        [
+            {"status": "pass", "source_key": "wallace_algebra"},
+            {"status": "fail", "source_key": "im_first_edition"},
+        ]
+    )
 
     assert summary == {
         "asset_count": 2,
@@ -58,7 +60,9 @@ def test_extract_text_from_partial_html_keeps_unit_terms(tmp_path) -> None:
     from scripts.algebra_exact_asset_fetch_probe import _extract_text
 
     path = tmp_path / "partial.html"
-    path.write_text("<html><body><h1>Unit 2</h1><p>Linear Equations, Inequalities, and Systems</p></body></html>", encoding="utf-8")
+    path.write_text(
+        "<html><body><h1>Unit 2</h1><p>Linear Equations, Inequalities, and Systems</p></body></html>", encoding="utf-8"
+    )
 
     extracted = _extract_text(path)
 

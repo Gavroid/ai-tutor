@@ -1,4 +1,5 @@
 """Sprint 96: server-side i18n tests."""
+
 from __future__ import annotations
 
 import os
@@ -8,6 +9,7 @@ os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 import pytest
 
 # === get_locale tests ===
+
 
 def test_get_locale_ru():
     """Sprint 96: 'ru-RU' → 'ru'."""
@@ -47,6 +49,7 @@ def test_get_locale_priority():
 
 
 # === t() translation tests ===
+
 
 def test_translate_ru():
     """Sprint 96: translation для RU."""
@@ -88,6 +91,7 @@ def test_translate_unknown_locale_falls_back():
 
 # === localize_error tests ===
 
+
 def test_localize_error_basic():
     """Sprint 96: localize_error returns code+message dict."""
     from app.i18n import localize_error
@@ -117,6 +121,7 @@ def test_localize_error_en():
 
 # === Module tests ===
 
+
 def test_i18n_module_imports():
     """Sprint 96: i18n module exports."""
     from app import i18n
@@ -141,6 +146,7 @@ def test_messages_dict_has_both_languages():
 
 
 # === Middleware tests ===
+
 
 def test_locale_middleware_header_ru():
     """Sprint 96: middleware добавляет X-Locale: ru header."""

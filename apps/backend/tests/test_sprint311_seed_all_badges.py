@@ -20,6 +20,7 @@ Sprint 3.12 update: каталог расширен до 60 бейджей (15 �
 
 Run: pytest tests/test_sprint311_seed_all_badges.py -v
 """
+
 from __future__ import annotations
 
 import json
@@ -82,9 +83,9 @@ def test_seed_all_awards_all_badges_for_new_user(db_session):
 
     result = seed_all(db_session, user_id)
 
-    assert len(result["awarded"]) == TOTAL_BADGES, (
-        f"expected {TOTAL_BADGES}, got {len(result['awarded'])}: {result['awarded']}"
-    )
+    assert (
+        len(result["awarded"]) == TOTAL_BADGES
+    ), f"expected {TOTAL_BADGES}, got {len(result['awarded'])}: {result['awarded']}"
     assert len(result["already_had"]) == 0
     assert set(result["awarded"]) == EXPECTED_BADGES
 
@@ -127,32 +128,72 @@ def test_seed_all_categories_covered(db_session):
     Sprint 3.12: каждая категория содержит ровно 15 бейджей.
     """
     COUNT_BADGES = {
-        "first_step", "five_solved", "ten_solved", "fifty_solved", "hundred_solved",
-        "two_hundred_solved", "three_hundred_solved", "four_hundred_solved",
-        "five_hundred_solved", "six_hundred_solved", "seven_hundred_solved",
-        "eight_hundred_solved", "nine_hundred_solved", "thousand_solved",
+        "first_step",
+        "five_solved",
+        "ten_solved",
+        "fifty_solved",
+        "hundred_solved",
+        "two_hundred_solved",
+        "three_hundred_solved",
+        "four_hundred_solved",
+        "five_hundred_solved",
+        "six_hundred_solved",
+        "seven_hundred_solved",
+        "eight_hundred_solved",
+        "nine_hundred_solved",
+        "thousand_solved",
         "fifteen_hundred_solved",
     }
     EFFORT_BADGES = {
-        "explained_in_own_words", "five_quality_correct", "twenty_quality_correct",
-        "fifty_quality_correct", "returned_to_hard", "mastered_topic",
-        "mastered_five_topics", "all_basics", "review_count_10",
-        "review_count_50", "asked_question",
-        "correct_count_25", "correct_count_75", "correct_count_150", "correct_count_500",
+        "explained_in_own_words",
+        "five_quality_correct",
+        "twenty_quality_correct",
+        "fifty_quality_correct",
+        "returned_to_hard",
+        "mastered_topic",
+        "mastered_five_topics",
+        "all_basics",
+        "review_count_10",
+        "review_count_50",
+        "asked_question",
+        "correct_count_25",
+        "correct_count_75",
+        "correct_count_150",
+        "correct_count_500",
     }
     STREAK_BADGES = {
-        "streak_3", "streak_7", "streak_14", "streak_30", "streak_45",
-        "streak_60", "streak_100", "streak_180", "streak_365",
+        "streak_3",
+        "streak_7",
+        "streak_14",
+        "streak_30",
+        "streak_45",
+        "streak_60",
+        "streak_100",
+        "streak_180",
+        "streak_365",
         "returned_after_pause",
-        "streak_correct_5", "streak_correct_14", "streak_correct_30",
-        "returned_twice", "returned_five",
+        "streak_correct_5",
+        "streak_correct_14",
+        "streak_correct_30",
+        "returned_twice",
+        "returned_five",
     }
     CONTEXT_BADGES = {
-        "polymath_week", "early_bird", "night_owl", "weekend_warrior",
-        "perfect_five", "ten_in_a_row", "twenty_in_a_row", "fifty_in_a_row",
+        "polymath_week",
+        "early_bird",
+        "night_owl",
+        "weekend_warrior",
+        "perfect_five",
+        "ten_in_a_row",
+        "twenty_in_a_row",
+        "fifty_in_a_row",
         "morning_streak_5",
-        "lunch_learner", "lunch_master", "late_night_hero",
-        "weekend_regular_2", "weekend_master_8", "morning_streak_14",
+        "lunch_learner",
+        "lunch_master",
+        "late_night_hero",
+        "weekend_regular_2",
+        "weekend_master_8",
+        "morning_streak_14",
     }
 
     expected_categories = COUNT_BADGES | EFFORT_BADGES | STREAK_BADGES | CONTEXT_BADGES
@@ -207,4 +248,3 @@ def test_seed_all_with_evdence_contains_required_keys(db_session):
         assert len(evidence) >= 1, f"badge {row.badge_slug} has empty evidence: {evidence}"
         # Все значения evidence должны быть JSON-serializable.
         json.dumps(evidence)
-

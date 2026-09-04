@@ -7,6 +7,7 @@ Sprint 3.5.2: RAG подключён к app/ai/service.py::explain_topic.
 - embedding_to_json / json_to_embedding (round-trip)
 - index + search в in-memory store
 """
+
 from __future__ import annotations
 
 import os

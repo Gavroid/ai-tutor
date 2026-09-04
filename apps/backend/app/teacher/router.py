@@ -2,6 +2,7 @@
 
 Все endpoints защищены require_teacher_or_admin().
 """
+
 from __future__ import annotations
 
 import os
@@ -129,8 +130,6 @@ def topic_readiness(
             )
         )
     return rows
-
-
 
 
 # ============================================================
@@ -316,9 +315,7 @@ async def generate_material(
         source = teacher_service.parse_text_source(payload.text)
     elif payload.source_type == "file":
         if not payload.file_path:
-            raise HTTPException(
-                400, "Для source_type=file нужно предварительно загрузить файл"
-            )
+            raise HTTPException(400, "Для source_type=file нужно предварительно загрузить файл")
         source = teacher_service.parse_file_source(payload.file_path)
     elif payload.source_type == "topic":
         source = teacher_service.parse_topic_source(topic)
@@ -430,9 +427,7 @@ def list_materials(
     db: Session = Depends(get_db),
     current: User = Depends(require_teacher_or_admin()),
 ):
-    materials = teacher_service.list_materials_for_teacher(
-        db, current, status, topic_id, limit, offset, search
-    )
+    materials = teacher_service.list_materials_for_teacher(db, current, status, topic_id, limit, offset, search)
     return [teacher_service.material_to_list_item(m) for m in materials]
 
 
@@ -450,11 +445,7 @@ def get_material(
     if material is None:
         raise HTTPException(404, "Материал не найден")
     # Teacher may view own materials and shared published library items.
-    if (
-        current.role.value == "teacher"
-        and material.generated_by != current.id
-        and material.status != "published"
-    ):
+    if current.role.value == "teacher" and material.generated_by != current.id and material.status != "published":
         raise HTTPException(403, "Можно просматривать только свои материалы и опубликованную библиотеку")
     return teacher_service.material_to_draft_out(material)
 
@@ -551,10 +542,7 @@ def approve_material(
     if material is None:
         raise HTTPException(404, "Материал не найден")
     # Approve может сделать teacher (владелец) или admin
-    if (
-        current.role.value == "teacher"
-        and material.generated_by != current.id
-    ):
+    if current.role.value == "teacher" and material.generated_by != current.id:
         raise HTTPException(403, "Можно approve только свои материалы")
 
     try:
@@ -613,11 +601,13 @@ def set_material_quality_status(
 
 class BulkApproveIn(BaseModel):
     """Sprint 35: bulk approve материалов."""
+
     material_ids: list[int] = Field(min_length=1, max_length=50)
 
 
 class BulkApproveOut(BaseModel):
     """Sprint 35: результат bulk approve."""
+
     approved: list[int]  # Успешно одобренные
     failed: list[dict[str, str]]  # [{id, reason}]
 
@@ -653,10 +643,7 @@ def bulk_approve_materials(
         if material is None:
             failed.append({"id": str(material_id), "reason": "not_found"})
             continue
-        if (
-            current.role.value == "teacher"
-            and material.generated_by != current.id
-        ):
+        if current.role.value == "teacher" and material.generated_by != current.id:
             failed.append({"id": str(material_id), "reason": "forbidden"})
             continue
         try:

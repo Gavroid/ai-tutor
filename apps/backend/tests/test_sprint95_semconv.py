@@ -1,4 +1,5 @@
 """Sprint 95: OpenTelemetry semantic conventions tests."""
+
 from __future__ import annotations
 
 import os
@@ -11,12 +12,15 @@ import pytest
 
 # === Source verification ===
 
+
 def test_resource_has_host_attribute():
     """Sprint 95: resource attributes содержит host.name."""
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "observability_otel.py",
+            "..",
+            "app",
+            "observability_otel.py",
         )
     ) as f:
         content = f.read()
@@ -30,7 +34,9 @@ def test_resource_has_process_attribute():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "observability_otel.py",
+            "..",
+            "app",
+            "observability_otel.py",
         )
     ) as f:
         content = f.read()
@@ -44,7 +50,9 @@ def test_resource_has_deployment_attribute():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "observability_otel.py",
+            "..",
+            "app",
+            "observability_otel.py",
         )
     ) as f:
         content = f.read()
@@ -57,7 +65,9 @@ def test_resource_has_service_attributes():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "observability_otel.py",
+            "..",
+            "app",
+            "observability_otel.py",
         )
     ) as f:
         content = f.read()
@@ -71,7 +81,9 @@ def test_semconv_reference():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "observability_otel.py",
+            "..",
+            "app",
+            "observability_otel.py",
         )
     ) as f:
         content = f.read()
@@ -80,6 +92,7 @@ def test_semconv_reference():
 
 
 # === Mock tests ===
+
 
 @pytest.mark.skip(reason="OTel Resource mock complexity")
 def test_resource_attributes_structure():
@@ -92,6 +105,7 @@ def test_resource_attributes_structure():
 
         with patch.dict(os.environ, {"OTEL_SDK_DISABLED": "true"}):
             from app.observability_otel import setup_telemetry
+
             setup_telemetry()
 
     # Resource.create should be called with attrs dict
@@ -104,7 +118,9 @@ def test_git_commit_sha_fallback():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "observability_otel.py",
+            "..",
+            "app",
+            "observability_otel.py",
         )
     ) as f:
         content = f.read()
@@ -117,7 +133,9 @@ def test_platform_info_used():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "observability_otel.py",
+            "..",
+            "app",
+            "observability_otel.py",
         )
     ) as f:
         content = f.read()

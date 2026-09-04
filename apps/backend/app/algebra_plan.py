@@ -3,6 +3,7 @@
 Stage 12 intentionally exposes a structured preview route only. The subject
 remains `preview` until source/RAG and fallback practice coverage are complete.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -24,7 +25,9 @@ ALGEBRA_TOPIC_PLAN: tuple[AlgebraTopicPlan, ...] = (
     AlgebraTopicPlan(34, 1, "Выражения, тождества, уравнения", "base", "числовые выражения"),
     AlgebraTopicPlan(35, 2, "Выражения, тождества, уравнения", "base", "переменная и буквенное выражение"),
     AlgebraTopicPlan(36, 3, "Выражения, тождества, уравнения", "medium", "преобразование буквенных выражений"),
-    AlgebraTopicPlan(37, 4, "Выражения, тождества, уравнения", "medium", "линейное уравнение с одной переменной", checkpoint=True),
+    AlgebraTopicPlan(
+        37, 4, "Выражения, тождества, уравнения", "medium", "линейное уравнение с одной переменной", checkpoint=True
+    ),
     AlgebraTopicPlan(38, 5, "Функции", "base", "понятие функции"),
     AlgebraTopicPlan(39, 6, "Функции", "medium", "линейная функция y = kx + b"),
     AlgebraTopicPlan(40, 7, "Функции", "medium", "прямая пропорциональность", checkpoint=True),

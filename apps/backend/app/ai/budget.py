@@ -11,6 +11,7 @@ TODO (Sprint 9.4+):
 - Алерт в Telegram при превышении `alert_threshold_pct` от дневного лимита.
 - UI в /admin для настройки лимитов по mode.
 """
+
 from __future__ import annotations
 
 import logging
@@ -64,9 +65,7 @@ def reload_limits(
         DAILY_TOKENS_LIMIT = daily_tokens
     if hourly_requests is not None:
         if hourly_requests < 1 or hourly_requests > DAILY_REQUESTS_LIMIT:
-            raise ValueError(
-                f"hourly_requests must be 1-{DAILY_REQUESTS_LIMIT}, got {hourly_requests}"
-            )
+            raise ValueError(f"hourly_requests must be 1-{DAILY_REQUESTS_LIMIT}, got {hourly_requests}")
         HOURLY_REQUESTS_LIMIT = hourly_requests
     if alert_threshold is not None:
         if alert_threshold < 1 or alert_threshold > 100:
@@ -74,13 +73,17 @@ def reload_limits(
         ALERT_THRESHOLD_PCT = alert_threshold
     logger.info(
         "AI budget limits reloaded: daily_req=%s daily_tok=%s hourly_req=%s alert_pct=%s",
-        DAILY_REQUESTS_LIMIT, DAILY_TOKENS_LIMIT, HOURLY_REQUESTS_LIMIT, ALERT_THRESHOLD_PCT,
+        DAILY_REQUESTS_LIMIT,
+        DAILY_TOKENS_LIMIT,
+        HOURLY_REQUESTS_LIMIT,
+        ALERT_THRESHOLD_PCT,
     )
 
 
 def _try_redis():
     try:
         import redis
+
         url = os.environ.get("REDIS_URL", "redis://redis:6379/0")
         r = redis.Redis.from_url(url, decode_responses=True)
         if r.ping():

@@ -1,4 +1,5 @@
 """Тесты /auth/refresh."""
+
 from __future__ import annotations
 
 import os
@@ -20,7 +21,9 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture()
 def client():
-    Base.metadata.drop_all(engine); engine.dispose(); Base.metadata.create_all(engine)
+    Base.metadata.drop_all(engine)
+    engine.dispose()
+    Base.metadata.create_all(engine)
     _login_attempts_log.clear()
 
     s = SessionLocal()
@@ -32,8 +35,11 @@ def client():
 
     def _gen():
         s = SessionLocal()
-        try: yield s
-        finally: s.close()
+        try:
+            yield s
+        finally:
+            s.close()
+
     app.dependency_overrides[get_db] = _gen
     with TestClient(app) as c:
         yield c

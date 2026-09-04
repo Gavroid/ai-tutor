@@ -6,6 +6,7 @@ PATCH /api/v1/admin/feedback-reports/{id}/status — admin (смена стат�
 
 Отдельный от Sprint P1 (урок-фидбек) — лежит в router.py.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -47,6 +48,7 @@ class FeedbackReportOut(BaseModel):
     def model_validate_row(cls, row: FeedbackReport) -> FeedbackReportOut:
         """S3.6: serialize datetime → ISO string."""
         from datetime import datetime as _dt
+
         created = row.created_at
         if isinstance(created, _dt):
             created_str = created.isoformat()
@@ -112,9 +114,7 @@ def list_feedback_reports(
         q = q.where(FeedbackReport.status == status_filter)
     rows = db.execute(q).scalars().all()
 
-    open_count = db.execute(
-        select(FeedbackReport).where(FeedbackReport.status == FB_STATUS_OPEN)
-    ).scalars().all()
+    open_count = db.execute(select(FeedbackReport).where(FeedbackReport.status == FB_STATUS_OPEN)).scalars().all()
     items = [FeedbackReportOut.model_validate_row(r) for r in rows]
     return FeedbackReportListOut(items=items, total=len(items), open_count=len(open_count))
 

@@ -1,4 +1,5 @@
 """Sprint 89: engagement endpoint Redis cache tests."""
+
 from __future__ import annotations
 
 import os
@@ -50,12 +51,16 @@ def admin_token(client):
 
 # === Source verification ===
 
+
 def test_engagement_has_redis_cache():
     """Sprint 89: /engagement endpoint has Redis cache logic."""
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "admin", "router.py",
+            "..",
+            "app",
+            "admin",
+            "router.py",
         )
     ) as f:
         content = f.read()
@@ -69,7 +74,10 @@ def test_engagement_cache_get_then_set():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "admin", "router.py",
+            "..",
+            "app",
+            "admin",
+            "router.py",
         )
     ) as f:
         content = f.read()
@@ -83,7 +91,10 @@ def test_engagement_cache_graceful_failure():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "admin", "router.py",
+            "..",
+            "app",
+            "admin",
+            "router.py",
         )
     ) as f:
         content = f.read()
@@ -91,6 +102,7 @@ def test_engagement_cache_graceful_failure():
 
 
 # === Integration tests ===
+
 
 def test_engagement_works_without_redis(client, admin_token):
     """Sprint 89: endpoint работает даже если Redis unavailable."""

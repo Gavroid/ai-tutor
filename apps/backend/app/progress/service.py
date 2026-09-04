@@ -1,4 +1,5 @@
 """Сервис прогресса: запись попыток, пересчёт mastery, группировка по темам."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timezone
@@ -77,20 +78,22 @@ def record_attempt(db: Session, user_id: int, payload: schemas.AttemptCreate) ->
     db.add(attempt)
 
     # Mastery: скользящее среднее последних 20 попыток × score
-    recent = db.execute(
-        select(models.Attempt.score)
-        .where(models.Attempt.user_id == user_id, models.Attempt.topic_id == payload.topic_id)
-        .order_by(models.Attempt.created_at.desc())
-        .limit(20)
-    ).scalars().all()
+    recent = (
+        db.execute(
+            select(models.Attempt.score)
+            .where(models.Attempt.user_id == user_id, models.Attempt.topic_id == payload.topic_id)
+            .order_by(models.Attempt.created_at.desc())
+            .limit(20)
+        )
+        .scalars()
+        .all()
+    )
     recent_scores = [float(s) for s in recent] + [score]
     new_mastery = sum(recent_scores) / len(recent_scores)
 
     # Upsert в Progress
     prog = db.scalar(
-        select(models.Progress).where(
-            models.Progress.user_id == user_id, models.Progress.topic_id == payload.topic_id
-        )
+        select(models.Progress).where(models.Progress.user_id == user_id, models.Progress.topic_id == payload.topic_id)
     )
     if prog is None:
         prog = models.Progress(
@@ -138,11 +141,7 @@ def record_attempt(db: Session, user_id: int, payload: schemas.AttemptCreate) ->
     try:
         from app.notifications import service as notif_service
 
-        total_attempts = db.scalar(
-            select(func.count(models.Attempt.id)).where(
-                models.Attempt.user_id == user_id
-            )
-        )
+        total_attempts = db.scalar(select(func.count(models.Attempt.id)).where(models.Attempt.user_id == user_id))
         # Уведомление после 5, 10, 20, 50, 100... attempts
         if total_attempts and total_attempts in {5, 10, 20, 50, 100, 200, 500}:
             topic = db.get(subj_models.Topic, payload.topic_id)
@@ -176,9 +175,7 @@ def get_user_mistakes(db: Session, user_id: int, limit: int = 50) -> list[models
 
 
 def get_user_progress(db: Session, user_id: int) -> list[models.Progress]:
-    return db.scalars(
-        select(models.Progress).where(models.Progress.user_id == user_id)
-    ).all()
+    return db.scalars(select(models.Progress).where(models.Progress.user_id == user_id)).all()
 
 
 def get_subject_progress(db: Session, user_id: int, subject_id: int) -> list[schemas.TopicProgress]:
@@ -252,9 +249,8 @@ def recommend_review(db: Session, user_id: int, limit: int = 5) -> list[schemas.
 
 # === Sprint 2.2: Spaced Repetition ===
 
-def due_for_review(
-    db: Session, user_id: int, limit: int = 20
-) -> list[schemas.ReviewItem]:
+
+def due_for_review(db: Session, user_id: int, limit: int = 20) -> list[schemas.ReviewItem]:
     """Темы, которые нужно повторить сегодня (next_review_at <= now).
 
     Включает overdue (next_review_at в прошлом) и свежие (ещё рано — отрицательный days_overdue).
@@ -300,8 +296,12 @@ def due_for_review(
 
 
 def schedule_topic_for_review(
-    db: Session, user_id: int, topic_id: int, quality: int | None = None,
-    is_correct: bool | None = None, hint_used: bool = False,
+    db: Session,
+    user_id: int,
+    topic_id: int,
+    quality: int | None = None,
+    is_correct: bool | None = None,
+    hint_used: bool = False,
 ) -> models.Progress:
     """Пометить тему как 'повторённую' и пересчитать next_review_at по SM-2.
 

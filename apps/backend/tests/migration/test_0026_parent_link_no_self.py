@@ -12,6 +12,7 @@ app/parents/service.py: создаётся pending с student_id=parent_id, acce
 Без CHECK constraint можно создать active self-link → parent получает свой же
 дашборд как «ребёнок» → утечка персональных данных.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -67,9 +68,7 @@ class TestParentLinkNoSelf:
             db.add(ParentStudentLink(parent_id=parent_id, student_id=student_id, status="active"))
             db.commit()
             link = (
-                db.query(ParentStudentLink)
-                .filter_by(parent_id=parent_id, student_id=student_id, status="active")
-                .one()
+                db.query(ParentStudentLink).filter_by(parent_id=parent_id, student_id=student_id, status="active").one()
             )
             assert link.status == "active"
         finally:
@@ -86,11 +85,7 @@ class TestParentLinkNoSelf:
         try:
             db.add(ParentStudentLink(parent_id=parent_id, student_id=parent_id, status="pending"))
             db.commit()
-            link = (
-                db.query(ParentStudentLink)
-                .filter_by(parent_id=parent_id, status="pending")
-                .one()
-            )
+            link = db.query(ParentStudentLink).filter_by(parent_id=parent_id, status="pending").one()
             assert link.status == "pending"
             assert link.student_id == parent_id  # placeholder
         finally:
@@ -116,9 +111,7 @@ class TestParentLinkNoSelf:
                 db.commit()
             db.rollback()
             msg = str(exc.value).lower()
-            assert "check" in msg or "constraint" in msg, (
-                f"unexpected IntegrityError: {exc.value}"
-            )
+            assert "check" in msg or "constraint" in msg, f"unexpected IntegrityError: {exc.value}"
         finally:
             db.close()
 
@@ -144,8 +137,6 @@ class TestParentLinkNoSelf:
                 db.commit()
             db.rollback()
             msg = str(exc.value).lower()
-            assert "check" in msg or "constraint" in msg, (
-                f"unexpected IntegrityError: {exc.value}"
-            )
+            assert "check" in msg or "constraint" in msg, f"unexpected IntegrityError: {exc.value}"
         finally:
             db.close()

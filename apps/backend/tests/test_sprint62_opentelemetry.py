@@ -1,4 +1,5 @@
 """Sprint 62: OpenTelemetry tests."""
+
 from __future__ import annotations
 
 import os
@@ -12,6 +13,7 @@ from unittest.mock import patch
 import pytest
 
 # === setup_telemetry() tests ===
+
 
 def test_setup_telemetry_disabled_via_env(monkeypatch):
     """Sprint 62: OTEL_SDK_DISABLED=true → setup returns False."""
@@ -59,10 +61,12 @@ def test_shutdown_telemetry_no_error():
 
 # === Integration: FastAPI spans ===
 
+
 def test_fastapi_instrumentor_available():
     """Sprint 62: FastAPIInstrumentor available (или skip если нет)."""
     try:
         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
         assert FastAPIInstrumentor is not None
     except ImportError:
         pytest.skip("FastAPI instrumentation not available")
@@ -72,12 +76,14 @@ def test_sqlalchemy_instrumentor_available():
     """Sprint 62: SQLAlchemyInstrumentor available."""
     try:
         from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+
         assert SQLAlchemyInstrumentor is not None
     except ImportError:
         pytest.skip("SQLAlchemy instrumentation not available")
 
 
 # === Real-world: trace context propagation ===
+
 
 def test_span_context_manager():
     """Sprint 62: создание span через context manager."""

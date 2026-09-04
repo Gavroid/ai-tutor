@@ -11,6 +11,7 @@
 
 Это RED-тест перед реализацией: он падает, пока модель/миграция не созданы.
 """
+
 from __future__ import annotations
 
 import json
@@ -89,7 +90,6 @@ def test_to_safe_dict_hides_correct_answer(db_session):
     assert "exercise_id" in safe and isinstance(safe["exercise_id"], int) and safe["exercise_id"] > 0
 
 
-
 def test_migration_0013_is_present():
     """P1.2.2: additive migration 0013_generated_exercise_instances must exist."""
     from pathlib import Path
@@ -153,11 +153,7 @@ def test_create_and_fetch_instance(db_session):
     db_session.add(inst)
     db_session.commit()
 
-    fetched = db_session.scalar(
-        select(GeneratedExerciseInstance).where(
-            GeneratedExerciseInstance.owner_id == owner.id
-        )
-    )
+    fetched = db_session.scalar(select(GeneratedExerciseInstance).where(GeneratedExerciseInstance.owner_id == owner.id))
     assert fetched is not None
     assert fetched.question_text == "Сколько будет 2+2?"
     assert fetched.correct_answer == "4"

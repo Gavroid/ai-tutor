@@ -4,6 +4,7 @@ Revision ID: 0006_notifications
 Revises: 0005_audit_log
 Create Date: 2026-07-12 04:35:00.000000
 """
+
 from collections.abc import Sequence
 from typing import Union
 

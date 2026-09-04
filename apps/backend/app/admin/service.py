@@ -1,4 +1,5 @@
 """Сервис audit log: запись действий и просмотр для админов."""
+
 from __future__ import annotations
 
 import hashlib
@@ -132,12 +133,16 @@ def verify_chain(db: Session, limit: int = 1000) -> dict[str, Any]:
     - first_tampered_id: int | None — ID первой записи с невалидным hash
     - chain_broken_at: int | None — ID где previous_hash mismatch
     """
-    rows = db.execute(
-        select(models.AuditLog)
-        .where(models.AuditLog.record_hash.is_not(None))
-        .order_by(models.AuditLog.id.asc())
-        .limit(limit)
-    ).scalars().all()
+    rows = (
+        db.execute(
+            select(models.AuditLog)
+            .where(models.AuditLog.record_hash.is_not(None))
+            .order_by(models.AuditLog.id.asc())
+            .limit(limit)
+        )
+        .scalars()
+        .all()
+    )
 
     verified = 0
     tampered = 0
@@ -251,18 +256,21 @@ def count_logs(
         since_v = since
         if since_v.tzinfo is None:
             from datetime import timezone
+
             since_v = since_v.replace(tzinfo=UTC)
         q = q.where(models.AuditLog.created_at >= since_v)
     if until is not None:
         until_v = until
         if until_v.tzinfo is None:
             from datetime import timezone
+
             until_v = until_v.replace(tzinfo=UTC)
         q = q.where(models.AuditLog.created_at <= until_v)
     return db.scalar(q) or 0
 
 
 # === Sprint 4.2: Audit log retention ===
+
 
 def purge_old_logs(db: Session, ttl_days: int = 90) -> int:
     """Удаляет audit_logs старше ttl_days дней. Возвращает кол-во удалённых.
@@ -276,16 +284,18 @@ def purge_old_logs(db: Session, ttl_days: int = 90) -> int:
     from sqlalchemy import delete
 
     cutoff = datetime.now(UTC) - timedelta(days=ttl_days)
-    result = db.execute(
-        delete(models.AuditLog).where(models.AuditLog.created_at < cutoff)
-    )
+    result = db.execute(delete(models.AuditLog).where(models.AuditLog.created_at < cutoff))
     db.commit()
     return int(result.rowcount or 0)
 
 
 def _rehash_chain(db: Session) -> None:
     """Recompute audit hash chain from oldest to newest after retention pruning."""
-    rows = db.execute(select(models.AuditLog).order_by(models.AuditLog.created_at.asc(), models.AuditLog.id.asc())).scalars().all()
+    rows = (
+        db.execute(select(models.AuditLog).order_by(models.AuditLog.created_at.asc(), models.AuditLog.id.asc()))
+        .scalars()
+        .all()
+    )
     previous_hash = None
     for row in rows:
         row.previous_hash = previous_hash
@@ -327,4 +337,3 @@ def prune_logs_older_than(db: Session, retention_days: int, now: datetime | None
         _rehash_chain(db)
     db.commit()
     return deleted
-

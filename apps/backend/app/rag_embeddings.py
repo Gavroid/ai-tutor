@@ -11,6 +11,7 @@ Usage:
     embedder = get_embedder()
     vectors = embedder.encode(["text 1", "text 2"])  # numpy array (N, 384)
 """
+
 from __future__ import annotations
 
 import logging
@@ -114,6 +115,7 @@ def is_available() -> bool:
     """Sprint 70: check если sentence-transformers установлен."""
     try:
         import sentence_transformers  # noqa: F401
+
         return True
     except ImportError:
         return False

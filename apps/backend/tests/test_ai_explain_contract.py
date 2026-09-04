@@ -14,6 +14,7 @@ detection не-OK случаев не зависел от реального п�
 Использует `ai_deterministic_mode=True` (S2): гарантированный MockProvider,
 без сетевых вызовов; deterministic behaviour независимо от наличия AI_API_KEY.
 """
+
 from __future__ import annotations
 
 import os
@@ -114,9 +115,7 @@ def test_ai_service_factory_uses_mock_when_deterministic_mode(monkeypatch):
     from app.ai.hermes import build_provider
 
     p = build_provider()
-    assert isinstance(p, MockProvider), (
-        f"expected MockProvider under deterministic mode, got {type(p).__name__}"
-    )
+    assert isinstance(p, MockProvider), f"expected MockProvider under deterministic mode, got {type(p).__name__}"
 
 
 def test_explain_success_returns_200_and_clean_content(client_with_student_and_seed):
@@ -130,9 +129,7 @@ def test_explain_success_returns_200_and_clean_content(client_with_student_and_s
     body = r.json()
     assert "content" in body, f"missing 'content' in {body}"
     assert isinstance(body["content"], str)
-    assert len(body["content"]) >= 50, (
-        f"explain content too short: {len(body['content'])} chars"
-    )
+    assert len(body["content"]) >= 50, f"explain content too short: {len(body['content'])} chars"
     # Sanitized: не должно быть сырых reasoning-маркеров или internal-маркеров.
     text_lower = body["content"].lower()
     assert "<think" not in text_lower
@@ -189,11 +186,10 @@ def test_explain_under_budget_returns_429(client_with_student_and_seed, monkeypa
         return FakeUsage()
 
     monkeypatch.setattr(ai_router, "get_usage", fake_get_usage)
+
     # Чтобы check_and_increment тоже видел, что бюджет превышен.
     def fake_check_and_increment(_user_id):
-        raise ai_router.BudgetExceeded(
-            limit_kind="hourly_requests", used=1, limit=1
-        )
+        raise ai_router.BudgetExceeded(limit_kind="hourly_requests", used=1, limit=1)
 
     monkeypatch.setattr(ai_router, "check_and_increment", fake_check_and_increment)
 

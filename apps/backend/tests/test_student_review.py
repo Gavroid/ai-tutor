@@ -1,4 +1,5 @@
 """Sprint 2 — тесты UX Ученика, Spaced Repetition, опубликованных материалов."""
+
 from __future__ import annotations
 
 import os

@@ -3,6 +3,7 @@
 Sprint 1.1: upload защищён require_teacher_or_admin().
 Read-эндпоинты (search, by-topic) — для всех авторизованных.
 """
+
 from __future__ import annotations
 
 from app.admin import service as audit_service
@@ -33,9 +34,7 @@ async def upload_material(
     content = await file.read()
     langs = [x.strip() for x in ocr_langs.split("+")] if ocr_langs else None
     try:
-        material = service.save_uploaded_material(
-            db, topic, file.filename or "upload.bin", content, source, langs
-        )
+        material = service.save_uploaded_material(db, topic, file.filename or "upload.bin", content, source, langs)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
 

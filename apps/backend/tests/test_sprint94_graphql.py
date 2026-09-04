@@ -1,4 +1,5 @@
 """Sprint 94: GraphQL endpoint tests."""
+
 from __future__ import annotations
 
 import os
@@ -21,6 +22,7 @@ def client():
 
 
 # === Schema tests ===
+
 
 def test_graphql_module_imports():
     """Sprint 94: graphql_schema module imports."""
@@ -88,9 +90,7 @@ def test_graphql_subjects_via_http(client):
     from sqlalchemy.orm import Session
 
     with Session(engine) as db:
-        subject = Subject(
-            code="math", name="Математика", is_active=True
-        )
+        subject = Subject(code="math", name="Математика", is_active=True)
         db.add(subject)
         db.commit()
 

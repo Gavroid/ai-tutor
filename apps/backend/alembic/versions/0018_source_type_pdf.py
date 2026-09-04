@@ -11,6 +11,7 @@ Sprint 36.1 fix:
 
 PostgreSQL safe: NOT NULL DEFAULT, нет NULL строк в реальной БД.
 """
+
 from collections.abc import Sequence
 from typing import Union
 
@@ -25,11 +26,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # Защита от NULL (Sprint 36.1: в реальности NULL нет, но defensive).
-    op.execute(
-        "UPDATE learning_materials "
-        "SET source_type = 'text' "
-        "WHERE source_type IS NULL OR source_type = ''"
-    )
+    op.execute("UPDATE learning_materials " "SET source_type = 'text' " "WHERE source_type IS NULL OR source_type = ''")
     # Защита от любых неожиданных значений (НЕ включая 'pdf' — он теперь валиден).
     # Если встретится что-то кроме ('text','file','topic','pdf'), конвертируем в 'file'.
     op.execute(

@@ -1,4 +1,5 @@
 """Тесты OCR (Этап 10)."""
+
 from __future__ import annotations
 
 import io
@@ -71,7 +72,8 @@ def _first_algebra_topic_id() -> int:
             __import__("sqlalchemy").select(subj_models.Subject).where(subj_models.Subject.code == "algebra")
         )
         topic = s.scalar(
-            __import__("sqlalchemy").select(subj_models.Topic)
+            __import__("sqlalchemy")
+            .select(subj_models.Topic)
             .join(subj_models.Section)
             .where(subj_models.Section.subject_id == algebra.id)
             .limit(1)

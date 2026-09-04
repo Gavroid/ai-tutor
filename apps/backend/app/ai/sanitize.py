@@ -1,4 +1,5 @@
 """Sanitization входа и выхода LLM: защита от prompt injection и утечек."""
+
 from __future__ import annotations
 
 import html
@@ -50,13 +51,9 @@ def _normalize_latex(text: str) -> str:
     - LaTeX-команды, которые не знаем — убираем обратный слэш, оставляем имя.
     """
     # 1) Display math \[ ... \] → раскрыть скобки, нормализовать содержимое.
-    text = _LATEX_DISPLAY_PAREN_RE.sub(
-        lambda m: _normalize_latex(m.group(1).strip()), text
-    )
+    text = _LATEX_DISPLAY_PAREN_RE.sub(lambda m: _normalize_latex(m.group(1).strip()), text)
     # 2) Inline math \( ... \) → раскрыть скобки, нормализовать содержимое.
-    text = _LATEX_INLINE_PAREN_RE.sub(
-        lambda m: _normalize_latex(m.group(1).strip()), text
-    )
+    text = _LATEX_INLINE_PAREN_RE.sub(lambda m: _normalize_latex(m.group(1).strip()), text)
     # 3) Display math $$ ... $$ и inline $...$ (как раньше).
     text = _DISPLAY_MATH_RE.sub(lambda m: m.group(1).strip(), text)
     text = _INLINE_MATH_RE.sub(lambda m: m.group(1).strip(), text)
@@ -113,19 +110,53 @@ def _normalize_latex(text: str) -> str:
 # === Unicode helpers для степеней, индексов, градусов ===
 
 _SUPERSCRIPT_MAP = {
-    "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
-    "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
-    "+": "⁺", "-": "⁻", "=": "⁼", "(": "⁽", ")": "⁾",
-    "n": "ⁿ", "i": "ⁱ",
+    "0": "⁰",
+    "1": "¹",
+    "2": "²",
+    "3": "³",
+    "4": "⁴",
+    "5": "⁵",
+    "6": "⁶",
+    "7": "⁷",
+    "8": "⁸",
+    "9": "⁹",
+    "+": "⁺",
+    "-": "⁻",
+    "=": "⁼",
+    "(": "⁽",
+    ")": "⁾",
+    "n": "ⁿ",
+    "i": "ⁱ",
 }
 _SUBSCRIPT_MAP = {
-    "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄",
-    "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉",
-    "+": "₊", "-": "₋", "=": "₌", "(": "₍", ")": "₎",
+    "0": "₀",
+    "1": "₁",
+    "2": "₂",
+    "3": "₃",
+    "4": "₄",
+    "5": "₅",
+    "6": "₆",
+    "7": "₇",
+    "8": "₈",
+    "9": "₉",
+    "+": "₊",
+    "-": "₋",
+    "=": "₌",
+    "(": "₍",
+    ")": "₎",
     # LaTeX-команды для специальных subscript-символов (редко, но встречаются).
-    "i": "ᵢ", "j": "ⱼ", "k": "ₖ", "n": "ₙ", "m": "ₘ",
-    "p": "ₚ", "r": "ᵣ", "s": "ₛ", "t": "ₜ", "u": "ᵤ",
-    "v": "ᵥ", "x": "ₓ",
+    "i": "ᵢ",
+    "j": "ⱼ",
+    "k": "ₖ",
+    "n": "ₙ",
+    "m": "ₘ",
+    "p": "ₚ",
+    "r": "ᵣ",
+    "s": "ₛ",
+    "t": "ₜ",
+    "u": "ᵤ",
+    "v": "ᵥ",
+    "x": "ₓ",
 }
 
 
@@ -140,9 +171,11 @@ def _re_unicode_degrees(text: str) -> str:
 
 def _re_unicode_superscripts(text: str) -> str:
     """x^2 → x², x^{10} → x¹⁰, x^{n+1} → xⁿ⁺¹, x^10 → x¹⁰."""
+
     def repl_brace(m: re.Match[str]) -> str:
         inner = m.group(1)
         return "".join(_SUPERSCRIPT_MAP.get(c, c) for c in inner)
+
     text = re.sub(r"\^\{([^{}]+)\}", repl_brace, text)
     # Greedy: x^10 → x¹⁰. Захватываем максимально длинную последовательность
     # символов из маппинга (цифры, буквы i/n, +/-/=/ и скобки).
@@ -170,9 +203,11 @@ def _re_unicode_superscripts(text: str) -> str:
 
 def _re_unicode_subscripts(text: str) -> str:
     """x_{12} → x₁₂, x_1 → x₁, AB_{10} → AB₁₀, x_{n+1} → xₙ₊₁."""
+
     def repl_brace(m: re.Match[str]) -> str:
         inner = m.group(1)
         return "".join(_SUBSCRIPT_MAP.get(c, c) for c in inner)
+
     text = re.sub(r"_\{([^{}]+)\}", repl_brace, text)
     # Greedy: x_12 → x₁₂.
     _SUB_CHARS = set(_SUBSCRIPT_MAP.keys())

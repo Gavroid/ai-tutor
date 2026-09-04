@@ -10,6 +10,7 @@
 
 Запускаются в SQLite-in-memory, как и остальные backend тесты.
 """
+
 from __future__ import annotations
 
 import json
@@ -174,9 +175,7 @@ def test_seed_admin_via_flag_creates_user_and_audit():
         flat = json.dumps(details, ensure_ascii=False).lower()
         assert "password" not in flat, f"password must not appear in audit details: {details}"
         assert "hash" not in flat, f"hash must not appear in audit details: {details}"
-        assert "pass" not in flat or "compass" in flat or "bypass" in flat, (
-            f"pass-like substring in details: {details}"
-        )
+        assert "pass" not in flat or "compass" in flat or "bypass" in flat, f"pass-like substring in details: {details}"
 
 
 def test_seed_is_idempotent_on_repeat():
@@ -246,9 +245,7 @@ def test_seed_csv_imports_multiple_users():
     _create_schema_in(db_url)
     csv_path = Path("/tmp/pilot_seed_users.csv")
     csv_path.write_text(
-        "email,role,display_name\n"
-        "csv-a@example.com,student,A\n"
-        "csv-b@example.com,parent,B\n",
+        "email,role,display_name\n" "csv-a@example.com,student,A\n" "csv-b@example.com,parent,B\n",
         encoding="utf-8",
     )
     env = {

@@ -1,4 +1,5 @@
 """Sprint B: source mapping range validation tests."""
+
 from __future__ import annotations
 
 import json

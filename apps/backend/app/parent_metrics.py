@@ -3,6 +3,7 @@
 Custom Prometheus metrics для parent-dashboard.json (Sprint 39).
 Безопасно: только timing-based counters, НЕ glucose data.
 """
+
 from __future__ import annotations
 
 from prometheus_client import Counter, Gauge, Histogram

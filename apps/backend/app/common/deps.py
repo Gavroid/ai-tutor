@@ -16,6 +16,7 @@
 Если роль пользователя не подходит — возвращается 403.
 Если токен отсутствует/невалиден — 401 (от get_current_user).
 """
+
 from __future__ import annotations
 
 from fastapi import Depends
@@ -37,6 +38,7 @@ require_roles = require_role
 
 
 # === Готовые shortcuts для частых случаев ===
+
 
 def require_admin():
     """Только admin. Endpoint /admin/*."""

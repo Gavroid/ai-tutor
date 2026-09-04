@@ -5,6 +5,7 @@
 - Suspicious size threshold (db < 100KB = fail)
 - Size mismatch detection (local size != remote size)
 """
+
 from __future__ import annotations
 
 import os
@@ -18,13 +19,19 @@ import pytest
 
 # === Unit tests (logic, не integration) ===
 
+
 def test_min_db_size_constant_defined():
     """Sprint 75: MIN_DB_SIZE_BYTES = 100KB (suspicious threshold)."""
     # Read script and check constant
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "..", "..", "deploy", "backup", "ai-tutor-backup-offsite.sh",
+            "..",
+            "..",
+            "..",
+            "deploy",
+            "backup",
+            "ai-tutor-backup-offsite.sh",
         )
     ) as f:
         content = f.read()
@@ -36,7 +43,12 @@ def test_zero_size_check_in_script():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "..", "..", "deploy", "backup", "ai-tutor-backup-offsite.sh",
+            "..",
+            "..",
+            "..",
+            "deploy",
+            "backup",
+            "ai-tutor-backup-offsite.sh",
         )
     ) as f:
         content = f.read()
@@ -49,7 +61,12 @@ def test_size_mismatch_check_in_script():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "..", "..", "deploy", "backup", "ai-tutor-backup-offsite.sh",
+            "..",
+            "..",
+            "..",
+            "deploy",
+            "backup",
+            "ai-tutor-backup-offsite.sh",
         )
     ) as f:
         content = f.read()
@@ -63,15 +80,21 @@ def test_suspicious_size_check():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "..", "..", "deploy", "backup", "ai-tutor-backup-offsite.sh",
+            "..",
+            "..",
+            "..",
+            "deploy",
+            "backup",
+            "ai-tutor-backup-offsite.sh",
         )
     ) as f:
         content = f.read()
-    assert 'db-*.sql.gz' in content, "Должен быть pattern для db files"
+    assert "db-*.sql.gz" in content, "Должен быть pattern для db files"
     assert "suspicious" in content.lower()
 
 
 # === Integration test (Sprint 75 verification) ===
+
 
 def test_offsite_detects_zero_size():
     """Sprint 75: backup-offsite script отказывается заливать 0-byte файл.
@@ -82,6 +105,7 @@ def test_offsite_detects_zero_size():
 
     # Create temp 0-byte file
     import tempfile
+
     with tempfile.NamedTemporaryFile(suffix=".sql.gz", delete=False) as f:
         f.write(b"")
         tmp_path = f.name
@@ -91,7 +115,10 @@ def test_offsite_detects_zero_size():
         with open(
             os.path.join(
                 os.path.dirname(__file__),
-                "..", "..", "..", "deploy",
+                "..",
+                "..",
+                "..",
+                "deploy",
                 "backup",
                 "ai-tutor-backup-offsite.sh",
             )
@@ -99,7 +126,7 @@ def test_offsite_detects_zero_size():
             content = f.read()
 
         # Verify our logic: size 0 should fail
-        assert "[ \"$LOCAL_SIZE\" -eq 0 ]" in content
+        assert '[ "$LOCAL_SIZE" -eq 0 ]' in content
 
         # Verify 100KB threshold
         assert "100000" in content

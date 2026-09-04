@@ -3,6 +3,7 @@
 DiagnosticSession — одна попытка пройти диагностику.
 DiagnosticAnswer — один ответ ученика.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -39,9 +40,7 @@ class DiagnosticSession(Base):
     overall_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     weak_topics: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON list
     recommendations: Mapped[str | None] = mapped_column(Text, nullable=True)
-    started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 

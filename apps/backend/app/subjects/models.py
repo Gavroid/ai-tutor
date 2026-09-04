@@ -3,6 +3,7 @@
 Иерархия: Subject → Section → Topic → Subtopic → LearningMaterial → Question.
 Difficulty и recommended_grade — int от 1 (просто) до 5 (сложно).
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -36,9 +37,7 @@ class Subject(Base):
     age_min: Mapped[int] = mapped_column(Integer, default=12, nullable=False)
     age_max: Mapped[int] = mapped_column(Integer, default=14, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     sections: Mapped[list[Section]] = relationship(
         "Section", back_populates="subject", cascade="all, delete-orphan", order_by="Section.order_index"
@@ -83,9 +82,7 @@ class Topic(Base):
     materials: Mapped[list[LearningMaterial]] = relationship(
         "LearningMaterial", back_populates="topic", cascade="all, delete-orphan"
     )
-    questions: Mapped[list[Question]] = relationship(
-        "Question", back_populates="topic", cascade="all, delete-orphan"
-    )
+    questions: Mapped[list[Question]] = relationship("Question", back_populates="topic", cascade="all, delete-orphan")
 
 
 class Subtopic(Base):
@@ -113,16 +110,12 @@ class LearningMaterial(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     source: Mapped[str | None] = mapped_column(String(300), nullable=True)
     file_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # === Sprint 1.4: workflow-поля для роли Учителя ===
     # Жизненный цикл: draft → ai_generated → teacher_approved → published.
     # Все существующие записи получат "draft" по умолчанию.
-    status: Mapped[str] = mapped_column(
-        String(30), nullable=False, server_default="draft", index=True
-    )
+    status: Mapped[str] = mapped_column(String(30), nullable=False, server_default="draft", index=True)
     generated_by: Mapped[int | None] = mapped_column(
         BigIntPK,
         ForeignKey("users.id", ondelete="SET NULL"),
@@ -134,12 +127,8 @@ class LearningMaterial(Base):
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
     )
-    published_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    source_type: Mapped[str] = mapped_column(
-        String(20), nullable=False, server_default="text"
-    )
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source_type: Mapped[str] = mapped_column(String(20), nullable=False, server_default="text")
     # JSON-строка (для совместимости с SQLite в тестах): что AI пометил как "не уверен".
     ai_confidence: Mapped[str | None] = mapped_column(Text, nullable=True)
 
@@ -165,8 +154,6 @@ class Question(Base):
     explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
     # typical_mistakes — JSON-массив строк
     typical_mistakes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     topic: Mapped[Topic] = relationship("Topic", back_populates="questions")

@@ -9,6 +9,7 @@ T1D safety (Luna Pro):
 
 Nightscout API docs: https://github.com/nightscout/cgm-remote-monitor
 """
+
 from __future__ import annotations
 
 import logging
@@ -98,9 +99,7 @@ def _get_user_config(user_id: int) -> CGMConfigOut | None:
     """Sprint 40: получить CGM config пользователя из БД."""
     with _engine.connect() as conn:
         row = conn.execute(
-            text(
-                "SELECT nightscout_url, enabled FROM cgm_configs WHERE user_id = :uid"
-            ),
+            text("SELECT nightscout_url, enabled FROM cgm_configs WHERE user_id = :uid"),
             {"uid": user_id},
         ).fetchone()
 

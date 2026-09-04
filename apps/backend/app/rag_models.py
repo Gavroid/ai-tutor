@@ -5,6 +5,7 @@
                    Экономит расходы на embedding API, переиспользует.
   rag_chunks (Sprint 3.5.2): сами чанки материалов (для persistent search).
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timezone
@@ -27,6 +28,7 @@ class EmbeddingCache(Base):
     embedding_json: JSON list[float] (например, 384-dim vector).
     dim: длина вектора (sanity check).
     """
+
     __tablename__ = "embedding_cache"
 
     text_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -44,6 +46,7 @@ class RagChunk(Base):
     embedding_json: JSON list[float] (384-dim для hash-based fallback).
     metadata_json: JSON dict с material_title/page_number/etc.
     """
+
     __tablename__ = "rag_chunks"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

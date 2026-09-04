@@ -1,4 +1,5 @@
 """Sprint 9.4: AI-бюджет контроль."""
+
 from __future__ import annotations
 
 import os

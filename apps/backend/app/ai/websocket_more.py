@@ -7,6 +7,7 @@ Sprint 16.0 P0-3 (security): JWT в query string попадает в nginx acces
 logs, browser history, exception traces. Теперь принимаем и cookie
 `access_token`, и query `?token=` (для обратной совместимости).
 """
+
 from __future__ import annotations
 
 import json
@@ -61,7 +62,10 @@ async def ai_explain_stream(websocket: WebSocket):
                 check_and_increment(user_id)
     except BudgetExceeded as e:
         logger.warning(
-            "WS budget exceeded user_id=%s: %s/%s", user_id, e.used, e.limit,
+            "WS budget exceeded user_id=%s: %s/%s",
+            user_id,
+            e.used,
+            e.limit,
         )
         await websocket.close(code=1008, reason=f"AI budget exceeded: {e.limit_kind}")
         return
@@ -166,7 +170,10 @@ async def ai_generate_stream(websocket: WebSocket):
                 check_and_increment(user_id)
     except BudgetExceeded as e:
         logger.warning(
-            "WS budget exceeded user_id=%s: %s/%s", user_id, e.used, e.limit,
+            "WS budget exceeded user_id=%s: %s/%s",
+            user_id,
+            e.used,
+            e.limit,
         )
         await websocket.close(code=1008, reason=f"AI budget exceeded: {e.limit_kind}")
         return
@@ -196,9 +203,7 @@ async def ai_generate_stream(websocket: WebSocket):
                     continue
 
                 svc = get_ai_service()
-                gen = await svc.generate_exercise(
-                    topic.section.subject.name, topic.name, difficulty
-                )
+                gen = await svc.generate_exercise(topic.section.subject.name, topic.name, difficulty)
 
             exercise = {
                 "question_text": gen.question_text,

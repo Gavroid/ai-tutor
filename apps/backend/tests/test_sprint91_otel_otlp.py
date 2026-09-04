@@ -1,4 +1,5 @@
 """Sprint 91: OpenTelemetry OTLP HTTP exporter tests."""
+
 from __future__ import annotations
 
 import os
@@ -10,6 +11,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 # === Source verification ===
+
 
 def test_otel_module_imports():
     """Sprint 91: observability_otel module imports."""
@@ -23,7 +25,9 @@ def test_otlp_http_exporter_in_source():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "observability_otel.py",
+            "..",
+            "app",
+            "observability_otel.py",
         )
     ) as f:
         content = f.read()
@@ -37,7 +41,9 @@ def test_otlp_http_port_4318():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "observability_otel.py",
+            "..",
+            "app",
+            "observability_otel.py",
         )
     ) as f:
         content = f.read()
@@ -51,7 +57,9 @@ def test_otlp_endpoint_format():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "observability_otel.py",
+            "..",
+            "app",
+            "observability_otel.py",
         )
     ) as f:
         content = f.read()
@@ -59,6 +67,7 @@ def test_otlp_endpoint_format():
 
 
 # === Mock tests ===
+
 
 def test_setup_telemetry_disabled_via_env():
     """Sprint 91: OTEL_SDK_DISABLED=true → no setup."""

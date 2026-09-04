@@ -2,6 +2,7 @@
 
 Модели для таблицы feedback_reports. Создаётся через alembic миграцию 0022.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -19,13 +20,14 @@ from app.db.session import Base
 def _id_column() -> BigInteger:
     """S3.6: BIGINT PK with autoincrement that works on SQLite + Postgres."""
     from sqlalchemy import BigInteger as _B
+
     return _B().with_variant(Integer, "sqlite")
 
 
 # Категории feedback report
-FB_CATEGORY_ERROR = "error"        # AI вернул неверный ответ
-FB_CATEGORY_BUG = "bug"            # Технический баг в UI/backend
-FB_CATEGORY_UNCLEAR = "unclear"    # Тема плохо объяснена
+FB_CATEGORY_ERROR = "error"  # AI вернул неверный ответ
+FB_CATEGORY_BUG = "bug"  # Технический баг в UI/backend
+FB_CATEGORY_UNCLEAR = "unclear"  # Тема плохо объяснена
 FB_CATEGORY_WRONG_ANSWER = "wrong_answer"  # Задание проверки имеет неправильный answer
 FB_CATEGORY_OTHER = "other"
 
@@ -56,9 +58,7 @@ class FeedbackReport(Base):
 
     id = mapped_column(_id_column(), primary_key=True, autoincrement=True)
 
-    user_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
-    )
+    user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     message_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)  # noqa: F821
 
     category: Mapped[str] = mapped_column(String(32), nullable=False, default=FB_CATEGORY_OTHER)

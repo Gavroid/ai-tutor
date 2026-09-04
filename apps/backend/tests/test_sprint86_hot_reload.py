@@ -1,4 +1,5 @@
 """Sprint 86: AI budget hot-reload tests."""
+
 from __future__ import annotations
 
 import os
@@ -48,6 +49,7 @@ def admin_token(client):
 
 # === Module tests ===
 
+
 def test_reload_limits_function_exists():
     """Sprint 86: reload_limits() функция существует."""
     from app.ai import budget as budget_module
@@ -96,6 +98,7 @@ def test_reload_limits_partial_update():
 
 
 # === Endpoint tests ===
+
 
 def test_reload_endpoint_registered(client):
     """Sprint 86: /admin/config/reload-ai-budget endpoint registered."""

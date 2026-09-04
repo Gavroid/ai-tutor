@@ -3,6 +3,7 @@
 Notification — уведомление для пользователя (показывается в UI).
 EmailNotification — журнал отправленных email (для аудита).
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -45,6 +46,4 @@ class EmailNotification(Base):
     status: Mapped[str] = mapped_column(String(20), default="queued", nullable=False)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

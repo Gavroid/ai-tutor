@@ -1,4 +1,5 @@
 """Тесты WS rate limit (Этап security-3)."""
+
 from __future__ import annotations
 
 import os

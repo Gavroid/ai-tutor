@@ -17,6 +17,7 @@ Sprint 1 закрыл flake через ``asyncio_default_fixture_loop_scope = fu
 - Test не должен ломаться внутри test-sprint32 фикстуры родителя
   (parent_user_token fixtures).
 """
+
 from __future__ import annotations
 
 import os
@@ -40,8 +41,10 @@ def _run_sprint32_once(iteration: int) -> subprocess.CompletedProcess:
             str(REPO_ROOT / ".venv" / "bin" / "pytest"),
             "-q",
             "--tb=no",
-            "-p", "no:cacheprovider",
-            "-o", "addopts=",
+            "-p",
+            "no:cacheprovider",
+            "-o",
+            "addopts=",
             str(SPRINT32.relative_to(REPO_ROOT)),
         ],
         cwd=str(REPO_ROOT),
@@ -85,10 +88,7 @@ def test_sprint32_no_flake_in_three_consecutive_runs():
     assert not failures, (
         f"flake воспроизвёлся в test_sprint32_parent_2fa: "
         f"{len(failures)}/{FLAKE_RUNS} прогонов failed\n"
-        + "\n---\n".join(
-            f"Run #{i}\nSTDOUT:\n{o}\nSTDERR:\n{e}"
-            for i, o, e in failures
-        )
+        + "\n---\n".join(f"Run #{i}\nSTDOUT:\n{o}\nSTDERR:\n{e}" for i, o, e in failures)
     )
 
 

@@ -8,6 +8,7 @@ Endpoint: POST /graphql
 Example query:
   query { me { id email role } subjects { id name } }
 """
+
 from __future__ import annotations
 
 import logging
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 # === Types ===
+
 
 @strawberry.type
 class UserType:
@@ -45,6 +47,7 @@ class StreakType:
 
 # === Query ===
 
+
 @strawberry.type
 class Query:
     @strawberry.field
@@ -61,13 +64,8 @@ class Query:
         from app.subjects.models import Subject
 
         with SessionLocal() as db:
-            rows = db.execute(
-                select(Subject).where(Subject.is_active.is_(True)).limit(20)
-            ).scalars().all()
-            return [
-                SubjectType(id=r.id, code=r.code, name=r.name, is_active=r.is_active)
-                for r in rows
-            ]
+            rows = db.execute(select(Subject).where(Subject.is_active.is_(True)).limit(20)).scalars().all()
+            return [SubjectType(id=r.id, code=r.code, name=r.name, is_active=r.is_active) for r in rows]
 
 
 # === Schema ===

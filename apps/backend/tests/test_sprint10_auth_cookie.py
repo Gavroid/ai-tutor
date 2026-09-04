@@ -1,4 +1,5 @@
 """Sprint 10.1: JWT в httpOnly cookies + refresh rotation."""
+
 from __future__ import annotations
 
 import pytest
@@ -59,12 +60,10 @@ class TestLoginSetsCookies:
         # TestClient не показывает httpOnly флаг напрямую, но можно проверить через
         # 'set-cookie' header — он содержит HttpOnly
         set_cookie_headers = r.headers.get_list("set-cookie")
-        assert any("HttpOnly" in sc for sc in set_cookie_headers), (
-            "No HttpOnly cookies set"
-        )
-        assert any("SameSite=Lax" in sc or "samesite=lax" in sc.lower() for sc in set_cookie_headers), (
-            "SameSite=Lax not set"
-        )
+        assert any("HttpOnly" in sc for sc in set_cookie_headers), "No HttpOnly cookies set"
+        assert any(
+            "SameSite=Lax" in sc or "samesite=lax" in sc.lower() for sc in set_cookie_headers
+        ), "SameSite=Lax not set"
 
 
 class TestAuthViaCookie:
@@ -156,5 +155,7 @@ class TestLogout:
         # TestClient должен отдать Set-Cookie с expires=Thu, 01 Jan 1970...
         cookie_strs = r.headers.get_list("set-cookie")
         # Убеждаемся что есть cookie с expires в прошлом (delete)
-        delete_markers = [s for s in cookie_strs if ACCESS_COOKIE in s and ("Max-Age=0" in s or "expires=Thu, 01 Jan 1970" in s)]
+        delete_markers = [
+            s for s in cookie_strs if ACCESS_COOKIE in s and ("Max-Age=0" in s or "expires=Thu, 01 Jan 1970" in s)
+        ]
         assert len(delete_markers) >= 1, f"No cookie delete detected: {cookie_strs}"

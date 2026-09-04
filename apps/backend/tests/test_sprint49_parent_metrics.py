@@ -1,4 +1,5 @@
 """Sprint 49: Parent metrics (Prometheus) tests."""
+
 from __future__ import annotations
 
 import pytest

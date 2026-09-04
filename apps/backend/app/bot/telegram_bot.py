@@ -22,6 +22,7 @@ Long-poll Telegram API + простой state machine.
 - вручную: docker exec deploy-backend-1 python3 -m app.bot.telegram_bot
 - через cron: см. deploy/monitoring/telegram-bot.sh
 """
+
 from __future__ import annotations
 
 import logging
@@ -81,12 +82,14 @@ def init_db() -> None:
     SQLite in-memory тестов, где разные engine = разные БД в памяти).
     """
     from app.db.session import engine
+
     with engine.begin() as conn:
         # Sprint 16.0: создаём таблицу если её нет (на случай если миграция
         # 0014 не была применена). Используем CURRENT_TIMESTAMP для
         # совместимости с SQLite (для тестов) и PostgreSQL (для прода).
-        conn.execute(text(
-            """
+        conn.execute(
+            text(
+                """
             CREATE TABLE IF NOT EXISTS telegram_bindings (
                 chat_id BIGINT PRIMARY KEY,
                 user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -96,14 +99,14 @@ def init_db() -> None:
                 updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """
-        ))
-        conn.execute(text(
-            "CREATE INDEX IF NOT EXISTS ix_telegram_bindings_user_id ON telegram_bindings(user_id)"
-        ))
+            )
+        )
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_telegram_bindings_user_id ON telegram_bindings(user_id)"))
         # Sprint 3.23: таблица одноразовых кодов для /start <email> <code>.
         # Admin/CLI генерирует код, user шлёт /start email code — код становится used.
-        conn.execute(text(
-            """
+        conn.execute(
+            text(
+                """
             CREATE TABLE IF NOT EXISTS telegram_bind_codes (
                 id BIGINT PRIMARY KEY,
                 email VARCHAR(255) NOT NULL,
@@ -114,14 +117,15 @@ def init_db() -> None:
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """
-        ))
-        conn.execute(text(
-            "CREATE INDEX IF NOT EXISTS ix_telegram_bind_codes_email ON telegram_bind_codes(email)"
-        ))
-        conn.execute(text(
-            "CREATE UNIQUE INDEX IF NOT EXISTS uq_telegram_bind_codes_active "
-            "ON telegram_bind_codes(email) WHERE used_at IS NULL"
-        ))
+            )
+        )
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_telegram_bind_codes_email ON telegram_bind_codes(email)"))
+        conn.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_telegram_bind_codes_active "
+                "ON telegram_bind_codes(email) WHERE used_at IS NULL"
+            )
+        )
 
 
 # Sprint 3.23: SQL-константы для тестов и переиспользования.
@@ -162,9 +166,7 @@ def issue_code(*, email: str) -> str:
             from sqlalchemy import text
 
             # Возвращаем существующий активный код, если есть
-            existing = conn.execute(
-                text(_SQL_ACTIVE_CODES_FOR_EMAIL), {"email": email}
-            ).fetchone()
+            existing = conn.execute(text(_SQL_ACTIVE_CODES_FOR_EMAIL), {"email": email}).fetchone()
             if existing is not None:
                 return existing[1]
 
@@ -178,9 +180,7 @@ def issue_code(*, email: str) -> str:
                 {"email": email},
             )
             # SQLite требует ROWID explicit, Postgres — serial. Используем явный id.
-            next_id_row = conn.execute(
-                text("SELECT COALESCE(MAX(id), 0) + 1 FROM telegram_bind_codes")
-            ).fetchone()
+            next_id_row = conn.execute(text("SELECT COALESCE(MAX(id), 0) + 1 FROM telegram_bind_codes")).fetchone()
             next_id = next_id_row[0] if next_id_row else 1
             # Для Postgres — CURRENT_TIMESTAMP возвращает tz-aware время.
             # Для SQLite — naive. expires_at сравниваем в Python.
@@ -195,9 +195,7 @@ def issue_code(*, email: str) -> str:
                     "code": new_code,
                     "issued_by": user.id,
                     # Передаём ISO-строку чтобы быть tz-compatible и с SQLite, и с Postgres.
-                    "expires_at": (
-                        datetime.now(UTC) + timedelta(minutes=_BIND_CODE_TTL_MINUTES)
-                    ).isoformat(),
+                    "expires_at": (datetime.now(UTC) + timedelta(minutes=_BIND_CODE_TTL_MINUTES)).isoformat(),
                 },
             )
         return new_code
@@ -229,6 +227,7 @@ def validate_and_bind(*, email: str, code: str, chat_id: int) -> int:
 
         with engine.begin() as conn:
             from sqlalchemy import text
+
             now_iso = datetime.now(UTC).isoformat()
             row = conn.execute(
                 text(
@@ -245,6 +244,7 @@ def validate_and_bind(*, email: str, code: str, chat_id: int) -> int:
             if isinstance(expires, str):
                 # SQLite хранит TIMESTAMP как ISO string. Парсим.
                 from datetime import datetime as _dt
+
                 try:
                     expires_dt = _dt.fromisoformat(expires)
                 except ValueError:
@@ -261,9 +261,7 @@ def validate_and_bind(*, email: str, code: str, chat_id: int) -> int:
 
             # Помечаем код как использованный
             conn.execute(
-                text(
-                    "UPDATE telegram_bind_codes SET used_at = :now WHERE id = :id"
-                ),
+                text("UPDATE telegram_bind_codes SET used_at = :now WHERE id = :id"),
                 {"now": now_iso, "id": row[0]},
             )
             # Upsert binding (chat_id PRIMARY KEY → ON CONFLICT UPDATE).
@@ -292,9 +290,7 @@ def get_binding(chat_id: int) -> dict | None:
     """Sprint 16.0: чтение binding из PostgreSQL."""
     with get_engine().connect() as conn:
         row = conn.execute(
-            text(
-                "SELECT user_id, code, updated_at FROM telegram_bindings WHERE chat_id = :cid"
-            ),
+            text("SELECT user_id, code, updated_at FROM telegram_bindings WHERE chat_id = :cid"),
             {"cid": chat_id},
         ).fetchone()
     if row is None:
@@ -315,6 +311,7 @@ def _parse_ts(value) -> float:
     # SQLite хранит datetime как строку
     try:
         from datetime import datetime
+
         return datetime.fromisoformat(str(value).replace(" ", "T")).timestamp()
     except (ValueError, TypeError):
         return 0.0
@@ -323,8 +320,9 @@ def _parse_ts(value) -> float:
 def set_binding(chat_id: int, user_id: int, code: str | None = None) -> None:
     """Sprint 16.0: upsert binding в PostgreSQL."""
     with get_engine().begin() as conn:
-        conn.execute(text(
-            """
+        conn.execute(
+            text(
+                """
             INSERT INTO telegram_bindings (chat_id, user_id, code, expires_at, updated_at)
             VALUES (:cid, :uid, :code, NULL, CURRENT_TIMESTAMP)
             ON CONFLICT (chat_id) DO UPDATE
@@ -332,15 +330,17 @@ def set_binding(chat_id: int, user_id: int, code: str | None = None) -> None:
                 code = EXCLUDED.code,
                 updated_at = CURRENT_TIMESTAMP
             """
-        ), {"cid": chat_id, "uid": user_id, "code": code})
+            ),
+            {"cid": chat_id, "uid": user_id, "code": code},
+        )
 
 
 def update_last_command(chat_id: int) -> None:
     """Sprint 16.0: обновление timestamp последней команды."""
     with get_engine().begin() as conn:
-        conn.execute(text(
-            "UPDATE telegram_bindings SET updated_at = CURRENT_TIMESTAMP WHERE chat_id = :cid"
-        ), {"cid": chat_id})
+        conn.execute(
+            text("UPDATE telegram_bindings SET updated_at = CURRENT_TIMESTAMP WHERE chat_id = :cid"), {"cid": chat_id}
+        )
 
 
 # === Rate limit (простой) ===
@@ -358,6 +358,7 @@ def check_rate_limit(chat_id: int) -> bool:
 
 
 # === Telegram API helpers ===
+
 
 def tg_call(method: str, **params) -> dict:
     """Прямой вызов Telegram Bot API."""
@@ -377,6 +378,7 @@ def send_message(chat_id: int, text: str, parse_mode: str = "HTML") -> None:
 
 
 # === Commands ===
+
 
 def cmd_start(chat_id: int, args: list[str]) -> None:
     """Sprint 6.1: /start email code — привязка chat_id к user.
@@ -405,7 +407,9 @@ def cmd_start(chat_id: int, args: list[str]) -> None:
         user_id = validate_and_bind(email=email, code=code, chat_id=chat_id)
         logger.info(
             "telegram_bind.success chat_id=%s user_id=%s email=%s",
-            chat_id, user_id, email,
+            chat_id,
+            user_id,
+            email,
         )
         # Sprint 78: улучшенное welcome message (Kimi P1-4) + Sprint 3.23.
         send_message(
@@ -452,6 +456,7 @@ def cmd_help(chat_id: int, args: list[str]) -> None:
 
 
 # === Main loop (long-poll) ===
+
 
 def handle_update(update: dict) -> None:
     """Sprint 6.1: обработка одного update от Telegram."""

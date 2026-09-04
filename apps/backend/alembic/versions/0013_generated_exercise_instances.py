@@ -6,6 +6,7 @@ state. Создаёт индексы для owner/created для быстрог�
 
 Backwards compatible: существующие таблицы не затронуты.
 """
+
 from collections.abc import Sequence
 from typing import Union
 
@@ -42,12 +43,8 @@ def upgrade() -> None:
         sa.Column("submitted_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("submission_answer", sa.Text(), nullable=True),
         sa.Column("submission_score", sa.Float(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["owner_id"], ["users.id"], name="fk_gei_owner", ondelete="CASCADE"
-        ),
-        sa.ForeignKeyConstraint(
-            ["topic_id"], ["topics.id"], name="fk_gei_topic", ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["owner_id"], ["users.id"], name="fk_gei_owner", ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["topic_id"], ["topics.id"], name="fk_gei_topic", ondelete="CASCADE"),
     )
     op.create_index("ix_generated_exercise_instances_owner_id", "generated_exercise_instances", ["owner_id"])
     op.create_index("ix_generated_exercise_instances_topic_id", "generated_exercise_instances", ["topic_id"])

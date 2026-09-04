@@ -5,6 +5,7 @@
 - ai_model_catalog: модели выбранные у провайдера (по выбору админа)
 - subject_ai_models: назначение модели на предмет (primary / fallback)
 """
+
 from collections.abc import Sequence
 from typing import Union
 

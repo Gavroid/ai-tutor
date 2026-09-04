@@ -7,6 +7,7 @@ Endpoints:
 - DELETE /api/v1/admin/invites/{code}    — delete unused
 - POST   /api/v1/auth/redeem-invite      — validate code (public)
 """
+
 from __future__ import annotations
 
 import secrets
@@ -28,6 +29,7 @@ router = APIRouter(prefix="/api/v1/admin/invites", tags=["admin"])
 
 
 # === Schemas ===
+
 
 class InviteCreateIn(BaseModel):
     role: str = Field(default="student", description="student | parent | teacher")
@@ -53,6 +55,7 @@ class InviteOut(BaseModel):
 
 # === Helper ===
 
+
 def _generate_code(length: int = 8) -> str:
     """Sprint 44: 8-char code без confusing chars (0/O, 1/I/l)."""
     alphabet = "".join(c for c in (string.ascii_uppercase + string.digits) if c not in "0O1IL")
@@ -60,6 +63,7 @@ def _generate_code(length: int = 8) -> str:
 
 
 # === Admin endpoints (require admin/teacher) ===
+
 
 @router.post("", response_model=InviteOut, status_code=201)
 def create_invite(
@@ -83,6 +87,7 @@ def create_invite(
     expires_at = None
     if payload.expires_in_days:
         from datetime import timedelta
+
         expires_at = datetime.now(UTC) + timedelta(days=payload.expires_in_days)
 
     invite = Invite(
@@ -121,9 +126,8 @@ def create_invite(
         max_uses=invite.max_uses,
         uses_count=invite.uses_count,
         created_at=invite.created_at,
-        is_valid=invite.uses_count < invite.max_uses and (
-            invite.expires_at is None or invite.expires_at > datetime.now(UTC)
-        ),
+        is_valid=invite.uses_count < invite.max_uses
+        and (invite.expires_at is None or invite.expires_at > datetime.now(UTC)),
         is_expired=invite.expires_at is not None and invite.expires_at <= datetime.now(UTC),
     )
 
@@ -138,11 +142,7 @@ def list_invites(
     if current.role not in ("admin", "teacher"):
         raise HTTPException(403, "Только admin/teacher")
 
-    rows = db.execute(
-        select(Invite)
-        .order_by(Invite.created_at.desc())
-        .limit(limit)
-    ).scalars().all()
+    rows = db.execute(select(Invite).order_by(Invite.created_at.desc()).limit(limit)).scalars().all()
 
     return [
         InviteOut(
@@ -153,9 +153,7 @@ def list_invites(
             max_uses=i.max_uses,
             uses_count=i.uses_count,
             created_at=i.created_at,
-            is_valid=i.uses_count < i.max_uses and (
-                i.expires_at is None or i.expires_at > datetime.now(UTC)
-            ),
+            is_valid=i.uses_count < i.max_uses and (i.expires_at is None or i.expires_at > datetime.now(UTC)),
             is_expired=i.expires_at is not None and i.expires_at <= datetime.now(UTC),
         )
         for i in rows
@@ -184,9 +182,8 @@ def get_invite(
         max_uses=invite.max_uses,
         uses_count=invite.uses_count,
         created_at=invite.created_at,
-        is_valid=invite.uses_count < invite.max_uses and (
-            invite.expires_at is None or invite.expires_at > datetime.now(UTC)
-        ),
+        is_valid=invite.uses_count < invite.max_uses
+        and (invite.expires_at is None or invite.expires_at > datetime.now(UTC)),
         is_expired=invite.expires_at is not None and invite.expires_at <= datetime.now(UTC),
     )
 

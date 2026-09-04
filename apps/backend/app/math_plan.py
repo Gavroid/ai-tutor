@@ -3,6 +3,7 @@
 This is a product layer above raw curriculum order: it groups topics into a
 student-friendly path, difficulty tiers, and diagnostic checkpoints.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -18,6 +18,7 @@
 
 Sprint 8.2: эталонные решения уже есть в PracticeTask.reference_solution.
 """
+
 from __future__ import annotations
 
 import logging

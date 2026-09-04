@@ -4,6 +4,7 @@ Sprint 2.1 — ученик видит только материалы со ст
 Sprint 7.3 — автосохранение черновиков урока.
 Sprint 7.5 — баджи за усилие (НЕ за streak, чтобы не давить на T1D-ученика).
 """
+
 from __future__ import annotations
 
 import json
@@ -44,9 +45,7 @@ def list_published_for_student(
     current: User = Depends(current_user),
 ):
     """Список опубликованных материалов (видит любой авторизованный)."""
-    q = select(subj_models.LearningMaterial).where(
-        subj_models.LearningMaterial.status == "published"
-    )
+    q = select(subj_models.LearningMaterial).where(subj_models.LearningMaterial.status == "published")
     if topic_id:
         q = q.where(subj_models.LearningMaterial.topic_id == topic_id)
     q = q.order_by(subj_models.LearningMaterial.id.desc()).limit(limit)
@@ -240,11 +239,7 @@ def list_my_badges(
     """
     seed_badge_definitions(db)
     # Полученные баджи
-    rows = db.execute(
-        select(stu_models.UserBadge).where(
-            stu_models.UserBadge.user_id == current.id
-        )
-    ).scalars().all()
+    rows = db.execute(select(stu_models.UserBadge).where(stu_models.UserBadge.user_id == current.id)).scalars().all()
     awarded_map = {r.badge_slug: r for r in rows}
 
     out: list[BadgeOut] = []
@@ -307,9 +302,7 @@ def badges_summary(
     slug_titles = {d.slug: d.title for d in defs}
     slug_icons = {d.slug: d.icon for d in defs}
 
-    earned_count = db.execute(
-        select(func.count(UserBadge.id)).where(UserBadge.user_id == current.id)
-    ).scalar() or 0
+    earned_count = db.execute(select(func.count(UserBadge.id)).where(UserBadge.user_id == current.id)).scalar() or 0
 
     return BadgeSummaryOut(
         earned=int(earned_count),
@@ -374,9 +367,7 @@ def my_streak(
     student_tz = ZoneInfo(get_settings().student_timezone or "Europe/Moscow")
     today = datetime.now(student_tz).date()
     # Находим все уникальные даты активности
-    attempts = db.execute(
-        select(prog_models.Attempt).where(prog_models.Attempt.user_id == user_id)
-    ).scalars().all()
+    attempts = db.execute(select(prog_models.Attempt).where(prog_models.Attempt.user_id == user_id)).scalars().all()
 
     active_dates: set[str] = set()
     for a in attempts:

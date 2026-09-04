@@ -7,6 +7,7 @@
 - /cgm/status
 - Безопасность: SSRF protection
 """
+
 from __future__ import annotations
 
 import os

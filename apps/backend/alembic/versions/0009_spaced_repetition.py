@@ -9,6 +9,7 @@
 Revision ID: 0009_spaced_repetition
 Revises: 0008_material_workflow
 """
+
 from collections.abc import Sequence
 from typing import Union
 
@@ -23,14 +24,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     with op.batch_alter_table("progress") as batch_op:
-        batch_op.add_column(
-            sa.Column("next_review_at", sa.DateTime(timezone=True), nullable=True)
-        )
-        batch_op.add_column(
-            sa.Column(
-                "last_reviewed_at", sa.DateTime(timezone=True), nullable=True
-            )
-        )
+        batch_op.add_column(sa.Column("next_review_at", sa.DateTime(timezone=True), nullable=True))
+        batch_op.add_column(sa.Column("last_reviewed_at", sa.DateTime(timezone=True), nullable=True))
         batch_op.add_column(
             sa.Column(
                 "review_count",
@@ -47,9 +42,7 @@ def upgrade() -> None:
                 server_default=sa.text("2.5"),
             )
         )
-        batch_op.create_index(
-            "ix_progress_next_review_at", ["next_review_at"]
-        )
+        batch_op.create_index("ix_progress_next_review_at", ["next_review_at"])
 
 
 def downgrade() -> None:

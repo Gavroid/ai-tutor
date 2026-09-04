@@ -1,4 +1,5 @@
 """Sprint 4 — тесты технического долга: rate limit register, XFF trust."""
+
 from __future__ import annotations
 
 import json
@@ -209,16 +210,8 @@ def test_purge_deletes_old_logs(client):
     try:
         old_dt = datetime.now(UTC) - timedelta(days=100)
         new_dt = datetime.now(UTC) - timedelta(days=10)
-        s.execute(
-            insert(AuditLog).values(
-                user_id=admin_id, action="old.test", created_at=old_dt
-            )
-        )
-        s.execute(
-            insert(AuditLog).values(
-                user_id=admin_id, action="new.test", created_at=new_dt
-            )
-        )
+        s.execute(insert(AuditLog).values(user_id=admin_id, action="old.test", created_at=old_dt))
+        s.execute(insert(AuditLog).values(user_id=admin_id, action="new.test", created_at=new_dt))
         s.commit()
     finally:
         s.close()

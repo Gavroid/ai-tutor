@@ -4,6 +4,7 @@ Revision ID: 0002_initial_subjects
 Revises: 0001_initial_users
 Create Date: 2026-07-11 22:30:00.000000
 """
+
 from collections.abc import Sequence
 from typing import Union
 

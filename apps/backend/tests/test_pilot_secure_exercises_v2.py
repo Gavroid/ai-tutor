@@ -6,6 +6,7 @@
 - чужой exercise_id → 404;
 - expired exercise_id → 410.
 """
+
 from __future__ import annotations
 
 import os
@@ -137,9 +138,7 @@ def test_v2_answer_wrong_does_not_set_correct(client):
     h = {"Authorization": f"Bearer {token}"}
     topic_id = _first_topic_id()
 
-    gen = client.post(
-        "/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}
-    ).json()
+    gen = client.post("/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}).json()
     r = client.post(
         f"/api/v2/exercises/{gen['exercise_id']}/answer",
         headers=h,
@@ -157,9 +156,7 @@ def test_v2_answer_wrong_can_be_corrected_on_same_exercise(client):
     h = {"Authorization": f"Bearer {token}"}
     topic_id = _first_topic_id()
 
-    gen = client.post(
-        "/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}
-    ).json()
+    gen = client.post("/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}).json()
 
     from app.ai.models import GeneratedExerciseInstance
     from app.db.session import SessionLocal
@@ -198,9 +195,7 @@ def test_v2_answer_correct_then_wrong_reflects_latest_answer(client):
     h = {"Authorization": f"Bearer {token}"}
     topic_id = _first_topic_id()
 
-    gen = client.post(
-        "/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}
-    ).json()
+    gen = client.post("/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}).json()
 
     from app.ai.models import GeneratedExerciseInstance
     from app.db.session import SessionLocal
@@ -233,16 +228,13 @@ def test_v2_answer_correct_then_wrong_reflects_latest_answer(client):
     assert wrong.json()["score"] == 0.0
 
 
-
 def test_v2_answer_idempotent_does_not_create_second_attempt(client):
     """P1.2.4: повтор submit возвращает тот же результат, без новой attempt-записи."""
     token = _register(client, "v2-student-4@example.com")
     h = {"Authorization": f"Bearer {token}"}
     topic_id = _first_topic_id()
 
-    gen = client.post(
-        "/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}
-    ).json()
+    gen = client.post("/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}).json()
 
     from app.ai.models import GeneratedExerciseInstance
     from app.db.session import SessionLocal
@@ -296,9 +288,7 @@ def test_v2_answer_other_user_exercise_id_returns_404(client):
     h_b = {"Authorization": f"Bearer {token_b}"}
 
     topic_id = _first_topic_id()
-    gen = client.post(
-        "/api/v2/exercises/generate", headers=h_a, json={"topic_id": topic_id}
-    ).json()
+    gen = client.post("/api/v2/exercises/generate", headers=h_a, json={"topic_id": topic_id}).json()
 
     r = client.post(
         f"/api/v2/exercises/{gen['exercise_id']}/answer",
@@ -398,15 +388,15 @@ def test_v2_generate_avoids_repeating_same_question_for_same_topic(client, monke
     assert third.status_code == 200, third.text
     questions = [first.json()["question_text"], second.json()["question_text"], third.json()["question_text"]]
     assert len(set(questions)) >= 2
+
+
 def test_v2_answer_expired_returns_410(client):
     """P1.2.3: expired exercise_id → 410 Gone."""
     token = _register(client, "v2-exp@example.com")
     h = {"Authorization": f"Bearer {token}"}
     topic_id = _first_topic_id()
 
-    gen = client.post(
-        "/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}
-    ).json()
+    gen = client.post("/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}).json()
 
     # Вручную делаем exercise expired через прямой БД-доступ
     from app.ai.models import GeneratedExerciseInstance

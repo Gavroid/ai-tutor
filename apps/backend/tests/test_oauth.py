@@ -8,6 +8,7 @@ GOOGLE_CLIENT_ID / YANDEX_CLIENT_ID. Для 1 пользователя — overk
 
 Реактивировать если хочешь «войти через Google» для Кирилла.
 """
+
 from __future__ import annotations
 
 import os
@@ -16,7 +17,7 @@ import pytest
 
 pytestmark = pytest.mark.skip(
     reason="Sprint 3.5.1: OAuth credentials не настроены, для 1 user "
-           "overkill. Реактивировать если подключишь Google/Яндекс."
+    "overkill. Реактивировать если подключишь Google/Яндекс."
 )
 
 os.environ.setdefault("APP_SECRET_KEY", "test-secret-key-for-pytest-only-1234567890")
@@ -130,7 +131,6 @@ def test_oauth_callback_invalid_code(client, monkeypatch):
             return None
 
         async def post(self, *args, **kwargs):
-
             req = httpx.Request("POST", "https://oauth2.googleapis.com/token")
             return httpx.Response(400, json={"error": "invalid_grant"}, request=req)
 

@@ -14,6 +14,7 @@
 - /notifications/test
 - /ai-kill-switch (GET/POST/DELETE)
 """
+
 from __future__ import annotations
 
 import pytest

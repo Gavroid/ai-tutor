@@ -7,6 +7,7 @@
 - Расширенный дашборд (Sprint 3): mastery по предметам, серии, типичные ошибки
 - Не показывает личную переписку ребёнка с AI (privacy)
 """
+
 from __future__ import annotations
 
 import secrets
@@ -25,39 +26,68 @@ from sqlalchemy.orm import Session
 # Должно совпадать с BADGE_CATEGORIES в apps/frontend/app/student/badges/client.tsx.
 _BADGE_CATEGORY: dict[str, str] = {
     # count — количество решённых задач.
-    "first_step": "count", "five_solved": "count", "ten_solved": "count",
-    "fifty_solved": "count", "hundred_solved": "count",
-    "two_hundred_solved": "count", "three_hundred_solved": "count",
-    "four_hundred_solved": "count", "five_hundred_solved": "count",
-    "six_hundred_solved": "count", "seven_hundred_solved": "count",
-    "eight_hundred_solved": "count", "nine_hundred_solved": "count",
-    "thousand_solved": "count", "fifteen_hundred_solved": "count",
+    "first_step": "count",
+    "five_solved": "count",
+    "ten_solved": "count",
+    "fifty_solved": "count",
+    "hundred_solved": "count",
+    "two_hundred_solved": "count",
+    "three_hundred_solved": "count",
+    "four_hundred_solved": "count",
+    "five_hundred_solved": "count",
+    "six_hundred_solved": "count",
+    "seven_hundred_solved": "count",
+    "eight_hundred_solved": "count",
+    "nine_hundred_solved": "count",
+    "thousand_solved": "count",
+    "fifteen_hundred_solved": "count",
     # effort — усилие и качество.
-    "explained_in_own_words": "effort", "five_quality_correct": "effort",
-    "twenty_quality_correct": "effort", "fifty_quality_correct": "effort",
-    "returned_to_hard": "effort", "mastered_topic": "effort",
-    "mastered_five_topics": "effort", "all_basics": "effort",
-    "review_count_10": "effort", "review_count_50": "effort",
+    "explained_in_own_words": "effort",
+    "five_quality_correct": "effort",
+    "twenty_quality_correct": "effort",
+    "fifty_quality_correct": "effort",
+    "returned_to_hard": "effort",
+    "mastered_topic": "effort",
+    "mastered_five_topics": "effort",
+    "all_basics": "effort",
+    "review_count_10": "effort",
+    "review_count_50": "effort",
     "asked_question": "effort",
-    "correct_count_25": "effort", "correct_count_75": "effort",
-    "correct_count_150": "effort", "correct_count_500": "effort",
+    "correct_count_25": "effort",
+    "correct_count_75": "effort",
+    "correct_count_150": "effort",
+    "correct_count_500": "effort",
     # streak — серии.
-    "streak_3": "streak", "streak_7": "streak", "streak_14": "streak",
-    "streak_30": "streak", "streak_45": "streak", "streak_60": "streak",
-    "streak_100": "streak", "streak_180": "streak", "streak_365": "streak",
+    "streak_3": "streak",
+    "streak_7": "streak",
+    "streak_14": "streak",
+    "streak_30": "streak",
+    "streak_45": "streak",
+    "streak_60": "streak",
+    "streak_100": "streak",
+    "streak_180": "streak",
+    "streak_365": "streak",
     "returned_after_pause": "streak",
-    "streak_correct_5": "streak", "streak_correct_14": "streak",
+    "streak_correct_5": "streak",
+    "streak_correct_14": "streak",
     "streak_correct_30": "streak",
-    "returned_twice": "streak", "returned_five": "streak",
+    "returned_twice": "streak",
+    "returned_five": "streak",
     # context — контекст и время.
-    "polymath_week": "context", "early_bird": "context",
-    "night_owl": "context", "weekend_warrior": "context",
-    "perfect_five": "context", "ten_in_a_row": "context",
-    "twenty_in_a_row": "context", "fifty_in_a_row": "context",
+    "polymath_week": "context",
+    "early_bird": "context",
+    "night_owl": "context",
+    "weekend_warrior": "context",
+    "perfect_five": "context",
+    "ten_in_a_row": "context",
+    "twenty_in_a_row": "context",
+    "fifty_in_a_row": "context",
     "morning_streak_5": "context",
-    "lunch_learner": "context", "lunch_master": "context",
+    "lunch_learner": "context",
+    "lunch_master": "context",
     "late_night_hero": "context",
-    "weekend_regular_2": "context", "weekend_master_8": "context",
+    "weekend_regular_2": "context",
+    "weekend_master_8": "context",
     "morning_streak_14": "context",
 }
 
@@ -167,25 +197,27 @@ def child_overview(db: Session, parent: user_models.User, student_id: int) -> di
         return None
 
     # Общая статистика по попыткам
-    total_attempts = db.scalar(
-        select(func.count(prog_models.Attempt.id)).where(
-            prog_models.Attempt.user_id == student_id
-        )
-    ) or 0
+    total_attempts = (
+        db.scalar(select(func.count(prog_models.Attempt.id)).where(prog_models.Attempt.user_id == student_id)) or 0
+    )
 
-    correct_attempts = db.scalar(
-        select(func.count(prog_models.Attempt.id)).where(
-            prog_models.Attempt.user_id == student_id,
-            prog_models.Attempt.is_correct.is_(True),
+    correct_attempts = (
+        db.scalar(
+            select(func.count(prog_models.Attempt.id)).where(
+                prog_models.Attempt.user_id == student_id,
+                prog_models.Attempt.is_correct.is_(True),
+            )
         )
-    ) or 0
+        or 0
+    )
 
     # Средний mastery по всем темам
-    avg_mastery = db.scalar(
-        select(func.avg(prog_models.Progress.mastery_score)).where(
-            prog_models.Progress.user_id == student_id
+    avg_mastery = (
+        db.scalar(
+            select(func.avg(prog_models.Progress.mastery_score)).where(prog_models.Progress.user_id == student_id)
         )
-    ) or 0.0
+        or 0.0
+    )
 
     # Слабые темы (mastery < 0.6)
     weak = db.execute(
@@ -241,14 +273,13 @@ def child_overview(db: Session, parent: user_models.User, student_id: int) -> di
             }
             for r in weak
         ],
-        "daily_activity": [
-            {"date": str(r[0]), "attempts": int(r[1])} for r in daily
-        ],
+        "daily_activity": [{"date": str(r[0]), "attempts": int(r[1])} for r in daily],
         "privacy_note": "Переписка с AI-репетитором недоступна родителю по соображениям приватности.",
     }
 
 
 # === Sprint 3.1: расширенный дашборд родителя ===
+
 
 def _ensure_parent_of(db: Session, parent: user_models.User, student_id: int) -> bool:
     """True если student привязан к parent (active link)."""
@@ -324,37 +355,47 @@ def _parent_recommendations(
         # в /subjects и как в /parents (9b1e0f4). Раньше была только
         # weak_topics[0] → «1 у родителя, 5 у ученика» на /parent/dashboard/[id].
         for topic in weak_topics[:5]:
-            recs.append(schemas.ParentRecommendation(
-                title="Повторить слабую тему",
-                detail=f"Начните с темы «{topic.topic_name}»: mastery {round(topic.mastery * 100)}%, попыток {topic.attempts_count}.",
-                tone="warning",
-                topic_id=topic.topic_id,
-                topic_name=topic.topic_name,
-            ))
+            recs.append(
+                schemas.ParentRecommendation(
+                    title="Повторить слабую тему",
+                    detail=f"Начните с темы «{topic.topic_name}»: mastery {round(topic.mastery * 100)}%, попыток {topic.attempts_count}.",
+                    tone="warning",
+                    topic_id=topic.topic_id,
+                    topic_name=topic.topic_name,
+                )
+            )
     if due_count > 0:
-        recs.append(schemas.ParentRecommendation(
-            title="Сделать повторение",
-            detail=f"К повторению сейчас {due_count} тем. Лучше 10 минут повторения, чем новая сложная тема.",
-            tone="info",
-        ))
+        recs.append(
+            schemas.ParentRecommendation(
+                title="Сделать повторение",
+                detail=f"К повторению сейчас {due_count} тем. Лучше 10 минут повторения, чем новая сложная тема.",
+                tone="info",
+            )
+        )
     if last_7 == 0:
-        recs.append(schemas.ParentRecommendation(
-            title="Вернуться мягко",
-            detail="За последние 7 дней нет попыток. Начните с лёгкой темы и одной задачи без давления.",
-            tone="neutral",
-        ))
+        recs.append(
+            schemas.ParentRecommendation(
+                title="Вернуться мягко",
+                detail="За последние 7 дней нет попыток. Начните с лёгкой темы и одной задачи без давления.",
+                tone="neutral",
+            )
+        )
     elif accuracy < 0.6:
-        recs.append(schemas.ParentRecommendation(
-            title="Снизить сложность",
-            detail="Точность ниже 60%. Лучше разобрать пример и дать похожую простую задачу.",
-            tone="warning",
-        ))
+        recs.append(
+            schemas.ParentRecommendation(
+                title="Снизить сложность",
+                detail="Точность ниже 60%. Лучше разобрать пример и дать похожую простую задачу.",
+                tone="warning",
+            )
+        )
     if not recs:
-        recs.append(schemas.ParentRecommendation(
-            title="Продолжать план",
-            detail="Критичных слабых сигналов нет. Можно продолжать следующую P0/P1 тему.",
-            tone="success",
-        ))
+        recs.append(
+            schemas.ParentRecommendation(
+                title="Продолжать план",
+                detail="Критичных слабых сигналов нет. Можно продолжать следующую P0/P1 тему.",
+                tone="success",
+            )
+        )
     # Sprint 3.19: cap 3 → 5 (как у ученика; weak-рекомендации идут первыми).
     return recs[:5]
 
@@ -380,22 +421,24 @@ def child_dashboard(
     last_30 = today - timedelta(days=30)
 
     # === Общее ===
-    total_attempts = db.scalar(
-        select(func.count(prog_models.Attempt.id)).where(
-            prog_models.Attempt.user_id == student_id
+    total_attempts = (
+        db.scalar(select(func.count(prog_models.Attempt.id)).where(prog_models.Attempt.user_id == student_id)) or 0
+    )
+    correct_attempts = (
+        db.scalar(
+            select(func.count(prog_models.Attempt.id)).where(
+                prog_models.Attempt.user_id == student_id,
+                prog_models.Attempt.is_correct.is_(True),
+            )
         )
-    ) or 0
-    correct_attempts = db.scalar(
-        select(func.count(prog_models.Attempt.id)).where(
-            prog_models.Attempt.user_id == student_id,
-            prog_models.Attempt.is_correct.is_(True),
+        or 0
+    )
+    avg_mastery = (
+        db.scalar(
+            select(func.avg(prog_models.Progress.mastery_score)).where(prog_models.Progress.user_id == student_id)
         )
-    ) or 0
-    avg_mastery = db.scalar(
-        select(func.avg(prog_models.Progress.mastery_score)).where(
-            prog_models.Progress.user_id == student_id
-        )
-    ) or 0.0
+        or 0.0
+    )
     accuracy = float(correct_attempts) / total_attempts if total_attempts > 0 else 0.0
 
     # === Mastery по предметам ===
@@ -404,12 +447,8 @@ def child_dashboard(
             subj_models.Subject.id,
             subj_models.Subject.name,
             func.count(func.distinct(subj_models.Topic.id)).label("topics_total"),
-            func.count(func.distinct(prog_models.Progress.topic_id)).label(
-                "topics_attempted"
-            ),
-            func.coalesce(func.avg(prog_models.Progress.mastery_score), 0.0).label(
-                "avg_mastery"
-            ),
+            func.count(func.distinct(prog_models.Progress.topic_id)).label("topics_attempted"),
+            func.coalesce(func.avg(prog_models.Progress.mastery_score), 0.0).label("avg_mastery"),
         )
         .select_from(subj_models.Subject)
         .join(subj_models.Section, subj_models.Section.subject_id == subj_models.Subject.id)
@@ -419,8 +458,7 @@ def child_dashboard(
         )
         .outerjoin(
             prog_models.Progress,
-            (prog_models.Progress.topic_id == subj_models.Topic.id)
-            & (prog_models.Progress.user_id == student_id),
+            (prog_models.Progress.topic_id == subj_models.Topic.id) & (prog_models.Progress.user_id == student_id),
         )
         .where(subj_models.Subject.is_active.is_(True))
         .group_by(subj_models.Subject.id, subj_models.Subject.name)
@@ -433,9 +471,7 @@ def child_dashboard(
         select(
             subj_models.Subject.id,
             func.count(prog_models.Attempt.id).label("total"),
-            func.sum(
-                case((prog_models.Attempt.is_correct.is_(True), 1), else_=0)
-            ).label("correct"),
+            func.sum(case((prog_models.Attempt.is_correct.is_(True), 1), else_=0)).label("correct"),
         )
         .select_from(subj_models.Subject)
         .join(subj_models.Section, subj_models.Section.subject_id == subj_models.Subject.id)
@@ -534,9 +570,7 @@ def child_dashboard(
     ).all()
 
     active_dates = {str(r[0]) for r in activity_rows}
-    current_streak, longest_streak, total_active_days = _compute_streak(
-        active_dates, today_str
-    )
+    current_streak, longest_streak, total_active_days = _compute_streak(active_dates, today_str)
 
     last_7 = sum(int(r[1]) for r in activity_rows if str(r[0]) >= (today - timedelta(days=7)).isoformat())
     last_30_count = sum(int(r[1]) for r in activity_rows if str(r[0]) >= last_30.isoformat())
@@ -556,13 +590,16 @@ def child_dashboard(
     daily_30.reverse()  # от старых к новым
 
     # === Due for review ===
-    due_count = db.scalar(
-        select(func.count(prog_models.Progress.id)).where(
-            prog_models.Progress.user_id == student_id,
-            prog_models.Progress.next_review_at.is_not(None),
-            prog_models.Progress.next_review_at <= datetime.now(UTC),
+    due_count = (
+        db.scalar(
+            select(func.count(prog_models.Progress.id)).where(
+                prog_models.Progress.user_id == student_id,
+                prog_models.Progress.next_review_at.is_not(None),
+                prog_models.Progress.next_review_at <= datetime.now(UTC),
+            )
         )
-    ) or 0
+        or 0
+    )
 
     last_activity_label = max(active_dates) if active_dates else "активности пока нет"
     summary = _parent_summary(
@@ -603,9 +640,7 @@ def child_dashboard(
             total_attempts=int(total_attempts),
             last_7_days=last_7,
             last_30_days=last_30_count,
-            avg_per_active_day=round(
-                float(total_attempts) / max(total_active_days, 1), 2
-            ),
+            avg_per_active_day=round(float(total_attempts) / max(total_active_days, 1), 2),
         ),
         daily_activity_30d=daily_30,
         due_for_review_count=int(due_count),
@@ -620,9 +655,7 @@ def child_dashboard(
 
 
 # === Sprint 3.11: parent badges view ===
-def child_badges_summary(
-    db: Session, parent: user_models.User, student_id: int
-) -> schemas.ChildBadgeSummary | None:
+def child_badges_summary(db: Session, parent: user_models.User, student_id: int) -> schemas.ChildBadgeSummary | None:
     """Получить сводку по бейджам ребёнка для родительского дашборда.
 
     Returns:
@@ -639,10 +672,11 @@ def child_badges_summary(
     total_available = len(defs)
 
     # 2. Все earned бейджи ребёнка (newest first).
-    earned_rows = db.execute(
-        select(UserBadge).where(UserBadge.user_id == student_id)
-        .order_by(UserBadge.awarded_at.desc())
-    ).scalars().all()
+    earned_rows = (
+        db.execute(select(UserBadge).where(UserBadge.user_id == student_id).order_by(UserBadge.awarded_at.desc()))
+        .scalars()
+        .all()
+    )
 
     earned_items: list[schemas.ChildBadgeItem] = []
     earned_slugs: set[str] = set()
@@ -672,8 +706,7 @@ def child_badges_summary(
         if slug in earned_slugs:
             cat_earned[cat] = cat_earned.get(cat, 0) + 1
     by_category: dict[str, str] = {
-        cat: f"{cat_earned[cat]} / {cat_total[cat]}"
-        for cat in ("count", "effort", "streak", "context")
+        cat: f"{cat_earned[cat]} / {cat_total[cat]}" for cat in ("count", "effort", "streak", "context")
     }
 
     # 4. Locked — slug'и которые есть в каталоге но не earned.
@@ -695,9 +728,7 @@ def child_badges_summary(
     if link is not None and link.last_seen_badges_at is not None:
         seen_at = link.last_seen_badges_at
         # Считаем бейджи полученные позже seen_at.
-        new_items = [
-            it for it in earned_items if it.earned_at and it.earned_at > seen_at
-        ]
+        new_items = [it for it in earned_items if it.earned_at and it.earned_at > seen_at]
         new_since_last_seen = len(new_items)
     elif link is not None:
         # Первый визит — все earned считаются "новыми" но это шумно.
@@ -718,9 +749,7 @@ def child_badges_summary(
 
 
 # === Sprint 3.13: parent — mark badges as seen ===
-def mark_badges_seen(
-    db: Session, parent: user_models.User, student_id: int
-) -> tuple[datetime, int] | None:
+def mark_badges_seen(db: Session, parent: user_models.User, student_id: int) -> tuple[datetime, int] | None:
     """Отметить бейджи ребёнка как просмотренные родителем.
 
     Returns:
@@ -742,10 +771,13 @@ def mark_badges_seen(
     # Сколько осталось "новых" после этой отметки (на случай гонки).
     from app.student.models import UserBadge
 
-    after = db.execute(
-        select(func.count(UserBadge.id)).where(
-            UserBadge.user_id == student_id,
-            UserBadge.awarded_at > now,
-        )
-    ).scalar() or 0
+    after = (
+        db.execute(
+            select(func.count(UserBadge.id)).where(
+                UserBadge.user_id == student_id,
+                UserBadge.awarded_at > now,
+            )
+        ).scalar()
+        or 0
+    )
     return now, int(after)

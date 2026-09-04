@@ -1,4 +1,5 @@
 """Sprint 64: cache module tests."""
+
 from __future__ import annotations
 
 import os
@@ -13,6 +14,7 @@ import pytest
 
 # === Fixture ===
 
+
 @pytest.fixture
 def client():
     """Sprint 64: TestClient fixture."""
@@ -26,6 +28,7 @@ def client():
 
 
 # === cache_get/cache_set tests ===
+
 
 def test_cache_set_and_get_returns_value():
     """Sprint 64: cache_set + cache_get возвращает значение."""
@@ -129,6 +132,7 @@ def test_cache_invalidate_no_keys():
 
 # === Integration test: subjects router использует cache ===
 
+
 def test_subjects_router_uses_cache(client):
     """Sprint 64: /api/v1/subjects использует Redis cache (graceful если Redis down)."""
     # Redis может быть down в test env — endpoint должен работать
@@ -158,6 +162,7 @@ def test_subjects_topics_uses_cache(client):
 
 
 # === Constants tests ===
+
 
 def test_ttl_constants_reasonable():
     """Sprint 64: TTL constants в reasonable range."""

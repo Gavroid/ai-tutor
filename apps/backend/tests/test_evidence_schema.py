@@ -9,6 +9,7 @@
 - audit показывает manual_smoke_ready=false (если не задано);
 - API list/update возвращает canonical (НЕ persisted).
 """
+
 from __future__ import annotations
 
 import json
@@ -39,6 +40,7 @@ from fastapi.testclient import TestClient
 
 # === Schema уровня ============================================================
 
+
 def test_schema_is_well_formed_object():
     schema = evidence_schema()
     assert schema["type"] == "object"
@@ -49,9 +51,15 @@ def test_schema_is_well_formed_object():
     fields = set(subj["properties"].keys())
     # Все обязательные gates + promotion + blocked_reason.
     expected = {
-        "manifest_ready", "mapping_ready", "import_ready",
-        "rag_ready", "practice_ready", "manual_smoke_ready",
-        "pilot_visible", "promotion_allowed", "blocked_reason",
+        "manifest_ready",
+        "mapping_ready",
+        "import_ready",
+        "rag_ready",
+        "practice_ready",
+        "manual_smoke_ready",
+        "pilot_visible",
+        "promotion_allowed",
+        "blocked_reason",
     }
     assert fields == expected, fields ^ expected
 
@@ -62,12 +70,11 @@ def test_pilot_scope_only_math():
     from app.subjects.curriculum_7_class import CURRICULUM_7_CLASS
 
     expected = {s["code"] for s in CURRICULUM_7_CLASS}
-    assert PILOT_SCOPE == expected, (
-        f"PILOT_SCOPE дрейфанул: expected={expected}, actual={PILOT_SCOPE}"
-    )
+    assert PILOT_SCOPE == expected, f"PILOT_SCOPE дрейфанул: expected={expected}, actual={PILOT_SCOPE}"
 
 
 # === Canonical derivation =====================================================
+
 
 def _payload(subjects: dict) -> dict:
     """Обернуть subjects в стандартный payload + привести к типам."""
@@ -89,13 +96,21 @@ def _payload(subjects: dict) -> dict:
 
 def test_validate_all_gates_pilot_in_scope_promoted_to_true():
     """Math с всеми gates → canonical promotion=true."""
-    raw = _payload({
-        "math": {
-            "manifest_ready": True, "mapping_ready": True, "import_ready": True,
-            "rag_ready": True, "practice_ready": True, "manual_smoke_ready": True,
-            "pilot_visible": True, "promotion_allowed": True, "blocked_reason": None,
-        },
-    })
+    raw = _payload(
+        {
+            "math": {
+                "manifest_ready": True,
+                "mapping_ready": True,
+                "import_ready": True,
+                "rag_ready": True,
+                "practice_ready": True,
+                "manual_smoke_ready": True,
+                "pilot_visible": True,
+                "promotion_allowed": True,
+                "blocked_reason": None,
+            },
+        }
+    )
     canonical = validate_evidence_payload(raw)
     assert canonical["math"]["pilot_visible"] is True
     assert canonical["math"]["promotion_allowed"] is True
@@ -103,30 +118,32 @@ def test_validate_all_gates_pilot_in_scope_promoted_to_true():
 
 def test_validate_blocked_ocr_forces_promotion_false():
     """blocked_ocr + persisted promotion=true → canonical=false."""
-    raw = _payload({
-        "hist": {
-            "manifest_ready": True, "mapping_ready": True, "import_ready": True,
-            "rag_ready": True, "practice_ready": True, "manual_smoke_ready": True,
-            "pilot_visible": True,  # Persisted tries to override.
-            "promotion_allowed": True,  # Persisted tries to override.
-            "blocked_reason": "blocked_ocr",
-        },
-    })
-    canonical = validate_evidence_payload(raw)
-    assert canonical["hist"]["promotion_allowed"] is False, (
-        "blocked_ocr + persisted promotion=true должен быть проигнорирован"
+    raw = _payload(
+        {
+            "hist": {
+                "manifest_ready": True,
+                "mapping_ready": True,
+                "import_ready": True,
+                "rag_ready": True,
+                "practice_ready": True,
+                "manual_smoke_ready": True,
+                "pilot_visible": True,  # Persisted tries to override.
+                "promotion_allowed": True,  # Persisted tries to override.
+                "blocked_reason": "blocked_ocr",
+            },
+        }
     )
+    canonical = validate_evidence_payload(raw)
+    assert (
+        canonical["hist"]["promotion_allowed"] is False
+    ), "blocked_ocr + persisted promotion=true должен быть проигнорирован"
     assert canonical["hist"]["pilot_visible"] is False
     # Divergence должна быть зафиксирована в errors/warnings.
     errs = getattr(validate_evidence_payload, "_last_errors", [])
     joined = " ".join(errs)
     # Конкретный терминология validator'а: "не все required gates true или blocked_reason"
-    assert "persisted" in joined or "canonical" in joined, (
-        f"ожидается warning про divergence, got: {errs}"
-    )
-    assert "blocked_reason" in joined or "blocked_ocr" in joined, (
-        f"ожидается явное упоминание блокировки, got: {errs}"
-    )
+    assert "persisted" in joined or "canonical" in joined, f"ожидается warning про divergence, got: {errs}"
+    assert "blocked_reason" in joined or "blocked_ocr" in joined, f"ожидается явное упоминание блокировки, got: {errs}"
 
 
 def test_validate_out_of_pilot_scope_never_pilot_visible():
@@ -136,29 +153,45 @@ def test_validate_out_of_pilot_scope_never_pilot_visible():
     любой subject, чьи gates НЕ закрыты, должен получать canonical pilot_visible=false,
     даже если он в PILOT_SCOPE.
     """
-    raw = _payload({
-        "math": {
-            "manifest_ready": True, "mapping_ready": True, "import_ready": True,
-            "rag_ready": True, "practice_ready": True, "manual_smoke_ready": True,
-            "pilot_visible": True, "promotion_allowed": True, "blocked_reason": None,
-        },
-    })
+    raw = _payload(
+        {
+            "math": {
+                "manifest_ready": True,
+                "mapping_ready": True,
+                "import_ready": True,
+                "rag_ready": True,
+                "practice_ready": True,
+                "manual_smoke_ready": True,
+                "pilot_visible": True,
+                "promotion_allowed": True,
+                "blocked_reason": None,
+            },
+        }
+    )
     canonical = validate_evidence_payload(raw)
     assert canonical["math"]["pilot_visible"] is True
     assert canonical["math"]["promotion_allowed"] is True
 
     # Инвариант: subject вне gates=true → canonical=false.
-    raw_no_gates = _payload({
-        "algebra": {
-            "manifest_ready": False, "mapping_ready": False, "import_ready": False,
-            "rag_ready": False, "practice_ready": False, "manual_smoke_ready": True,
-            "pilot_visible": True, "promotion_allowed": True, "blocked_reason": None,
-        },
-    })
-    canonical_no_gates = validate_evidence_payload(raw_no_gates)
-    assert canonical_no_gates["algebra"]["pilot_visible"] is False, (
-        "algebra с gates=false → canonical pilot_visible=false"
+    raw_no_gates = _payload(
+        {
+            "algebra": {
+                "manifest_ready": False,
+                "mapping_ready": False,
+                "import_ready": False,
+                "rag_ready": False,
+                "practice_ready": False,
+                "manual_smoke_ready": True,
+                "pilot_visible": True,
+                "promotion_allowed": True,
+                "blocked_reason": None,
+            },
+        }
     )
+    canonical_no_gates = validate_evidence_payload(raw_no_gates)
+    assert (
+        canonical_no_gates["algebra"]["pilot_visible"] is False
+    ), "algebra с gates=false → canonical pilot_visible=false"
     assert canonical_no_gates["algebra"]["promotion_allowed"] is False
 
 
@@ -166,16 +199,20 @@ def test_validate_any_required_gate_false_blocks_promotion():
     """Если любой REQUIRED_GATES gate = false → promotion=false."""
     for missing in REQUIRED_GATES:
         gates_ok = {
-            "manifest_ready": True, "mapping_ready": True, "import_ready": True,
-            "rag_ready": True, "practice_ready": True, "manual_smoke_ready": True,
-            "pilot_visible": True, "promotion_allowed": True, "blocked_reason": None,
+            "manifest_ready": True,
+            "mapping_ready": True,
+            "import_ready": True,
+            "rag_ready": True,
+            "practice_ready": True,
+            "manual_smoke_ready": True,
+            "pilot_visible": True,
+            "promotion_allowed": True,
+            "blocked_reason": None,
         }
         gates_ok[missing] = False
         raw = _payload({"math": gates_ok})
         canonical = validate_evidence_payload(raw)
-        assert canonical["math"]["promotion_allowed"] is False, (
-            f"{missing}=false должен блокировать promotion"
-        )
+        assert canonical["math"]["promotion_allowed"] is False, f"{missing}=false должен блокировать promotion"
 
 
 def test_validate_manual_smoke_does_not_block_promotion():
@@ -184,30 +221,42 @@ def test_validate_manual_smoke_does_not_block_promotion():
     Это явно документировано в Sprint 3: manual smoke — НЕ hard gate.
     Но мы хотим видеть её в audit (separate signal).
     """
-    raw = _payload({
-        "math": {
-            "manifest_ready": True, "mapping_ready": True, "import_ready": True,
-            "rag_ready": True, "practice_ready": True,
-            "manual_smoke_ready": False,  # НЕ блокирует promotion.
-            "pilot_visible": True, "promotion_allowed": True, "blocked_reason": None,
-        },
-    })
-    canonical = validate_evidence_payload(raw)
-    assert canonical["math"]["promotion_allowed"] is True, (
-        "manual_smoke_ready=false не должен блокировать promotion"
+    raw = _payload(
+        {
+            "math": {
+                "manifest_ready": True,
+                "mapping_ready": True,
+                "import_ready": True,
+                "rag_ready": True,
+                "practice_ready": True,
+                "manual_smoke_ready": False,  # НЕ блокирует promotion.
+                "pilot_visible": True,
+                "promotion_allowed": True,
+                "blocked_reason": None,
+            },
+        }
     )
+    canonical = validate_evidence_payload(raw)
+    assert canonical["math"]["promotion_allowed"] is True, "manual_smoke_ready=false не должен блокировать promotion"
 
 
 def test_validate_unknown_blocked_reason_normalized_to_none():
     """Неизвестный blocked_reason → нормализуется в None + warning."""
-    raw = _payload({
-        "math": {
-            "manifest_ready": True, "mapping_ready": True, "import_ready": True,
-            "rag_ready": True, "practice_ready": True, "manual_smoke_ready": True,
-            "pilot_visible": True, "promotion_allowed": True,
-            "blocked_reason": "some_invented_reason",  # Не в ALLOWED.
-        },
-    })
+    raw = _payload(
+        {
+            "math": {
+                "manifest_ready": True,
+                "mapping_ready": True,
+                "import_ready": True,
+                "rag_ready": True,
+                "practice_ready": True,
+                "manual_smoke_ready": True,
+                "pilot_visible": True,
+                "promotion_allowed": True,
+                "blocked_reason": "some_invented_reason",  # Не в ALLOWED.
+            },
+        }
+    )
     canonical = validate_evidence_payload(raw)
     # canonical promotion остаётся true (если gates ok), но blocked_reason → None.
     assert canonical["math"]["blocked_reason"] is None
@@ -224,13 +273,16 @@ def test_validate_rejects_non_object_root():
 
 def test_is_canonical_violation_flags_persisted_overrides():
     """is_canonical_violation возвращает коды с расхождением."""
-    raw = _payload({
-        "math": {"pilot_visible": True, "promotion_allowed": True},  # ok
-        "hist": {  # persisted=true, но blocked_ocr → canonical=false
-            "pilot_visible": True, "promotion_allowed": True,
-            "blocked_reason": "blocked_ocr",
-        },
-    })
+    raw = _payload(
+        {
+            "math": {"pilot_visible": True, "promotion_allowed": True},  # ok
+            "hist": {  # persisted=true, но blocked_ocr → canonical=false
+                "pilot_visible": True,
+                "promotion_allowed": True,
+                "blocked_reason": "blocked_ocr",
+            },
+        }
+    )
     canonical = validate_evidence_payload(raw)
     viols = is_canonical_violation(canonical)
     assert "hist" in viols
@@ -238,6 +290,7 @@ def test_is_canonical_violation_flags_persisted_overrides():
 
 
 # === File validation: real evidence.json ======================================
+
 
 def test_validate_real_evidence_file_against_pilot_scope():
     """Sprint 3.9.3 (2026-08-22): все 16 subjects promoted.
@@ -253,13 +306,15 @@ def test_validate_real_evidence_file_against_pilot_scope():
     # (manual_smoke_ready НЕ входит в REQUIRED_GATES — это намеренно.)
     for code, view in canonical.items():
         gates = view.get("gates", {})
-        all_gates_closed = all([
-            gates.get("manifest_ready"),
-            gates.get("mapping_ready"),
-            gates.get("import_ready"),
-            gates.get("rag_ready"),
-            gates.get("practice_ready"),
-        ])
+        all_gates_closed = all(
+            [
+                gates.get("manifest_ready"),
+                gates.get("mapping_ready"),
+                gates.get("import_ready"),
+                gates.get("rag_ready"),
+                gates.get("practice_ready"),
+            ]
+        )
         not_blocked = view.get("blocked_reason") in (None, "preview", "not_available")
         in_scope = code in PILOT_SCOPE
         expected_pilot = all_gates_closed and not_blocked and in_scope
@@ -281,46 +336,70 @@ def test_validate_real_evidence_with_blocked_ocr():
     from app.subjects.evidence_schema import validate_evidence_payload
 
     # Unit-проверка: hist с blocked_ocr канонически даёт promotion=false.
-    raw = _payload({
-        "hist": {
-            "manifest_ready": True, "mapping_ready": True, "import_ready": True,
-            "rag_ready": True, "practice_ready": True, "manual_smoke_ready": True,
-            "pilot_visible": True, "promotion_allowed": True,
-            "blocked_reason": "blocked_ocr",
-        },
-    })
-    canonical = validate_evidence_payload(raw)
-    assert canonical["hist"]["promotion_allowed"] is False, (
-        "blocked_ocr должен сбрасывать promotion_allowed"
+    raw = _payload(
+        {
+            "hist": {
+                "manifest_ready": True,
+                "mapping_ready": True,
+                "import_ready": True,
+                "rag_ready": True,
+                "practice_ready": True,
+                "manual_smoke_ready": True,
+                "pilot_visible": True,
+                "promotion_allowed": True,
+                "blocked_reason": "blocked_ocr",
+            },
+        }
     )
+    canonical = validate_evidence_payload(raw)
+    assert canonical["hist"]["promotion_allowed"] is False, "blocked_ocr должен сбрасывать promotion_allowed"
     assert canonical["hist"]["pilot_visible"] is False
 
 
 # === API: list_evidence returns canonical =====================================
 
+
 @pytest.fixture()
 def admin_client(tmp_path, monkeypatch):
     """TestClient с admin пользователем и изолированным evidence.json."""
     tmp_evidence = tmp_path / "evidence.json"
-    initial = _payload({
-        "math": {
-            "manifest_ready": True, "mapping_ready": True, "import_ready": True,
-            "rag_ready": True, "practice_ready": True, "manual_smoke_ready": True,
-            "pilot_visible": True, "promotion_allowed": True, "blocked_reason": None,
-        },
-        "hist": {
-            "manifest_ready": True, "mapping_ready": True, "import_ready": True,
-            "rag_ready": True, "practice_ready": True, "manual_smoke_ready": True,
-            "pilot_visible": True, "promotion_allowed": True,  # persisted
-            "blocked_reason": "blocked_ocr",  # forces canonical=false
-        },
-        "algebra": {
-            "manifest_ready": True, "mapping_ready": True, "import_ready": True,
-            "rag_ready": True, "practice_ready": True, "manual_smoke_ready": True,
-            "pilot_visible": True, "promotion_allowed": True,  # persisted
-            "blocked_reason": None,  # но algebra вне PILOT_SCOPE
-        },
-    })
+    initial = _payload(
+        {
+            "math": {
+                "manifest_ready": True,
+                "mapping_ready": True,
+                "import_ready": True,
+                "rag_ready": True,
+                "practice_ready": True,
+                "manual_smoke_ready": True,
+                "pilot_visible": True,
+                "promotion_allowed": True,
+                "blocked_reason": None,
+            },
+            "hist": {
+                "manifest_ready": True,
+                "mapping_ready": True,
+                "import_ready": True,
+                "rag_ready": True,
+                "practice_ready": True,
+                "manual_smoke_ready": True,
+                "pilot_visible": True,
+                "promotion_allowed": True,  # persisted
+                "blocked_reason": "blocked_ocr",  # forces canonical=false
+            },
+            "algebra": {
+                "manifest_ready": True,
+                "mapping_ready": True,
+                "import_ready": True,
+                "rag_ready": True,
+                "practice_ready": True,
+                "manual_smoke_ready": True,
+                "pilot_visible": True,
+                "promotion_allowed": True,  # persisted
+                "blocked_reason": None,  # но algebra вне PILOT_SCOPE
+            },
+        }
+    )
     tmp_evidence.write_text(json.dumps(initial, ensure_ascii=False, indent=2))
 
     Base.metadata.drop_all(engine)
@@ -400,7 +479,8 @@ def test_api_list_evidence_returns_canonical_not_persisted(admin_client):
         assert by_code["hist"]["pilot_visible"] is False
         assert by_code["hist"]["promotion_allowed"] is False
         assert by_code["hist"]["canonical_divergence"] in (
-            "ok", "persisted_overrides_canonical",
+            "ok",
+            "persisted_overrides_canonical",
         )
     # algebra теперь В PILOT_SCOPE → canonical promotion=true.
     assert by_code["algebra"]["pilot_visible"] is True

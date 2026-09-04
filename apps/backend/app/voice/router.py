@@ -23,6 +23,7 @@ Sprint 16.1 P1-5: async httpx + правильные HTTP коды:
 - Поддерживаются форматы: webm, mp3, wav, ogg
 - rate limit через /api/v1/ai/* middleware
 """
+
 from __future__ import annotations
 
 import logging
@@ -41,9 +42,7 @@ MAX_AUDIO_SIZE_BYTES = 25 * 1024 * 1024  # 25 МБ
 
 # Sprint 16.1 P1-5: читаем ключ из settings (не os.environ при импорте модуля).
 # Позволяет override в тестах и reload без рестарта процесса.
-WHISPER_API_URL = os.environ.get(
-    "WHISPER_API_URL", "https://api.openai.com/v1/audio/transcriptions"
-)
+WHISPER_API_URL = os.environ.get("WHISPER_API_URL", "https://api.openai.com/v1/audio/transcriptions")
 
 
 @router.post("/transcribe")

@@ -7,6 +7,7 @@ Covers:
 - Auth required (401 without token)
 - _parse_questions strips numeration/code blocks, fallback на placeholder
 """
+
 from __future__ import annotations
 
 import os
@@ -112,6 +113,7 @@ def test_understand_check_out_model() -> None:
 
 # === FastAPI integration (TestClient) ====================================
 
+
 def test_endpoint_requires_auth() -> None:
     """Без токена /understand-check/{id} возвращает 401."""
     from app.main import app
@@ -144,9 +146,7 @@ def test_endpoint_404_on_missing_topic(tmp_path) -> None:
         sess.rollback()
 
     # Создадим admin user для auth (используем готовый)
-    admin = sess.execute(
-        select(User).where(User.email == "admin@example.com")
-    ).scalar_one_or_none()
+    admin = sess.execute(select(User).where(User.email == "admin@example.com")).scalar_one_or_none()
     if admin is None:
         admin = User(
             email="admin@example.com",
@@ -168,6 +168,7 @@ def test_endpoint_404_on_missing_topic(tmp_path) -> None:
     if r.status_code != 200:
         # Если login без cookie: используем header
         from fastapi.testclient import TestClient
+
         c2 = TestClient(app)
         # Просто проверим 404 path через другую тему — нет, нужно сначала залогиниться
         pytest.skip(f"admin login failed: {r.text}")

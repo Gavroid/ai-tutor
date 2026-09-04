@@ -1,4 +1,5 @@
 """Sprint 34: тесты для session pause (T1D safety)."""
+
 from __future__ import annotations
 
 import os
@@ -132,6 +133,7 @@ def test_list_recent_pauses(client, student_login):
         # Получаем user_id из текущего токена (JWT subject).
         from app.config import get_settings
         from jose import jwt
+
         s = get_settings()
         token = headers["Authorization"].split()[1]
         user_id = int(jwt.get_unverified_claims(token)["sub"])
@@ -141,8 +143,7 @@ def test_list_recent_pauses(client, student_login):
             started = base - timedelta(seconds=10 - i)
             conn.execute(
                 text(
-                    "INSERT INTO session_pauses (user_id, topic_id, reason, started_at) "
-                    "VALUES (:uid, NULL, :r, :ts)"
+                    "INSERT INTO session_pauses (user_id, topic_id, reason, started_at) " "VALUES (:uid, NULL, :r, :ts)"
                 ),
                 {"uid": user_id, "r": reason, "ts": started},
             )

@@ -1,4 +1,5 @@
 """Тесты audit log и админ-эндпоинтов."""
+
 from __future__ import annotations
 
 import os
@@ -319,6 +320,7 @@ def _login_kid(client):
     )
     return r.json()["access_token"]
 
+
 def test_audit_log_captures_ip_via_middleware(client):
     """Audit log записи получают IP из request contextvar (middleware)."""
     # Register — пишет user.register в audit log
@@ -344,9 +346,7 @@ def test_audit_log_captures_ip_via_middleware(client):
         from sqlalchemy import select
 
         events = s.scalars(
-            select(AuditLog)
-            .where(AuditLog.action == "user.register")
-            .order_by(AuditLog.id.desc())
+            select(AuditLog).where(AuditLog.action == "user.register").order_by(AuditLog.id.desc())
         ).all()
         assert len(events) >= 1
         # X-Forwarded-For: первый IP — 203.0.113.42

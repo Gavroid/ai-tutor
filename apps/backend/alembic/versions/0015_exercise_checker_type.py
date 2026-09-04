@@ -6,6 +6,7 @@
 
 Backwards compatible: новые колонки nullable, default = 'keyword'.
 """
+
 from collections.abc import Sequence
 from typing import Union
 

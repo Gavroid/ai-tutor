@@ -13,6 +13,7 @@ BM25 (Best Matching 25) — классический ranking function для key
 
 Гипотеза Sprint 57: BM25 улучшит Recall@5 с 0% (Sprint 43) до 40-60%.
 """
+
 from __future__ import annotations
 
 import logging
@@ -31,15 +32,81 @@ logger = logging.getLogger(__name__)
 _STOP_WORDS = frozenset(
     {
         # Russian
-        "и", "в", "на", "с", "по", "для", "что", "это", "как", "а", "но",
-        "из", "за", "к", "о", "у", "от", "до", "же", "бы", "ли", "ни",
-        "он", "она", "оно", "они", "мы", "вы", "я", "ты",
-        "не", "да", "нет", "так", "вот", "если", "то",
+        "и",
+        "в",
+        "на",
+        "с",
+        "по",
+        "для",
+        "что",
+        "это",
+        "как",
+        "а",
+        "но",
+        "из",
+        "за",
+        "к",
+        "о",
+        "у",
+        "от",
+        "до",
+        "же",
+        "бы",
+        "ли",
+        "ни",
+        "он",
+        "она",
+        "оно",
+        "они",
+        "мы",
+        "вы",
+        "я",
+        "ты",
+        "не",
+        "да",
+        "нет",
+        "так",
+        "вот",
+        "если",
+        "то",
         # English
-        "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
-        "of", "with", "by", "is", "are", "was", "were", "be", "been",
-        "this", "that", "these", "those", "i", "you", "he", "she", "it",
-        "we", "they", "what", "which", "who", "how", "when", "where",
+        "the",
+        "a",
+        "an",
+        "and",
+        "or",
+        "but",
+        "in",
+        "on",
+        "at",
+        "to",
+        "for",
+        "of",
+        "with",
+        "by",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "this",
+        "that",
+        "these",
+        "those",
+        "i",
+        "you",
+        "he",
+        "she",
+        "it",
+        "we",
+        "they",
+        "what",
+        "which",
+        "who",
+        "how",
+        "when",
+        "where",
     }
 )
 
@@ -59,10 +126,7 @@ def tokenize(text: str) -> list[str]:
     # \w+ in Python re includes Unicode letters (Russian, etc.)
     tokens = re.findall(r"\w+", text, re.UNICODE)
     # Filter
-    return [
-        t for t in tokens
-        if len(t) >= 2 and t not in _STOP_WORDS
-    ]
+    return [t for t in tokens if len(t) >= 2 and t not in _STOP_WORDS]
 
 
 # === BM25 ===
@@ -118,6 +182,7 @@ def bm25_score(
 
 # === Title boost ===
 
+
 def title_boost(
     query_tokens: list[str],
     title: str | None,
@@ -145,6 +210,7 @@ def title_boost(
 
 
 # === Recency boost ===
+
 
 def recency_boost(
     base_score: float,
@@ -182,6 +248,7 @@ def recency_boost(
 
 
 # === High-level search ===
+
 
 def bm25_search(
     query: str,
@@ -251,9 +318,7 @@ def bm25_search(
             continue
         # Title boost
         if title_boost_factor > 1.0:
-            score = title_boost(
-                query_tokens, chunk.get("material_title"), score, title_boost_factor
-            )
+            score = title_boost(query_tokens, chunk.get("material_title"), score, title_boost_factor)
         # Recency boost
         if recency_enabled and chunk.get("created_at"):
             try:

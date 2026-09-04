@@ -1,4 +1,5 @@
 """Тесты email-per-lesson notification (record_attempt → parent notify)."""
+
 from __future__ import annotations
 
 import os
@@ -152,15 +153,12 @@ def test_notification_on_milestone_attempts(db):
 
         # На 5-м attempt должно быть уведомление (mock записывает каждый вызов).
         assert mock_notify.call_count >= 1, (
-            f"Expected notify_parents_of_milestone to be called at least once, "
-            f"got {mock_notify.call_count}"
+            f"Expected notify_parents_of_milestone to be called at least once, " f"got {mock_notify.call_count}"
         )
         # Зафиксируем сигнатуру вызова для regression-guard: первый аргумент — db session.
         # Реальный код может использовать positional/keyword, главное — он вызван.
         first_call = mock_notify.call_args_list[0]
-        assert first_call[0][0] is not None, (
-            "notify_parents_of_milestone should be called with a session as first arg"
-        )
+        assert first_call[0][0] is not None, "notify_parents_of_milestone should be called with a session as first arg"
 
 
 def test_notification_function_is_callable(db):

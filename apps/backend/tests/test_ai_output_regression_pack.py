@@ -1,4 +1,5 @@
 """Regression pack for student-facing AI output quality."""
+
 from __future__ import annotations
 
 from app.ai.hermes import _prepare_model_output
@@ -44,8 +45,6 @@ def test_output_normalizes_broken_display_math_for_mobile_reading() -> None:
 
 
 def test_output_trims_unfinished_teacher_like_fragment() -> None:
-    content = _trim_incomplete_trailing_fragment(
-        "Решение готово. Теперь попробуй похожую задачу:\n\nВ"
-    )
+    content = _trim_incomplete_trailing_fragment("Решение готово. Теперь попробуй похожую задачу:\n\nВ")
 
     assert content == "Решение готово."

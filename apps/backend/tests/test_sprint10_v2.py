@@ -1,4 +1,5 @@
 """Sprint 10.3: API v2 каркас."""
+
 from __future__ import annotations
 
 import pytest

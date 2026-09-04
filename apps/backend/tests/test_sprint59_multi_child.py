@@ -5,6 +5,7 @@
 - /me/children/count endpoint
 - multi-child linking (parent → multiple students)
 """
+
 from __future__ import annotations
 
 import pytest

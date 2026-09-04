@@ -16,6 +16,7 @@
 Revision ID: 0008_material_workflow
 Revises: 0007_password_reset
 """
+
 from collections.abc import Sequence
 from typing import Union
 
@@ -54,9 +55,7 @@ def upgrade() -> None:
                 nullable=True,
             )
         )
-        batch_op.add_column(
-            sa.Column("published_at", sa.DateTime(timezone=True), nullable=True)
-        )
+        batch_op.add_column(sa.Column("published_at", sa.DateTime(timezone=True), nullable=True))
         batch_op.add_column(
             sa.Column(
                 "source_type",
@@ -66,15 +65,9 @@ def upgrade() -> None:
             )
         )
         batch_op.add_column(sa.Column("ai_confidence", sa.Text(), nullable=True))
-        batch_op.create_index(
-            "ix_learning_materials_status", ["status"]
-        )
-        batch_op.create_index(
-            "ix_learning_materials_topic_status", ["topic_id", "status"]
-        )
-        batch_op.create_index(
-            "ix_learning_materials_generated_by", ["generated_by"]
-        )
+        batch_op.create_index("ix_learning_materials_status", ["status"])
+        batch_op.create_index("ix_learning_materials_topic_status", ["topic_id", "status"])
+        batch_op.create_index("ix_learning_materials_generated_by", ["generated_by"])
         # FK constraints — отдельными вызовами с именами (batch mode требует имя).
         batch_op.create_foreign_key(
             "fk_learning_materials_generated_by",
@@ -94,12 +87,8 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     with op.batch_alter_table("learning_materials") as batch_op:
-        batch_op.drop_constraint(
-            "fk_learning_materials_approved_by", type_="foreignkey"
-        )
-        batch_op.drop_constraint(
-            "fk_learning_materials_generated_by", type_="foreignkey"
-        )
+        batch_op.drop_constraint("fk_learning_materials_approved_by", type_="foreignkey")
+        batch_op.drop_constraint("fk_learning_materials_generated_by", type_="foreignkey")
         batch_op.drop_index("ix_learning_materials_generated_by")
         batch_op.drop_index("ix_learning_materials_topic_status")
         batch_op.drop_index("ix_learning_materials_status")

@@ -1,4 +1,5 @@
 """Тесты password reset flow."""
+
 from __future__ import annotations
 
 import os
@@ -24,7 +25,9 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture()
 def client():
-    Base.metadata.drop_all(engine); engine.dispose(); Base.metadata.create_all(engine)
+    Base.metadata.drop_all(engine)
+    engine.dispose()
+    Base.metadata.create_all(engine)
 
     s = SessionLocal()
     user_service.register_user(

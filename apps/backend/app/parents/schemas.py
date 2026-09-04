@@ -1,4 +1,5 @@
 """Схемы для родительского кабинета (Sprint 3)."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -22,6 +23,7 @@ class LinkedStudent(BaseModel):
     PII minimization. Parent знает ребёнка лично, ему не нужен email
     ребёнка в API-ответе. Если нужен в UI — брать из JWT/auth.
     """
+
     student_id: int
     display_name: str
     linked_at: datetime
@@ -45,6 +47,7 @@ class StudentBrief(BaseModel):
 
     Sprint 2026-08-23 (H2.3): ``email`` удалён — PII minimization.
     """
+
     id: int
     display_name: str
 
@@ -61,6 +64,7 @@ class ChildOverview(BaseModel):
 
 
 # === Sprint 3.1: расширенный дашборд ===
+
 
 class SubjectMastery(BaseModel):
     """Mastery по предмету (агрегат по всем темам)."""

@@ -26,7 +26,14 @@ def test_extracted_text_import_manifest_uses_passed_probe_rows() -> None:
 def test_extracted_text_import_manifest_ignores_failed_probe_rows() -> None:
     probe = {
         "rows": [
-            {"topic_id": 37, "status": "fail", "asset_url": "x", "source_section": "Unit 2", "source_key": "im_first_edition", "text_excerpt": ""}
+            {
+                "topic_id": 37,
+                "status": "fail",
+                "asset_url": "x",
+                "source_section": "Unit 2",
+                "source_key": "im_first_edition",
+                "text_excerpt": "",
+            }
         ]
     }
 

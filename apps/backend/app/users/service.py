@@ -1,4 +1,5 @@
 """Сервис регистрации/логина."""
+
 from __future__ import annotations
 
 from app.auth.security import create_access_token, create_refresh_token, hash_password, verify_password
@@ -49,9 +50,7 @@ def register_user(
 
     existing = db.scalar(select(User).where(User.email == payload.email.lower()))
     if existing is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="Email already registered"
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
     user = User(
         email=payload.email.lower(),
@@ -64,9 +63,7 @@ def register_user(
         db.flush()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="Email already registered"
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
     if payload.role == Role.STUDENT:
         profile = StudentProfile(
@@ -83,13 +80,9 @@ def register_user(
 def authenticate(db: Session, email: str, password: str) -> User:
     user = db.scalar(select(User).where(User.email == email.lower()))
     if user is None or not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     if not verify_password(password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     return user
 
 
@@ -97,6 +90,7 @@ def issue_tokens(user: User) -> schemas.TokenPair:
     access, ttl = create_access_token(user)
     refresh = create_refresh_token(user)
     return schemas.TokenPair(access_token=access, refresh_token=refresh, expires_in=ttl)
+
 
 def get_user_by_email(db: Session, email: str) -> User | None:
     """Получить пользователя по email (для OAuth и других flows)."""

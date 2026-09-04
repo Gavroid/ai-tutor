@@ -11,6 +11,7 @@
 8. Subject routing: 404 на несуществующий предмет / модель.
 9. Non-admin получает 403.
 """
+
 from __future__ import annotations
 
 import os
@@ -97,6 +98,7 @@ def _auth(token: str) -> dict[str, str]:
 
 # ---------- 1. Encryption ----------
 
+
 def test_encryption_roundtrip():
     enc = prov_service.encrypt_api_key("sk-or-test-1234567890abcdef")
     assert isinstance(enc, bytes)
@@ -111,6 +113,7 @@ def test_api_key_last4():
 
 
 # ---------- 2. CRUD ----------
+
 
 def test_create_and_list_provider(client: TestClient):
     token = _login(client, "admin@example.com", "strongpass1")
@@ -207,6 +210,7 @@ def test_delete_provider(client: TestClient):
 
 # ---------- 3. Fetch models ----------
 
+
 @pytest.mark.asyncio
 async def test_fetch_models_creates_catalog(client: TestClient):
     token = _login(client, "admin@example.com", "strongpass1")
@@ -222,17 +226,28 @@ async def test_fetch_models_creates_catalog(client: TestClient):
     pid = r.json()["id"]
 
     # Mock httpx response.
-    fake_resp = type("R", (), {
-        "status_code": 200,
-        "json": lambda self: {"data": [{"id": "model-a"}, {"id": "model-b"}, {"id": "model-c"}]},
-        "text": "{}",
-    })()
+    fake_resp = type(
+        "R",
+        (),
+        {
+            "status_code": 200,
+            "json": lambda self: {"data": [{"id": "model-a"}, {"id": "model-b"}, {"id": "model-c"}]},
+            "text": "{}",
+        },
+    )()
 
     class FakeAsyncClient:
-        def __init__(self, *args, **kwargs): pass
-        async def __aenter__(self): return self
-        async def __aexit__(self, *a): pass
-        async def get(self, *a, **kw): return fake_resp
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            pass
+
+        async def get(self, *a, **kw):
+            return fake_resp
 
     with patch("app.admin.ai_providers_service.httpx.AsyncClient", FakeAsyncClient):
         r = client.post(f"/api/v1/admin/ai-providers/{pid}/fetch", headers=_auth(token))
@@ -262,11 +277,19 @@ async def test_test_provider_connection_ok(client: TestClient):
     pid = r.json()["id"]
 
     fake_resp = type("R", (), {"status_code": 200, "json": lambda self: {"data": [{"id": "m1"}]}, "text": "{}"})()
+
     class FakeAC:
-        def __init__(self, *a, **kw): pass
-        async def __aenter__(self): return self
-        async def __aexit__(self, *a): pass
-        async def get(self, *a, **kw): return fake_resp
+        def __init__(self, *a, **kw):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            pass
+
+        async def get(self, *a, **kw):
+            return fake_resp
 
     with patch("app.admin.ai_providers_service.httpx.AsyncClient", FakeAC):
         r = client.post(f"/api/v1/admin/ai-providers/{pid}/test", headers=_auth(token))
@@ -289,11 +312,19 @@ async def test_test_provider_connection_fail(client: TestClient):
     pid = r.json()["id"]
 
     fake_resp = type("R", (), {"status_code": 401, "json": lambda self: {}, "text": "Unauthorized"})()
+
     class FakeAC:
-        def __init__(self, *a, **kw): pass
-        async def __aenter__(self): return self
-        async def __aexit__(self, *a): pass
-        async def get(self, *a, **kw): return fake_resp
+        def __init__(self, *a, **kw):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            pass
+
+        async def get(self, *a, **kw):
+            return fake_resp
 
     with patch("app.admin.ai_providers_service.httpx.AsyncClient", FakeAC):
         r = client.post(f"/api/v1/admin/ai-providers/{pid}/test", headers=_auth(token))
@@ -305,12 +336,14 @@ async def test_test_provider_connection_fail(client: TestClient):
 
 # ---------- 4. Toggle model ----------
 
+
 def test_toggle_model(client: TestClient):
     token = _login(client, "admin@example.com", "strongpass1")
     s = SessionLocal()
     try:
         # Создаём провайдера и модель напрямую через сервис.
         from app.admin.ai_providers_service import create_provider
+
         provider = create_provider(
             s,
             name="P",
@@ -321,6 +354,7 @@ def test_toggle_model(client: TestClient):
             note=None,
         )
         from app.admin.ai_providers import AIModelCatalog
+
         m = AIModelCatalog(provider_id=provider.id, model_name="model-x", is_active=False)
         s.add(m)
         s.commit()
@@ -336,20 +370,33 @@ def test_toggle_model(client: TestClient):
 
 # ---------- 5. Subject assignment ----------
 
+
 def test_assign_models_to_subject(client: TestClient):
     token = _login(client, "admin@example.com", "strongpass1")
     s = SessionLocal()
     try:
         from app.admin.ai_providers_service import create_provider
+
         prov1 = create_provider(
-            s, name="P1", kind="openai_compat",
-            base_url="https://x.com/v1", api_key="key-12345", is_active=True, note=None,
+            s,
+            name="P1",
+            kind="openai_compat",
+            base_url="https://x.com/v1",
+            api_key="key-12345",
+            is_active=True,
+            note=None,
         )
         prov2 = create_provider(
-            s, name="P2", kind="openai_compat",
-            base_url="https://y.com/v1", api_key="key-67890", is_active=True, note=None,
+            s,
+            name="P2",
+            kind="openai_compat",
+            base_url="https://y.com/v1",
+            api_key="key-67890",
+            is_active=True,
+            note=None,
         )
         from app.admin.ai_providers import AIModelCatalog
+
         m1 = AIModelCatalog(provider_id=prov1.id, model_name="model-A", is_active=True)
         m2 = AIModelCatalog(provider_id=prov2.id, model_name="model-B", is_active=True)
         s.add_all([m1, m2])
@@ -398,11 +445,18 @@ def test_clear_primary_with_zero(client: TestClient):
     s = SessionLocal()
     try:
         from app.admin.ai_providers_service import create_provider
+
         prov = create_provider(
-            s, name="P", kind="openai_compat",
-            base_url="https://x.com/v1", api_key="key-12345", is_active=True, note=None,
+            s,
+            name="P",
+            kind="openai_compat",
+            base_url="https://x.com/v1",
+            api_key="key-12345",
+            is_active=True,
+            note=None,
         )
         from app.admin.ai_providers import AIModelCatalog
+
         m = AIModelCatalog(provider_id=prov.id, model_name="model-X", is_active=True)
         s.add(m)
         s.commit()
@@ -427,6 +481,7 @@ def test_clear_primary_with_zero(client: TestClient):
 
 # ---------- 6. Resolve provider for subject ----------
 
+
 def test_resolve_provider_for_subject_returns_config(client: TestClient):
     s = SessionLocal()
     try:
@@ -435,13 +490,18 @@ def test_resolve_provider_for_subject_returns_config(client: TestClient):
             create_provider,
             resolve_provider_for_subject,
         )
+
         prov = create_provider(
-            s, name="OpenRouter", kind="openai_compat",
+            s,
+            name="OpenRouter",
+            kind="openai_compat",
             base_url="https://openrouter.ai/api/v1",
             api_key="sk-or-v1-test-12345678",
-            is_active=True, note=None,
+            is_active=True,
+            note=None,
         )
         from app.admin.ai_providers import AIModelCatalog
+
         m = AIModelCatalog(provider_id=prov.id, model_name="gpt-test", is_active=True)
         s.add(m)
         s.commit()
@@ -463,6 +523,7 @@ def test_resolve_provider_returns_none_if_not_configured(client: TestClient):
     s = SessionLocal()
     try:
         from app.admin.ai_providers_service import resolve_provider_for_subject
+
         subj = s.query(subj_models.Subject).filter(subj_models.Subject.code == "physics").one()
         cfg = resolve_provider_for_subject(s, subj.id)
         assert cfg is None  # Не настроено — fallback на default.
@@ -478,12 +539,18 @@ def test_resolve_provider_returns_none_if_inactive(client: TestClient):
             create_provider,
             resolve_provider_for_subject,
         )
+
         prov = create_provider(
-            s, name="Disabled", kind="openai_compat",
-            base_url="https://x.com/v1", api_key="k1234567",
-            is_active=False, note=None,  # Неактивный провайдер.
+            s,
+            name="Disabled",
+            kind="openai_compat",
+            base_url="https://x.com/v1",
+            api_key="k1234567",
+            is_active=False,
+            note=None,  # Неактивный провайдер.
         )
         from app.admin.ai_providers import AIModelCatalog
+
         m = AIModelCatalog(provider_id=prov.id, model_name="m1", is_active=True)
         s.add(m)
         s.commit()
@@ -498,6 +565,7 @@ def test_resolve_provider_returns_none_if_inactive(client: TestClient):
 
 # ---------- 7. AIService._complete_with_fallback flow ----------
 
+
 @pytest.mark.asyncio
 async def test_complete_with_fallback_primary_ok(client: TestClient):
     s = SessionLocal()
@@ -509,11 +577,16 @@ async def test_complete_with_fallback_primary_ok(client: TestClient):
         from app.ai.types import AIRequest, AIResponse
 
         prov = create_provider(
-            s, name="P1", kind="openai_compat",
-            base_url="https://x.com/v1", api_key="kkkk-1234",
-            is_active=True, note=None,
+            s,
+            name="P1",
+            kind="openai_compat",
+            base_url="https://x.com/v1",
+            api_key="kkkk-1234",
+            is_active=True,
+            note=None,
         )
         from app.admin.ai_providers import AIModelCatalog
+
         m = AIModelCatalog(provider_id=prov.id, model_name="model-A", is_active=True)
         s.add(m)
         s.commit()
@@ -524,6 +597,7 @@ async def test_complete_with_fallback_primary_ok(client: TestClient):
         # Создаём AIService с default provider (mock).
         from app.ai.mock import MockProvider
         from app.ai.service import AIService
+
         svc = AIService(MockProvider())
 
         # Mock primary provider's complete.
@@ -552,16 +626,25 @@ async def test_complete_with_fallback_primary_fails_fallback_ok(client: TestClie
         from app.ai.types import AIRequest, AIResponse
 
         prov1 = create_provider(
-            s, name="Primary", kind="openai_compat",
-            base_url="https://primary.com/v1", api_key="primary-key",
-            is_active=True, note=None,
+            s,
+            name="Primary",
+            kind="openai_compat",
+            base_url="https://primary.com/v1",
+            api_key="primary-key",
+            is_active=True,
+            note=None,
         )
         prov2 = create_provider(
-            s, name="Fallback", kind="openai_compat",
-            base_url="https://fallback.com/v1", api_key="fallback-key",
-            is_active=True, note=None,
+            s,
+            name="Fallback",
+            kind="openai_compat",
+            base_url="https://fallback.com/v1",
+            api_key="fallback-key",
+            is_active=True,
+            note=None,
         )
         from app.admin.ai_providers import AIModelCatalog
+
         m1 = AIModelCatalog(provider_id=prov1.id, model_name="primary-model", is_active=True)
         m2 = AIModelCatalog(provider_id=prov2.id, model_name="fallback-model", is_active=True)
         s.add_all([m1, m2])
@@ -574,6 +657,7 @@ async def test_complete_with_fallback_primary_fails_fallback_ok(client: TestClie
 
         from app.ai.mock import MockProvider
         from app.ai.service import AIService
+
         svc = AIService(MockProvider())
 
         # Primary fails, fallback succeeds.
@@ -613,6 +697,7 @@ async def test_complete_with_no_subject_falls_back_to_default(client: TestClient
 
 # ---------- 8. Auth: non-admin gets 403 ----------
 
+
 def test_non_admin_cannot_access_ai_providers(client: TestClient):
     token = _login(client, "kid@example.com", "strongpass1")
     r = client.get("/api/v1/admin/ai-providers", headers=_auth(token))
@@ -625,6 +710,7 @@ def test_anonymous_cannot_access_ai_providers(client: TestClient):
 
 
 # ---------- 9. Edge cases ----------
+
 
 def test_assign_to_nonexistent_subject(client: TestClient):
     token = _login(client, "admin@example.com", "strongpass1")

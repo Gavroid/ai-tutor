@@ -1,4 +1,5 @@
 """Sprint 70: real RAG embeddings tests."""
+
 from __future__ import annotations
 
 import os
@@ -10,6 +11,7 @@ import numpy as np
 import pytest
 
 # === Module-level tests (без DB) ===
+
 
 def test_rag_embeddings_module_imports():
     """Sprint 70: rag_embeddings module imports."""
@@ -66,6 +68,7 @@ def test_cosine_similarity_normalized_vectors():
 
 # === Real encoding tests (требует ~500MB RAM для model) ===
 
+
 @pytest.mark.slow
 def test_encode_texts_russian():
     """Sprint 70: Russian text encoding (multilingual model)."""
@@ -118,8 +121,7 @@ def test_semantic_similarity_related_vs_unrelated():
 
     # Related texts должны быть more similar
     assert sim_related > sim_unrelated, (
-        f"Related similarity {sim_related:.3f} should be > "
-        f"unrelated {sim_unrelated:.3f}"
+        f"Related similarity {sim_related:.3f} should be > " f"unrelated {sim_unrelated:.3f}"
     )
 
 

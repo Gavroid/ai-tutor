@@ -3,6 +3,7 @@
 БД: SQLite in-memory, таблицы создаются через Base.metadata.create_all в фикстуре.
 Это даёт реальные запросы SQL без поднятия Postgres в тестах.
 """
+
 from __future__ import annotations
 
 import os
@@ -160,14 +161,25 @@ def test_registration_allowlist_is_student_and_parent_only(client):
     # student — accepted
     r = client.post(
         "/api/v1/auth/register",
-        json={"email": "stud-allowed@example.com", "password": "strongpass1", "display_name": "Ученик", "role": "student", "grade": 7},
+        json={
+            "email": "stud-allowed@example.com",
+            "password": "strongpass1",
+            "display_name": "Ученик",
+            "role": "student",
+            "grade": 7,
+        },
     )
     assert r.status_code == 201, r.text
 
     # parent — accepted
     r = client.post(
         "/api/v1/auth/register",
-        json={"email": "parent-allowed@example.com", "password": "strongpass1", "display_name": "Родитель", "role": "parent"},
+        json={
+            "email": "parent-allowed@example.com",
+            "password": "strongpass1",
+            "display_name": "Родитель",
+            "role": "parent",
+        },
     )
     assert r.status_code == 201, r.text
 
@@ -217,7 +229,6 @@ def test_login_wrong_password_401(client):
     assert r.status_code == 401
 
 
-
 def test_login_accepts_seed_local_email_without_422(client):
     """Design audit B-01: seed demo .local accounts must reach auth, not Pydantic 422.
 
@@ -246,6 +257,7 @@ def test_login_accepts_seed_local_email_without_422(client):
 
     assert response.status_code == 200, response.text
     assert response.json()["token_type"] == "bearer"
+
 
 def test_me_requires_token(client):
     r = client.get("/api/v1/auth/me")

@@ -1,4 +1,5 @@
 """Alembic env — берёт URL из app.config (тот же, что использует приложение)."""
+
 from logging.config import fileConfig
 
 from alembic import context

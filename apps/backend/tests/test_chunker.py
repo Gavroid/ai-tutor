@@ -1,4 +1,5 @@
 """Тесты paragraph-aware chunker."""
+
 from __future__ import annotations
 
 import os
@@ -56,9 +57,9 @@ def test_overlap_carryover():
     if len(chunks) >= 2:
         tail = chunks[0].text[-40:]
         head = chunks[1].text[:80]
-        assert tail.strip() in head or head.startswith(tail.strip()[:20]), (
-            f"overlap not preserved: tail={tail!r}, head={head!r}"
-        )
+        assert tail.strip() in head or head.startswith(
+            tail.strip()[:20]
+        ), f"overlap not preserved: tail={tail!r}, head={head!r}"
 
 
 def test_metadata_preserved():

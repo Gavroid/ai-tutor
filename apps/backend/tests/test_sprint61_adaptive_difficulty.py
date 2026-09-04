@@ -9,6 +9,7 @@
   - medium accuracy (0.5-0.8) → 2 (medium)
 - Integration в /api/v2/exercises/generate (auto difficulty)
 """
+
 from __future__ import annotations
 
 from datetime import UTC
@@ -29,6 +30,7 @@ def client():
 
 
 # === compute_adaptive_difficulty() tests ===
+
 
 def test_adaptive_recovery_mode_returns_easy():
     """Sprint 61: recovery_mode=True → difficulty=1 (easy)."""
@@ -51,10 +53,13 @@ def test_adaptive_no_attempts_returns_medium():
     class MockQuery:
         def filter(self, *args):
             return self
+
         def order_by(self, *args):
             return self
+
         def limit(self, *args):
             return self
+
         def all(self):
             return []
 
@@ -78,10 +83,13 @@ def test_adaptive_low_accuracy_returns_easy():
     class MockQuery:
         def filter(self, *args):
             return self
+
         def order_by(self, *args):
             return self
+
         def limit(self, *args):
             return self
+
         def all(self):
             return [MockAttempt(0.3), MockAttempt(0.4), MockAttempt(0.2)]
 
@@ -104,10 +112,13 @@ def test_adaptive_high_accuracy_returns_hard():
     class MockQuery:
         def filter(self, *args):
             return self
+
         def order_by(self, *args):
             return self
+
         def limit(self, *args):
             return self
+
         def all(self):
             return [MockAttempt(0.9), MockAttempt(0.85), MockAttempt(0.95)]
 
@@ -130,10 +141,13 @@ def test_adaptive_medium_accuracy_returns_medium():
     class MockQuery:
         def filter(self, *args):
             return self
+
         def order_by(self, *args):
             return self
+
         def limit(self, *args):
             return self
+
         def all(self):
             return [MockAttempt(0.6), MockAttempt(0.7), MockAttempt(0.5)]
 
@@ -156,10 +170,13 @@ def test_adaptive_high_accuracy_but_few_attempts_returns_medium():
     class MockQuery:
         def filter(self, *args):
             return self
+
         def order_by(self, *args):
             return self
+
         def limit(self, *args):
             return self
+
         def all(self):
             # Только 2 attempts, оба с высоким score
             return [MockAttempt(0.9), MockAttempt(0.95)]
@@ -184,10 +201,13 @@ def test_adaptive_recovery_overrides_high_accuracy():
     class MockQuery:
         def filter(self, *args):
             return self
+
         def order_by(self, *args):
             return self
+
         def limit(self, *args):
             return self
+
         def all(self):
             return [MockAttempt(0.9), MockAttempt(0.95), MockAttempt(0.9)]
 
@@ -201,6 +221,7 @@ def test_adaptive_recovery_overrides_high_accuracy():
 
 
 # === Integration tests: /api/v2/exercises/generate ===
+
 
 def test_generate_with_explicit_difficulty_uses_it(client):
     """Sprint 61: difficulty=2 (explicit) → используется как есть, не adaptive."""

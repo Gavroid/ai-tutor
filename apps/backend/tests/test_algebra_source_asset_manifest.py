@@ -10,7 +10,10 @@ def test_asset_manifest_covers_all_algebra_topics_with_exact_assets() -> None:
     assert manifest["topic_count"] == 19
     assert len(manifest["assets"]) == 19
     assert len({asset["topic_id"] for asset in manifest["assets"]}) == 19
-    assert all(asset["asset_url"].startswith(("https://im.kendallhunt.com/", "http://www.wallace.ccfaculty.org/")) for asset in manifest["assets"])
+    assert all(
+        asset["asset_url"].startswith(("https://im.kendallhunt.com/", "http://www.wallace.ccfaculty.org/"))
+        for asset in manifest["assets"]
+    )
     assert all(asset["production_mutation"] is False for asset in manifest["assets"])
 
 

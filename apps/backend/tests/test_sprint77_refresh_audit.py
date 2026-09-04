@@ -1,4 +1,5 @@
 """Sprint 77: refresh token audit logging tests (Kimi P1-3)."""
+
 from __future__ import annotations
 
 import os
@@ -47,6 +48,7 @@ def tokens(client):
 
 
 # === Tests: refresh token logs audit ===
+
 
 def test_refresh_logs_audit_record(client, tokens):
     """Sprint 77: refresh endpoint creates audit_log record."""
@@ -134,12 +136,7 @@ def test_refresh_logs_via_field(client, tokens):
     from sqlalchemy.orm import Session
 
     with Session(engine) as db:
-        log = (
-            db.query(AuditLog)
-            .filter(AuditLog.action == "auth.refresh")
-            .order_by(AuditLog.id.desc())
-            .first()
-        )
+        log = db.query(AuditLog).filter(AuditLog.action == "auth.refresh").order_by(AuditLog.id.desc()).first()
         details = json.loads(log.details) if log.details else {}
         assert details.get("via") in ("body", "cookie")
         assert details.get("rotation") is True

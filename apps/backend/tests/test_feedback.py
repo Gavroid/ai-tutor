@@ -4,6 +4,7 @@ Sprint goal: простая форма фидбека для Kirill-pilot. Со�
 в audit_log action='user.feedback'. Comment НЕ сохраняется (только длина)
 для PII minimization — дети могут написать свободный текст.
 """
+
 from __future__ import annotations
 
 import os
@@ -124,6 +125,7 @@ def test_feedback_validates_feeling_field(client_with_student):
 def test_feedback_does_not_persist_comment_to_audit(client_with_student):
     """Comment НЕ должен попадать в audit details (PII)."""
     from app.admin import service as audit_service
+
     c = client_with_student
     token = _login(c, "kirill@example.com", "Kirill2026!")
     headers = {"Authorization": f"Bearer {token}"}
@@ -141,9 +143,11 @@ def test_feedback_does_not_persist_comment_to_audit(client_with_student):
         # Ищем запись в audit_log
         from app.admin.models import AuditLog
         from sqlalchemy import select
+
         rec = db.scalar(select(AuditLog).where(AuditLog.id == feedback_id))
         assert rec is not None, f"audit record {feedback_id} not found"
         import json
+
         details = rec.details if isinstance(rec.details, dict) else json.loads(rec.details or "{}")
         # comment НЕ должен присутствовать
         assert secret_comment not in str(details)

@@ -1,4 +1,5 @@
 """Sprint 57: BM25 keyword search tests."""
+
 from __future__ import annotations
 
 import math
@@ -7,6 +8,7 @@ from datetime import datetime, timedelta
 import pytest
 
 # === Tokenization tests ===
+
 
 def test_tokenize_basic_russian():
     """Sprint 57: tokenization работает для русского."""
@@ -51,6 +53,7 @@ def test_tokenize_lowercases():
 
 
 # === BM25 scoring tests ===
+
 
 def test_bm25_score_returns_zero_for_no_match():
     """Sprint 57: нет match → 0 score."""
@@ -109,6 +112,7 @@ def test_bm25_score_higher_for_relevant_doc():
 
 # === Title boost tests ===
 
+
 def test_title_boost_full_match():
     """Sprint 57: all query terms в title → boost."""
     from app.rag_bm25 import title_boost
@@ -164,6 +168,7 @@ def test_title_boost_handles_none():
 
 # === Recency boost tests ===
 
+
 def test_recency_boost_fresh_content():
     """Sprint 57: свежий контент → no decay."""
     from app.rag_bm25 import recency_boost
@@ -213,6 +218,7 @@ def test_recency_boost_very_old():
 
 
 # === High-level bm25_search tests ===
+
 
 def test_bm25_search_returns_relevant_chunks():
     """Sprint 57: BM25 search возвращает relevant chunks в порядке score."""
@@ -279,6 +285,7 @@ def test_bm25_search_recency_boost_works():
     """Sprint 57: свежий контент выше старого при равном BM25 score."""
     # Используем explicit "now" чтобы test был детерминированным.
     from app.rag_bm25 import bm25_search, recency_boost
+
     now = datetime(2024, 6, 1, 12, 0, 0)
     old = (now - timedelta(days=300)).isoformat()
     fresh = now.isoformat()
@@ -320,9 +327,11 @@ def test_bm25_search_recency_boost_works():
 
 # === Integration test: search_bm25_persistent ===
 
+
 def test_search_bm25_persistent_with_empty_db():
     """Sprint 57: empty DB → empty results."""
     from app.db.session import Base, engine
+
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
 
@@ -337,6 +346,7 @@ def test_search_bm25_persistent_with_empty_db():
 def test_search_bm25_persistent_with_chunks():
     """Sprint 57: BM25 search находит relevant chunks в БД."""
     from app.db.session import Base, engine
+
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
 

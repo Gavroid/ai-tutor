@@ -1,4 +1,5 @@
 """Stage 23: parent privacy boundary regression tests."""
+
 from __future__ import annotations
 
 import json
@@ -24,11 +25,36 @@ def client():
 
     with SessionLocal() as db:
         users = [
-            User(email="parent@example.com", password_hash=hash_password("strongpass1"), display_name="Parent", role=Role.PARENT),
-            User(email="student@example.com", password_hash=hash_password("strongpass1"), display_name="Linked Student", role=Role.STUDENT),
-            User(email="other-student@example.com", password_hash=hash_password("strongpass1"), display_name="Other Student", role=Role.STUDENT),
-            User(email="teacher@example.com", password_hash=hash_password("strongpass1"), display_name="Teacher", role=Role.TEACHER),
-            User(email="admin@example.com", password_hash=hash_password("strongpass1"), display_name="Admin", role=Role.ADMIN),
+            User(
+                email="parent@example.com",
+                password_hash=hash_password("strongpass1"),
+                display_name="Parent",
+                role=Role.PARENT,
+            ),
+            User(
+                email="student@example.com",
+                password_hash=hash_password("strongpass1"),
+                display_name="Linked Student",
+                role=Role.STUDENT,
+            ),
+            User(
+                email="other-student@example.com",
+                password_hash=hash_password("strongpass1"),
+                display_name="Other Student",
+                role=Role.STUDENT,
+            ),
+            User(
+                email="teacher@example.com",
+                password_hash=hash_password("strongpass1"),
+                display_name="Teacher",
+                role=Role.TEACHER,
+            ),
+            User(
+                email="admin@example.com",
+                password_hash=hash_password("strongpass1"),
+                display_name="Admin",
+                role=Role.ADMIN,
+            ),
         ]
         db.add_all(users)
         db.flush()

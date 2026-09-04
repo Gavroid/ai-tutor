@@ -1,6 +1,7 @@
 """Сервис диагностики: генерирует 10 вопросов (по 2 на раздел, разные сложности),
 проверяет ответы, считает mastery и формирует рекомендации.
 """
+
 from __future__ import annotations
 
 import json
@@ -64,19 +65,20 @@ def start_diagnostic(db: Session, user_id: int, subject_id: int) -> models.Diagn
     # Math MVP: balanced diagnostic checkpoints across the full route.
     if subject_id == MATH_SUBJECT_ID:
         topic_ids = diagnostic_topic_ids(max_questions=8)
-        topics = db.execute(
-            select(subj_models.Topic)
-            .where(subj_models.Topic.id.in_(topic_ids))
-        ).scalars().all()
+        topics = db.execute(select(subj_models.Topic).where(subj_models.Topic.id.in_(topic_ids))).scalars().all()
         topics = sorted(topics, key=lambda topic: topic_ids.index(topic.id))
     else:
-        topics = db.execute(
-            select(subj_models.Topic)
-            .join(subj_models.Section)
-            .where(subj_models.Section.subject_id == subject_id)
-            .order_by(subj_models.Topic.difficulty, subj_models.Topic.order_index)
-            .limit(5)
-        ).scalars().all()
+        topics = (
+            db.execute(
+                select(subj_models.Topic)
+                .join(subj_models.Section)
+                .where(subj_models.Section.subject_id == subject_id)
+                .order_by(subj_models.Topic.difficulty, subj_models.Topic.order_index)
+                .limit(5)
+            )
+            .scalars()
+            .all()
+        )
 
     session = models.DiagnosticSession(
         user_id=user_id,
@@ -98,11 +100,11 @@ def next_question(db: Session, session_id: int) -> dict | None:
     if sess is None or sess.status != "in_progress":
         return None
 
-    answered = db.execute(
-        select(models.DiagnosticAnswer.topic_id).where(
-            models.DiagnosticAnswer.session_id == session_id
-        )
-    ).scalars().all()
+    answered = (
+        db.execute(select(models.DiagnosticAnswer.topic_id).where(models.DiagnosticAnswer.session_id == session_id))
+        .scalars()
+        .all()
+    )
 
     if sess.subject_id == MATH_SUBJECT_ID:
         route_ids = diagnostic_topic_ids(max_questions=8)
@@ -111,14 +113,18 @@ def next_question(db: Session, session_id: int) -> dict | None:
         if remaining_ids:
             topic = db.get(subj_models.Topic, remaining_ids[0])
     else:
-        topic = db.execute(
-            select(subj_models.Topic)
-            .join(subj_models.Section)
-            .where(subj_models.Section.subject_id == sess.subject_id)
-            .where(subj_models.Topic.id.notin_(answered) if answered else True)
-            .order_by(subj_models.Topic.difficulty, subj_models.Topic.order_index)
-            .limit(1)
-        ).scalars().first()
+        topic = (
+            db.execute(
+                select(subj_models.Topic)
+                .join(subj_models.Section)
+                .where(subj_models.Section.subject_id == sess.subject_id)
+                .where(subj_models.Topic.id.notin_(answered) if answered else True)
+                .order_by(subj_models.Topic.difficulty, subj_models.Topic.order_index)
+                .limit(1)
+            )
+            .scalars()
+            .first()
+        )
 
     if topic is None:
         return None
@@ -228,9 +234,7 @@ def finish_diagnostic(db: Session, session_id: int, user_id: int) -> models.Diag
     if sess.status == "finished":
         return sess
 
-    answers = db.scalars(
-        select(models.DiagnosticAnswer).where(models.DiagnosticAnswer.session_id == session_id)
-    ).all()
+    answers = db.scalars(select(models.DiagnosticAnswer).where(models.DiagnosticAnswer.session_id == session_id)).all()
 
     # Sprint 3.17: раннее завершение без ответов = score 0% (без 400 ошибки).
     # Длинная форма answers может быть [] — тогда просто "пройдено 0 из N вопросов".
@@ -276,9 +280,7 @@ def finish_diagnostic(db: Session, session_id: int, user_id: int) -> models.Diag
         rec_lines = ["Стоит повторить:"]
         for w in sorted(weak, key=lambda x: x["mastery"]):
             rec_lines.append(f"  • {w['topic_name']} (уверенность {int(w['mastery'] * 100)}%)")
-        rec_lines.append(
-            "\nПосле нескольких упражнений по этим темам результат улучшится."
-        )
+        rec_lines.append("\nПосле нескольких упражнений по этим темам результат улучшится.")
     else:
         rec_lines = ["Отличный результат! Можно двигаться дальше."]
     sess.recommendations = "\n".join(rec_lines)

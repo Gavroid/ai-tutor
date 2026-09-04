@@ -1,4 +1,5 @@
 """Sprint 85: cohort retention tests."""
+
 from __future__ import annotations
 
 import os
@@ -49,6 +50,7 @@ def admin_token(client):
 
 
 # === Tests: cohort retention ===
+
 
 def test_engagement_includes_retention_cohorts(client, admin_token):
     """Sprint 85: /engagement response содержит retention_cohorts."""
@@ -134,7 +136,10 @@ def test_engagement_days_bounds():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "admin", "router.py",
+            "..",
+            "app",
+            "admin",
+            "router.py",
         )
     ) as f:
         content = f.read()

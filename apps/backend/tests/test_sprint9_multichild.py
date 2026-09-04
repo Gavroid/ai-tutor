@@ -1,4 +1,5 @@
 """Sprint 9.2: multi-child тесты для родителя."""
+
 from __future__ import annotations
 
 import pytest

@@ -3,6 +3,7 @@
 Pilot Core не доверяет браузеру: `correct_answer` хранится на сервере,
 клиент получает opaque `exercise_id` и не видит ответ до submit.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta, timezone
@@ -53,12 +54,8 @@ class GeneratedExerciseInstance(Base):
     model: Mapped[str] = mapped_column(String(100), nullable=False, default="mock")
     prompt_version: Mapped[str] = mapped_column(String(50), nullable=False, default="pilot-1")
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     # Submission state — NULL пока submit не было.
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -69,22 +66,16 @@ class GeneratedExerciseInstance(Base):
     # checker_type: "numeric" | "keyword" | "exact" | "semantic".
     # reference_solution: полный эталон (для semantic).
     # required_keywords: JSON list для keyword-чекера.
-    checker_type: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="keyword", server_default="keyword"
-    )
+    checker_type: Mapped[str] = mapped_column(String(20), nullable=False, default="keyword", server_default="keyword")
     reference_solution: Mapped[str | None] = mapped_column(Text, nullable=True)
     required_keywords: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    __table_args__ = (
-        Index("ix_gei_owner_created", "owner_id", "created_at"),
-    )
+    __table_args__ = (Index("ix_gei_owner_created", "owner_id", "created_at"),)
 
     def __init__(self, **kwargs: object) -> None:
         # Авто-проставление expires_at если не передано явно.
         if "expires_at" not in kwargs:
-            kwargs["expires_at"] = datetime.now(UTC) + timedelta(
-                minutes=DEFAULT_EXERCISE_TTL_MINUTES
-            )
+            kwargs["expires_at"] = datetime.now(UTC) + timedelta(minutes=DEFAULT_EXERCISE_TTL_MINUTES)
         super().__init__(**kwargs)
 
     @property

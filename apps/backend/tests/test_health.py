@@ -3,6 +3,7 @@
 БД в этих тестах не нужна — healthcheck не обращается к ней, /ready проверим
 как smoke (если SQLite доступна — готов, иначе 503 — это нормально).
 """
+
 from __future__ import annotations
 
 from app.main import app

@@ -2,6 +2,7 @@
 
 Используется pydantic-settings для валидации. Все секреты берутся из .env.
 """
+
 import os
 from functools import lru_cache
 from typing import Literal
@@ -102,13 +103,13 @@ class Settings(BaseSettings):
                 "ai_model": self.ai_model,
             }
             missing = [
-                name for name, value in required.items()
+                name
+                for name, value in required.items()
                 if not value or value.startswith(("mock-", "change-me", "your-"))
             ]
             if missing:
                 raise ValueError(
-                    f"Production configuration is incomplete or uses placeholder: "
-                    f"{', '.join(missing)}"
+                    f"Production configuration is incomplete or uses placeholder: " f"{', '.join(missing)}"
                 )
         return self
 

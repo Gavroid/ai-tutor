@@ -1,4 +1,5 @@
 """Sprint 80: AI budget hourly limit tests (burst protection)."""
+
 from __future__ import annotations
 
 import os
@@ -10,6 +11,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 # === Module tests ===
+
 
 def test_hourly_limit_constant_defined():
     """Sprint 80: HOURLY_REQUESTS_LIMIT defined."""
@@ -26,7 +28,10 @@ def test_check_and_increment_uses_hourly():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "ai", "budget.py",
+            "..",
+            "app",
+            "ai",
+            "budget.py",
         )
     ) as f:
         content = f.read()
@@ -52,12 +57,14 @@ def test_get_usage_includes_hourly():
     import inspect
 
     from app.ai import budget as budget_module
+
     source = inspect.getsource(budget_module.get_usage)
     assert "hourly_used" in source
     assert "hourly_limit" in source
 
 
 # === Mock integration tests ===
+
 
 @pytest.mark.asyncio
 async def test_hourly_limit_raises_budget_exceeded(monkeypatch):
@@ -92,6 +99,7 @@ def test_hourly_limit_default_value():
     (см. app/ai/budget.py:28-29). Тест отражает актуальный дефолт.
     """
     import os
+
     # Remove env var to test default
     old = os.environ.pop("AI_BUDGET_REQUESTS_PER_HOUR", None)
     try:
@@ -99,6 +107,7 @@ def test_hourly_limit_default_value():
         import importlib
 
         from app.ai import budget as budget_module
+
         importlib.reload(budget_module)
 
         # Sprint 3.9.5: default = 60 (Кирилл попросил), см. app/ai/budget.py:29.

@@ -1,4 +1,5 @@
 """Sprint 93: hybrid search weight tuning tests."""
+
 from __future__ import annotations
 
 import os
@@ -8,6 +9,7 @@ os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 import pytest
 
 # === Tests: _detect_hybrid_weights ===
+
 
 def test_detect_short_query_keyword_heavy():
     """Sprint 93: short query → keyword-heavy (0.7/0.3)."""
@@ -107,7 +109,9 @@ def test_hybrid_endpoint_uses_detected_weights():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "rag_router.py",
+            "..",
+            "app",
+            "rag_router.py",
         )
     ) as f:
         content = f.read()

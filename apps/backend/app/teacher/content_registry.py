@@ -3,6 +3,7 @@
 Small persistent JSON registry for teacher-managed content knobs before a full CMS schema.
 Stored under UPLOAD_DIR so it survives app restarts/rebuilds in production volumes.
 """
+
 from __future__ import annotations
 
 import json
@@ -53,18 +54,48 @@ def default_followups_for_topic(topic: subj_models.Topic) -> list[dict[str, Any]
     name = topic.name.lower()
     if "среднее арифметическое" in name:
         return [
-            {"label": "Среднее чисел", "prompt": "Объясни подробнее среднее арифметическое обычных чисел на новом примере.", "kind": "choice", "order_index": 1},
-            {"label": "Средняя скорость", "prompt": "Объясни среднюю скорость как отдельный тип задач, с простым примером.", "kind": "choice", "order_index": 2},
-            {"label": "Средний вес", "prompt": "Объясни средний вес как отдельный тип задач, с простым примером.", "kind": "choice", "order_index": 3},
+            {
+                "label": "Среднее чисел",
+                "prompt": "Объясни подробнее среднее арифметическое обычных чисел на новом примере.",
+                "kind": "choice",
+                "order_index": 1,
+            },
+            {
+                "label": "Средняя скорость",
+                "prompt": "Объясни среднюю скорость как отдельный тип задач, с простым примером.",
+                "kind": "choice",
+                "order_index": 2,
+            },
+            {
+                "label": "Средний вес",
+                "prompt": "Объясни средний вес как отдельный тип задач, с простым примером.",
+                "kind": "choice",
+                "order_index": 3,
+            },
         ]
     if "наибольш" in name and "делител" in name:
         return [
-            {"label": "Попробовать самому", "prompt": "Дай мне похожую задачу на НОД и взаимно простые числа, но не показывай ответ сразу.", "kind": "choice", "order_index": 1},
-            {"label": "Второй способ", "prompt": "Покажи второй способ нахождения НОД через разложение на простые множители.", "kind": "choice", "order_index": 2},
+            {
+                "label": "Попробовать самому",
+                "prompt": "Дай мне похожую задачу на НОД и взаимно простые числа, но не показывай ответ сразу.",
+                "kind": "choice",
+                "order_index": 1,
+            },
+            {
+                "label": "Второй способ",
+                "prompt": "Покажи второй способ нахождения НОД через разложение на простые множители.",
+                "kind": "choice",
+                "order_index": 2,
+            },
         ]
     if "уравнен" in name:
         return [
-            {"label": "Далее", "prompt": "Продолжи объяснение темы по следующему шагу: как переносить слагаемые в уравнении и менять знак.", "kind": "next", "order_index": 1},
+            {
+                "label": "Далее",
+                "prompt": "Продолжи объяснение темы по следующему шагу: как переносить слагаемые в уравнении и менять знак.",
+                "kind": "next",
+                "order_index": 1,
+            },
         ]
     return []
 
@@ -73,7 +104,10 @@ def get_followups(topic: subj_models.Topic) -> list[dict[str, Any]]:
     data = load_registry()
     override = data.get("followups", {}).get(str(topic.id))
     rows = override if isinstance(override, list) else default_followups_for_topic(topic)
-    return sorted([r for r in rows if isinstance(r, dict) and r.get("label") and r.get("prompt")], key=lambda r: int(r.get("order_index", 0)))
+    return sorted(
+        [r for r in rows if isinstance(r, dict) and r.get("label") and r.get("prompt")],
+        key=lambda r: int(r.get("order_index", 0)),
+    )
 
 
 def set_followups(topic_id: int, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -83,12 +117,14 @@ def set_followups(topic_id: int, rows: list[dict[str, Any]]) -> list[dict[str, A
         prompt = str(row.get("prompt") or "").strip()
         if not label or not prompt:
             continue
-        cleaned.append({
-            "label": label[:80],
-            "prompt": prompt[:500],
-            "kind": str(row.get("kind") or "choice")[:20],
-            "order_index": int(row.get("order_index") or idx),
-        })
+        cleaned.append(
+            {
+                "label": label[:80],
+                "prompt": prompt[:500],
+                "kind": str(row.get("kind") or "choice")[:20],
+                "order_index": int(row.get("order_index") or idx),
+            }
+        )
     data = load_registry()
     data.setdefault("followups", {})[str(topic_id)] = cleaned
     save_registry(data)
@@ -110,17 +146,21 @@ def set_fallbacks(topic_id: int, rows: list[dict[str, Any]]) -> list[dict[str, A
         if not question_text or not correct_answer:
             continue
         options = row.get("options")
-        cleaned.append({
-            "question_text": question_text[:1000],
-            "type": str(row.get("type") or "single")[:20],
-            "options": [str(x)[:120] for x in options] if isinstance(options, list) else None,
-            "correct_answer": correct_answer[:300],
-            "explanation": explanation[:1500] or "Проверь правило темы и попробуй ещё раз.",
-            "typical_mistakes": [str(x)[:200] for x in row.get("typical_mistakes", [])] if isinstance(row.get("typical_mistakes"), list) else [],
-            "difficulty": int(row.get("difficulty") or idx),
-            "order_index": int(row.get("order_index") or idx),
-            "is_active": bool(row.get("is_active", True)),
-        })
+        cleaned.append(
+            {
+                "question_text": question_text[:1000],
+                "type": str(row.get("type") or "single")[:20],
+                "options": [str(x)[:120] for x in options] if isinstance(options, list) else None,
+                "correct_answer": correct_answer[:300],
+                "explanation": explanation[:1500] or "Проверь правило темы и попробуй ещё раз.",
+                "typical_mistakes": [str(x)[:200] for x in row.get("typical_mistakes", [])]
+                if isinstance(row.get("typical_mistakes"), list)
+                else [],
+                "difficulty": int(row.get("difficulty") or idx),
+                "order_index": int(row.get("order_index") or idx),
+                "is_active": bool(row.get("is_active", True)),
+            }
+        )
     data = load_registry()
     data.setdefault("fallbacks", {})[str(topic_id)] = cleaned
     save_registry(data)

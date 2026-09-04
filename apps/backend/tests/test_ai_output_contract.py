@@ -1,4 +1,5 @@
 """MVP rescue: contract tests for real-provider AI output cleanup/parsing."""
+
 from __future__ import annotations
 
 import json
@@ -46,9 +47,7 @@ class SequenceProvider(AIProvider):
 
 
 def test_prepare_model_output_strips_raw_think_blocks() -> None:
-    content, structured = _prepare_model_output(
-        "<think>private reasoning</think>\n\n**Коротко:** это дробь."
-    )
+    content, structured = _prepare_model_output("<think>private reasoning</think>\n\n**Коротко:** это дробь.")
 
     assert "think" not in content.lower()
     assert "private reasoning" not in content
@@ -57,9 +56,7 @@ def test_prepare_model_output_strips_raw_think_blocks() -> None:
 
 
 def test_prepare_model_output_strips_escaped_think_blocks() -> None:
-    content, structured = _prepare_model_output(
-        "&lt;think&gt;private reasoning&lt;/think&gt;\n\nОтвет ученику"
-    )
+    content, structured = _prepare_model_output("&lt;think&gt;private reasoning&lt;/think&gt;\n\nОтвет ученику")
 
     assert "think" not in content.lower()
     assert "private reasoning" not in content
@@ -82,9 +79,7 @@ Here is the result:
 
 
 def test_extract_structured_json_handles_fenced_json() -> None:
-    structured = _extract_structured_json(
-        "```json\n{\"question_text\": \"Сколько будет 2+2?\", \"type\": \"numeric\"}\n```"
-    )
+    structured = _extract_structured_json('```json\n{"question_text": "Сколько будет 2+2?", "type": "numeric"}\n```')
 
     assert structured == {"question_text": "Сколько будет 2+2?", "type": "numeric"}
 
@@ -163,7 +158,6 @@ $$\\text{Среднее} = \\frac{\\text{сумма всех чисел}}{\\text
     assert "25% = 25 ÷ 100 = 0,25" in content
 
 
-
 def test_prepare_model_output_removes_dangling_display_math_marker() -> None:
     content, structured = _prepare_model_output(
         """
@@ -179,6 +173,7 @@ $$(16,1 + 16,1 + 16,1 +
     assert "$$" not in content
     assert "16,1 + 16,1 + 16,1" in content
     assert "Среднее чисел" in content
+
 
 def test_prepare_model_output_normalizes_decimal_latex_frac_with_braced_comma() -> None:
     """Sprint 3.15: smoke-проверка `_normalize_latex` для `\frac{a}{b}`.
@@ -286,7 +281,9 @@ async def test_generate_exercise_uses_safe_fallback_for_unstructured_output() ->
         )
     )
 
-    exercise = await svc.generate_exercise("Математика (6 класс - повторение пройденного материала)", "Действия с обыкновенными дробями", 2)
+    exercise = await svc.generate_exercise(
+        "Математика (6 класс - повторение пройденного материала)", "Действия с обыкновенными дробями", 2
+    )
 
     assert "think" not in exercise.question_text.lower()
     assert "raw reasoning" not in exercise.question_text.lower()
@@ -322,7 +319,11 @@ async def test_explain_topic_uses_safe_fallback_when_model_content_empty() -> No
 
 @pytest.mark.asyncio
 async def test_explain_topic_uses_fallback_when_model_content_too_short() -> None:
-    svc = AIService(StaticProvider(AIResponse(content="# Деление рациональных чисел\n\nСлишком коротко", model="test-model", structured=None)))
+    svc = AIService(
+        StaticProvider(
+            AIResponse(content="# Деление рациональных чисел\n\nСлишком коротко", model="test-model", structured=None)
+        )
+    )
     topic = SimpleNamespace(
         name="Деление рациональных чисел",
         section=SimpleNamespace(
@@ -340,7 +341,9 @@ async def test_explain_topic_uses_fallback_when_model_content_too_short() -> Non
 
 @pytest.mark.asyncio
 async def test_explain_topic_pie_chart_short_model_output_uses_instructional_fallback() -> None:
-    svc = AIService(StaticProvider(AIResponse(content="Коротко про круговые диаграммы", model="test-model", structured=None)))
+    svc = AIService(
+        StaticProvider(AIResponse(content="Коротко про круговые диаграммы", model="test-model", structured=None))
+    )
     topic = SimpleNamespace(
         name="Круговые диаграммы",
         section=SimpleNamespace(
@@ -370,24 +373,24 @@ async def test_explain_topic_pie_chart_short_model_output_uses_instructional_fal
     ),
 )
 async def test_explain_topic_retries_short_model_output_before_fallback() -> None:
-    provider = SequenceProvider([
-        AIResponse(content="Слишком коротко", model="test-model", structured=None),
-        AIResponse(
-            content="Среднее арифметическое — это сумма чисел, делённая на их количество. "
-            "Чтобы найти среднее, сначала складываем все значения, затем делим на число значений. "
-            "Например, для чисел 4, 5 и 6 сумма равна 15, а 15 : 3 = 5. "
-            "Проверочный вопрос: почему мы делим именно на 3?",
-            model="test-model",
-            structured=None,
-        ),
-    ])
+    provider = SequenceProvider(
+        [
+            AIResponse(content="Слишком коротко", model="test-model", structured=None),
+            AIResponse(
+                content="Среднее арифметическое — это сумма чисел, делённая на их количество. "
+                "Чтобы найти среднее, сначала складываем все значения, затем делим на число значений. "
+                "Например, для чисел 4, 5 и 6 сумма равна 15, а 15 : 3 = 5. "
+                "Проверочный вопрос: почему мы делим именно на 3?",
+                model="test-model",
+                structured=None,
+            ),
+        ]
+    )
     svc = AIService(provider)
     topic = SimpleNamespace(
         id=187,
         name="Среднее арифметическое",
-        section=SimpleNamespace(
-            subject=SimpleNamespace(name="Математика")
-        ),
+        section=SimpleNamespace(subject=SimpleNamespace(name="Математика")),
     )
     user = SimpleNamespace(student_profile=SimpleNamespace(grade=7))
 
@@ -410,11 +413,18 @@ async def test_chat_removes_incomplete_trailing_fragment() -> None:
         )
     )
 
-    response = await svc.chat([
-        {"role": "user", "content": "Дай похожий пример"},
-    ], "Математика", "Проценты")
+    response = await svc.chat(
+        [
+            {"role": "user", "content": "Дай похожий пример"},
+        ],
+        "Математика",
+        "Проценты",
+    )
 
-    assert _trim_incomplete_trailing_fragment("Хочешь сам? Придумай свою задачу. Или давай я дам похожую:\n\nВ") == "Хочешь сам? Придумай свою задачу."
+    assert (
+        _trim_incomplete_trailing_fragment("Хочешь сам? Придумай свою задачу. Или давай я дам похожую:\n\nВ")
+        == "Хочешь сам? Придумай свою задачу."
+    )
     assert response.content.endswith("разберём.")
     assert "похожую" not in response.content
     assert not response.content.endswith("В")
@@ -617,17 +627,23 @@ def _assert_student_clean(text: str) -> None:
 def test_valid_generated_exercise_sanitizes_all_student_visible_fields() -> None:
     exercise = _valid_generated_exercise(
         {
-            "question_text": "<think>hidden answer</think>```json {\"question_text\":\"bad\"}```Вычисли $$\\frac{1}{2} + \\frac{1}{2}$$.",
+            "question_text": '<think>hidden answer</think>```json {"question_text":"bad"}```Вычисли $$\\frac{1}{2} + \\frac{1}{2}$$.',
             "type": "single",
             "options": ["<think>hidden</think>1", "0"],
             "correct_answer": "1",
-            "explanation": "```json\n{\"correct_answer\":\"1\"}\n``` Сложили \\frac{1}{2} и \\frac{1}{2}.",
+            "explanation": '```json\n{"correct_answer":"1"}\n``` Сложили \\frac{1}{2} и \\frac{1}{2}.',
             "typical_mistakes": ["<think>x</think>Сложить знаменатели"],
         }
     )
 
     visible = "\n".join(
-        [exercise.question_text, *(exercise.options or []), exercise.correct_answer, exercise.explanation, *exercise.typical_mistakes]
+        [
+            exercise.question_text,
+            *(exercise.options or []),
+            exercise.correct_answer,
+            exercise.explanation,
+            *exercise.typical_mistakes,
+        ]
     )
     _assert_student_clean(visible)
     assert "1 / 2" in visible
@@ -644,7 +660,7 @@ async def test_check_answer_structured_response_sanitizes_explanation() -> None:
                     "is_correct": False,
                     "score": 0,
                     "first_error": "<think>hidden answer</think>Ошибка",
-                    "explanation": "<think>hidden answer</think>```json\n{\"correct_answer\":\"4\"}\n``` Подумай про сумму.",
+                    "explanation": '<think>hidden answer</think>```json\n{"correct_answer":"4"}\n``` Подумай про сумму.',
                     "hint_level": 1,
                     "next_difficulty": 1,
                 },

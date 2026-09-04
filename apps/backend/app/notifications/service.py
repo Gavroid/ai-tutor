@@ -4,6 +4,7 @@ Email:
 - Если `SMTP_URL` в env — отправляется через aiosmtplib
 - Иначе — сохраняется в БД со status='dry_run', и backend-лог пишет "Email skipped (no SMTP_URL)"
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -166,12 +167,18 @@ def notify_parents_of_milestone(
     if student is None:
         return 0
 
-    parent_links = db.execute(
-        __import__("sqlalchemy").select(user_models.ParentStudentLink).where(
-            user_models.ParentStudentLink.student_id == student_id,
-            user_models.ParentStudentLink.status == "active",
+    parent_links = (
+        db.execute(
+            __import__("sqlalchemy")
+            .select(user_models.ParentStudentLink)
+            .where(
+                user_models.ParentStudentLink.student_id == student_id,
+                user_models.ParentStudentLink.status == "active",
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     sent = 0
     for link in parent_links:

@@ -1,4 +1,5 @@
 """Sprint 7.4: hint endpoint 3 уровня + hint_at_level."""
+
 from __future__ import annotations
 
 import asyncio

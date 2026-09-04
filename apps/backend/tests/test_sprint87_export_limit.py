@@ -1,4 +1,5 @@
 """Sprint 87: audit log export max_records limit tests."""
+
 from __future__ import annotations
 
 import os
@@ -47,6 +48,7 @@ def admin_token(client):
 
 
 # === Tests ===
+
 
 def test_export_default_max_records(client, admin_token):
     """Sprint 87: default max_records = 10000."""
@@ -101,12 +103,16 @@ def test_export_requires_admin(client):
 
 # === Source verification ===
 
+
 def test_max_records_query_param_defined():
     """Sprint 87: max_records Query param с bounds."""
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "admin", "router.py",
+            "..",
+            "app",
+            "admin",
+            "router.py",
         )
     ) as f:
         content = f.read()

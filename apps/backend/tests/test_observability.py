@@ -1,4 +1,5 @@
 """Sprint 5 — тесты observability: /metrics, error tracking, audit log для 5xx."""
+
 from __future__ import annotations
 
 import os
@@ -227,6 +228,7 @@ def test_observability_exports():
         metrics_middleware,
         record_ai_request,
     )
+
     assert callable(metrics_middleware)
     assert callable(metrics_endpoint)
     assert callable(record_ai_request)

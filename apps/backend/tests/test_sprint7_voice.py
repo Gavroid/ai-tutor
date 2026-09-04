@@ -9,6 +9,7 @@ rate-limit работает (20/min/user). НО на UI /topics/[id] кнопк�
 Для 1 пользователя Кирилл может пользоваться голосом через тему
 (если включить), но никто не включил. Реактивировать если включишь voice.
 """
+
 from __future__ import annotations
 
 import io
@@ -18,7 +19,7 @@ import pytest
 
 pytestmark = pytest.mark.skip(
     reason="Sprint 3.5.1: voice UI скрыт (NEXT_PUBLIC_VOICE_ENABLED=0). "
-           "Реактивировать если включишь voice для Кирилла."
+    "Реактивировать если включишь voice для Кирилла."
 )
 
 import pytest
@@ -88,14 +89,13 @@ class TestVoiceRateLimit:
     def test_over_limit_returns_429(self, authed_student, monkeypatch):
         """На 21-м вызове — 429."""
         import time
+
         c = TestClient(app)
         token = authed_student["token"]
         # Заполняем 20-ю записями СЕЙЧАС (внутри окна).
         voice_router._voice_calls.clear()
         now = time.time()
-        voice_router._voice_calls[authed_student["user_id"]] = deque(
-            [now - i * 0.1 for i in range(20)]
-        )
+        voice_router._voice_calls[authed_student["user_id"]] = deque([now - i * 0.1 for i in range(20)])
         r = c.post(
             "/api/v1/voice/transcribe",
             files={"file": ("test.wav", io.BytesIO(_wav_bytes()), "audio/wav")},
@@ -107,10 +107,9 @@ class TestVoiceRateLimit:
     def test_separate_users_independent(self, authed_student):
         """Rate-limit per-user, не общий."""
         import time
+
         now = time.time()
-        voice_router._voice_calls[authed_student["user_id"]] = deque(
-            [now - i * 0.1 for i in range(20)]
-        )
+        voice_router._voice_calls[authed_student["user_id"]] = deque([now - i * 0.1 for i in range(20)])
         # Этот user уже заблокирован.
         c = TestClient(app)
         token = authed_student["token"]

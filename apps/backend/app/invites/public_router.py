@@ -3,6 +3,7 @@
 - POST /api/v1/auth/redeem-invite   — validate code (для landing page)
 - POST /api/v1/auth/register-with-invite — register + auto-redeem
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timezone

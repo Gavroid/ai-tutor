@@ -7,6 +7,7 @@ T1D-friendly дизайн:
 - encouragement: позитивное сообщение
 - Пропуск дня НЕ наказывается
 """
+
 from __future__ import annotations
 
 import os

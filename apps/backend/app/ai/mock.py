@@ -1,4 +1,5 @@
 """Mock AI-провайдер для тестов и локальной разработки без ключа."""
+
 from __future__ import annotations
 
 import json

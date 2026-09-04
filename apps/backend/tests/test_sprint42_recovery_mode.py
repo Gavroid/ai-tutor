@@ -5,6 +5,7 @@ T1D safety:
 - ❌ НЕ интерпретируем glucose data автоматически.
 - ✅ ТОЛЬКО timing-based: если last hypo/hyper session в last 30 мин → recovery_mode=True.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta, timezone

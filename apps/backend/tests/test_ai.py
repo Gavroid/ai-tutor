@@ -1,4 +1,5 @@
 """Тесты AI Gateway и репетитора (Этап 5-6)."""
+
 from __future__ import annotations
 
 import os
@@ -65,6 +66,7 @@ def _login(c: TestClient) -> str:
 
 
 # === Unit-тесты сервиса (без HTTP) ===
+
 
 @pytest.mark.asyncio
 async def test_mock_explain_returns_text():
@@ -144,6 +146,7 @@ def test_sanitize_short_input():
 
 # === HTTP-тесты (через TestClient) ===
 
+
 def test_ai_endpoints_require_auth(client_with_student_and_seed):
     r = client_with_student_and_seed.post("/api/v1/ai/explain", json={"topic_id": 1})
     assert r.status_code == 401
@@ -151,9 +154,7 @@ def test_ai_endpoints_require_auth(client_with_student_and_seed):
 
 def test_ai_ping_ok(client_with_student_and_seed):
     token = _login(client_with_student_and_seed)
-    r = client_with_student_and_seed.get(
-        "/api/v1/ai/ping", headers={"Authorization": f"Bearer {token}"}
-    )
+    r = client_with_student_and_seed.get("/api/v1/ai/ping", headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == 200
     body = r.json()
     assert "ok" in body and "model" in body

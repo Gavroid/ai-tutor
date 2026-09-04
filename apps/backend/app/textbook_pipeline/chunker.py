@@ -5,6 +5,7 @@
 
 Sprint 2026-08-22.
 """
+
 from __future__ import annotations
 
 import re

@@ -9,6 +9,7 @@ T1D-учёт: ни streak'ов, ни штрафов за паузу. Тольк�
   проверяет статистику пользователя и присуждает подходящие баджи.
 - Вызывается из `progress/service.py:record_attempt()` после каждой попытки.
 """
+
 from __future__ import annotations
 
 import json
@@ -702,9 +703,14 @@ def evaluate_and_award_badges(
 
     # polymath_week: 3+ предмета за 7 дней
     if stats.get("subjects_in_last_7d", 0) >= 3:
-        if award_badge(db, user_id, "polymath_week", {
-            "subjects": stats["subjects_in_last_7d"],
-        }):
+        if award_badge(
+            db,
+            user_id,
+            "polymath_week",
+            {
+                "subjects": stats["subjects_in_last_7d"],
+            },
+        ):
             awarded.append("polymath_week")
 
     # time-of-day (по локальному TZ ученика)
@@ -789,60 +795,72 @@ def collect_stats(db: Session, user_id: int) -> dict:
 
     s = db
     # total_attempts
-    total = s.execute(
-        select(func.count(prog_models.Attempt.id)).where(
-            prog_models.Attempt.user_id == user_id
-        )
-    ).scalar() or 0
+    total = (
+        s.execute(select(func.count(prog_models.Attempt.id)).where(prog_models.Attempt.user_id == user_id)).scalar()
+        or 0
+    )
 
     # quality_5: все правильные attempts (proxy без колонки hint)
-    quality_5_no_hint = s.execute(
-        select(func.count(prog_models.Attempt.id)).where(
-            prog_models.Attempt.user_id == user_id,
-            prog_models.Attempt.is_correct == True,  # noqa: E712
-        )
-    ).scalar() or 0
+    quality_5_no_hint = (
+        s.execute(
+            select(func.count(prog_models.Attempt.id)).where(
+                prog_models.Attempt.user_id == user_id,
+                prog_models.Attempt.is_correct == True,  # noqa: E712
+            )
+        ).scalar()
+        or 0
+    )
 
     # Sprint 3.11: quality_correct — точные правильные ответы (score ≥ 0.9).
     # Используется для бейджей five/twenty/fifty_quality_correct.
-    quality_correct_count = s.execute(
-        select(func.count(prog_models.Attempt.id)).where(
-            prog_models.Attempt.user_id == user_id,
-            prog_models.Attempt.is_correct == True,  # noqa: E712
-            prog_models.Attempt.score >= 0.9,
-        )
-    ).scalar() or 0
+    quality_correct_count = (
+        s.execute(
+            select(func.count(prog_models.Attempt.id)).where(
+                prog_models.Attempt.user_id == user_id,
+                prog_models.Attempt.is_correct == True,  # noqa: E712
+                prog_models.Attempt.score >= 0.9,
+            )
+        ).scalar()
+        or 0
+    )
 
     # Sprint 3.11: review_count_total — сумма SM-2 повторений по всем темам.
     # Используется для бейджей review_count_10 / review_count_50.
-    review_count_total = s.execute(
-        select(func.coalesce(func.sum(prog_models.Progress.review_count), 0)).where(
-            prog_models.Progress.user_id == user_id
-        )
-    ).scalar() or 0
+    review_count_total = (
+        s.execute(
+            select(func.coalesce(func.sum(prog_models.Progress.review_count), 0)).where(
+                prog_models.Progress.user_id == user_id
+            )
+        ).scalar()
+        or 0
+    )
 
     # Sprint 3.11: mastered_topics_count — кол-во тем с mastery ≥ 0.8.
-    mastered_topics_count = s.execute(
-        select(func.count(prog_models.Progress.id)).where(
-            prog_models.Progress.user_id == user_id,
-            prog_models.Progress.mastery_score >= 0.8,
-        )
-    ).scalar() or 0
+    mastered_topics_count = (
+        s.execute(
+            select(func.count(prog_models.Progress.id)).where(
+                prog_models.Progress.user_id == user_id,
+                prog_models.Progress.mastery_score >= 0.8,
+            )
+        ).scalar()
+        or 0
+    )
 
     # returned_to_incorrect: если есть хотя бы 1 ошибка + 1 успех
-    incorrect_count = s.execute(
-        select(func.count(prog_models.Attempt.id)).where(
-            prog_models.Attempt.user_id == user_id,
-            prog_models.Attempt.is_correct == False,  # noqa: E712
-        )
-    ).scalar() or 0
+    incorrect_count = (
+        s.execute(
+            select(func.count(prog_models.Attempt.id)).where(
+                prog_models.Attempt.user_id == user_id,
+                prog_models.Attempt.is_correct == False,  # noqa: E712
+            )
+        ).scalar()
+        or 0
+    )
     returned_to_incorrect = 1 if (incorrect_count > 0 and quality_5_no_hint > 0) else 0
 
     # max_mastery
     max_mastery_row = s.execute(
-        select(func.max(prog_models.Progress.mastery_score)).where(
-            prog_models.Progress.user_id == user_id
-        )
+        select(func.max(prog_models.Progress.mastery_score)).where(prog_models.Progress.user_id == user_id)
     ).scalar()
     max_mastery = float(max_mastery_row) if max_mastery_row is not None else 0.0
 

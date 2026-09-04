@@ -1,4 +1,5 @@
 """Pydantic-схемы для уведомлений."""
+
 from __future__ import annotations
 
 from datetime import datetime

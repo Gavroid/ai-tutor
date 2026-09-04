@@ -3,6 +3,7 @@
 Поток: токены приходят по одному через WebSocket (text-сообщения).
 После завершения приходит финальное сообщение с метаданными (model, tokens).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 # Sprint 83: WS keepalive + max lifetime.
 # Защита от hung connections (WS может висеть вечно без ping/pong).
 WS_MAX_LIFETIME_SECONDS = 3600  # 1 час max connection
-WS_PING_INTERVAL_SECONDS = 30    # ping каждые 30 сек
+WS_PING_INTERVAL_SECONDS = 30  # ping каждые 30 сек
 
 
 router = APIRouter(tags=["websocket"])

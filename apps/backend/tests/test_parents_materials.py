@@ -1,4 +1,5 @@
 """Тесты родительского кабинета и материалов (Этапы 9, 10)."""
+
 from __future__ import annotations
 
 import os
@@ -93,7 +94,8 @@ def _first_algebra_topic_id() -> int:
             __import__("sqlalchemy").select(subj_models.Subject).where(subj_models.Subject.code == "algebra")
         )
         topic = s.scalar(
-            __import__("sqlalchemy").select(subj_models.Topic)
+            __import__("sqlalchemy")
+            .select(subj_models.Topic)
             .join(subj_models.Section)
             .where(subj_models.Section.subject_id == algebra.id)
             .limit(1)
@@ -194,11 +196,14 @@ def test_parent_dashboard_includes_actionable_summary(client):
         headers={"Authorization": f"Bearer {mom_token}"},
     ).json()["code"]
     kid_token = _login(client, "kid@example.com")
-    assert client.post(
-        "/api/v1/students/link-parent",
-        json={"code": code},
-        headers={"Authorization": f"Bearer {kid_token}"},
-    ).status_code == 200
+    assert (
+        client.post(
+            "/api/v1/students/link-parent",
+            json={"code": code},
+            headers={"Authorization": f"Bearer {kid_token}"},
+        ).status_code
+        == 200
+    )
 
     tid = _first_algebra_topic_id()
     client.post(
@@ -214,7 +219,9 @@ def test_parent_dashboard_includes_actionable_summary(client):
             "feedback": "Неверно",
         },
     )
-    kid_id = client.get("/api/v1/parents/children", headers={"Authorization": f"Bearer {mom_token}"}).json()[0]["student_id"]
+    kid_id = client.get("/api/v1/parents/children", headers={"Authorization": f"Bearer {mom_token}"}).json()[0][
+        "student_id"
+    ]
 
     r = client.get(f"/api/v1/parents/students/{kid_id}/dashboard", headers={"Authorization": f"Bearer {mom_token}"})
 
@@ -226,7 +233,6 @@ def test_parent_dashboard_includes_actionable_summary(client):
     assert body["recommendations"][0]["title"]
     assert body["recommendations"][0]["detail"]
     assert "privacy_note" in body
-
 
 
 def test_parent_cannot_view_unlinked_child(client):
@@ -268,6 +274,7 @@ def test_upload_material_txt(client):
     assert body["title"] == "lesson.txt"
     # Загружено успешно — файл сохранён в UPLOAD_DIR
     import os
+
     files = os.listdir(os.environ["UPLOAD_DIR"])
     assert any("lesson.txt" in f for f in files)
 

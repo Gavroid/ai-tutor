@@ -1,4 +1,5 @@
 """Sprint 25: тесты для async semantic checker."""
+
 from __future__ import annotations
 
 import os
@@ -49,9 +50,7 @@ async def test_check_answer_async_ai_judge_correct():
     mock_svc.check_answer = AsyncMock(return_value=mock_result)
 
     with patch("app.ai.service.get_ai_service", return_value=mock_svc):
-        result = await check_answer_async(
-            "42", "42", "Сколько будет 6*7?"
-        )
+        result = await check_answer_async("42", "42", "Сколько будет 6*7?")
 
     assert result["correct"] is True
     assert result["score"] == 1.0
@@ -85,9 +84,7 @@ async def test_check_answer_async_ai_judge_partial():
 async def test_check_answer_async_ai_failure_fallback():
     """Sprint 25: если AI упал → fallback (correct=False, reason указывает на failure)."""
     mock_svc = MagicMock()
-    mock_svc.check_answer = AsyncMock(
-        side_effect=Exception("AI timeout")
-    )
+    mock_svc.check_answer = AsyncMock(side_effect=Exception("AI timeout"))
 
     with patch("app.ai.service.get_ai_service", return_value=mock_svc):
         result = await check_answer_async("42", "42", "Вопрос?")

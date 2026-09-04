@@ -5,6 +5,7 @@ Sprint 8.1 (частично): baseline Pydantic-схема `GeneratedMaterial` 
                        сам provider пока не поддерживает strict_json — fallback оставлен
                        как best-effort, метрика `ai_parse_status{result=ok|fallback|error}`.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -46,7 +47,6 @@ class GeneratedExercise:
     correct_answer: str
     explanation: str
     typical_mistakes: list[str]
-
 
 
 def _rag_enabled_for_subject(subject_name: str) -> bool:
@@ -267,9 +267,7 @@ def _fallback_explanation(subject_name: str, topic_name: str) -> str:
         )
 
     # =================== АЛГЕБРА / ГЕОМЕТРИЯ ===================
-    if "алгебра" in subject_lower and (
-        "числов" in topic_lower and "выраж" in topic_lower or "выражени" in topic_lower
-    ):
+    if "алгебра" in subject_lower and ("числов" in topic_lower and "выраж" in topic_lower or "выражени" in topic_lower):
         return (
             f"**{topic_name}**\n\n"
             "Числовое выражение — запись из чисел, знаков действий и скобок.\n\n"
@@ -307,9 +305,7 @@ def _fallback_explanation(subject_name: str, topic_name: str) -> str:
         )
 
     # =================== ИНФОРМАТИКА ===================
-    if "информатика" in subject_lower and (
-        "информация" in topic_lower or "информатик" in topic_lower
-    ):
+    if "информатика" in subject_lower and ("информация" in topic_lower or "информатик" in topic_lower):
         return (
             f"**{topic_name}**\n\n"
             "Информация — это сведения об окружающем мире и процессах в нём.\n\n"
@@ -328,9 +324,7 @@ def _fallback_explanation(subject_name: str, topic_name: str) -> str:
         )
 
     # =================== ГЕОГРАФИЯ ===================
-    if "география" in subject_lower and (
-        "план" in topic_lower and "местности" in topic_lower
-    ):
+    if "география" in subject_lower and ("план" in topic_lower and "местности" in topic_lower):
         return (
             f"**{topic_name}**\n\n"
             "План местности — это чертёж небольшого участка земной поверхности, "
@@ -350,9 +344,7 @@ def _fallback_explanation(subject_name: str, topic_name: str) -> str:
         )
 
     # =================== ЛИТЕРАТУРА ===================
-    if "литература" in subject_lower and (
-        "литература" in topic_lower or "что такое" in topic_lower
-    ):
+    if "литература" in subject_lower and ("литература" in topic_lower or "что такое" in topic_lower):
         return (
             f"**{topic_name}**\n\n"
             "Литература — это искусство слова. Она показывает жизнь через истории.\n\n"
@@ -404,8 +396,17 @@ def _exercise_matches_topic(exercise: GeneratedExercise, topic_name: str) -> boo
     # Subject-keyword blocklist (C1): если в вопросе/ответе/explanation
     # есть слово из ДРУГОГО предмета — дрейф.
     drift_keywords = {
-        "математика": ["реки", "озёр", "озер", "численность населения", "страны мира",
-                       "покрытосемен", "насекомые", "клетка", "периодический закон"],
+        "математика": [
+            "реки",
+            "озёр",
+            "озер",
+            "численность населения",
+            "страны мира",
+            "покрытосемен",
+            "насекомые",
+            "клетка",
+            "периодический закон",
+        ],
         "физика": ["клетка", "периодический закон", "хромосом", "реки", "озёр"],
         "биология": ["сила тяжести", "ускорение", "молекуляр", "реки"],
         "русский язык": ["басня", "стихотворение", "былина"],
@@ -459,7 +460,11 @@ def _valid_generated_exercise(data: dict[str, Any]) -> GeneratedExercise:
         raise ValueError("AI did not return a valid structured exercise")
 
     raw_options = data.get("options")
-    options = [_clean_student_visible_text(item) for item in raw_options if _clean_student_visible_text(item)] if isinstance(raw_options, list) else None
+    options = (
+        [_clean_student_visible_text(item) for item in raw_options if _clean_student_visible_text(item)]
+        if isinstance(raw_options, list)
+        else None
+    )
     if exercise_type in {"single", "multiple"} and (not options or len(options) < 2):
         raise ValueError("AI did not return a valid structured exercise")
 
@@ -640,7 +645,10 @@ def _fallback_generated_exercise(
             options=["-2", "-5", "они равны", "0"],
             correct_answer="-2",
             explanation="На координатной прямой -2 правее, чем -5, значит -2 больше.",
-            typical_mistakes=["Считать, что больше число с большим модулем", "Не учитывать направление координатной прямой"],
+            typical_mistakes=[
+                "Считать, что больше число с большим модулем",
+                "Не учитывать направление координатной прямой",
+            ],
         )
 
     if "математика" in subject_lower and "сложение отрицательных" in topic_lower:
@@ -700,7 +708,10 @@ def _fallback_generated_exercise(
             options=["2² × 3²", "2 × 18", "4 × 9", "6 × 6"],
             correct_answer="2² × 3²",
             explanation="36 делится на 2: 36 = 2 × 18. Ещё раз на 2: 18 = 2 × 9. А 9 = 3 × 3. Значит 36 = 2² × 3².",
-            typical_mistakes=["Остановиться на составных множителях 4 и 9", "Забыть, что множители должны быть простыми"],
+            typical_mistakes=[
+                "Остановиться на составных множителях 4 и 9",
+                "Забыть, что множители должны быть простыми",
+            ],
         )
 
     if "математика" in subject_lower and "наибольш" in topic_lower and "делител" in topic_lower:
@@ -864,10 +875,7 @@ def _fallback_generated_exercise(
             ],
         )
 
-    prompt = (
-        f"Сформулируй короткий ответ по теме «{topic_name}» "
-        f"({subject_name}, сложность {difficulty}/5)."
-    )
+    prompt = f"Сформулируй короткий ответ по теме «{topic_name}» " f"({subject_name}, сложность {difficulty}/5)."
     return GeneratedExercise(
         question_text=prompt,
         type="text",
@@ -884,6 +892,7 @@ class QuizQuestion:
 
     Поля совпадают со схемой, которую LLM возвращает в JSON.
     """
+
     question_text: str
     type: str  # "single" | "multiple" | "numeric" | "text"
     options: list[str] | None
@@ -894,6 +903,7 @@ class QuizQuestion:
 @dataclass
 class Quiz:
     """Набор вопросов, сгенерированных AI для квиза."""
+
     questions: list[QuizQuestion]
 
 
@@ -913,6 +923,7 @@ def _record_ai(
     """
     try:
         from app.observability import record_ai_request
+
         in_tok = getattr(resp, "input_tokens", 0) if resp else 0
         out_tok = getattr(resp, "output_tokens", 0) if resp else 0
         record_ai_request(
@@ -924,6 +935,7 @@ def _record_ai(
         if parse_status:
             try:
                 from prometheus_client import Counter
+
                 _PARSE_CNT.labels(mode=mode, result=parse_status).inc()
             except (ImportError, AttributeError, ValueError):
                 # метрика может быть ещё не определена — игнорируем
@@ -936,6 +948,7 @@ def _record_ai(
 # === Метрика парсинга structured output (Sprint 8.1) ===
 try:
     from prometheus_client import Counter
+
     _PARSE_CNT = Counter(
         "ai_parse_status_total",
         "Structured output parse result (ok=валидно, fallback=heuristic, error=invalid JSON).",
@@ -1033,9 +1046,7 @@ class AIService:
         resp = await self.provider.complete(req)
         return resp, "default"
 
-    async def explain_topic(
-        self, db: Session, user: user_models.User, topic: subj_models.Topic
-    ) -> AIResponse:
+    async def explain_topic(self, db: Session, user: user_models.User, topic: subj_models.Topic) -> AIResponse:
         subject = topic.section.subject
         # Sprint 3.5.2: RAG — найти релевантные chunk'и из загруженных учебников
         # и добавить в system prompt как контекст. Без RAG AI отвечает "из головы".
@@ -1053,9 +1064,11 @@ class AIService:
         # S3.1 (2026-09-01, D2.8): multi-explain через style. Router может
         # установить thread-local _explain_style перед вызовом. По умолчанию — стандартный.
         from app.ai import _thread_local
+
         style = getattr(_thread_local, "explain_style", "default")
         system = prompts.explain_topic_system(
-            subject.name, topic.name,
+            subject.name,
+            topic.name,
             user.student_profile.grade if user.student_profile else 7,
             rag_context=rag_context,
             style=style,
@@ -1073,7 +1086,8 @@ class AIService:
             used_fallback = False
             if len(resp.content.strip()) < 250:
                 retry_req = AIRequest(
-                    messages=req.messages + [
+                    messages=req.messages
+                    + [
                         AIMessage(
                             role="user",
                             content="Ответ слишком короткий. Дай полноценное объяснение: определение, правило, пример и проверочный вопрос. Не обрывай фразы.",
@@ -1105,11 +1119,15 @@ class AIService:
             resp = fallback
 
         topic_id = getattr(topic, "id", None)
-        verified_sources = _verified_rag_sources(
-            sources,
-            topic_id=topic_id,
-            topic_name=topic.name,
-        ) if topic_id is not None else []
+        verified_sources = (
+            _verified_rag_sources(
+                sources,
+                topic_id=topic_id,
+                topic_name=topic.name,
+            )
+            if topic_id is not None
+            else []
+        )
         # S1.3 (2026-09-01, D2.2): до license review ученику НЕ показываем
         # citation references (страницы учебника). _verified_rag_sources уже
         # фильтрует по topic match, но этого недостаточно — глобально скрываем
@@ -1154,9 +1172,7 @@ class AIService:
                 if topic_id is not None:
                     material_ids = [
                         row[0]
-                        for row in db.query(LearningMaterial.id)
-                        .filter(LearningMaterial.topic_id == topic_id)
-                        .all()
+                        for row in db.query(LearningMaterial.id).filter(LearningMaterial.topic_id == topic_id).all()
                     ]
                 chunks = []
                 if material_ids:
@@ -1216,7 +1232,9 @@ class AIService:
                     logger.warning(
                         "RAG safety net: dropping chunk with wrong subject "
                         "(topic=%s material_title=%r blocklist=%s)",
-                        topic_id, mat_title, blocklist,
+                        topic_id,
+                        mat_title,
+                        blocklist,
                     )
                     continue
                 filtered.append(c)
@@ -1238,16 +1256,18 @@ class AIService:
             page_str = f", стр. {page}" if page else ""
             lines.append(f"\n[{i}] {mat_title}{page_str}:\n{text}\n")
             # Sprint 4.1.3: собираем source для UI
-            sources.append({
-                "chunk_id": getattr(c, "id", None),
-                "material_id": getattr(c, "material_id", None),
-                "material_title": mat_title,
-                "page_number": page,
-                "part": meta.get("part"),
-                "topic_id": meta.get("topic_id"),
-                "topic_name": meta.get("topic_name"),
-                "snippet": text[:220],
-            })
+            sources.append(
+                {
+                    "chunk_id": getattr(c, "id", None),
+                    "material_id": getattr(c, "material_id", None),
+                    "material_title": mat_title,
+                    "page_number": page,
+                    "part": meta.get("part"),
+                    "topic_id": meta.get("topic_id"),
+                    "topic_name": meta.get("topic_name"),
+                    "snippet": text[:220],
+                }
+            )
         return "\n".join(lines), _dedupe_rag_sources(sources)
 
     async def hint(self, question_text: str, level: int = 1) -> AIResponse:
@@ -1328,7 +1348,9 @@ class AIService:
                         next_difficulty=int(resp.structured.get("next_difficulty", 1)),
                         # Sprint 4.3.1: error_type для context-aware hints.
                         # Валидируем чтобы не принимать мусор от LLM.
-                        error_type=resp.structured.get("error_type") if resp.structured.get("error_type") in ("ARITHMETIC", "CONCEPTUAL", "LOGIC", "CARELESS") else None,
+                        error_type=resp.structured.get("error_type")
+                        if resp.structured.get("error_type") in ("ARITHMETIC", "CONCEPTUAL", "LOGIC", "CARELESS")
+                        else None,
                     )
                     _record_ai("check", "ok", resp=resp, parse_status="ok")
                     return result
@@ -1380,9 +1402,7 @@ class AIService:
                     return result
                 except (TypeError, ValueError):
                     _record_ai("generate", "ok", resp=resp, parse_status="error")
-                    return _fallback_generated_exercise(
-                        subject_name, topic_name, difficulty, topic_id=topic_id
-                    )
+                    return _fallback_generated_exercise(subject_name, topic_name, difficulty, topic_id=topic_id)
             _record_ai("generate", "ok", resp=resp, parse_status="fallback")
             return _fallback_generated_exercise(subject_name, topic_name, difficulty, topic_id=topic_id)
         except Exception as e:
@@ -1431,7 +1451,13 @@ class AIService:
                                 QuizQuestion(
                                     question_text=_clean_student_visible_text(item.get("question_text", "")),
                                     type=str(item.get("type", "text")),
-                                    options=[_clean_student_visible_text(option) for option in opts if _clean_student_visible_text(option)] if isinstance(opts, list) else None,
+                                    options=[
+                                        _clean_student_visible_text(option)
+                                        for option in opts
+                                        if _clean_student_visible_text(option)
+                                    ]
+                                    if isinstance(opts, list)
+                                    else None,
                                     correct_answer=_clean_student_visible_text(item.get("correct_answer", "")),
                                     explanation=_clean_student_visible_text(item.get("explanation", "")),
                                 )

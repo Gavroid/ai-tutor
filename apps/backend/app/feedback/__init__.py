@@ -2,6 +2,7 @@
 
 Re-exports for convenient `from app.feedback import FeedbackReport`.
 """
+
 from __future__ import annotations
 
 from app.feedback.models import (

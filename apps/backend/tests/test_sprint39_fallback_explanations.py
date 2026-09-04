@@ -5,6 +5,7 @@
 - Обобщённый fallback больше НЕ содержит бесполезное «начни с определения темы...».
 - Все fallback'и имеют практическую ценность: правило + пример + вопрос для самопроверки.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -14,24 +15,28 @@ from app.ai.service import _fallback_explanation
 class TestFallbackExplanationStructure:
     """Все fallback'и должны иметь структуру: правило + пример + проверь себя."""
 
-    @pytest.mark.parametrize("subject,topic", [
-        ("Физика", "Что изучает физика"),
-        ("Физика", "Физика и методы её изучения"),
-        ("Русский язык", "Лексика и фразеология"),
-        ("Русский язык", "Морфемика"),
-        ("Алгебра", "Числовые выражения"),
-        ("Геометрия", "Первый признак равенства треугольников"),
-        ("Информатика", "Информация и её свойства"),
-        ("География", "План местности"),
-        ("Литература", "Что такое литература"),
-    ])
+    @pytest.mark.parametrize(
+        "subject,topic",
+        [
+            ("Физика", "Что изучает физика"),
+            ("Физика", "Физика и методы её изучения"),
+            ("Русский язык", "Лексика и фразеология"),
+            ("Русский язык", "Морфемика"),
+            ("Алгебра", "Числовые выражения"),
+            ("Геометрия", "Первый признак равенства треугольников"),
+            ("Информатика", "Информация и её свойства"),
+            ("География", "План местности"),
+            ("Литература", "Что такое литература"),
+        ],
+    )
     def test_specialized_fallbacks_have_structure(self, subject, topic):
         result = _fallback_explanation(subject, topic)
         # Любой нормальный fallback должен содержать эти блоки
         assert "### " in result, f"{subject}/{topic}: нет ни одного подзаголовка"
         # Должна быть либо 'Проверь себя', либо 'Что дальше'
-        assert ("Проверь себя" in result) or ("Что дальше" in result), \
-            f"{subject}/{topic}: нет ни 'Проверь себя' ни 'Что дальше'"
+        assert ("Проверь себя" in result) or (
+            "Что дальше" in result
+        ), f"{subject}/{topic}: нет ни 'Проверь себя' ни 'Что дальше'"
 
     def test_physics_what_studies_fallback(self):
         result = _fallback_explanation("Физика", "Что изучает физика")
@@ -73,27 +78,36 @@ class TestFallbackExplanationStructure:
 class TestGenericFallbackImproved:
     """Обобщённый fallback (для тем без специализации) — структурирован."""
 
-    @pytest.mark.parametrize("subject,topic", [
-        ("История", "Древний Египет"),
-        ("Биология", "Клетка"),
-        ("Химия", "Периодический закон"),
-        ("Английский язык", "Present Simple"),
-        ("Обществознание", "Человек и общество"),
-        ("Неизвестный предмет", "Какая-то тема"),
-    ])
+    @pytest.mark.parametrize(
+        "subject,topic",
+        [
+            ("История", "Древний Египет"),
+            ("Биология", "Клетка"),
+            ("Химия", "Периодический закон"),
+            ("Английский язык", "Present Simple"),
+            ("Обществознание", "Человек и общество"),
+            ("Неизвестный предмет", "Какая-то тема"),
+        ],
+    )
     def test_generic_fallback_has_useful_structure(self, subject, topic):
         result = _fallback_explanation(subject, topic)
         # НЕ должно быть старого бесполезного generic'а
-        assert "начни с определения темы" not in result, (
-            f"{subject}/{topic}: остался старый бесполезный generic"
-        )
+        assert "начни с определения темы" not in result, f"{subject}/{topic}: остался старый бесполезный generic"
         # Должна быть структура (хотя бы один заголовок)
         assert "### " in result, f"{subject}/{topic}: нет подзаголовков"
         # Должны быть конкретные шаги
-        assert any(kw in result.lower() for kw in [
-            "определение", "пример", "правило", "алгоритм",
-            "главное", "запомни", "проверь себя",
-        ]), f"{subject}/{topic}: нет практических подсказок"
+        assert any(
+            kw in result.lower()
+            for kw in [
+                "определение",
+                "пример",
+                "правило",
+                "алгоритм",
+                "главное",
+                "запомни",
+                "проверь себя",
+            ]
+        ), f"{subject}/{topic}: нет практических подсказок"
 
     def test_generic_fallback_suggests_practice(self):
         """Fallback должен предлагать перейти к практике (любой generic)."""
@@ -104,11 +118,14 @@ class TestGenericFallbackImproved:
 class TestFallbackIsNotEmpty:
     """Sanity: функция всегда возвращает непустую строку."""
 
-    @pytest.mark.parametrize("subject,topic", [
-        ("", ""),
-        ("X", "Y"),
-        ("Длинный предмет" * 10, "Длинная тема" * 10),
-    ])
+    @pytest.mark.parametrize(
+        "subject,topic",
+        [
+            ("", ""),
+            ("X", "Y"),
+            ("Длинный предмет" * 10, "Длинная тема" * 10),
+        ],
+    )
     def test_returns_non_empty(self, subject, topic):
         result = _fallback_explanation(subject, topic)
         assert len(result) > 50, f"Empty/short result for {subject!r}/{topic!r}"

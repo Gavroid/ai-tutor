@@ -3,6 +3,7 @@
 Создаёт таблицу invites для friends/classmates.
 Code создаётся admin/teacher, активируется при register.
 """
+
 from collections.abc import Sequence
 from typing import Union
 

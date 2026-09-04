@@ -4,6 +4,7 @@
 - 8.1: teacher generation retry при невалидном JSON, structured output fallback
 - 8.4: record_ai_request() вызывается во всех режимах (метрики)
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -83,9 +84,7 @@ def test_json_in_content_parsed():
     ai_svc = MagicMock()
     ai_svc.provider = provider
     material = asyncio.run(
-        call_ai_for_material(
-            ai_svc, "Алгебра", "Сложение", SourceContent(text="src", detected_format="text")
-        )
+        call_ai_for_material(ai_svc, "Алгебра", "Сложение", SourceContent(text="src", detected_format="text"))
     )
     assert material.title == "OK"
 
@@ -105,9 +104,7 @@ def test_retry_on_invalid_json():
     ai_svc = MagicMock()
     ai_svc.provider = provider
     material = asyncio.run(
-        call_ai_for_material(
-            ai_svc, "Алгебра", "Topic", SourceContent(text="x", detected_format="text")
-        )
+        call_ai_for_material(ai_svc, "Алгебра", "Topic", SourceContent(text="x", detected_format="text"))
     )
     assert material.title == "Recovered"
     assert provider.complete.call_count == 3
@@ -120,9 +117,7 @@ def test_fallback_after_3_failures():
     ai_svc = MagicMock()
     ai_svc.provider = provider
     material = asyncio.run(
-        call_ai_for_material(
-            ai_svc, "Алгебра", "ТемаФоллбэк", SourceContent(text="x", detected_format="text")
-        )
+        call_ai_for_material(ai_svc, "Алгебра", "ТемаФоллбэк", SourceContent(text="x", detected_format="text"))
     )
     assert material.title == "ТемаФоллбэк"
     assert any("AI не вернул" in n for n in material.ai_uncertainty_notes)
@@ -153,6 +148,7 @@ def test_metric_labels_ok():
     """Counter с labelnames=('mode','result') инкрементируется."""
     if _PARSE_CNT is None:
         import pytest
+
         pytest.skip("prometheus не настроен")
     before = _PARSE_CNT.labels(mode="test-sprint8", result="ok")._value.get()
     _PARSE_CNT.labels(mode="test-sprint8", result="ok").inc()

@@ -1,4 +1,5 @@
 """SQLAlchemy engine, сессии и базовый класс моделей."""
+
 from collections.abc import Generator
 
 from sqlalchemy import create_engine

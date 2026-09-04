@@ -42,6 +42,7 @@ mvp_status (для обратной совместимости с frontend) — 
   ...
 }
 """
+
 from __future__ import annotations
 
 import json
@@ -92,8 +93,21 @@ _PILOT_SCOPE: set[str] = {
     "math",
     # Sprint 3.9.3: auto-smoke прошёл для всех 16 предметов
     # (/api/v1/ai/explain + /v2/exercises/generate + /answer все 200).
-    "algebra", "eng", "bio", "hist-world", "geo", "geom", "inf",
-    "hist", "lit", "lit-2", "soc", "rus", "rus-2", "phys", "chem",
+    "algebra",
+    "eng",
+    "bio",
+    "hist-world",
+    "geo",
+    "geom",
+    "inf",
+    "hist",
+    "lit",
+    "lit-2",
+    "soc",
+    "rus",
+    "rus-2",
+    "phys",
+    "chem",
 }
 
 
@@ -143,10 +157,7 @@ class SubjectEvidence:
         """Человекочитаемое объяснение текущего статуса для ребёнка/учителя."""
         status = self.mvp_status()
         if status == "mvp_ready":
-            return (
-                "Готово: маршрут, источники, практика и ручной smoke закрыты. "
-                "Доступно пилоту."
-            )
+            return "Готово: маршрут, источники, практика и ручной smoke закрыты. " "Доступно пилоту."
         if status == "internal_mvp":
             missing = []
             if not self.manifest_ready:
@@ -165,10 +176,7 @@ class SubjectEvidence:
                 missing.append("promotion gate")
             return "В обработке: не закрыты " + ", ".join(missing) + "."
         if status == "blocked_ocr":
-            return (
-                "Заблокировано: OCR/формулы/карты/таблицы не прошли visual QA. "
-                "Доступно только оператору."
-            )
+            return "Заблокировано: OCR/формулы/карты/таблицы не прошли visual QA. " "Доступно только оператору."
         if status == "not_available":
             return "Недоступно: источник или mapping не найден."
         return (

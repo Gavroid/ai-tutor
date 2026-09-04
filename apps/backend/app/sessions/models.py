@@ -1,4 +1,5 @@
 """Sprint 34 — Session pause SQLAlchemy model."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -27,9 +28,5 @@ class SessionPause(Base):
     )
     # break | hypo | hyper | other (matches PauseButton reasons)
     reason: Mapped[str] = mapped_column(String(20), nullable=False)
-    started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    ended_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

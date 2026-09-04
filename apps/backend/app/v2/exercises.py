@@ -14,6 +14,7 @@ POST /api/v2/exercises/{exercise_id}/answer
   - expired exercise_id → 410
   - чужой exercise_id → 404
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta, timezone
@@ -64,6 +65,7 @@ class AnswerOut(BaseModel):
 
 
 # === Sprint 61: Adaptive difficulty ===
+
 
 def compute_adaptive_difficulty(
     db: Session,
@@ -132,7 +134,9 @@ def _rotate_repeated_exercise(
             )
             .order_by(GeneratedExerciseInstance.created_at.desc())
             .limit(3)
-        ).scalars().all()
+        )
+        .scalars()
+        .all()
     )
     if gen.question_text not in recent_questions:
         return gen
@@ -184,6 +188,7 @@ async def generate_exercise(
         from datetime import datetime, timedelta, timezone
 
         from app.sessions.models import SessionPause
+
         recovery = (
             db.query(SessionPause)
             .filter(
@@ -219,11 +224,11 @@ async def generate_exercise(
 
     # Sprint C1 (2026-08-23): reject provider drift (Реки и озёра для math-6).
     from app.ai.service import _exercise_matches_topic
+
     if not _exercise_matches_topic(gen, topic.name):
         from app.ai.service import _fallback_generated_exercise
-        gen = _fallback_generated_exercise(
-            topic.section.subject.name, topic.name, target_difficulty, topic_id=topic.id
-        )
+
+        gen = _fallback_generated_exercise(topic.section.subject.name, topic.name, target_difficulty, topic_id=topic.id)
 
     gen = _rotate_repeated_exercise(db, current, topic, target_difficulty, gen)
 
@@ -344,10 +349,7 @@ async def submit_answer(
             )
         is_correct = bool(check_result["correct"])
         score = float(check_result["score"])
-        feedback = (
-            f"[{check_result['checker']}] "
-            + ("Верно!" if is_correct else "Есть ошибка")
-        )
+        feedback = f"[{check_result['checker']}] " + ("Верно!" if is_correct else "Есть ошибка")
     else:
         # Fallback: exact match (default behavior).
         is_correct = bool(norm_user) and norm_user.lower() == norm_ref.lower()
@@ -406,15 +408,19 @@ async def submit_answer(
         db.add(prog)
     else:
         # 20-attempt sliding window
-        recent = db.execute(
-            select(progress_models.Attempt.score)
-            .where(
-                progress_models.Attempt.user_id == current.id,
-                progress_models.Attempt.topic_id == inst.topic_id,
+        recent = (
+            db.execute(
+                select(progress_models.Attempt.score)
+                .where(
+                    progress_models.Attempt.user_id == current.id,
+                    progress_models.Attempt.topic_id == inst.topic_id,
+                )
+                .order_by(progress_models.Attempt.created_at.desc())
+                .limit(20)
             )
-            .order_by(progress_models.Attempt.created_at.desc())
-            .limit(20)
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         recent_scores = [float(s) for s in recent] + [score]
         prog.mastery_score = sum(recent_scores) / len(recent_scores)
         prog.attempts_count += 1

@@ -7,6 +7,7 @@
 
 FK на users.id, ondelete CASCADE.
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa

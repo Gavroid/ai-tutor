@@ -1,4 +1,5 @@
 """Sprint 83: WebSocket keepalive + max lifetime tests."""
+
 from __future__ import annotations
 
 import os
@@ -9,12 +10,16 @@ import pytest
 
 # === Source verification ===
 
+
 def test_ws_constants_defined():
     """Sprint 83: WS_MAX_LIFETIME_SECONDS и WS_PING_INTERVAL_SECONDS."""
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "ai", "websocket.py",
+            "..",
+            "app",
+            "ai",
+            "websocket.py",
         )
     ) as f:
         content = f.read()
@@ -27,12 +32,15 @@ def test_ws_keepalive_sends_ping():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "ai", "websocket.py",
+            "..",
+            "app",
+            "ai",
+            "websocket.py",
         )
     ) as f:
         content = f.read()
     assert "_send_pings" in content
-    assert "send_json({\"type\": \"ping\"" in content or 'send_json({"type": "ping"' in content
+    assert 'send_json({"type": "ping"' in content or 'send_json({"type": "ping"' in content
 
 
 def test_ws_max_lifetime_enforced():
@@ -40,7 +48,10 @@ def test_ws_max_lifetime_enforced():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "ai", "websocket.py",
+            "..",
+            "app",
+            "ai",
+            "websocket.py",
         )
     ) as f:
         content = f.read()
@@ -53,7 +64,10 @@ def test_ws_ping_task_cancelled_on_exit():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "ai", "websocket.py",
+            "..",
+            "app",
+            "ai",
+            "websocket.py",
         )
     ) as f:
         content = f.read()
@@ -65,7 +79,10 @@ def test_ws_uses_wait_for_timeout():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "ai", "websocket.py",
+            "..",
+            "app",
+            "ai",
+            "websocket.py",
         )
     ) as f:
         content = f.read()
@@ -74,6 +91,7 @@ def test_ws_uses_wait_for_timeout():
 
 
 # === Integration tests ===
+
 
 def test_ws_module_imports():
     """Sprint 83: websocket module imports successfully."""

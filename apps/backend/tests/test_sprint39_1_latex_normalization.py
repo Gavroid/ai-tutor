@@ -8,6 +8,7 @@
 - Декораторы: \\\\overline, \\\\mathbf, \\\\mathrm → plain text.
 - Вложенные дроби (3 уровня).
 """
+
 from __future__ import annotations
 
 import pytest
@@ -48,21 +49,24 @@ class TestLatexParenNotation:
 class TestMathSymbols:
     """Частые LaTeX-команды → Unicode."""
 
-    @pytest.mark.parametrize("latex,expected", [
-        (r"\angle", "∠"),
-        (r"\triangle", "△"),
-        (r"\leq", "≤"),
-        (r"\geq", "≥"),
-        (r"\neq", "≠"),
-        (r"\pm", "±"),
-        (r"\cdot", "×"),
-        (r"\times", "×"),
-        (r"\div", "÷"),
-        (r"\to", "→"),
-        (r"\rightarrow", "→"),
-        (r"\approx", "≈"),
-        (r"\infty", "∞"),
-    ])
+    @pytest.mark.parametrize(
+        "latex,expected",
+        [
+            (r"\angle", "∠"),
+            (r"\triangle", "△"),
+            (r"\leq", "≤"),
+            (r"\geq", "≥"),
+            (r"\neq", "≠"),
+            (r"\pm", "±"),
+            (r"\cdot", "×"),
+            (r"\times", "×"),
+            (r"\div", "÷"),
+            (r"\to", "→"),
+            (r"\rightarrow", "→"),
+            (r"\approx", "≈"),
+            (r"\infty", "∞"),
+        ],
+    )
     def test_single_symbol(self, latex, expected):
         assert _normalize_latex(latex) == expected
 
@@ -70,16 +74,19 @@ class TestMathSymbols:
 class TestDegreesAndSuperscripts:
     """Градусы и степени в Unicode."""
 
-    @pytest.mark.parametrize("latex,expected", [
-        ("50^\\circ", "50°"),
-        ("50^{\\circ}", "50°"),
-        ("x^2", "x²"),
-        ("x^10", "x¹⁰"),
-        ("x^{2}", "x²"),
-        ("x^{10}", "x¹⁰"),
-        ("x^{n+1}", "xⁿ⁺¹"),
-        ("2^8 = 256", "2⁸ = 256"),
-    ])
+    @pytest.mark.parametrize(
+        "latex,expected",
+        [
+            ("50^\\circ", "50°"),
+            ("50^{\\circ}", "50°"),
+            ("x^2", "x²"),
+            ("x^10", "x¹⁰"),
+            ("x^{2}", "x²"),
+            ("x^{10}", "x¹⁰"),
+            ("x^{n+1}", "xⁿ⁺¹"),
+            ("2^8 = 256", "2⁸ = 256"),
+        ],
+    )
     def test_superscripts(self, latex, expected):
         assert _normalize_latex(latex) == expected
 
@@ -87,13 +94,16 @@ class TestDegreesAndSuperscripts:
 class TestSubscripts:
     """Индексы в Unicode."""
 
-    @pytest.mark.parametrize("latex,expected", [
-        ("x_1", "x₁"),
-        ("x_{12}", "x₁₂"),
-        ("x_{n+1}", "xₙ₊₁"),
-        ("AB_2", "AB2"),  # идентификатор: подчёркивание убирается (см. _IDENT_RE)
-        ("H_2O", "H2O"),
-    ])
+    @pytest.mark.parametrize(
+        "latex,expected",
+        [
+            ("x_1", "x₁"),
+            ("x_{12}", "x₁₂"),
+            ("x_{n+1}", "xₙ₊₁"),
+            ("AB_2", "AB2"),  # идентификатор: подчёркивание убирается (см. _IDENT_RE)
+            ("H_2O", "H2O"),
+        ],
+    )
     def test_subscripts_in_math(self, latex, expected):
         # Подчёркивание в identifiers убирается отдельно (rule 15),
         # в math-режиме с фигурными скобками конвертируется в Unicode.
@@ -120,12 +130,15 @@ class TestFractions:
 class TestDecorators:
     """Декораторы → plain text."""
 
-    @pytest.mark.parametrize("latex,expected", [
-        (r"\overline{AB}", "AB"),
-        (r"\mathbf{X}", "X"),
-        (r"\mathrm{x}", "x"),
-        (r"\text{word}", "word"),
-    ])
+    @pytest.mark.parametrize(
+        "latex,expected",
+        [
+            (r"\overline{AB}", "AB"),
+            (r"\mathbf{X}", "X"),
+            (r"\mathrm{x}", "x"),
+            (r"\text{word}", "word"),
+        ],
+    )
     def test_decorator_stripped(self, latex, expected):
         assert _normalize_latex(latex) == expected
 

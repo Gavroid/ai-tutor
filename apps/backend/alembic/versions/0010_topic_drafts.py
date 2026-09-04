@@ -15,6 +15,7 @@
 
 Downgrade: drop table (данные теряются, что приемлемо).
 """
+
 from collections.abc import Sequence
 from typing import Union
 

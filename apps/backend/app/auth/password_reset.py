@@ -9,6 +9,7 @@
 TTL — 1 час.
 Лимит — 5 запросов в час на email (anti-enumeration через тот же email, dry_run).
 """
+
 from __future__ import annotations
 
 import hashlib

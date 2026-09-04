@@ -4,6 +4,7 @@ POST /api/v1/admin/telegram-code { email } → {code: "abcd1234", expires_at: ".
 
 Использует issue_code() из app/bot/telegram_bot.py (та же Postgres).
 """
+
 from __future__ import annotations
 
 from app.bot.telegram_bot import issue_code

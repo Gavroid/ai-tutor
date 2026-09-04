@@ -4,6 +4,7 @@ Sprint 64: Redis caching для read-heavy endpoints (subjects/topics).
 Sprint 2026-08-22: fail-closed readiness policy. mvp_status вычисляется из
 явного evidence-store (см. app.subjects.evidence), а не из counts/route/seed.
 """
+
 from __future__ import annotations
 
 import logging
@@ -72,7 +73,9 @@ def _subject_coverage(db: Session, subject: models.Subject) -> dict[str, object]
             .where(models.LearningMaterial.topic_id.in_(topic_ids))
             .group_by(models.LearningMaterial.topic_id)
             .having(func.count(RagChunk.id) > 0)
-        ).scalars().all()
+        )
+        .scalars()
+        .all()
     )
 
     from app.teacher import content_registry
@@ -160,12 +163,16 @@ def list_subject_topics(subject_id: int, db: Session = Depends(get_db)):
     if cached is not None:
         return cached
 
-    rows = db.execute(
-        select(models.Topic)
-        .join(models.Section, models.Topic.section_id == models.Section.id)
-        .where(models.Section.subject_id == subject_id)
-        .order_by(models.Section.order_index, models.Topic.order_index)
-    ).scalars().all()
+    rows = (
+        db.execute(
+            select(models.Topic)
+            .join(models.Section, models.Topic.section_id == models.Section.id)
+            .where(models.Section.subject_id == subject_id)
+            .order_by(models.Section.order_index, models.Topic.order_index)
+        )
+        .scalars()
+        .all()
+    )
 
     # Cache as Pydantic dicts (полная схема)
     rows_dicts = [schemas.TopicOut.model_validate(t).model_dump() for t in rows]
@@ -254,11 +261,7 @@ def get_topic(topic_id: int, db: Session = Depends(get_db)):
     from app.subjects.models import Section, Subject, Topic
     from sqlalchemy import select
 
-    stmt = (
-        select(Topic, Section.subject_id)
-        .join(Section, Topic.section_id == Section.id)
-        .where(Topic.id == topic_id)
-    )
+    stmt = select(Topic, Section.subject_id).join(Section, Topic.section_id == Section.id).where(Topic.id == topic_id)
     row = db.execute(stmt).first()
     if row is None:
         raise HTTPException(404, "Topic not found")
@@ -273,18 +276,48 @@ def _followups_for_topic(topic: models.Topic) -> list[schemas.TopicFollowupOut]:
     name = topic.name.lower()
     if "среднее арифметическое" in name:
         return [
-            schemas.TopicFollowupOut(label="Среднее чисел", prompt="Объясни подробнее среднее арифметическое обычных чисел на новом примере.", kind="choice", order_index=1),
-            schemas.TopicFollowupOut(label="Средняя скорость", prompt="Объясни среднюю скорость как отдельный тип задач, с простым примером.", kind="choice", order_index=2),
-            schemas.TopicFollowupOut(label="Средний вес", prompt="Объясни средний вес как отдельный тип задач, с простым примером.", kind="choice", order_index=3),
+            schemas.TopicFollowupOut(
+                label="Среднее чисел",
+                prompt="Объясни подробнее среднее арифметическое обычных чисел на новом примере.",
+                kind="choice",
+                order_index=1,
+            ),
+            schemas.TopicFollowupOut(
+                label="Средняя скорость",
+                prompt="Объясни среднюю скорость как отдельный тип задач, с простым примером.",
+                kind="choice",
+                order_index=2,
+            ),
+            schemas.TopicFollowupOut(
+                label="Средний вес",
+                prompt="Объясни средний вес как отдельный тип задач, с простым примером.",
+                kind="choice",
+                order_index=3,
+            ),
         ]
     if "наибольш" in name and "делител" in name:
         return [
-            schemas.TopicFollowupOut(label="Попробовать самому", prompt="Дай мне похожую задачу на НОД и взаимно простые числа, но не показывай ответ сразу.", kind="choice", order_index=1),
-            schemas.TopicFollowupOut(label="Второй способ", prompt="Покажи второй способ нахождения НОД через разложение на простые множители.", kind="choice", order_index=2),
+            schemas.TopicFollowupOut(
+                label="Попробовать самому",
+                prompt="Дай мне похожую задачу на НОД и взаимно простые числа, но не показывай ответ сразу.",
+                kind="choice",
+                order_index=1,
+            ),
+            schemas.TopicFollowupOut(
+                label="Второй способ",
+                prompt="Покажи второй способ нахождения НОД через разложение на простые множители.",
+                kind="choice",
+                order_index=2,
+            ),
         ]
     if "уравнен" in name:
         return [
-            schemas.TopicFollowupOut(label="Далее", prompt="Продолжи объяснение темы по следующему шагу: как переносить слагаемые в уравнении и менять знак.", kind="next", order_index=1),
+            schemas.TopicFollowupOut(
+                label="Далее",
+                prompt="Продолжи объяснение темы по следующему шагу: как переносить слагаемые в уравнении и менять знак.",
+                kind="next",
+                order_index=1,
+            ),
         ]
     return []
 

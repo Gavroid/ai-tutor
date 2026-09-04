@@ -1,4 +1,5 @@
 """Модели модуля student: черновики уроков, баджи (Sprint 7.5)."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timezone
@@ -35,9 +36,7 @@ class TopicDraft(Base):
     topic_id: Mapped[int] = mapped_column(Integer, ForeignKey("topics.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     payload: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=_utcnow
-    )
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
 
 class BadgeDefinition(Base):
@@ -65,9 +64,7 @@ class UserCounter(Base):
 
     __tablename__ = "user_counters"
 
-    user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
-    )
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     easy_solved: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     questions_to_ai: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
@@ -82,13 +79,7 @@ class UserBadge(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
-    badge_slug: Mapped[str] = mapped_column(
-        String(50), ForeignKey("badge_definitions.slug"), nullable=False
-    )
-    awarded_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=_utcnow
-    )
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    badge_slug: Mapped[str] = mapped_column(String(50), ForeignKey("badge_definitions.slug"), nullable=False)
+    awarded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     evidence_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")

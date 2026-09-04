@@ -5,6 +5,7 @@ T1D safety:
 - НЕ отправляет в Telegram автоматически (opt-in).
 - НЕ интерпретирует glucose data.
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence

@@ -15,6 +15,7 @@ Usage:
     db = SessionLocal()
     send_weekly_summary_for_parent(db, parent_id=1)
 """
+
 from __future__ import annotations
 
 import json
@@ -38,27 +39,27 @@ def _aggregate_progress_for_student(db: Session, student_id: int, week_start: da
 
     week_end = week_start + timedelta(days=7)
 
-    attempts = db.execute(
-        select(prog_models.Attempt).where(
-            prog_models.Attempt.user_id == student_id,
-            prog_models.Attempt.created_at >= week_start,
-            prog_models.Attempt.created_at < week_end,
+    attempts = (
+        db.execute(
+            select(prog_models.Attempt).where(
+                prog_models.Attempt.user_id == student_id,
+                prog_models.Attempt.created_at >= week_start,
+                prog_models.Attempt.created_at < week_end,
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     correct = sum(1 for a in attempts if a.is_correct)
     total = len(attempts)
     accuracy = (correct / total * 100) if total else 0.0
 
-    progress_rows = db.execute(
-        select(prog_models.Progress).where(prog_models.Progress.user_id == student_id)
-    ).scalars().all()
-
-    mastery_avg = (
-        sum(p.mastery_score for p in progress_rows) / len(progress_rows)
-        if progress_rows
-        else 0.0
+    progress_rows = (
+        db.execute(select(prog_models.Progress).where(prog_models.Progress.user_id == student_id)).scalars().all()
     )
+
+    mastery_avg = sum(p.mastery_score for p in progress_rows) / len(progress_rows) if progress_rows else 0.0
 
     active_days = len({a.created_at.date() for a in attempts})
 
@@ -126,9 +127,9 @@ def send_weekly_summary_for_parent(
     """
     from app.notifications.service import _send_via_smtp
 
-    week_start = week_start or (
-        datetime.now(UTC) - timedelta(days=7)
-    ).replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = week_start or (datetime.now(UTC) - timedelta(days=7)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
     week_label = week_start.strftime("%d.%m") + "—" + (week_start + timedelta(days=6)).strftime("%d.%m.%Y")
 
     parent = db.get(user_models.User, parent_id)
@@ -139,19 +140,21 @@ def send_weekly_summary_for_parent(
     # Найти детей через parent_student_links (Sprint 3 модель)
     from app.users.models import ParentStudentLink
 
-    children_ids = db.execute(
-        select(ParentStudentLink.student_id).where(
-            ParentStudentLink.parent_id == parent_id,
-            ParentStudentLink.status == "active",
+    children_ids = (
+        db.execute(
+            select(ParentStudentLink.student_id).where(
+                ParentStudentLink.parent_id == parent_id,
+                ParentStudentLink.status == "active",
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     if not children_ids:
         logger.info("Parent %s: no children — skip", parent_id)
         return 0
 
-    children = db.execute(
-        select(user_models.User).where(user_models.User.id.in_(children_ids))
-    ).scalars().all()
+    children = db.execute(select(user_models.User).where(user_models.User.id.in_(children_ids))).scalars().all()
 
     sent_count = 0
     smtp_url = __import__("os").environ.get("SMTP_URL", "").strip()
@@ -178,9 +181,7 @@ def send_weekly_summary_for_parent(
 
 def send_weekly_summary_for_all_parents(db: Session) -> int:
     """Cron-обёртка: для каждого parent отправляет summary."""
-    parents = db.execute(
-        select(user_models.User).where(user_models.User.role == "parent")
-    ).scalars().all()
+    parents = db.execute(select(user_models.User).where(user_models.User.role == "parent")).scalars().all()
     total_sent = 0
     for p in parents:
         total_sent += send_weekly_summary_for_parent(db, p.id)

@@ -23,10 +23,14 @@ async def test_generate_exercise_uses_topic_registry_fallback(monkeypatch):
             "correct_answer": "4",
             "explanation": "2 + 2 = 4",
             "typical_mistakes": [],
-        } if topic_id == 200 else None,
+        }
+        if topic_id == 200
+        else None,
     )
 
-    exercise = await AIService(EmptyProvider()).generate_exercise("Математика", "Распределительное свойство умножения", 2, topic_id=200)
+    exercise = await AIService(EmptyProvider()).generate_exercise(
+        "Математика", "Распределительное свойство умножения", 2, topic_id=200
+    )
 
     assert exercise.type == "single"
     assert exercise.correct_answer == "4"

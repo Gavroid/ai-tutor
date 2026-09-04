@@ -13,6 +13,7 @@ v2/exercises.py::submit_answer через dispatcher. Тесты снова ак
     from app.practice.checkers import check_answer
     result = check_answer(...)
 """
+
 from __future__ import annotations
 
 from app.practice.checkers import (

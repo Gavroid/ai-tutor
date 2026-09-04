@@ -2,7 +2,7 @@ from app.admin.realtime import parse_prometheus_snapshot
 
 
 def test_parse_prometheus_snapshot_aggregates_workers():
-    text = '''
+    text = """
 # HELP ai_tokens_total Total AI tokens consumed
 # TYPE ai_tokens_total counter
 ai_tokens_total{role="input"} 100.0
@@ -17,7 +17,7 @@ http_requests_total{method="GET",path="/api/v1/student/topics/{topic_id}/draft",
 http_requests_total{method="GET",path="/api/v1/admin/realtime/snapshot",status="401"} 1.0
 http_requests_total{method="GET",path="/api/v1/ai/explain",status="500"} 2.0
 http_requests_total{method="GET",path="/api/v1/auth/me",status="200"} 10.0
-'''
+"""
 
     parsed = parse_prometheus_snapshot(text)
 

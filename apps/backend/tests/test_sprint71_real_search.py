@@ -1,4 +1,5 @@
 """Sprint 71: real embeddings search tests."""
+
 from __future__ import annotations
 
 import os
@@ -11,6 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 # === Module-level tests (без DB) ===
+
 
 def test_search_real_persistent_imports():
     """Sprint 71: search_real_persistent module imports."""
@@ -28,6 +30,7 @@ def test_search_real_endpoint_registered():
 
 
 # === Real search tests ===
+
 
 @pytest.fixture
 def client():

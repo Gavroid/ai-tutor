@@ -1,4 +1,5 @@
 """Pydantic-схемы для teacher endpoints (Sprint 1.2-1.3)."""
+
 from __future__ import annotations
 
 from datetime import datetime

@@ -10,6 +10,7 @@
 Production-ready: traces могут быть экспортированы в Jaeger/Zipkin
 через OTLP exporter (configurable via OTEL_EXPORTER_OTLP_ENDPOINT).
 """
+
 from __future__ import annotations
 
 import logging
@@ -27,6 +28,7 @@ try:
         BatchSpanProcessor,
         ConsoleSpanExporter,
     )
+
     OTEL_AVAILABLE = True
 except ImportError:
     OTEL_AVAILABLE = False
@@ -108,6 +110,7 @@ def setup_telemetry(app=None, engine=None) -> bool:
             from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
                 OTLPSpanExporter as GrpcExporter,
             )
+
             exporter = GrpcExporter(endpoint=otlp_endpoint, insecure=True)
             provider.add_span_processor(BatchSpanProcessor(exporter))
             logger.info(f"OTLP gRPC exporter configured: {otlp_endpoint}")
@@ -120,6 +123,7 @@ def setup_telemetry(app=None, engine=None) -> bool:
                 from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
                     OTLPSpanExporter as HttpExporter,
                 )
+
                 # HTTP endpoint: replace port if needed
                 # gRPC default 4317 → HTTP 4318 (если не указан)
                 http_endpoint = otlp_endpoint

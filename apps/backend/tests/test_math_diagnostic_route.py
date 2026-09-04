@@ -39,7 +39,9 @@ def test_submit_answer_uses_correct_answer_not_question_text():
     session = SessionLocal()
     try:
         seed_for_tests(session, reset=True)
-        sess = diag_models.DiagnosticSession(user_id=1002, subject_id=MATH_SUBJECT_ID, status="in_progress", total_questions=1)
+        sess = diag_models.DiagnosticSession(
+            user_id=1002, subject_id=MATH_SUBJECT_ID, status="in_progress", total_questions=1
+        )
         session.add(sess)
         session.commit()
         answer = diag_service.submit_answer(session, sess.id, diagnostic_topic_ids()[0], "2 + 2 = ?", "4", "4")

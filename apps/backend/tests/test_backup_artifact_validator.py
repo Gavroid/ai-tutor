@@ -7,7 +7,9 @@ from pathlib import Path
 from scripts.backup_artifact_validator import validate_backup_artifact
 
 
-def _write_backup(tmp_path: Path, sql: bytes = b"-- PostgreSQL database dump\nCREATE TABLE users (id integer);\n") -> tuple[Path, Path]:
+def _write_backup(
+    tmp_path: Path, sql: bytes = b"-- PostgreSQL database dump\nCREATE TABLE users (id integer);\n"
+) -> tuple[Path, Path]:
     backup = tmp_path / "db-20260823T120000Z.sql.gz"
     with gzip.open(backup, "wb") as handle:
         handle.write(sql)

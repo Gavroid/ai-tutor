@@ -10,6 +10,7 @@ Sprint 2026-08-22:
   mvp_status=mvp_ready. Иначе — preview/internal_mvp/blocked_ocr/not_available
   по явной причине.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -18,11 +19,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 # Evidence status values, которые могут появляться в mvp_status после fail-closed.
 MVP_STATUS_VALUES = (
-    "mvp_ready",        # все evidence gates закрыты
-    "internal_mvp",     # технически есть, но не для самостоятельного теста
-    "preview",          # навигация/обработка, не pilot
-    "blocked_ocr",      # OCR/caption/formula QA не закрыта
-    "not_available",    # источник или mapping отсутствует
+    "mvp_ready",  # все evidence gates закрыты
+    "internal_mvp",  # технически есть, но не для самостоятельного теста
+    "preview",  # навигация/обработка, не pilot
+    "blocked_ocr",  # OCR/caption/formula QA не закрыта
+    "not_available",  # источник или mapping отсутствует
 )
 
 

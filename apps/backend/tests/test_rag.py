@@ -1,4 +1,5 @@
 """Тесты RAG chunking + cosine similarity + vector store."""
+
 from __future__ import annotations
 
 import os

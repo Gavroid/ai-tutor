@@ -3,6 +3,7 @@
 Принимает отзыв от student/parent: feeling (ok/boring/hard/more), comment, topic_id.
 Записывает в audit_log для последующего анализа.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends

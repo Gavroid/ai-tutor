@@ -3,6 +3,7 @@
 Все инструкции жёстко зашиты в код — ученик НЕ может их увидеть.
 Эти строки попадают в LLM как system-сообщения.
 """
+
 from __future__ import annotations
 
 BASE_SYSTEM = """Ты — доброжелательный персональный AI-репетитор для ученика 7 класса (12–14 лет).
@@ -45,7 +46,9 @@ BASE_SYSTEM = """Ты — доброжелательный персональн�
 - Вместо «ты не способен» → «после нескольких упражнений результат улучшится»."""
 
 
-def explain_topic_system(subject_name: str, topic_name: str, grade: int, rag_context: str | None = None, style: str = "default") -> str:
+def explain_topic_system(
+    subject_name: str, topic_name: str, grade: int, rag_context: str | None = None, style: str = "default"
+) -> str:
     """Sprint 3.5.2: добавлен rag_context (контекст из загруженных учебников).
 
     S3.1 (2026-09-01, D2.8): добавлен style для multi-explain. Поддерживаемые стили:
@@ -59,10 +62,7 @@ def explain_topic_system(subject_name: str, topic_name: str, grade: int, rag_con
     Если rag_context задан — AI должен использовать его как основу для ответа.
     Без RAG (rag_context=None) — отвечает "из головы", как раньше.
     """
-    base = (
-        BASE_SYSTEM
-        + f"\n\nКОНТЕКСТ ЗАДАНИЯ: предмет «{subject_name}», тема «{topic_name}», {grade} класс."
-    )
+    base = BASE_SYSTEM + f"\n\nКОНТЕКСТ ЗАДАНИЯ: предмет «{subject_name}», тема «{topic_name}», {grade} класс."
 
     style_block = {
         "default": (
@@ -125,16 +125,43 @@ def explain_topic_system(subject_name: str, topic_name: str, grade: int, rag_con
 # offtopic (D4.2). Используются простой эвристикой до отправки в AI.
 OFFTOPIC_KEYWORDS: tuple[str, ...] = (
     # Развлечения
-    "фильм", "сериал", "игра престолов", "майнкрафт", "roblox", "minecraft",
-    "ютуб", "youtube", "тикток", "tiktok", " twitch", "twitch",
+    "фильм",
+    "сериал",
+    "игра престолов",
+    "майнкрафт",
+    "roblox",
+    "minecraft",
+    "ютуб",
+    "youtube",
+    "тикток",
+    "tiktok",
+    " twitch",
+    "twitch",
     # Секс/отношения/запрещёнка
-    "секс", "порно", "эрот", "знакомств", "тиндер", "tinder",
-    "девушк", "парн", "интим",
+    "секс",
+    "порно",
+    "эрот",
+    "знакомств",
+    "тиндер",
+    "tinder",
+    "девушк",
+    "парн",
+    "интим",
     # Взрослые темы
-    "алкоголь", "пиво", "водка", "вино", "курит", "наркот",
-    "оружие", "наркотик",
+    "алкоголь",
+    "пиво",
+    "водка",
+    "вино",
+    "курит",
+    "наркот",
+    "оружие",
+    "наркотик",
     # Прочее (неучебное)
-    "погода", "гороскоп", "прикол", "мем", "анекдот",
+    "погода",
+    "гороскоп",
+    "прикол",
+    "мем",
+    "анекдот",
 )
 
 
@@ -284,17 +311,23 @@ def _get_rag_context_for_topic(topic_id: int | None) -> str:
     try:
         from app.db.session import SessionLocal
         from app.rag_models import LearningMaterial, RagChunk
+
         sess = SessionLocal()
         try:
-            chunk = sess.query(RagChunk).join(
-                LearningMaterial, RagChunk.material_id == LearningMaterial.id
-            ).filter(
-                LearningMaterial.topic_id == topic_id,
-                RagChunk.text.isnot(None),
-                RagChunk.text != "",
-            ).order_by(RagChunk.id.asc()).first()
+            chunk = (
+                sess.query(RagChunk)
+                .join(LearningMaterial, RagChunk.material_id == LearningMaterial.id)
+                .filter(
+                    LearningMaterial.topic_id == topic_id,
+                    RagChunk.text.isnot(None),
+                    RagChunk.text != "",
+                )
+                .order_by(RagChunk.id.asc())
+                .first()
+            )
             if chunk and chunk.text:
                 import re as _re
+
                 for sent in _re.split(r"[.!?\n]+", chunk.text):
                     sent = sent.strip()
                     if len(sent) >= 40:
@@ -352,9 +385,9 @@ def quiz_system(subject_name: str, topic_name: str, difficulty: int, count: int)
         + ' "correct_answer": string,'
         + ' "explanation": string}.'
         + "\nПравила по типам:"
-        + "\n- \"single\": один правильный вариант; options обязателен (>=2 элементов); correct_answer — строка-вариант из options."
-        + "\n- \"multiple\": несколько правильных; options обязателен (>=2 элементов); correct_answer — строка с правильными вариантами через запятую."
-        + "\n- \"numeric\": числовой ответ; options=null; correct_answer — строка с числом."
-        + "\n- \"text\": свободный ответ; options=null; correct_answer — эталонный короткий ответ."
+        + '\n- "single": один правильный вариант; options обязателен (>=2 элементов); correct_answer — строка-вариант из options.'
+        + '\n- "multiple": несколько правильных; options обязателен (>=2 элементов); correct_answer — строка с правильными вариантами через запятую.'
+        + '\n- "numeric": числовой ответ; options=null; correct_answer — строка с числом.'
+        + '\n- "text": свободный ответ; options=null; correct_answer — эталонный короткий ответ.'
         + f"\nСгенерируй ровно {count} вопросов."
     )

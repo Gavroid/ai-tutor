@@ -6,6 +6,7 @@
 - /refresh работает через cookie без body
 - /logout очищает cookies
 """
+
 from __future__ import annotations
 
 import pytest
@@ -48,8 +49,8 @@ def test_login_sets_cookies(client: TestClient, user_data: dict):
 
     # Sprint 27: должны быть Set-Cookie headers
     cookies = r.cookies
-    assert "access_token" in cookies or "ai_tutor_access" in cookies or any(
-        "token" in k.lower() for k in cookies.keys()
+    assert (
+        "access_token" in cookies or "ai_tutor_access" in cookies or any("token" in k.lower() for k in cookies.keys())
     ), f"No token cookies set. Got: {list(cookies.keys())}"
 
 

@@ -7,6 +7,7 @@ mapping'ов, coverage math-tops ≥ 15 P0.
 Это read-only audit (production_mutation=false, db_write=false,
 rag_write=false, promotion_allowed=false) — НЕ мутирует state.
 """
+
 from __future__ import annotations
 
 import csv
@@ -76,22 +77,41 @@ def test_manifest_license_policy_is_fail_closed(manifest_rows):
 
 # === Manifest basics ==========================================================
 
+
 def test_manifest_has_expected_20_rows(manifest_rows):
     """Sprint 5: манифест содержит 20 записей (аудит baseline)."""
-    assert len(manifest_rows) == EXPECTED_MANIFEST_ROWS, (
-        f"manifest содержит {len(manifest_rows)} строк, ожидалось {EXPECTED_MANIFEST_ROWS}"
-    )
+    assert (
+        len(manifest_rows) == EXPECTED_MANIFEST_ROWS
+    ), f"manifest содержит {len(manifest_rows)} строк, ожидалось {EXPECTED_MANIFEST_ROWS}"
 
 
 def test_manifest_header_is_complete(manifest_rows):
     """Sprint 5: все обязательные колонки присутствуют."""
     required = {
-        "subject_code", "grade", "part", "title", "author", "year",
-        "local_path", "source_url", "source_kind", "license_decision",
-        "sha256", "pages", "text_pages", "text_coverage",
-        "ocr_status", "ocr_language", "known_problem_pages",
-        "original_path", "is_original_scan", "status",
-        "topic_mapping_path", "import_status", "rag_status", "manual_smoke_status",
+        "subject_code",
+        "grade",
+        "part",
+        "title",
+        "author",
+        "year",
+        "local_path",
+        "source_url",
+        "source_kind",
+        "license_decision",
+        "sha256",
+        "pages",
+        "text_pages",
+        "text_coverage",
+        "ocr_status",
+        "ocr_language",
+        "known_problem_pages",
+        "original_path",
+        "is_original_scan",
+        "status",
+        "topic_mapping_path",
+        "import_status",
+        "rag_status",
+        "manual_smoke_status",
     }
     headers = set(manifest_rows[0].keys()) if manifest_rows else set()
     missing = required - headers
@@ -102,25 +122,19 @@ def test_manifest_license_decision_is_known_enum(manifest_rows):
     """Sprint 5: license_decision ∈ known enum (аудит '20 = needs_review')."""
     for row in manifest_rows:
         ld = row["license_decision"]
-        assert ld in ALLOWED_LICENSE_DECISIONS, (
-            f"subject={row['subject_code']} license_decision={ld!r} не в allowed"
-        )
+        assert ld in ALLOWED_LICENSE_DECISIONS, f"subject={row['subject_code']} license_decision={ld!r} не в allowed"
 
 
 def test_manifest_source_kind_is_known_enum(manifest_rows):
     for row in manifest_rows:
         sk = row["source_kind"]
-        assert sk in ALLOWED_SOURCE_KINDS, (
-            f"subject={row['subject_code']} source_kind={sk!r} не в allowed"
-        )
+        assert sk in ALLOWED_SOURCE_KINDS, f"subject={row['subject_code']} source_kind={sk!r} не в allowed"
 
 
 def test_manifest_ocr_status_is_known_enum(manifest_rows):
     for row in manifest_rows:
         os_ = row["ocr_status"]
-        assert os_ in ALLOWED_OCR_STATUS, (
-            f"subject={row['subject_code']} ocr_status={os_!r} не в allowed"
-        )
+        assert os_ in ALLOWED_OCR_STATUS, f"subject={row['subject_code']} ocr_status={os_!r} не в allowed"
 
 
 def test_manifest_sha256_format(manifest_rows):
@@ -128,12 +142,11 @@ def test_manifest_sha256_format(manifest_rows):
     for row in manifest_rows:
         sha = row["sha256"]
         assert len(sha) == 64, f"subject={row['subject_code']} sha256={sha!r} не 64 chars"
-        assert all(c in "0123456789abcdef" for c in sha), (
-            f"subject={row['subject_code']} sha256 не hex"
-        )
+        assert all(c in "0123456789abcdef" for c in sha), f"subject={row['subject_code']} sha256 не hex"
 
 
 # === Filesystem cross-check ===================================================
+
 
 def test_manifest_local_path_exists(manifest_rows, repo_root_only=False):
     """Sprint 5: local_path файлы существуют (best-effort: некоторые могут отсутствовать)."""
@@ -144,17 +157,28 @@ def test_manifest_local_path_exists(manifest_rows, repo_root_only=False):
             missing.append((row["subject_code"], row["local_path"]))
     # Best-effort: некоторые файлы могут быть не в test-env — логируем как soft warning.
     if missing:
-        pytest.skip(
-            f"manifest local_path файлы отсутствуют в test-env: {len(missing)} "
-            f"(например {missing[:3]})"
-        )
+        pytest.skip(f"manifest local_path файлы отсутствуют в test-env: {len(missing)} " f"(например {missing[:3]})")
 
 
 def test_manifest_subject_codes_are_known():
     """subject_code ∈ known curriculum set (audit)."""
     known = {
-        "math", "algebra", "geom", "rus", "lit", "eng", "hist", "hist-world",
-        "phys", "inf", "soc", "chem", "bio", "geo", "lit-2", "rus-2",
+        "math",
+        "algebra",
+        "geom",
+        "rus",
+        "lit",
+        "eng",
+        "hist",
+        "hist-world",
+        "phys",
+        "inf",
+        "soc",
+        "chem",
+        "bio",
+        "geo",
+        "lit-2",
+        "rus-2",
     }
     with MANIFEST_CSV.open() as f:
         codes = {row["subject_code"] for row in csv.DictReader(f)}
@@ -172,6 +196,7 @@ def test_manifest_duplicate_local_paths_disallowed(manifest_rows):
 
 
 # === Mappings coverage ========================================================
+
 
 @pytest.fixture(scope="module")
 def mappings_index() -> dict[str, dict]:
@@ -201,9 +226,7 @@ def test_math_mapping_has_at_least_15_topics(mappings_index):
     if not math_mapping:
         pytest.skip("math mapping отсутствует")
     entries = math_mapping.get("entries", [])
-    assert len(entries) >= 15, (
-        f"math mapping содержит {len(entries)} entries, ожидалось ≥15"
-    )
+    assert len(entries) >= 15, f"math mapping содержит {len(entries)} entries, ожидалось ≥15"
 
 
 def test_mapping_entries_have_required_fields(mappings_index):
@@ -215,9 +238,7 @@ def test_mapping_entries_have_required_fields(mappings_index):
         entries = data.get("entries", [])
         for entry in entries:
             missing = required - entry.keys()
-            assert not missing, (
-                f"{code}::topic entry={entry.get('topic_id')} missing {missing}"
-            )
+            assert not missing, f"{code}::topic entry={entry.get('topic_id')} missing {missing}"
 
 
 def test_mapping_duplicate_topic_ids_in_subject_forbidden(mappings_index):
@@ -235,6 +256,7 @@ def test_mapping_duplicate_topic_ids_in_subject_forbidden(mappings_index):
 
 
 # === Cross-check manifest ↔ mapping ==========================================
+
 
 def test_manifest_mapping_paths_resolve(manifest_rows):
     """Sprint 5: topic_mapping_path из манифеста указывает на существующий JSON."""
@@ -254,12 +276,11 @@ def test_manifest_subject_codes_match_mapping_subject_code(manifest_rows, mappin
 
 # === Provenance checks ========================================================
 
+
 def test_manifest_source_url_is_http(manifest_rows):
     for row in manifest_rows:
         url = row["source_url"]
-        assert url.startswith("http"), (
-            f"subject={row['subject_code']} source_url={url!r} без http(s)"
-        )
+        assert url.startswith("http"), f"subject={row['subject_code']} source_url={url!r} без http(s)"
 
 
 def test_manifest_year_is_int_or_zero(manifest_rows):
@@ -273,9 +294,7 @@ def test_manifest_year_is_int_or_zero(manifest_rows):
             year = int(year_str)
         except ValueError:
             pytest.fail(f"subject={row['subject_code']} year={year_str!r} не int")
-        assert year == 0 or year >= 1900, (
-            f"subject={row['subject_code']} year={year} вне диапазона"
-        )
+        assert year == 0 or year >= 1900, f"subject={row['subject_code']} year={year} вне диапазона"
 
 
 def test_manifest_grade_is_seven(manifest_rows):
@@ -284,6 +303,4 @@ def test_manifest_grade_is_seven(manifest_rows):
         grade_str = row["grade"]
         if grade_str == "":
             continue
-        assert grade_str == "7", (
-            f"subject={row['subject_code']} grade={grade_str!r} ≠ '7'"
-        )
+        assert grade_str == "7", f"subject={row['subject_code']} grade={grade_str!r} ≠ '7'"

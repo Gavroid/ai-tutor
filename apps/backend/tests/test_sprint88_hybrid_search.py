@@ -1,4 +1,5 @@
 """Sprint 88: hybrid BM25 + real embeddings search tests."""
+
 from __future__ import annotations
 
 import os
@@ -48,6 +49,7 @@ def user_token(client):
 
 # === Module tests ===
 
+
 def test_search_hybrid_persistent_imports():
     """Sprint 88: search_hybrid_persistent module imports."""
     from app.rag_persist import search_hybrid_persistent
@@ -64,6 +66,7 @@ def test_hybrid_endpoint_registered(client):
 
 
 # === Real integration tests ===
+
 
 def _add_test_chunks_with_both_embeddings():
     """Helper: добавить test chunks с BM25 keyword + real embeddings."""

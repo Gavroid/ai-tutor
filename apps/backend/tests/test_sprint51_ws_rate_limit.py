@@ -6,6 +6,7 @@
 - Fallback на in-memory работает при Redis unavailable
 - 4 concurrent requests через 4 "fake workers" (один process, но Redis общий)
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -37,6 +38,7 @@ def mock_redis():
 def test_ws_rate_limit_key_format_per_user_window():
     """Sprint 51: key format — per user + per 60-sec window."""
     from app.main import _get_redis  # noqa
+
     # Sprint 51: проверяем логику формирования ключа
     uid = 42
     now = time.time()
@@ -78,6 +80,7 @@ def test_ws_rate_limit_atomic_with_redis():
 def test_ws_rate_limit_threshold():
     """Sprint 51: max_ws=5 — после 6-го запроса allowed=False."""
     from app.main import _ws_concurrent_log  # noqa
+
     # Убедимся что порог = 5.
     # Реальный код использует max_ws = 5 (см. main.py:312)
     max_ws = 5
@@ -120,12 +123,14 @@ def test_login_rate_limit_uses_redis():
     """Sprint 51: /login rate-limit использует Redis (multi-worker safe)."""
     # Уже реализовано в Sprint 16.0. Проверяем что код есть.
     from app.main import _login_attempts_log  # noqa
+
     assert isinstance(_login_attempts_log, dict)
 
 
 def test_register_rate_limit_uses_redis():
     """Sprint 51: /register rate-limit использует Redis."""
     from app.main import _register_attempts_log  # noqa
+
     assert isinstance(_register_attempts_log, dict)
 
 

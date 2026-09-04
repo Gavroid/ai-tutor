@@ -1,4 +1,5 @@
 """Sprint 82: /ready endpoint Redis check tests."""
+
 from __future__ import annotations
 
 import os
@@ -24,12 +25,15 @@ def client():
 
 # === Source verification ===
 
+
 def test_ready_endpoint_checks_redis():
     """Sprint 82: /ready endpoint имеет Redis check."""
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "main.py",
+            "..",
+            "app",
+            "main.py",
         )
     ) as f:
         content = f.read()
@@ -43,7 +47,9 @@ def test_ready_endpoint_returns_db_reason():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "main.py",
+            "..",
+            "app",
+            "main.py",
         )
     ) as f:
         content = f.read()
@@ -51,6 +57,7 @@ def test_ready_endpoint_returns_db_reason():
 
 
 # === Integration tests ===
+
 
 def test_ready_returns_redis_unavailable_when_redis_down(client):
     """Sprint 82: Redis down → 503 + status=not_ready + reason=redis_unavailable.

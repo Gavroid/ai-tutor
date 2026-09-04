@@ -1,4 +1,5 @@
 """Sprint 79: AI kill switch tests."""
+
 from __future__ import annotations
 
 import os
@@ -49,6 +50,7 @@ def admin_token(client):
 
 
 # === AI kill switch tests ===
+
 
 def test_ai_kill_switch_endpoint_registered(client):
     """Sprint 79: /admin/ai-kill-switch endpoint registered."""
@@ -106,6 +108,7 @@ def test_ai_kill_switch_persistent_via_redis():
     import inspect
 
     from app.admin import router as admin_router
+
     source = inspect.getsource(admin_router._write_kill_switch)
     assert "redis.set" in source, "kill switch должен использовать Redis SET"
     assert "ai:kill_switch" in source, "kill switch должен использовать key 'ai:kill_switch'"

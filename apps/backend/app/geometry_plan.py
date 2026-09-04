@@ -3,6 +3,7 @@
 Stage 13 intentionally exposes a structured preview route only. The subject
 remains `preview` until source/RAG and fallback practice coverage are complete.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -32,8 +33,12 @@ GEOMETRY_TOPIC_PLAN: tuple[GeometryTopicPlan, ...] = (
     GeometryTopicPlan(61, 9, "Параллельные прямые", "medium", "признаки параллельности прямых"),
     GeometryTopicPlan(62, 10, "Параллельные прямые", "medium", "свойства параллельных прямых", checkpoint=True),
     GeometryTopicPlan(63, 11, "Соотношения между сторонами и углами треугольника", "base", "сумма углов треугольника"),
-    GeometryTopicPlan(64, 12, "Соотношения между сторонами и углами треугольника", "medium", "внешний угол треугольника"),
-    GeometryTopicPlan(65, 13, "Соотношения между сторонами и углами треугольника", "hard", "неравенство треугольника", checkpoint=True),
+    GeometryTopicPlan(
+        64, 12, "Соотношения между сторонами и углами треугольника", "medium", "внешний угол треугольника"
+    ),
+    GeometryTopicPlan(
+        65, 13, "Соотношения между сторонами и углами треугольника", "hard", "неравенство треугольника", checkpoint=True
+    ),
 )
 
 PLAN_BY_GEOMETRY_TOPIC_ID = {row.topic_id: row for row in GEOMETRY_TOPIC_PLAN}

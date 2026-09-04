@@ -1,4 +1,5 @@
 """Роутер AI-эндпоинтов."""
+
 from __future__ import annotations
 
 from datetime import UTC
@@ -89,6 +90,7 @@ class UnderstandCheckOut(BaseModel):
     Ученик после решения задачи должен объяснить тему своими словами.
     AI задаёт 3 коротких вопроса БЕЗ правильных ответов (Socratic).
     """
+
     topic_id: int
     subject_name: str
     topic_name: str
@@ -153,9 +155,7 @@ def _enforce_budget(current: user_models.User) -> None:
             )
         elif e.limit_kind == "daily_requests":
             # Лимит сбрасывается в 00:00 UTC (= 03:00 МСК).
-            next_midnight = (now + timedelta(days=1)).replace(
-                hour=0, minute=0, second=0, microsecond=0
-            )
+            next_midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
             hours_left = max(1, int((next_midnight - now).total_seconds() // 3600))
             detail = (
                 f"Кирилл, на сегодня лимит запросов исчерпан "
@@ -163,9 +163,7 @@ def _enforce_budget(current: user_models.User) -> None:
                 f"Сбросится через {hours_left} ч, в 03:00 по Москве."
             )
         elif e.limit_kind == "daily_tokens":
-            next_midnight = (now + timedelta(days=1)).replace(
-                hour=0, minute=0, second=0, microsecond=0
-            )
+            next_midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
             hours_left = max(1, int((next_midnight - now).total_seconds() // 3600))
             used_k = e.used // 1000
             limit_k = e.limit // 1000
@@ -185,10 +183,7 @@ def _enforce_budget(current: user_models.User) -> None:
                 f"Сбросится через {mins_left} мин."
             )
         else:
-            detail = (
-                f"AI budget exceeded ({e.limit_kind}): {e.used}/{e.limit}. "
-                f"Подожди до сброса лимита."
-            )
+            detail = f"AI budget exceeded ({e.limit_kind}): {e.used}/{e.limit}. " f"Подожди до сброса лимита."
         raise HTTPException(429, detail)
 
 
@@ -370,6 +365,7 @@ async def admin_top_budget_users(
 
 # === Sprint 4.3.3: A/B testing метрики для context-aware hints ===
 
+
 class HintMetricIn(BaseModel):
     topic_id: int
     error_type: str | None = None
@@ -530,6 +526,7 @@ async def understand_check_ai(
     """
     from app.ai import _thread_local
     from app.ai import prompts as _prompts
+
     _thread_local.explain_style = "questions"
 
     topic = db.get(subj_models.Topic, topic_id)
@@ -544,9 +541,7 @@ async def understand_check_ai(
 
     subject = topic.section.subject
     grade = current.student_profile.grade if current.student_profile else 7
-    sys_prompt = _prompts.explain_topic_system(
-        subject.name, topic.name, grade, rag_context=None, style="questions"
-    )
+    sys_prompt = _prompts.explain_topic_system(subject.name, topic.name, grade, rag_context=None, style="questions")
     req = _build_request(sys_prompt, "Дай 3 коротких вопроса на проверку понимания.")
     res = await svc.provider.complete(req)
 
@@ -562,6 +557,7 @@ async def understand_check_ai(
 def _build_request(sys_prompt: str, user_msg: str):
     """S3.2: локальный билдер AIRequest (избегаем circular import)."""
     from app.ai.models import AIMessage, AIRequest
+
     return AIRequest(
         messages=[AIMessage(role="system", content=sys_prompt), AIMessage(role="user", content=user_msg)],
         mode="explain",
@@ -572,6 +568,7 @@ def _build_request(sys_prompt: str, user_msg: str):
 def _parse_questions(content: str) -> list[str]:
     """S3.2: парсим AI-output в список вопросов (по строкам/нумерации)."""
     import re
+
     # Strip code blocks and JSON; ищем строки, начинающиеся с 1./1)/•/-/?.
     lines = [l.strip() for l in content.splitlines() if l.strip()]
     out: list[str] = []
@@ -583,7 +580,5 @@ def _parse_questions(content: str) -> list[str]:
             break
     if not out:
         # Fallback: первая non-empty строка как один вопрос
-        out = [content.strip().split("\n")[0][:500]] if content.strip() else [
-            "Объясни своими словами эту тему."
-        ]
+        out = [content.strip().split("\n")[0][:500]] if content.strip() else ["Объясни своими словами эту тему."]
     return out[:3]

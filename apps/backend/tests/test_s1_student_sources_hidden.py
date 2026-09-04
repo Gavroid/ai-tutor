@@ -4,6 +4,7 @@
 для role=student (даже если RAG-фильтр _verified_rag_sources что-то
 бы вернул), и непустые — для parent/teacher/admin (для аудита).
 """
+
 from __future__ import annotations
 
 import os
@@ -32,48 +33,32 @@ def test_student_role_hides_sources_after_explain_logic() -> None:
     """
     # Сценарий: verified_sources непустые (RAG нашёл релевантные chunks),
     # но роль student — sources должны быть пустыми.
-    verified_sources = [
-        {"material_title": "Алгебра 7", "page_number": 10, "chunk_id": "c1"}
-    ]
+    verified_sources = [{"material_title": "Алгебра 7", "page_number": 10, "chunk_id": "c1"}]
     user_role = "student"
     # Эмуляция логики из explain_topic:
-    final_sources = (
-        [] if user_role == "student" else verified_sources
-    )
+    final_sources = [] if user_role == "student" else verified_sources
     assert final_sources == []
 
 
 def test_parent_role_keeps_sources_for_audit() -> None:
     """Parent видит sources (для parent dashboard аудита)."""
-    verified_sources = [
-        {"material_title": "Алгебра 7", "page_number": 10, "chunk_id": "c1"}
-    ]
+    verified_sources = [{"material_title": "Алгебра 7", "page_number": 10, "chunk_id": "c1"}]
     user_role = "parent"
-    final_sources = (
-        [] if user_role == "student" else verified_sources
-    )
+    final_sources = [] if user_role == "student" else verified_sources
     assert final_sources == verified_sources
 
 
 def test_admin_role_keeps_sources() -> None:
     """Admin видит sources (для разбора ошибок, жалоб)."""
-    verified_sources = [
-        {"material_title": "Алгебра 7", "page_number": 10, "chunk_id": "c1"}
-    ]
+    verified_sources = [{"material_title": "Алгебра 7", "page_number": 10, "chunk_id": "c1"}]
     user_role = "admin"
-    final_sources = (
-        [] if user_role == "student" else verified_sources
-    )
+    final_sources = [] if user_role == "student" else verified_sources
     assert final_sources == verified_sources
 
 
 def test_teacher_role_keeps_sources() -> None:
     """Teacher видит sources (для reviewed QA mapping)."""
-    verified_sources = [
-        {"material_title": "Алгебра 7", "page_number": 10, "chunk_id": "c1"}
-    ]
+    verified_sources = [{"material_title": "Алгебра 7", "page_number": 10, "chunk_id": "c1"}]
     user_role = "teacher"
-    final_sources = (
-        [] if user_role == "student" else verified_sources
-    )
+    final_sources = [] if user_role == "student" else verified_sources
     assert final_sources == verified_sources

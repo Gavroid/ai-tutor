@@ -10,6 +10,7 @@ email ребёнка в JSON-ответах. Проверяем:
 
 Ref: docs/audit-2026-08-23/03-problems.md P1-3.
 """
+
 from __future__ import annotations
 
 import re
@@ -86,9 +87,7 @@ def client_with_parent():
     from sqlalchemy import select as _select
 
     with _SL() as s2:
-        linked_id = s2.scalar(
-            _select(_User).where(_User.email == "student@example.com")
-        ).id
+        linked_id = s2.scalar(_select(_User).where(_User.email == "student@example.com")).id
 
     def _gen():
         s = SessionLocal()
@@ -127,17 +126,14 @@ def test_children_endpoint_no_email_leak(client_with_parent):
     assert body, "expected at least one linked child"
     for child in body:
         assert "email" not in child, (
-            f"children payload must not contain 'email' field, "
-            f"got keys: {list(child.keys())}"
+            f"children payload must not contain 'email' field, " f"got keys: {list(child.keys())}"
         )
     # Проверим, что нигде в JSON нет ни одного email-формата.
     emails = _find_emails(body)
     # parent email "parent@example.com" допустим только если он сам попал в payload,
     # но мы не должны отдавать emails других пользователей.
     student_emails = [e for e in emails if "student" in e.lower()]
-    assert not student_emails, (
-        f"Found student emails in /parents/children response: {student_emails}"
-    )
+    assert not student_emails, f"Found student emails in /parents/children response: {student_emails}"
 
 
 def test_me_children_endpoint_no_email_leak(client_with_parent):
@@ -150,8 +146,7 @@ def test_me_children_endpoint_no_email_leak(client_with_parent):
     body = r.json()
     for child in body:
         assert "email" not in child, (
-            f"me/children payload must not contain 'email' field, "
-            f"got keys: {list(child.keys())}"
+            f"me/children payload must not contain 'email' field, " f"got keys: {list(child.keys())}"
         )
 
 
@@ -169,15 +164,12 @@ def test_child_dashboard_endpoint_no_email_leak(client_with_parent):
     # StudentBrief в payload
     student = body.get("student", {})
     assert "email" not in student, (
-        f"dashboard student payload must not contain 'email', "
-        f"got keys: {list(student.keys())}"
+        f"dashboard student payload must not contain 'email', " f"got keys: {list(student.keys())}"
     )
     # No student@example.com anywhere
     emails = _find_emails(body)
     student_emails = [e for e in emails if "student" in e.lower()]
-    assert not student_emails, (
-        f"Found student emails in dashboard response: {student_emails}"
-    )
+    assert not student_emails, f"Found student emails in dashboard response: {student_emails}"
 
 
 def test_child_overview_endpoint_no_email_leak(client_with_parent):
@@ -196,6 +188,4 @@ def test_child_overview_endpoint_no_email_leak(client_with_parent):
     body = r.json()
     emails = _find_emails(body)
     student_emails = [e for e in emails if "student" in e.lower()]
-    assert not student_emails, (
-        f"Found student emails in overview response: {student_emails}"
-    )
+    assert not student_emails, f"Found student emails in overview response: {student_emails}"

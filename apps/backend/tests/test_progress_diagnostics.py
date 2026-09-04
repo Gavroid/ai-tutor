@@ -4,6 +4,7 @@ Pilot Core Stage 1: legacy /api/v1/progress/attempts (для student) deprecated
 Все тесты, которые раньше ходили через v1 attempts, теперь идут через
 /api/v2/exercises/{id}/generate → /api/v2/exercises/{id}/answer.
 """
+
 from __future__ import annotations
 
 import os
@@ -73,17 +74,11 @@ def _login(c: TestClient) -> str:
 def _algebra_topic_id(s=None) -> int:
     s = s or SessionLocal()
     try:
-        subj = s.scalar(
-            select(subj_models.Subject).where(subj_models.Subject.code == "algebra")
-        )
+        subj = s.scalar(select(subj_models.Subject).where(subj_models.Subject.code == "algebra"))
         assert subj is not None
-        sec = s.scalar(
-            select(subj_models.Section).where(subj_models.Section.subject_id == subj.id)
-        )
+        sec = s.scalar(select(subj_models.Section).where(subj_models.Section.subject_id == subj.id))
         assert sec is not None
-        topic = s.scalar(
-            select(subj_models.Topic).where(subj_models.Topic.section_id == sec.id)
-        )
+        topic = s.scalar(select(subj_models.Topic).where(subj_models.Topic.section_id == sec.id))
         assert topic is not None
         return topic.id
     finally:
@@ -172,9 +167,7 @@ def test_progress_mistakes_aggregated(client):
     h = {"Authorization": f"Bearer {token}"}
     tid = _algebra_topic_id()
     for _ in range(3):
-        gen = client.post(
-            "/api/v2/exercises/generate", headers=h, json={"topic_id": tid}
-        ).json()
+        gen = client.post("/api/v2/exercises/generate", headers=h, json={"topic_id": tid}).json()
         client.post(
             f"/api/v2/exercises/{gen['exercise_id']}/answer",
             headers=h,
@@ -193,9 +186,7 @@ def test_progress_recommend_review(client):
     h = {"Authorization": f"Bearer {token}"}
     tid = _algebra_topic_id()
     for _ in range(5):
-        gen = client.post(
-            "/api/v2/exercises/generate", headers=h, json={"topic_id": tid}
-        ).json()
+        gen = client.post("/api/v2/exercises/generate", headers=h, json={"topic_id": tid}).json()
         client.post(
             f"/api/v2/exercises/{gen['exercise_id']}/answer",
             headers=h,
@@ -212,9 +203,7 @@ def test_progress_recommend_review(client):
 
 def test_diagnostic_full_flow(client):
     token = _login(client)
-    subj_id = SessionLocal().scalar(
-        select(subj_models.Subject).where(subj_models.Subject.code == "algebra")
-    ).id
+    subj_id = SessionLocal().scalar(select(subj_models.Subject).where(subj_models.Subject.code == "algebra")).id
 
     r = client.post(
         "/api/v1/diagnostic/start",

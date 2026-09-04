@@ -3,6 +3,7 @@
 Проверяем что endpoints с `limit`/`offset`/`days` параметрами
 имеют явные bounds (Query ge=, le=) для предотвращения DoS.
 """
+
 from __future__ import annotations
 
 import os
@@ -53,6 +54,7 @@ def admin_token(client):
 
 # === Tests: /admin/users ===
 
+
 def test_admin_users_limit_too_high_rejected(client, admin_token):
     """Sprint 67: limit > 500 → 422."""
     r = client.get(
@@ -99,6 +101,7 @@ def test_admin_users_valid_limit_accepted(client, admin_token):
 
 
 # === Tests: /sessions/pauses/recent ===
+
 
 def test_sessions_pauses_recent_limit_too_high_rejected(client, admin_token):
     """Sprint 67: /sessions/pauses/recent?limit=1000 → 422 (Query validator)."""

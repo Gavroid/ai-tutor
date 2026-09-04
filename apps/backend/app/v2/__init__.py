@@ -15,6 +15,7 @@
 - Версии несовместимы: v1 будет жить 6+ месяцев после deprecation notice.
 - Документация: см. docs/api.md
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter

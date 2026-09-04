@@ -1,4 +1,5 @@
 """Sprint 78: Telegram bot welcome message tests."""
+
 from __future__ import annotations
 
 import os
@@ -11,12 +12,16 @@ import pytest
 
 # === Module-level tests ===
 
+
 def test_welcome_message_includes_help():
     """Sprint 78: welcome message содержит help commands."""
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "bot", "telegram_bot.py",
+            "..",
+            "app",
+            "bot",
+            "telegram_bot.py",
         )
     ) as f:
         content = f.read()
@@ -32,7 +37,10 @@ def test_welcome_message_includes_tips():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "bot", "telegram_bot.py",
+            "..",
+            "app",
+            "bot",
+            "telegram_bot.py",
         )
     ) as f:
         content = f.read()
@@ -45,7 +53,10 @@ def test_sprint_78_welcome_marker_in_code():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "bot", "telegram_bot.py",
+            "..",
+            "app",
+            "bot",
+            "telegram_bot.py",
         )
     ) as f:
         content = f.read()
@@ -54,6 +65,7 @@ def test_sprint_78_welcome_marker_in_code():
 
 
 # === Mock tests ===
+
 
 def test_cmd_start_no_args_returns_welcome():
     """Sprint 78: /start без args → приветственное сообщение."""
@@ -144,11 +156,11 @@ class TestCmdStartSprint78And323:
         self._make_user(email="test@example.com", role="student")
 
         # Patch validate_and_bind вместо httpx.post (новый flow Sprint 3.23).
-        with patch.object(telegram_bot, "send_message") as mock_send, \
-             patch.object(telegram_bot, "validate_and_bind", return_value=42):
-            telegram_bot.cmd_start(
-                chat_id=12345, args=["test@example.com", "abcd1234"]
-            )
+        with (
+            patch.object(telegram_bot, "send_message") as mock_send,
+            patch.object(telegram_bot, "validate_and_bind", return_value=42),
+        ):
+            telegram_bot.cmd_start(chat_id=12345, args=["test@example.com", "abcd1234"])
 
         # Should send enhanced welcome
         assert mock_send.called
@@ -157,9 +169,7 @@ class TestCmdStartSprint78And323:
         # Sprint 78: enhanced welcome includes tips + совет
         assert "Что я умею" in message, "Welcome должен содержать feature overview"
         assert "Совет" in message, "Welcome должен содержать tip для родителей"
-        assert "T1D" in message or "AI на паузу" in message, (
-            "Welcome должен упоминать T1D"
-        )
+        assert "T1D" in message or "AI на паузу" in message, "Welcome должен упоминать T1D"
 
     def test_cmd_start_invalid_code_returns_error(self, db_setup):
         """Sprint 78 + 3.23: /start с invalid code → error message через ValueError."""
@@ -168,11 +178,14 @@ class TestCmdStartSprint78And323:
         self._make_user(email="test@example.com", role="student")
 
         # Patch validate_and_bind чтобы бросил ValueError (новый flow).
-        with patch.object(telegram_bot, "send_message") as mock_send, \
-             patch.object(
-                 telegram_bot, "validate_and_bind",
-                 side_effect=ValueError("invalid or already-used code"),
-             ):
+        with (
+            patch.object(telegram_bot, "send_message") as mock_send,
+            patch.object(
+                telegram_bot,
+                "validate_and_bind",
+                side_effect=ValueError("invalid or already-used code"),
+            ),
+        ):
             telegram_bot.cmd_start(chat_id=12345, args=["test@example.com", "wrong"])
 
         # Should send error

@@ -7,6 +7,7 @@
 - dau_last_14_days: DAU за 14 дней
 - top_subjects: топ предметов по студентам
 """
+
 from __future__ import annotations
 
 import os
@@ -76,9 +77,7 @@ def _create_admin(s, email: str) -> int:
 
 
 def _login(client, email: str) -> str:
-    r = client.post(
-        "/api/v1/auth/login", json={"email": email, "password": "strongpass1"}
-    )
+    r = client.post("/api/v1/auth/login", json={"email": email, "password": "strongpass1"})
     return r.json()["access_token"]
 
 
@@ -234,6 +233,7 @@ def test_engagement_dau_response_shape(client):
         assert isinstance(d["active_users"], int)
         # date в формате YYYY-MM-DD
         from datetime import datetime as dt
+
         dt.strptime(d["date"], "%Y-%m-%d")
 
 
@@ -285,6 +285,7 @@ def test_engagement_top_subjects(client):
         _create_user(s, "admin@example.com", "admin")
         # Seed curriculum для subject'ов
         from app.subjects.scripts_seed_runner import seed_for_tests
+
         seed_for_tests(s, reset=True)
 
         kid1 = _create_user(s, "kid1@example.com", "student")
@@ -323,13 +324,19 @@ def test_engagement_top_subjects(client):
         # 3-й subject: 0 студентов
         for kid in [kid1, kid2]:
             p = prog_models.Progress(
-                user_id=kid, topic_id=topic_ids[0],
-                mastery_score=0.5, attempts_count=1, correct_count=1,
+                user_id=kid,
+                topic_id=topic_ids[0],
+                mastery_score=0.5,
+                attempts_count=1,
+                correct_count=1,
             )
             s.add(p)
         p = prog_models.Progress(
-            user_id=kid3, topic_id=topic_ids[1],
-            mastery_score=0.5, attempts_count=1, correct_count=1,
+            user_id=kid3,
+            topic_id=topic_ids[1],
+            mastery_score=0.5,
+            attempts_count=1,
+            correct_count=1,
         )
         s.add(p)
         s.commit()

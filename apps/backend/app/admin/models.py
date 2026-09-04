@@ -3,6 +3,7 @@
 Записывает действия админов и важные системные события.
 Просмотр лога — только для admin.
 """
+
 from __future__ import annotations
 
 from datetime import datetime

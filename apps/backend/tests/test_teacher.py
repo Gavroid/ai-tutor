@@ -10,6 +10,7 @@
 - RBAC: student/parent заблокированы
 - Редактирование откатывает approved/published в ai_generated
 """
+
 from __future__ import annotations
 
 import os
@@ -198,9 +199,7 @@ def test_teacher_topics_readiness_route_filters(client):
 
 def test_teacher_can_update_followups_and_audit(client):
     teacher = _token(client, "teacher@example.com")
-    payload = [
-        {"label": "Дальше", "prompt": "Продолжи объяснение", "kind": "next", "order_index": 1}
-    ]
+    payload = [{"label": "Дальше", "prompt": "Продолжи объяснение", "kind": "next", "order_index": 1}]
 
     r = client.put(f"/api/v1/teacher/topics/{client.topic_id}/followups", headers=_h(teacher), json=payload)
 
@@ -212,16 +211,18 @@ def test_teacher_can_update_followups_and_audit(client):
 
 def test_teacher_can_update_fallbacks_status_and_request_rag_job(client):
     teacher = _token(client, "teacher@example.com")
-    fallback = [{
-        "question_text": "Сколько будет 2 + 2?",
-        "type": "single",
-        "options": ["4", "5"],
-        "correct_answer": "4",
-        "explanation": "2 + 2 = 4",
-        "difficulty": 1,
-        "order_index": 1,
-        "is_active": True,
-    }]
+    fallback = [
+        {
+            "question_text": "Сколько будет 2 + 2?",
+            "type": "single",
+            "options": ["4", "5"],
+            "correct_answer": "4",
+            "explanation": "2 + 2 = 4",
+            "difficulty": 1,
+            "order_index": 1,
+            "is_active": True,
+        }
+    ]
 
     r = client.put(f"/api/v1/teacher/topics/{client.topic_id}/fallbacks", headers=_h(teacher), json=fallback)
     assert r.status_code == 200, r.text
@@ -546,7 +547,9 @@ def test_quality_workflow_status_transition_and_audit(client):
     assert audit.status_code == 200, audit.text
     events = [item for item in audit.json() if str(item["entity_id"]) == str(mat_id)]
     assert len(events) >= 3
-    details = [json.loads(event["details"]) if isinstance(event["details"], str) else event["details"] for event in events]
+    details = [
+        json.loads(event["details"]) if isinstance(event["details"], str) else event["details"] for event in events
+    ]
     transitions = {(detail or {}).get("from"): (detail or {}).get("to") for detail in details}
     assert transitions["ai_generated"] == "needs_review"
     assert transitions["needs_review"] == "blocked"

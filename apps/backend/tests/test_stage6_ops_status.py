@@ -1,4 +1,5 @@
 """Stage 6: ops status endpoint tests."""
+
 from __future__ import annotations
 
 import os
@@ -34,13 +35,15 @@ def admin_token(client: TestClient) -> str:
     from sqlalchemy.orm import Session
 
     with Session(engine) as db:
-        db.add(User(
-            email="admin@example.com",
-            password_hash=hash_password("Kirill2026!"),
-            display_name="Admin",
-            role=Role.ADMIN,
-            is_active=True,
-        ))
+        db.add(
+            User(
+                email="admin@example.com",
+                password_hash=hash_password("Kirill2026!"),
+                display_name="Admin",
+                role=Role.ADMIN,
+                is_active=True,
+            )
+        )
         db.commit()
 
     r = client.post("/api/v1/auth/login", json={"email": "admin@example.com", "password": "Kirill2026!"})

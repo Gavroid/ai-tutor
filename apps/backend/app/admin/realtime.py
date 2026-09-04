@@ -10,6 +10,7 @@
 Требования для multi-worker: см. Sprint 6.3. Пока single-worker.
 Auth: require_admin (token в query).
 """
+
 from __future__ import annotations
 
 import asyncio

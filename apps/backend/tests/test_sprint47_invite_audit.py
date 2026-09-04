@@ -1,4 +1,5 @@
 """Sprint 47: audit logging для invites (Sprint 44+45 integration)."""
+
 from __future__ import annotations
 
 import pytest
@@ -123,6 +124,7 @@ def test_redeem_invite_logs_audit(client, admin_login):
     assert log["user_id"] is None
     # details содержит role
     import json
+
     details = json.loads(log["details"]) if isinstance(log["details"], str) else log["details"]
     assert details["role"] == "student"
 
@@ -189,7 +191,12 @@ def test_register_via_invite_logs_two_audits(client, admin_login):
     assert len(register_logs) >= 1
     # register log содержит invite_code
     import json
-    details = json.loads(register_logs[0]["details"]) if isinstance(register_logs[0]["details"], str) else register_logs[0]["details"]
+
+    details = (
+        json.loads(register_logs[0]["details"])
+        if isinstance(register_logs[0]["details"], str)
+        else register_logs[0]["details"]
+    )
     assert details.get("invite_code") == code
 
     # Verify chain integrity

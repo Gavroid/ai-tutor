@@ -8,6 +8,7 @@
 Для простоты используем OpenAI-compatible chat completions, что подходит для
 большинства провайдеров (включая OpenRouter, MiniMax v1, OpenAI).
 """
+
 from __future__ import annotations
 
 import html
@@ -22,7 +23,6 @@ from app.ai.types import AIMessage, AIProvider, AIRequest, AIResponse
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
-
 
 
 _THINK_BLOCK_RE = re.compile(r"(?is)<think\b[^>]*>.*?</think>")
@@ -194,7 +194,7 @@ class HermesProvider(AIProvider):
                     raise HermesProviderError(f"AI request failed after {attempt + 1} attempts") from exc
                 import asyncio
 
-                await asyncio.sleep(2 ** attempt)
+                await asyncio.sleep(2**attempt)
         else:  # pragma: no cover
             raise HermesProviderError("unreachable")
 
@@ -236,12 +236,7 @@ def build_provider() -> AIProvider:
         return MockProvider()
     key = settings.ai_api_key or ""
     # Заглушки/тестовые ключи → mock
-    if (
-        not key
-        or key.startswith("change_me")
-        or key == "mock-key-for-tests"
-        or "mock" in key.lower()
-    ):
+    if not key or key.startswith("change_me") or key == "mock-key-for-tests" or "mock" in key.lower():
         logger.info("AI_API_KEY не задан или placeholder — используется MockProvider")
         from app.ai.mock import MockProvider
 

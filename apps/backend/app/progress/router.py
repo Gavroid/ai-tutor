@@ -1,4 +1,5 @@
 """Роутер прогресса."""
+
 from __future__ import annotations
 
 from datetime import UTC
@@ -50,6 +51,7 @@ class NextTopicOut(BaseModel):
     2. Если все темы выше 0.5 — следующая тема в curriculum (по order_index)
     3. Если всё mastered — поздравление + мотивация
     """
+
     topic_id: int | None
     topic_name: str | None
     subject_id: int | None
@@ -125,9 +127,9 @@ def recommend_next(
             minutes_since_pause = minutes_ago
 
     # 1. Сначала ищем слабые темы (< WEAK_THRESHOLD mastery)
-    progress = db.execute(
-        select(prog_models.Progress).where(prog_models.Progress.user_id == current.id)
-    ).scalars().all()
+    progress = (
+        db.execute(select(prog_models.Progress).where(prog_models.Progress.user_id == current.id)).scalars().all()
+    )
 
     weak = [p for p in progress if 0 < p.mastery_score < WEAK_THRESHOLD]
     if subject_id == MATH_SUBJECT_ID:
@@ -150,7 +152,11 @@ def recommend_next(
                 topic_id=weakest.topic_id,
                 topic_name=topic.name if topic else plan.focus,
                 subject_id=MATH_SUBJECT_ID,
-                subject_name=(topic.section.subject.name if topic and topic.section and topic.section.subject else "Математика (6 класс — повторение пройденного материала)"),
+                subject_name=(
+                    topic.section.subject.name
+                    if topic and topic.section and topic.section.subject
+                    else "Математика (6 класс — повторение пройденного материала)"
+                ),
                 reason="weak_topic",
                 mastery_score=weakest.mastery_score,
                 encouragement=f"Повтори эту тему — всего {weakest.mastery_score * 100:.0f}% освоения. С фокусом обязательно получится! 💪",
@@ -167,7 +173,11 @@ def recommend_next(
                     topic_id=plan.topic_id,
                     topic_name=topic.name if topic else plan.focus,
                     subject_id=MATH_SUBJECT_ID,
-                    subject_name=(topic.section.subject.name if topic and topic.section and topic.section.subject else "Математика (6 класс — повторение пройденного материала)"),
+                    subject_name=(
+                        topic.section.subject.name
+                        if topic and topic.section and topic.section.subject
+                        else "Математика (6 класс — повторение пройденного материала)"
+                    ),
                     reason="next_in_curriculum",
                     mastery_score=None if p is None or p.attempts_count == 0 else p.mastery_score,
                     encouragement=random.choice(_NEXT_TOPIC_ENCOURAGEMENTS),
@@ -219,9 +229,11 @@ def recommend_next(
             )
 
     # 2. Ищем тему, которая ещё не пройдена (mastery < 0.5 или нет attempts)
-    all_topics = db.execute(
-        select(subj_models.Topic).order_by(subj_models.Topic.section_id, subj_models.Topic.order_index)
-    ).scalars().all()
+    all_topics = (
+        db.execute(select(subj_models.Topic).order_by(subj_models.Topic.section_id, subj_models.Topic.order_index))
+        .scalars()
+        .all()
+    )
 
     progress_by_topic = {p.topic_id: p for p in progress}
     seen_section_ids = set()
@@ -289,6 +301,7 @@ def record_attempt(
 
 
 # === Sprint 2.2: Spaced Repetition ===
+
 
 @router.get("/due-for-review", response_model=list[schemas.ReviewItem])
 def due_for_review(

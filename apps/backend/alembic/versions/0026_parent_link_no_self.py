@@ -16,6 +16,7 @@ CHECK разрешает self-link ТОЛЬКО для pending (placeholder), з
 Revision ID: 0026_parent_link_no_self
 Revises: 0025_user_counters
 """
+
 from __future__ import annotations
 
 from alembic import op

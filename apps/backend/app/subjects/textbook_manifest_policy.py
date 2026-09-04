@@ -3,6 +3,7 @@
 This module is read-only: it evaluates metadata and never changes files or
 imports content. A row with unresolved rights cannot become pilot-ready.
 """
+
 from __future__ import annotations
 
 from typing import Any

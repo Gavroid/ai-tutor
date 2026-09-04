@@ -8,6 +8,7 @@
 
 EF (easiness factor) — множитель интервала, ≥1.3.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

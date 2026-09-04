@@ -1,4 +1,5 @@
 """Sprint A: deterministic representative contracts for every subject code."""
+
 from __future__ import annotations
 
 import os
@@ -104,15 +105,11 @@ def test_all_subjects_explain_and_practice_contract() -> None:
         assert len(subjects) == 16
 
         for subject in subjects:
-            topics = client.get(
-                f"/api/v1/subjects/{subject['id']}/topics", headers=headers
-            ).json()
+            topics = client.get(f"/api/v1/subjects/{subject['id']}/topics", headers=headers).json()
             assert topics, subject
             topic_id = topics[0]["id"]
 
-            explain = client.post(
-                "/api/v1/ai/explain", headers=headers, json={"topic_id": topic_id}
-            )
+            explain = client.post("/api/v1/ai/explain", headers=headers, json={"topic_id": topic_id})
             assert explain.status_code == 200, explain.text
             content = explain.json().get("content", "")
             assert len(content) >= 20

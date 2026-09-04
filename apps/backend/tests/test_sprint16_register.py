@@ -3,6 +3,7 @@
 Защита через PUBLIC_REGISTRATION_ALLOWED_ROLES = {"student", "parent"}.
 Admin/teacher — только через CLI seed_users.py.
 """
+
 from __future__ import annotations
 
 import os
@@ -26,6 +27,7 @@ from fastapi.testclient import TestClient
 def client():
     """Создаёт чистую in-memory DB перед каждым тестом."""
     from app.db.session import Base, engine
+
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     return TestClient(app)

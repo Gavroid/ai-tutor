@@ -1,4 +1,5 @@
 """Sprint 32: тесты для Parent 2FA TOTP."""
+
 from __future__ import annotations
 
 import os

@@ -1,4 +1,5 @@
 """Sprint 38: OpenAPI metadata enrichment tests."""
+
 from __future__ import annotations
 
 
@@ -42,8 +43,16 @@ def test_openapi_tags_have_descriptions():
 
     # Sprint 38: все теги которые мы объявили
     expected = {
-        "auth", "teacher", "parent", "students", "sessions",
-        "ai", "voice", "progress", "admin", "meta",
+        "auth",
+        "teacher",
+        "parent",
+        "students",
+        "sessions",
+        "ai",
+        "voice",
+        "progress",
+        "admin",
+        "meta",
     }
     assert expected.issubset(tag_names), f"Missing: {expected - tag_names}"
 

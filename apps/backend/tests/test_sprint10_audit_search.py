@@ -9,6 +9,7 @@
 - ISO date parsing для since/until
 - Bad date → 400
 """
+
 from __future__ import annotations
 
 import os
@@ -85,6 +86,7 @@ def _add_log(s, action, entity="users", user_id=None, days_ago=0, details=None) 
 
 # === Filter by entity ===
 
+
 def test_audit_filter_by_entity(client):
     """Sprint 10.4: GET /admin/audit-log?entity=exercises вернёт только exercises логи."""
     s = SessionLocal()
@@ -134,6 +136,7 @@ def test_audit_filter_combines_entity_and_action(client):
 
 # === Count endpoint ===
 
+
 def test_audit_log_count_basic(client):
     """Sprint 10.4: GET /admin/audit-log/count возвращает total."""
     s = SessionLocal()
@@ -174,6 +177,7 @@ def test_audit_log_count_filters(client):
 
 
 # === Pagination ===
+
 
 def test_audit_pagination_limit_offset(client):
     """Sprint 10.4: pagination через limit/offset."""
@@ -233,6 +237,7 @@ def test_audit_limit_max_500(client):
 
 # === Date filters ===
 
+
 def test_audit_since_filter(client):
     """Sprint 10.4: фильтр since — только events после даты."""
     from urllib.parse import quote
@@ -277,6 +282,7 @@ def test_audit_bad_since_returns_400(client):
 
 
 # === Auth required ===
+
 
 def test_audit_log_requires_admin(client):
     """Sprint 10.4: audit endpoints требуют admin role."""
@@ -325,6 +331,7 @@ def test_audit_log_no_auth_returns_401(client):
 
 # === Combined filters ===
 
+
 def test_audit_combined_filters_all(client):
     """Sprint 10.4: все фильтры вместе."""
     from urllib.parse import quote
@@ -346,8 +353,7 @@ def test_audit_combined_filters_all(client):
     since = (datetime.now(UTC) - timedelta(days=7)).isoformat()
     since_encoded = quote(since, safe="")
     r = client.get(
-        f"/api/v1/admin/audit-log?action=user.delete&entity=users"
-        f"&since={since_encoded}&limit=100",
+        f"/api/v1/admin/audit-log?action=user.delete&entity=users" f"&since={since_encoded}&limit=100",
         headers={"Authorization": f"Bearer {token}"},
     )
     body = r.json()
@@ -359,6 +365,7 @@ def test_audit_combined_filters_all(client):
 
 
 # === Empty results ===
+
 
 def test_audit_no_matching_logs_returns_empty_list(client):
     """Sprint 10.4: нет matching записей → пустой list, не 500."""

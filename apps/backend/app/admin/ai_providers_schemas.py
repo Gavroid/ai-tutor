@@ -5,6 +5,7 @@
 - В ответах отдаём только api_key_last4 для отображения в UI.
 - Запись принимает api_key в открытом виде, шифрует на сервере.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -13,6 +14,7 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 # ----- AI Provider -----
+
 
 class AIProviderCreate(BaseModel):
     """Создание нового провайдера. api_key в открытом виде — зашифруем на сервере."""
@@ -54,6 +56,7 @@ class AIProviderOut(BaseModel):
 
 # ----- AI Model Catalog -----
 
+
 class AIModelOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -81,6 +84,7 @@ class AIFetchResult(BaseModel):
 
 # ----- Subject AI Model Assignment -----
 
+
 class SubjectAIModelAssign(BaseModel):
     """Назначение модели на предмет. role: primary | fallback."""
 
@@ -97,6 +101,7 @@ class SubjectAIModelOut(BaseModel):
 
 
 # ----- Test connection -----
+
 
 class AITestResult(BaseModel):
     """Результат теста подключения."""

@@ -13,6 +13,7 @@
   (тот же что для JWT). Расшифровка только на backend.
 - В API ответы НЕ возвращаем ключ — только last4 для UI.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -51,9 +52,7 @@ class AIProvider(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
     # Произвольное примечание (опционально).
     note: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -89,9 +88,7 @@ class AIModelCatalog(Base):
     # Человекочитаемое имя (опционально, для UI).
     display_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
-    fetched_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     provider: Mapped[AIProvider] = relationship("AIProvider", back_populates="models")
     subject_assignments: Mapped[list[SubjectAIModel]] = relationship(

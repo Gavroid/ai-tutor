@@ -4,6 +4,7 @@
 - 7.1: Markdown-рендер AI-ответов (sanitization + content_html)
 - 7.3: Серверный черновик урока (draft API + RBAC + идемпотентность)
 """
+
 from __future__ import annotations
 
 import json
@@ -145,9 +146,7 @@ class TestTopicDrafts:
 
     def test_draft_requires_auth(self, authed_client):
         """401 без токена."""
-        r = authed_client["client"].put(
-            "/api/v1/student/topics/1/draft", json={"payload": {}}
-        )
+        r = authed_client["client"].put("/api/v1/student/topics/1/draft", json={"payload": {}})
         assert r.status_code in (401, 403)
 
     def test_draft_save_and_load(self, authed_client):
@@ -204,17 +203,13 @@ class TestTopicDrafts:
         s = SessionLocal()
         try:
             count = s.scalar(
-                select(func.count()).select_from(TopicDraft).where(
-                    TopicDraft.user_id == uid, TopicDraft.topic_id == topic_id
-                )
+                select(func.count())
+                .select_from(TopicDraft)
+                .where(TopicDraft.user_id == uid, TopicDraft.topic_id == topic_id)
             )
             assert count == 1, f"Ожидаем 1 черновик, получили {count}"
 
-            draft = s.scalar(
-                select(TopicDraft).where(
-                    TopicDraft.user_id == uid, TopicDraft.topic_id == topic_id
-                )
-            )
+            draft = s.scalar(select(TopicDraft).where(TopicDraft.user_id == uid, TopicDraft.topic_id == topic_id))
             assert json.loads(draft.payload)["v"] == 2
         finally:
             s.close()

@@ -3,6 +3,7 @@
 Попытка — одна запись attempt на каждое решение задания.
 Mastery считается по последним N попыткам: ratio правильных × (1 - decay).
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -60,9 +61,7 @@ class Mistake(Base):
     mistake_type: Mapped[str] = mapped_column(String(80), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     count: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
-    last_seen: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
 class Progress(Base):
@@ -87,14 +86,8 @@ class Progress(Base):
     )
 
     # === Sprint 2.2: Spaced Repetition (SM-2) ===
-    next_review_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True, index=True
-    )
-    last_reviewed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    next_review_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    last_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     review_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     # SM-2 easiness factor (обычно 1.3..2.5). Чем ниже, тем чаще показывать.
-    easiness_factor: Mapped[float] = mapped_column(
-        Float, default=2.5, nullable=False
-    )
+    easiness_factor: Mapped[float] = mapped_column(Float, default=2.5, nullable=False)

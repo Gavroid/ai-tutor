@@ -13,6 +13,7 @@
 - created_at, updated_at
 - assigned_to (FK admin, nullable)
 """
+
 from collections.abc import Sequence
 from typing import Union
 

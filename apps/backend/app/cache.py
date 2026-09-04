@@ -7,6 +7,7 @@ Cache strategy:
 
 Используется Redis если доступен, иначе — passthrough.
 """
+
 from __future__ import annotations
 
 import json

@@ -17,6 +17,7 @@ benchmark был deterministic в CI.
 benchmark'а и gating policy («subject не становится pilot-visible если
 quality evidence неполно»).
 """
+
 from __future__ import annotations
 
 import json
@@ -27,6 +28,7 @@ from pathlib import Path
 @dataclass(frozen=True)
 class RetrievalProbe:
     """Одна проба поиска: query + ожидаемый минимум relevant keys."""
+
     probe_id: str
     subject_code: str
     query: str
@@ -37,6 +39,7 @@ class RetrievalProbe:
 @dataclass
 class RetrievalBenchmarkResult:
     """Результат benchmark'а."""
+
     subject_code: str
     top_k: int
     recall_at_k: float

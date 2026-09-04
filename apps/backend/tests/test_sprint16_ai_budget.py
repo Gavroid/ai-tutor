@@ -3,6 +3,7 @@
 WebSocket chat должен проверять budget так же как HTTP endpoints,
 иначе user может обойти лимит через прямой WS.
 """
+
 from __future__ import annotations
 
 import os
@@ -27,7 +28,8 @@ def db_session():
     """In-memory SQLite с users таблицей."""
     engine = create_engine("sqlite+pysqlite:///:memory:", future=True)
     with engine.begin() as conn:
-        conn.execute(text("""
+        conn.execute(
+            text("""
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email VARCHAR(255) UNIQUE NOT NULL,
@@ -36,11 +38,15 @@ def db_session():
                 role VARCHAR(20) NOT NULL DEFAULT 'student',
                 is_active BOOLEAN NOT NULL DEFAULT 1
             )
-        """))
-        conn.execute(text(
-            "INSERT INTO users (email, password_hash, display_name, role, is_active) "
-            "VALUES (:e, :p, 'Test', 'student', 1)"
-        ), {"e": "test@example.com", "p": hash_password("testpass1")})
+        """)
+        )
+        conn.execute(
+            text(
+                "INSERT INTO users (email, password_hash, display_name, role, is_active) "
+                "VALUES (:e, :p, 'Test', 'student', 1)"
+            ),
+            {"e": "test@example.com", "p": hash_password("testpass1")},
+        )
     return engine
 
 

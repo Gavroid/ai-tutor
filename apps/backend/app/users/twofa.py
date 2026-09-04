@@ -4,6 +4,7 @@
 Secret шифруется через Fernet (settings.encryption_key).
 Backup codes хэшируются bcrypt (cost=12).
 """
+
 from __future__ import annotations
 
 import json
@@ -37,9 +38,7 @@ def _get_fernet() -> Fernet:
 
     settings = get_settings()
     # Derive 32-byte key из APP_SECRET_KEY через SHA256
-    key = base64.urlsafe_b64encode(
-        hashlib.sha256(settings.app_secret_key.encode()).digest()
-    )
+    key = base64.urlsafe_b64encode(hashlib.sha256(settings.app_secret_key.encode()).digest())
     return Fernet(key)
 
 
@@ -87,10 +86,7 @@ def generate_backup_codes() -> list[str]:
     Каждый код: 12 hex chars (48 bits entropy).
     Sprint 32 NOTE: хэшируются bcrypt перед сохранением.
     """
-    return [
-        secrets.token_hex(_BACKUP_CODE_LENGTH // 2).upper()
-        for _ in range(_BACKUP_CODE_COUNT)
-    ]
+    return [secrets.token_hex(_BACKUP_CODE_LENGTH // 2).upper() for _ in range(_BACKUP_CODE_COUNT)]
 
 
 def hash_backup_codes(codes: list[str]) -> str:
@@ -118,10 +114,7 @@ def verify_backup_code(parent_id: int, code: str) -> bool:
                 # Удаляем использованный
                 new_hashed = hashed[:i] + hashed[i + 1 :]
                 conn.execute(
-                    text(
-                        "UPDATE parent_2fa SET backup_codes_json = :h, "
-                        "last_used_at = :ts WHERE parent_id = :pid"
-                    ),
+                    text("UPDATE parent_2fa SET backup_codes_json = :h, " "last_used_at = :ts WHERE parent_id = :pid"),
                     {
                         "h": json.dumps(new_hashed),
                         "ts": datetime.now(UTC),

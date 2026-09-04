@@ -5,6 +5,7 @@
 - возвращает форматированный контекст если есть chunk'и
 - не падает если RAG ломается (graceful degradation через try/except)
 """
+
 from __future__ import annotations
 
 import os
@@ -35,6 +36,7 @@ class FakeSection:
 
 class FakeTopic:
     """Mock для app.subjects.models.Topic — только нужные поля."""
+
     def __init__(self, name: str, subject_name: str = "Математика"):
         self.name = name
         self.section = FakeSection(FakeSubject(subject_name))
@@ -42,6 +44,7 @@ class FakeTopic:
 
 class FakeProvider:
     """Mock для AIProvider — нам не нужно делать реальные вызовы."""
+
     async def complete(self, req):
         return None
 
@@ -50,9 +53,11 @@ class FakeProvider:
 def db_session():
     """Sprint 3.5.2: persistent RAG работает через БД. Тесты используют SQLite."""
     from app.db.session import Base, engine
+
     # Create tables (rag_chunks + все из Base.metadata) на чистой SQLite.
     Base.metadata.create_all(engine)
     from app.db.session import SessionLocal
+
     session = SessionLocal()
     yield session
     session.close()
@@ -66,6 +71,7 @@ def clear_rag_store(db_session):
     try:
         from app.rag_models import RagChunk
         from sqlalchemy import delete
+
         db_session.execute(delete(RagChunk))
         db_session.commit()
     except Exception:
@@ -75,6 +81,7 @@ def clear_rag_store(db_session):
     try:
         from app.rag_models import RagChunk
         from sqlalchemy import delete
+
         db_session.execute(delete(RagChunk))
         db_session.commit()
     except Exception:
@@ -97,6 +104,7 @@ async def test_rag_context_with_chunks(db_session):
     """Если в store есть chunk'и — context содержит их текст + meta."""
     # Sprint 3.5.2: пишем в persistent (rag_chunks), не in-memory.
     from app.rag_persist import add_chunks_persistent, get_or_compute_embedding
+
     emb = get_or_compute_embedding("Площадь треугольника 7 класс")
     add_chunks_persistent(
         db_session,
@@ -135,6 +143,7 @@ async def test_rag_context_failure_does_not_crash(monkeypatch):
     # Sprint 4.1.3: _build_rag_context делает local `from app.rag_persist import ...`,
     # поэтому нужно подменить в обоих местах — иначе local import "затенит" подмену.
     import app.rag_persist
+
     monkeypatch.setattr(app.rag_persist, "get_or_compute_embedding", broken_get_or_compute)
     # Также подменяем в sys.modules['app.ai.service'] (где _build_rag_context делает
     # свой local import). Но проще подменить в обоих через setattr после local import —
@@ -155,6 +164,7 @@ async def test_rag_context_failure_does_not_crash(monkeypatch):
 async def test_rag_context_query_includes_subject_and_topic(db_session):
     """Query для retrieval = subject_name + topic_name (для точности)."""
     from app.rag_persist import add_chunks_persistent, get_or_compute_embedding
+
     emb = get_or_compute_embedding("Квадратные уравнения Алгебра")
     add_chunks_persistent(
         db_session,

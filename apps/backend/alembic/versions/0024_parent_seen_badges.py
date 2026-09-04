@@ -2,6 +2,7 @@
 
 Используется для подсчёта "новых достижений ребёнка с прошлого визита родителя".
 """
+
 from collections.abc import Sequence
 from typing import Union
 

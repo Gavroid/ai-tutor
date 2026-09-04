@@ -9,6 +9,7 @@ Sprint 7.1: рендерим Markdown в HTML на сервере, чтобы UI
   через `md.disable(['html'])`, плюс runtime наш `bleach` через whitelist.
 - никогда не передаём сырой HTML вёрстке от LLM напрямую.
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -21,13 +22,31 @@ from markdown_it import MarkdownIt
 # но мы дополнительно экранируем потенциально опасные атрибуты.
 _ALLOWED_TAGS: Final[frozenset[str]] = frozenset(
     {
-        "p", "br", "hr",
-        "strong", "em", "code", "pre",
-        "h1", "h2", "h3", "h4", "h5", "h6",
-        "ul", "ol", "li",
+        "p",
+        "br",
+        "hr",
+        "strong",
+        "em",
+        "code",
+        "pre",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "ul",
+        "ol",
+        "li",
         "blockquote",
-        "table", "thead", "tbody", "tr", "th", "td",
-        "del", "ins",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "th",
+        "td",
+        "del",
+        "ins",
     }
 )
 
@@ -38,9 +57,13 @@ _ALLOWED_ATTRS: Final[frozenset[str]] = frozenset({"class"})
 # Атрибуты, КОТОРЫЕ ЗАПРЕЩЕНЫ ВСЕГДА (наследие XSS).
 _FORBIDDEN_ATTRS: Final[frozenset[str]] = frozenset(
     {
-        "onerror", "onload", "onclick", "onmouseover",
+        "onerror",
+        "onload",
+        "onclick",
+        "onmouseover",
         "style",  # CSS injection через style=
-        "src", "href",  # external resources / javascript: URLs
+        "src",
+        "href",  # external resources / javascript: URLs
         "id",  # name collision для document.getElementById
         "target",
     }
@@ -58,9 +81,9 @@ def _get_renderer() -> MarkdownIt:
     md = MarkdownIt(
         "gfm-like",
         {
-            "html": False,        # ❌ <script>, <img onerror=...>
-            "linkify": False,     # не требует linkify-it-py; URL — не наш use case
-            "breaks": True,       # переводы строк = <br>
+            "html": False,  # ❌ <script>, <img onerror=...>
+            "linkify": False,  # не требует linkify-it-py; URL — не наш use case
+            "breaks": True,  # переводы строк = <br>
             "typographer": False,
         },
     )
@@ -75,6 +98,7 @@ def _sanitize_html_attrs(html: str) -> str:
     атрибуты из вайтлиста-запрета.
     """
     import re
+
     # Удаляем on*="..." и on*='...' и on* без значения
     cleaned = re.sub(r'\s+on\w+\s*=\s*"[^"]*"', "", html, flags=re.IGNORECASE)
     cleaned = re.sub(r"\s+on\w+\s*=\s*'[^']*'", "", cleaned, flags=re.IGNORECASE)

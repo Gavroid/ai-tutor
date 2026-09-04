@@ -5,7 +5,9 @@ import json
 from scripts.rag_metadata_audit import audit_chunk_metadata, audit_rows, summarize_audit
 
 
-def _row(subject_code: str, topic_id: int, metadata: dict[str, object], *, material_subject_code: str | None = None) -> dict[str, object]:
+def _row(
+    subject_code: str, topic_id: int, metadata: dict[str, object], *, material_subject_code: str | None = None
+) -> dict[str, object]:
     return {
         "chunk_id": 1,
         "material_id": 10,

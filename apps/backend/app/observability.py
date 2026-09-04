@@ -6,6 +6,7 @@ Middleware автоматически собирает:
 - http_request_duration_seconds{method, path}
 - ai_tokens_total{role} (input/output) — обновляется извне
 """
+
 from __future__ import annotations
 
 import shutil
@@ -70,6 +71,7 @@ OPS_BACKUP_LATEST_AGE_SECONDS = Gauge(
 
 
 # === Ops probes for Stage 23 alertability ===
+
 
 def _probe_db() -> float:
     try:
@@ -218,6 +220,7 @@ def metrics_endpoint() -> Response:
 
 
 # === Утилиты для AI-вызовов ===
+
 
 def record_ai_request(mode: str, status: str, input_tokens: int = 0, output_tokens: int = 0) -> None:
     """Регистрирует AI-запрос и его токены.

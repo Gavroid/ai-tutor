@@ -1,4 +1,5 @@
 """Тесты уведомлений (Этап 11 — расширение)."""
+
 from __future__ import annotations
 
 import os

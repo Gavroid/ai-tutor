@@ -7,6 +7,7 @@ Goals:
 - добавить CI jobs;
 - устранить duplicate lockfile warning (root vs frontend).
 """
+
 from __future__ import annotations
 
 import os
@@ -28,6 +29,7 @@ WORKSPACE_ROOT = Path("/root/workspace")
 
 # === Workspace root lockfile hygiene ===========================================
 
+
 def test_root_package_lockfile_explained():
     """Sprint 8: документируем root package.json + package-lock.json."""
     root_pkg = WORKSPACE_ROOT / "package.json"
@@ -37,7 +39,9 @@ def test_root_package_lockfile_explained():
     pkg = root_pkg.read_text()
     # Sprint 8 fix: root должен быть явно private + не workspaces.
     assert '"private": true' in pkg, "root package.json должен быть private"
-    assert '"workspaces":' not in pkg, "root package.json не должен быть workspaces (Sprint 8 fix: убрали duplicate lockfile warning)"
+    assert (
+        '"workspaces":' not in pkg
+    ), "root package.json не должен быть workspaces (Sprint 8 fix: убрали duplicate lockfile warning)"
 
 
 def test_frontend_package_lockfile_is_separate():
@@ -47,6 +51,7 @@ def test_frontend_package_lockfile_is_separate():
 
 
 # === Deprecation warning inventory ===========================================
+
 
 def test_known_deprecation_warnings_are_documented():
     """Sprint 8: Pydantic, jose, passlib deprecation warnings явные и inventoried.
@@ -64,6 +69,7 @@ def test_known_deprecation_warnings_are_documented():
 
 
 # === CI jobs registration ====================================================
+
 
 def test_run_backend_groups_script_exists():
     """Sprint 1 + Sprint 8: per-group suite runner с явными budget."""
@@ -106,6 +112,7 @@ def test_frontend_typecheck_still_green():
 
 # === Pytest config ============================================================
 
+
 def test_pytest_ini_isolates_asyncio_loop_scope():
     """Sprint 1: pytest.ini фиксирует asyncio_default_fixture_loop_scope."""
     ini = REPO_ROOT / "apps" / "backend" / "pytest.ini"
@@ -124,6 +131,7 @@ def test_pytest_collection_does_not_double():
 
 
 # === flake documentation =====================================================
+
 
 def test_sprint32_2fa_flake_documented():
     """Sprint 8: flake в test_sprint32_parent_2fa зафиксирован и описан.

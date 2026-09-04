@@ -7,6 +7,7 @@ Authorization header (обратная совместимость с фронт�
 постепенного перехода. После полного перехода фронта на cookie — header auth
 может быть выключен.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta, timezone
@@ -140,9 +141,7 @@ def get_current_user(
 
     payload = decode_token(raw_token)
     if payload.get("type") != "access":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Wrong token type"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Wrong token type")
     user_id = int(payload.get("sub", "0"))
     user = db.get(User, user_id)
     if user is None or not user.is_active:

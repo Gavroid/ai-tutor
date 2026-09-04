@@ -1,4 +1,5 @@
 """Pydantic-схемы для audit log."""
+
 from __future__ import annotations
 
 from datetime import datetime

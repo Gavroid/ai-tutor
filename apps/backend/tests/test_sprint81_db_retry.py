@@ -1,4 +1,5 @@
 """Sprint 81: DB connection retry on startup tests."""
+
 from __future__ import annotations
 
 import os
@@ -12,12 +13,15 @@ import pytest
 
 # === Source verification ===
 
+
 def test_lifespan_has_retry_logic():
     """Sprint 81: lifespan function has retry logic."""
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "main.py",
+            "..",
+            "app",
+            "main.py",
         )
     ) as f:
         content = f.read()
@@ -31,7 +35,9 @@ def test_lifespan_uses_exponential_backoff():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "main.py",
+            "..",
+            "app",
+            "main.py",
         )
     ) as f:
         content = f.read()
@@ -43,7 +49,9 @@ def test_lifespan_max_attempts_3():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "main.py",
+            "..",
+            "app",
+            "main.py",
         )
     ) as f:
         content = f.read()
@@ -55,7 +63,9 @@ def test_lifespan_no_fail_fast():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "main.py",
+            "..",
+            "app",
+            "main.py",
         )
     ) as f:
         content = f.read()
@@ -67,13 +77,16 @@ def test_lifespan_no_fail_fast():
 
 # === Integration tests ===
 
+
 def test_lifespan_break_on_success():
     """Sprint 81: при successful ping — break (no retry)."""
     # Verify source: после successful SELECT 1 есть break
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "main.py",
+            "..",
+            "app",
+            "main.py",
         )
     ) as f:
         content = f.read()
@@ -88,7 +101,9 @@ def test_lifespan_exponential_backoff_timing():
     with open(
         os.path.join(
             os.path.dirname(__file__),
-            "..", "app", "main.py",
+            "..",
+            "app",
+            "main.py",
         )
     ) as f:
         content = f.read()

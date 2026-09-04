@@ -3,6 +3,7 @@
 Sprint 1.1: все endpoints защищены require_parent()/require_student().
 Sprint 32: 2FA TOTP endpoints для parent.
 """
+
 from __future__ import annotations
 
 from app.admin import service as audit_service
@@ -157,13 +158,11 @@ def _render_dashboard_html(dash: schemas.ChildDashboard) -> str:
         for sm in dash.subject_mastery
     )
     rows_weak = "".join(
-        f"<tr><td>{w.topic_name}</td><td>{w.subject_name}</td>"
-        f"<td>{w.mastery * 100:.1f}%</td></tr>"
+        f"<tr><td>{w.topic_name}</td><td>{w.subject_name}</td>" f"<td>{w.mastery * 100:.1f}%</td></tr>"
         for w in dash.weak_topics
     )
     rows_mistakes = "".join(
-        f"<tr><td>{m.mistake_type}</td><td>{m.topic_name}</td>"
-        f"<td>{m.count}</td><td>{m.last_seen}</td></tr>"
+        f"<tr><td>{m.mistake_type}</td><td>{m.topic_name}</td>" f"<td>{m.count}</td><td>{m.last_seen}</td></tr>"
         for m in dash.top_mistakes
     )
     streak = dash.streak
@@ -235,8 +234,10 @@ student_router = APIRouter(prefix="/api/v1/students", tags=["students"])
 
 # === Sprint 32: 2FA TOTP endpoints ===
 
+
 class TwoFAEnableOut(BaseModel):
     """Sprint 32: ответ при enable 2FA."""
+
     secret: str
     provisioning_uri: str
     backup_codes: list[str]
@@ -244,11 +245,13 @@ class TwoFAEnableOut(BaseModel):
 
 class TwoFAVerifyIn(BaseModel):
     """Sprint 32: TOTP код или backup code для подтверждения."""
+
     code: str = Field(min_length=6, max_length=12)
 
 
 class TwoFAStatusOut(BaseModel):
     """Sprint 32: статус 2FA для parent."""
+
     enabled: bool
     last_used_at: str | None = None
     backup_codes_remaining: int = 0
@@ -325,14 +328,12 @@ def get_2fa_status(
 
     with _engine.connect() as conn:
         row = conn.execute(
-            text(
-                "SELECT last_used_at, backup_codes_json "
-                "FROM parent_2fa WHERE parent_id = :pid"
-            ),
+            text("SELECT last_used_at, backup_codes_json " "FROM parent_2fa WHERE parent_id = :pid"),
             {"pid": current.id},
         ).fetchone()
 
     import json as _json
+
     backup_codes = _json.loads(row[1]) if row else []
     last_used = row[0].isoformat() if row and row[0] else None
 

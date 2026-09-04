@@ -3,6 +3,7 @@
 Проверяет, что новая зависимость require_role корректно блокирует
 неподходящие роли на всех admin/teacher/parent/student endpoints.
 """
+
 from __future__ import annotations
 
 import os
@@ -151,6 +152,7 @@ def _h(token: str) -> dict:
 # ADMIN endpoints — только admin
 # ============================================================
 
+
 def test_admin_audit_log_blocks_student(client):
     kid = _token(client, "kid@example.com")
     r = client.get("/api/v1/admin/audit-log", headers=_h(kid))
@@ -226,6 +228,7 @@ def test_admin_endpoint_rejects_invalid_token():
 # TEACHER endpoints — teacher или admin
 # ============================================================
 
+
 def test_teacher_material_upload_blocks_student(client):
     kid = _token(client, "kid@example.com")
     files = {"file": ("test.txt", b"hello", "text/plain")}
@@ -291,6 +294,7 @@ def test_materials_search_open_to_all_authed(client):
 # PARENT endpoints — только parent
 # ============================================================
 
+
 def test_parent_invite_blocks_student(client):
     kid = _token(client, "kid@example.com")
     r = client.post("/api/v1/parents/invite", headers=_h(kid))
@@ -324,6 +328,7 @@ def test_parent_children_allows_parent(client):
 # ============================================================
 # STUDENT endpoint — только student
 # ============================================================
+
 
 def test_link_parent_blocks_parent(client):
     mom = _token(client, "mom@example.com")
@@ -360,6 +365,7 @@ def test_link_parent_student_wrong_code_returns_400_not_403(client):
 # ============================================================
 # Деактивация пользователя
 # ============================================================
+
 
 def test_deactivate_user_blocks_teacher(client):
     teacher = _token(client, "teacher@example.com")

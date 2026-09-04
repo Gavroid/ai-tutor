@@ -10,6 +10,7 @@ Safety net в app.ai.service._build_rag_context:
 - после фильтра chunks пустые → return None, []
 - AI генерирует ответ без RAG, что лучше чем неправильный RAG.
 """
+
 from __future__ import annotations
 
 import os
@@ -65,8 +66,10 @@ class _FakeSessionCtx:
 
 def _call_build_rag(material_ids_in_db: list, search_returns: list):
     """Helper: вызывает _build_rag_context с подменой DB и search."""
+
     def fake_session():
         return _FakeSessionCtx()
+
     # Re-bind SessionLocal каждый раз, чтобы он возвращал мок с material_ids.
     class _BoundCtx(_FakeSessionCtx):
         def __enter__(self_inner):
@@ -75,18 +78,21 @@ def _call_build_rag(material_ids_in_db: list, search_returns: list):
             chain.all.return_value = material_ids_in_db
             chain.first.return_value = None
             return s
+
         def __exit__(self_inner, *args):
             return False
-    with patch("app.rag_persist.search_persistent", return_value=search_returns), \
-         patch("app.rag_persist.get_or_compute_embedding", return_value=[0.1] * 384), \
-         patch("app.db.session.SessionLocal", lambda: _BoundCtx()):
+
+    with (
+        patch("app.rag_persist.search_persistent", return_value=search_returns),
+        patch("app.rag_persist.get_or_compute_embedding", return_value=[0.1] * 384),
+        patch("app.db.session.SessionLocal", lambda: _BoundCtx()),
+    ):
         svc = AIService(provider=MockProvider())
         import asyncio
+
         loop = asyncio.new_event_loop()
         try:
-            return loop.run_until_complete(
-                svc._build_rag_context(MagicMock(), _make_topic(), top_k=3)
-            )
+            return loop.run_until_complete(svc._build_rag_context(MagicMock(), _make_topic(), top_k=3))
         finally:
             loop.close()
 
@@ -103,6 +109,7 @@ def test_rag_safety_net_drops_wrong_subject_chunks():
         text="Среднее арифметическое: сумма / количество.",
         material_title="Математика 6 класс — Среднее арифметическое",
     )
+
     # material_ids = [99, 30187] — оба найдены для topic 187
     # search_persistent возвращает chunks для обоих
     def fake_search(db, query_emb, top_k, material_id=None):
@@ -112,9 +119,11 @@ def test_rag_safety_net_drops_wrong_subject_chunks():
             return [bad_chunk]
         return []
 
-    with patch("app.rag_persist.search_persistent", side_effect=fake_search), \
-         patch("app.rag_persist.get_or_compute_embedding", return_value=[0.1] * 384), \
-         patch("app.db.session.SessionLocal", lambda: _FakeSessionCtx()):
+    with (
+        patch("app.rag_persist.search_persistent", side_effect=fake_search),
+        patch("app.rag_persist.get_or_compute_embedding", return_value=[0.1] * 384),
+        patch("app.db.session.SessionLocal", lambda: _FakeSessionCtx()),
+    ):
         svc = AIService(provider=MockProvider())
         # _FakeSessionCtx возвращает [] для material_ids → global search.
         # В global search передаём оба chunks.
@@ -131,16 +140,17 @@ def test_rag_safety_net_drops_wrong_subject_chunks():
             s.query.return_value.filter.return_value.all.return_value = []
             return s
 
-    with patch("app.rag_persist.search_persistent", side_effect=fake_search2), \
-         patch("app.rag_persist.get_or_compute_embedding", return_value=[0.1] * 384), \
-         patch("app.db.session.SessionLocal", lambda: _EmptySessionCtx()):
+    with (
+        patch("app.rag_persist.search_persistent", side_effect=fake_search2),
+        patch("app.rag_persist.get_or_compute_embedding", return_value=[0.1] * 384),
+        patch("app.db.session.SessionLocal", lambda: _EmptySessionCtx()),
+    ):
         svc = AIService(provider=MockProvider())
         import asyncio
+
         loop = asyncio.new_event_loop()
         try:
-            context_str, sources = loop.run_until_complete(
-                svc._build_rag_context(MagicMock(), _make_topic(), top_k=3)
-            )
+            context_str, sources = loop.run_until_complete(svc._build_rag_context(MagicMock(), _make_topic(), top_k=3))
         finally:
             loop.close()
 
@@ -168,16 +178,17 @@ def test_rag_safety_net_returns_none_when_all_chunks_wrong():
             s.query.return_value.filter.return_value.all.return_value = []
             return s
 
-    with patch("app.rag_persist.search_persistent", side_effect=fake_search), \
-         patch("app.rag_persist.get_or_compute_embedding", return_value=[0.1] * 384), \
-         patch("app.db.session.SessionLocal", lambda: _EmptySessionCtx()):
+    with (
+        patch("app.rag_persist.search_persistent", side_effect=fake_search),
+        patch("app.rag_persist.get_or_compute_embedding", return_value=[0.1] * 384),
+        patch("app.db.session.SessionLocal", lambda: _EmptySessionCtx()),
+    ):
         svc = AIService(provider=MockProvider())
         import asyncio
+
         loop = asyncio.new_event_loop()
         try:
-            context_str, sources = loop.run_until_complete(
-                svc._build_rag_context(MagicMock(), _make_topic(), top_k=3)
-            )
+            context_str, sources = loop.run_until_complete(svc._build_rag_context(MagicMock(), _make_topic(), top_k=3))
         finally:
             loop.close()
 
@@ -199,16 +210,17 @@ def test_rag_safety_net_handles_empty_metadata():
             s.query.return_value.filter.return_value.all.return_value = []
             return s
 
-    with patch("app.rag_persist.search_persistent", side_effect=fake_search), \
-         patch("app.rag_persist.get_or_compute_embedding", return_value=[0.1] * 384), \
-         patch("app.db.session.SessionLocal", lambda: _EmptySessionCtx()):
+    with (
+        patch("app.rag_persist.search_persistent", side_effect=fake_search),
+        patch("app.rag_persist.get_or_compute_embedding", return_value=[0.1] * 384),
+        patch("app.db.session.SessionLocal", lambda: _EmptySessionCtx()),
+    ):
         svc = AIService(provider=MockProvider())
         import asyncio
+
         loop = asyncio.new_event_loop()
         try:
-            context_str, sources = loop.run_until_complete(
-                svc._build_rag_context(MagicMock(), _make_topic(), top_k=3)
-            )
+            context_str, sources = loop.run_until_complete(svc._build_rag_context(MagicMock(), _make_topic(), top_k=3))
         finally:
             loop.close()
 
@@ -220,11 +232,13 @@ def test_rag_safety_net_handles_empty_metadata():
 def test_rag_safety_net_blocklist_for_other_subjects():
     """Blocklist работает для других subjects: физика не должна подмешивать биологию."""
     bio_chunk = _FakeChunk(
-        material_id=50, text="Клетка — основа жизни",
+        material_id=50,
+        text="Клетка — основа жизни",
         material_title="Биология 7 класс — Клетка",
     )
     phys_chunk = _FakeChunk(
-        material_id=51, text="Сила — векторная величина",
+        material_id=51,
+        text="Сила — векторная величина",
         material_title="Физика 7 класс — Сила",
     )
     # Subject = физика
@@ -243,24 +257,23 @@ def test_rag_safety_net_blocklist_for_other_subjects():
             s.query.return_value.filter.return_value.all.return_value = []
             return s
 
-    with patch("app.rag_persist.search_persistent", return_value=[bio_chunk, phys_chunk]), \
-         patch("app.rag_persist.get_or_compute_embedding", return_value=[0.1] * 384), \
-         patch("app.db.session.SessionLocal", lambda: _EmptySessionCtx()):
+    with (
+        patch("app.rag_persist.search_persistent", return_value=[bio_chunk, phys_chunk]),
+        patch("app.rag_persist.get_or_compute_embedding", return_value=[0.1] * 384),
+        patch("app.db.session.SessionLocal", lambda: _EmptySessionCtx()),
+    ):
         svc = AIService(provider=MockProvider())
         import asyncio
+
         loop = asyncio.new_event_loop()
         try:
             # Тут мы не assert'им конкретный результат из-за сложной
             # mock-цепочки для material_ids, но проверяем что код не падает.
             try:
-                context_str, sources = loop.run_until_complete(
-                    svc._build_rag_context(MagicMock(), topic, top_k=3)
-                )
+                context_str, sources = loop.run_until_complete(svc._build_rag_context(MagicMock(), topic, top_k=3))
                 # Если вернулось что-то — bio_chunk должен быть отброшен.
                 if context_str is not None:
-                    assert "Клетка" not in context_str, (
-                        "Wrong-subject bio_chunk must be dropped for physics topic"
-                    )
+                    assert "Клетка" not in context_str, "Wrong-subject bio_chunk must be dropped for physics topic"
             except Exception as e:
                 pytest.skip(f"Mock chain too complex: {e}")
         finally:

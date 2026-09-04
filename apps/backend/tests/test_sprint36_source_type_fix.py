@@ -6,6 +6,7 @@
 - GET /teacher/materials возвращает 200 (не 500)
 - Schema работает для всех 4 source_type значений
 """
+
 from __future__ import annotations
 
 import pytest
@@ -76,11 +77,14 @@ def test_material_list_item_accepts_pdf_source(client, teacher_login):
     with SessionLocal() as db:
         # Минимальный topic
         subject = Subject(code="math", name="Math")
-        db.add(subject); db.flush()
+        db.add(subject)
+        db.flush()
         section = Section(subject_id=subject.id, name="Alg")
-        db.add(section); db.flush()
+        db.add(section)
+        db.flush()
         topic = Topic(section_id=section.id, name="Test", order_index=1)
-        db.add(topic); db.flush()
+        db.add(topic)
+        db.flush()
 
         # Material с source_type='pdf' (тот самый проблемный случай)
         mat = LearningMaterial(
@@ -91,7 +95,8 @@ def test_material_list_item_accepts_pdf_source(client, teacher_login):
             status="ai_generated",
             source_type="pdf",  # Sprint 36.1: было 500, теперь OK
         )
-        db.add(mat); db.commit()
+        db.add(mat)
+        db.commit()
 
     # GET /teacher/materials — должно вернуть 200 (раньше 500)
     r = client.get(
@@ -117,11 +122,14 @@ def test_material_list_item_accepts_all_source_types(client, teacher_login):
 
     with SessionLocal() as db:
         subject = Subject(code="math", name="Math")
-        db.add(subject); db.flush()
+        db.add(subject)
+        db.flush()
         section = Section(subject_id=subject.id, name="Alg")
-        db.add(section); db.flush()
+        db.add(section)
+        db.flush()
         topic = Topic(section_id=section.id, name="Test", order_index=1)
-        db.add(topic); db.flush()
+        db.add(topic)
+        db.flush()
 
         for st in ["text", "file", "topic", "pdf"]:
             mat = LearningMaterial(
@@ -158,11 +166,14 @@ def test_material_list_with_search_works_after_fix(client, teacher_login):
 
     with SessionLocal() as db:
         subject = Subject(code="math", name="Math")
-        db.add(subject); db.flush()
+        db.add(subject)
+        db.flush()
         section = Section(subject_id=subject.id, name="Alg")
-        db.add(section); db.flush()
+        db.add(section)
+        db.flush()
         topic = Topic(section_id=section.id, name="Test", order_index=1)
-        db.add(topic); db.flush()
+        db.add(topic)
+        db.flush()
 
         # 2 pdf материала + 1 text
         for title, st in [

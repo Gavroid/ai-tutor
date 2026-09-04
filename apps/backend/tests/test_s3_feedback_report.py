@@ -7,6 +7,7 @@ Covers:
 - 401/403 для unauthenticated/non-admin
 - category validation (5 valid + invalid)
 """
+
 from __future__ import annotations
 
 import os

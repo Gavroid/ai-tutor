@@ -12,6 +12,7 @@ Sprint 8.3: добавляем БД-persistence через таблицу `rag_c
 - Embedding cache: `get_or_compute_embedding(text)` — если для текста уже
   есть embedding в кэше, возвращает его; иначе вычисляет через API.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -80,9 +81,7 @@ def get_or_compute_embedding(text: str, *, db_session: Session | None = None) ->
             db = db_session or SessionLocal()
             from app.rag_models import EmbeddingCache  # local import чтобы не циклиться
 
-            row = db.execute(
-                select(EmbeddingCache).where(EmbeddingCache.text_hash == th)
-            ).scalar_one_or_none()
+            row = db.execute(select(EmbeddingCache).where(EmbeddingCache.text_hash == th)).scalar_one_or_none()
             if row and row.embedding_json:
                 cached = json_to_embedding(row.embedding_json)
                 if cached:
@@ -167,7 +166,7 @@ def _hash_embedding(text: str, dim: int = 384) -> list[float]:
     h = hashlib.sha256(text_normalized.encode()).digest()
     vec = []
     for i in range(dim):
-        b = h[(i * 4) % len(h):(i * 4) % len(h) + 4].ljust(4, b"\x00")
+        b = h[(i * 4) % len(h) : (i * 4) % len(h) + 4].ljust(4, b"\x00")
         val = int.from_bytes(b, "big", signed=False)
         vec.append((val / 2**31) - 1.0)
     norm = sum(v * v for v in vec) ** 0.5
@@ -178,9 +177,11 @@ def _hash_embedding(text: str, dim: int = 384) -> list[float]:
 
 # === Sprint 3.5.2: Persistent RAG (search по rag_chunks в PostgreSQL) ===
 
+
 @dataclass
 class PersistentChunk:
     """Lightweight DTO для search results — не зависит от in-memory store."""
+
     id: str
     material_id: int
     text: str
@@ -206,9 +207,7 @@ def add_chunks_persistent(
     for text, emb in zip(chunks, embeddings, strict=False):
         h = chunk_hash(material_id, text)
         # Идемпотентность: если chunk с таким hash уже есть — пропускаем.
-        existing = db.execute(
-            select(RagChunk).where(RagChunk.hash == h)
-        ).scalar_one_or_none()
+        existing = db.execute(select(RagChunk).where(RagChunk.hash == h)).scalar_one_or_none()
         if existing is not None:
             added_ids.append(h)
             continue
@@ -254,13 +253,18 @@ def search_persistent(
         if not emb:
             continue
         sim = cosine_similarity(query_embedding, emb)
-        scored.append((sim, PersistentChunk(
-            id=row.hash,
-            material_id=row.material_id,
-            text=row.text,
-            embedding=emb,
-            metadata=json.loads(row.metadata_json or "{}"),
-        )))
+        scored.append(
+            (
+                sim,
+                PersistentChunk(
+                    id=row.hash,
+                    material_id=row.material_id,
+                    text=row.text,
+                    embedding=emb,
+                    metadata=json.loads(row.metadata_json or "{}"),
+                ),
+            )
+        )
     scored.sort(key=lambda x: -x[0])
     return [c for _, c in scored[:top_k]]
 
@@ -316,17 +320,22 @@ def search_real_persistent(
             sim = float(np.dot(query_np, chunk_np))
         except (TypeError, ValueError):
             continue
-        scored.append((sim, PersistentChunk(
-            id=row.hash,
-            material_id=row.material_id,
-            text=row.text,
-            # Sprint 88: добавляем cosine_score в metadata для hybrid search.
-            embedding=real_emb,
-            metadata={
-                **metadata,
-                "cosine_score": float(sim),
-            },
-        )))
+        scored.append(
+            (
+                sim,
+                PersistentChunk(
+                    id=row.hash,
+                    material_id=row.material_id,
+                    text=row.text,
+                    # Sprint 88: добавляем cosine_score в metadata для hybrid search.
+                    embedding=real_emb,
+                    metadata={
+                        **metadata,
+                        "cosine_score": float(sim),
+                    },
+                ),
+            )
+        )
     scored.sort(key=lambda x: -x[0])
     return [c for _, c in scored[:top_k]]
 
@@ -361,15 +370,17 @@ def search_bm25_persistent(
     chunk_dicts = []
     for row in rows:
         meta = json.loads(row.metadata_json or "{}")
-        chunk_dicts.append({
-            "id": row.hash,
-            "material_id": row.material_id,
-            "text": row.text,
-            "material_title": meta.get("material_title", ""),
-            "created_at": row.created_at.isoformat() if row.created_at else None,
-            "metadata": meta,
-            "_row": row,  # for PersistentChunk construction
-        })
+        chunk_dicts.append(
+            {
+                "id": row.hash,
+                "material_id": row.material_id,
+                "text": row.text,
+                "material_title": meta.get("material_title", ""),
+                "created_at": row.created_at.isoformat() if row.created_at else None,
+                "metadata": meta,
+                "_row": row,  # for PersistentChunk construction
+            }
+        )
 
     # BM25 search.
     top_chunks = bm25_search(
@@ -392,20 +403,24 @@ def search_bm25_persistent(
             **chunk_dict["metadata"],
             "bm25_score": bm25_score_value,
         }
-        result.append(PersistentChunk(
-            id=row.hash,
-            material_id=row.material_id,
-            text=row.text,
-            embedding=emb,
-            metadata=metadata_with_score,
-        ))
+        result.append(
+            PersistentChunk(
+                id=row.hash,
+                material_id=row.material_id,
+                text=row.text,
+                embedding=emb,
+                metadata=metadata_with_score,
+            )
+        )
     return result
 
 
 def count_persistent(db: Session) -> int:
     """Sprint 3.5.2: сколько chunk'ов в rag_chunks."""
     from app.rag_models import RagChunk
+
     return db.execute(select(func.count(RagChunk.id))).scalar_one()
+
 
 def search_hybrid_persistent(
     db: Session,
@@ -433,9 +448,7 @@ def search_hybrid_persistent(
     from app.rag_models import RagChunk
 
     # Get BM25 results (top 5x candidates)
-    bm25_results = search_bm25_persistent(
-        db, query, top_k=top_k * 5, material_id=material_id
-    )
+    bm25_results = search_bm25_persistent(db, query, top_k=top_k * 5, material_id=material_id)
     if not bm25_results:
         return []
 
@@ -446,17 +459,12 @@ def search_hybrid_persistent(
         default=1.0,
     )
     for chunk in bm25_results:
-        bm25_scores[chunk.id] = (
-            chunk.metadata.get("bm25_score", 0) / bm25_max
-            if bm25_max > 0 else 0
-        )
+        bm25_scores[chunk.id] = chunk.metadata.get("bm25_score", 0) / bm25_max if bm25_max > 0 else 0
 
     # Get real embeddings results (если есть)
     embedding_scores: dict[str, float] = {}
     if query_embedding:
-        real_results = search_real_persistent(
-            db, query_embedding, top_k=top_k * 5, material_id=material_id
-        )
+        real_results = search_real_persistent(db, query_embedding, top_k=top_k * 5, material_id=material_id)
         for chunk in real_results:
             # Cosine similarity уже в normalized embeddings
             embedding_scores[chunk.id] = chunk.metadata.get("cosine_score", 0)
@@ -472,4 +480,3 @@ def search_hybrid_persistent(
     # Sort by combined score desc
     combined.sort(key=lambda x: -x[0])
     return [c for _, c in combined[:top_k]]
-

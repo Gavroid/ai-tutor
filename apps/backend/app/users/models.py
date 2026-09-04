@@ -5,6 +5,7 @@
 - created_at / updated_at с серверным default и ON UPDATE
 - пароли хранятся ТОЛЬКО в виде bcrypt-хэша (cost>=12)
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -53,9 +54,7 @@ class User(Base):
     )
     display_name: Mapped[str] = mapped_column(String(100), nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -81,9 +80,7 @@ class StudentProfile(Base):
     learning_style: Mapped[str | None] = mapped_column(Text, nullable=True)
     daily_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     goals: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -106,14 +103,10 @@ class ParentStudentLink(Base):
     )
     # "active" / "pending" / "revoked"
     status: Mapped[str] = mapped_column(String(20), default="active", nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     # Sprint 3.13: когда родитель последний раз смотрел бейджи ребёнка.
     # Используется для подсчёта "новых с прошлого визита".
-    last_seen_badges_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    last_seen_badges_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Sprint 3.20: защита от self-link (parent_id == student_id) для АКТИВНЫХ связей.
     # FK self-reference на users.id проходит, но логически parent ≠ student.
@@ -143,14 +136,8 @@ class Parent2FA(Base):
 
     __tablename__ = "parent_2fa"
 
-    parent_id: Mapped[int] = mapped_column(
-        BigIntPK, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
-    )
+    parent_id: Mapped[int] = mapped_column(BigIntPK, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     secret_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
     backup_codes_json: Mapped[str] = mapped_column(Text, nullable=False)
-    enabled_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    last_used_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    enabled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

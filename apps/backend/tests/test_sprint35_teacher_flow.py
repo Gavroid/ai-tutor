@@ -1,4 +1,5 @@
 """Sprint 35: тесты для teacher search + bulk approve."""
+
 from __future__ import annotations
 
 import pytest
@@ -45,7 +46,6 @@ def teacher_login(client):
     )
     return r.json()["access_token"]
 
-
     def test_list_materials_with_search(client, teacher_login):
         """Sprint 35: GET /teacher/materials?search=... фильтрует по title."""
         # Создаём 3 материала с ASCII titles (для совместимости с SQLite LIKE).
@@ -60,6 +60,7 @@ def teacher_login(client):
 
         with SessionLocal() as db:
             from app.subjects.models import Section, Subject, Topic
+
             subject = Subject(code="math", name="Math")
             db.add(subject)
             db.flush()
@@ -180,11 +181,14 @@ def test_bulk_approve_all_success(client, teacher_login):
 
     with SessionLocal() as db:
         subject = Subject(code="M", name="M")
-        db.add(subject); db.flush()
+        db.add(subject)
+        db.flush()
         section = Section(subject_id=subject.id, name="S")
-        db.add(section); db.flush()
+        db.add(section)
+        db.flush()
         topic = Topic(section_id=section.id, name="T", order_index=1)
-        db.add(topic); db.flush()
+        db.add(topic)
+        db.flush()
 
         material_ids = []
         for i in range(3):
@@ -195,7 +199,8 @@ def test_bulk_approve_all_success(client, teacher_login):
                 content="# c",
                 status="ai_generated",
             )
-            db.add(mat); db.flush()
+            db.add(mat)
+            db.flush()
             material_ids.append(mat.id)
         db.commit()
 
@@ -223,11 +228,14 @@ def test_bulk_approve_partial_failure(client, teacher_login):
 
     with SessionLocal() as db:
         subject = Subject(code="M", name="M")
-        db.add(subject); db.flush()
+        db.add(subject)
+        db.flush()
         section = Section(subject_id=subject.id, name="S")
-        db.add(section); db.flush()
+        db.add(section)
+        db.flush()
         topic = Topic(section_id=section.id, name="T", order_index=1)
-        db.add(topic); db.flush()
+        db.add(topic)
+        db.flush()
 
         # 2 valid + 1 nonexistent ID
         valid_ids = []
@@ -239,7 +247,8 @@ def test_bulk_approve_partial_failure(client, teacher_login):
                 content="# c",
                 status="ai_generated",
             )
-            db.add(mat); db.flush()
+            db.add(mat)
+            db.flush()
             valid_ids.append(mat.id)
         db.commit()
 

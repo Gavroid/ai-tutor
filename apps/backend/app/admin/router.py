@@ -3,6 +3,7 @@
 Sprint 1.1: все endpoints защищены require_admin() (RBAC-middleware).
 Сохранены сообщения об ошибках для обратной совместимости с тестами.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -100,6 +101,7 @@ def audit_log_count(
     # Защищает от случайного чтения всей таблицы.
     if since_dt is None and until_dt is None:
         from datetime import timedelta
+
         until_dt = datetime.now(UTC)
         since_dt = until_dt - timedelta(days=90)
 
@@ -112,9 +114,7 @@ def audit_log_count(
                 f"Date range too large: {delta_days} days (max 730)",
             )
 
-    total = service.count_logs(
-        db, user_id, action, entity, since_dt, until_dt
-    )
+    total = service.count_logs(db, user_id, action, entity, since_dt, until_dt)
     return {"total": int(total)}
 
 
@@ -127,9 +127,7 @@ def list_users(
     current: User = Depends(require_admin()),
 ):
     """Список пользователей (только для admin)."""
-    rows = db.scalars(
-        select(User).order_by(User.id).limit(limit).offset(offset)
-    ).all()
+    rows = db.scalars(select(User).order_by(User.id).limit(limit).offset(offset)).all()
     return [
         {
             "id": u.id,
@@ -242,15 +240,11 @@ def admin_stats(
 ):
     """Сводная статистика для админа."""
     total_users = db.scalar(select(func.count(User.id))) or 0
-    active_users = db.scalar(
-        select(func.count(User.id)).where(User.is_active.is_(True))
-    ) or 0
+    active_users = db.scalar(select(func.count(User.id)).where(User.is_active.is_(True))) or 0
 
     by_role = {}
     for role in Role:
-        cnt = db.scalar(
-            select(func.count(User.id)).where(User.role == role)
-        ) or 0
+        cnt = db.scalar(select(func.count(User.id)).where(User.role == role)) or 0
         by_role[role.value] = cnt
 
     return {
@@ -309,30 +303,29 @@ def admin_engagement(
         day_start = (datetime.now(UTC) - timedelta(days=d)).date()
         day_end = day_start + timedelta(days=1)
         # attempts за этот день
-        cnt = db.scalar(
-            select(sqlfunc.count(sqlfunc.distinct(prog_models.Attempt.user_id))).where(
-                prog_models.Attempt.created_at >= day_start,
-                prog_models.Attempt.created_at < day_end,
+        cnt = (
+            db.scalar(
+                select(sqlfunc.count(sqlfunc.distinct(prog_models.Attempt.user_id))).where(
+                    prog_models.Attempt.created_at >= day_start,
+                    prog_models.Attempt.created_at < day_end,
+                )
             )
-        ) or 0
+            or 0
+        )
         dau_14.append({"date": day_start.isoformat(), "active_users": int(cnt)})
 
     # Active users за период
     active_user_ids = (
-        db.execute(
-            select(sqlfunc.distinct(prog_models.Attempt.user_id)).where(
-                prog_models.Attempt.created_at >= since
-            )
-        ).scalars().all()
+        db.execute(select(sqlfunc.distinct(prog_models.Attempt.user_id)).where(prog_models.Attempt.created_at >= since))
+        .scalars()
+        .all()
     )
     active_users = len(active_user_ids)
 
     # Total attempts за период
-    total_attempts = db.scalar(
-        select(sqlfunc.count(prog_models.Attempt.id)).where(
-            prog_models.Attempt.created_at >= since
-        )
-    ) or 0
+    total_attempts = (
+        db.scalar(select(sqlfunc.count(prog_models.Attempt.id)).where(prog_models.Attempt.created_at >= since)) or 0
+    )
 
     # Top subjects (по количеству уникальных учеников с progress по теме этого предмета).
     # Простой подсчёт через progress → topic → section → subject.
@@ -340,9 +333,7 @@ def admin_engagement(
         select(
             subj_models.Subject.id,
             subj_models.Subject.name,
-            sqlfunc.count(sqlfunc.distinct(prog_models.Progress.user_id)).label(
-                "students"
-            ),
+            sqlfunc.count(sqlfunc.distinct(prog_models.Progress.user_id)).label("students"),
         )
         .select_from(prog_models.Progress)
         .join(subj_models.Topic, prog_models.Progress.topic_id == subj_models.Topic.id)
@@ -353,10 +344,7 @@ def admin_engagement(
         .limit(3)
     ).all()
 
-    top_subjects = [
-        {"id": s[0], "name": s[1], "students": int(s[2])}
-        for s in top_subjects_rows
-    ]
+    top_subjects = [{"id": s[0], "name": s[1], "students": int(s[2])} for s in top_subjects_rows]
 
     # Sprint 85: cohort retention (D1, D7, D30).
     # Для каждого cohort week (Monday-based, ISO format), считаем:
@@ -365,6 +353,7 @@ def admin_engagement(
     # - retained_d7: сколько вернулись через 7 дней
     # - retained_d30: сколько вернулись через 30 дней
     from app.users import models as user_models
+
     retention_cohorts = []
     # Cohort weeks: последние N недель, в пределах period
     cohort_week_count = min(days // 7, 8) if days >= 7 else 0
@@ -380,56 +369,69 @@ def admin_engagement(
                         user_models.User.created_at >= cohort_start,
                         user_models.User.created_at < cohort_end,
                     )
-                ).scalars().all()
+                )
+                .scalars()
+                .all()
             )
             if not cohort_user_ids:
                 continue
             cohort_size = len(cohort_user_ids)
             # Retained D1: users с attempt >=1 day+1 после cohort_end
-            retained_d1 = db.scalar(
-                select(sqlfunc.count(sqlfunc.distinct(prog_models.Attempt.user_id))).where(
-                    prog_models.Attempt.user_id.in_(cohort_user_ids),
-                    prog_models.Attempt.created_at >= cohort_end + timedelta(days=1),
-                    prog_models.Attempt.created_at < cohort_end + timedelta(days=2),
+            retained_d1 = (
+                db.scalar(
+                    select(sqlfunc.count(sqlfunc.distinct(prog_models.Attempt.user_id))).where(
+                        prog_models.Attempt.user_id.in_(cohort_user_ids),
+                        prog_models.Attempt.created_at >= cohort_end + timedelta(days=1),
+                        prog_models.Attempt.created_at < cohort_end + timedelta(days=2),
+                    )
                 )
-            ) or 0
+                or 0
+            )
             # Retained D7
-            retained_d7 = db.scalar(
-                select(sqlfunc.count(sqlfunc.distinct(prog_models.Attempt.user_id))).where(
-                    prog_models.Attempt.user_id.in_(cohort_user_ids),
-                    prog_models.Attempt.created_at >= cohort_end + timedelta(days=7),
-                    prog_models.Attempt.created_at < cohort_end + timedelta(days=8),
+            retained_d7 = (
+                db.scalar(
+                    select(sqlfunc.count(sqlfunc.distinct(prog_models.Attempt.user_id))).where(
+                        prog_models.Attempt.user_id.in_(cohort_user_ids),
+                        prog_models.Attempt.created_at >= cohort_end + timedelta(days=7),
+                        prog_models.Attempt.created_at < cohort_end + timedelta(days=8),
+                    )
                 )
-            ) or 0
+                or 0
+            )
             # Retained D30 (только для старых cohorts)
             retained_d30 = 0
             if week_offset >= 4:  # только cohorts старше 30 дней
-                retained_d30 = db.scalar(
-                    select(sqlfunc.count(sqlfunc.distinct(prog_models.Attempt.user_id))).where(
-                        prog_models.Attempt.user_id.in_(cohort_user_ids),
-                        prog_models.Attempt.created_at >= cohort_end + timedelta(days=30),
-                        prog_models.Attempt.created_at < cohort_end + timedelta(days=31),
+                retained_d30 = (
+                    db.scalar(
+                        select(sqlfunc.count(sqlfunc.distinct(prog_models.Attempt.user_id))).where(
+                            prog_models.Attempt.user_id.in_(cohort_user_ids),
+                            prog_models.Attempt.created_at >= cohort_end + timedelta(days=30),
+                            prog_models.Attempt.created_at < cohort_end + timedelta(days=31),
+                        )
                     )
-                ) or 0
+                    or 0
+                )
 
-            retention_cohorts.append({
-                "cohort_week": cohort_start.date().isoformat(),
-                "cohort_size": cohort_size,
-                "retained_d1": int(retained_d1),
-                "retained_d1_pct": round(retained_d1 / cohort_size * 100, 1) if cohort_size else 0,
-                "retained_d7": int(retained_d7),
-                "retained_d7_pct": round(retained_d7 / cohort_size * 100, 1) if cohort_size else 0,
-                "retained_d30": int(retained_d30),
-                "retained_d30_pct": round(retained_d30 / cohort_size * 100, 1) if cohort_size and week_offset >= 4 else None,
-            })
+            retention_cohorts.append(
+                {
+                    "cohort_week": cohort_start.date().isoformat(),
+                    "cohort_size": cohort_size,
+                    "retained_d1": int(retained_d1),
+                    "retained_d1_pct": round(retained_d1 / cohort_size * 100, 1) if cohort_size else 0,
+                    "retained_d7": int(retained_d7),
+                    "retained_d7_pct": round(retained_d7 / cohort_size * 100, 1) if cohort_size else 0,
+                    "retained_d30": int(retained_d30),
+                    "retained_d30_pct": round(retained_d30 / cohort_size * 100, 1)
+                    if cohort_size and week_offset >= 4
+                    else None,
+                }
+            )
 
     result = {
         "period_days": days,
         "active_users": active_users,
         "total_attempts": int(total_attempts),
-        "avg_attempts_per_active_user": (
-            round(total_attempts / active_users, 1) if active_users else 0
-        ),
+        "avg_attempts_per_active_user": (round(total_attempts / active_users, 1) if active_users else 0),
         "dau_last_14_days": dau_14,
         "top_subjects": top_subjects,
         "retention_cohorts": retention_cohorts,
@@ -437,7 +439,7 @@ def admin_engagement(
 
     # Sprint 89: save to Redis cache (TTL 60s).
     try:
-        if 'r' in locals():
+        if "r" in locals():
             r.setex(cache_key, 60, json.dumps(result))
     except Exception:
         pass
@@ -515,6 +517,7 @@ def test_notification(
 
 # === Sprint 45: Audit log hash chain verification ===
 
+
 @router.get("/audit-log/verify")
 def verify_audit_log_chain(
     limit: int = Query(1000, ge=1, le=10000),
@@ -548,12 +551,14 @@ def export_audit_log(
     q = select(models.AuditLog)
     if since:
         from datetime import timezone
+
         since_dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
         if since_dt.tzinfo is None:
             since_dt = since_dt.replace(tzinfo=UTC)
         q = q.where(models.AuditLog.created_at >= since_dt)
     if until:
         from datetime import timezone
+
         until_dt = datetime.fromisoformat(until.replace("Z", "+00:00"))
         if until_dt.tzinfo is None:
             until_dt = until_dt.replace(tzinfo=UTC)
@@ -590,22 +595,40 @@ def export_audit_log(
     # CSV format
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow([
-        "id", "user_id", "action", "entity", "entity_id",
-        "details", "ip_address", "created_at",
-        "previous_hash", "record_hash",
-    ])
+    writer.writerow(
+        [
+            "id",
+            "user_id",
+            "action",
+            "entity",
+            "entity_id",
+            "details",
+            "ip_address",
+            "created_at",
+            "previous_hash",
+            "record_hash",
+        ]
+    )
     for r in rows:
-        writer.writerow([
-            r.id, r.user_id or "", r.action, r.entity or "",
-            r.entity_id or "", r.details or "", r.ip_address or "",
-            r.created_at.isoformat() if r.created_at else "",
-            r.previous_hash or "", r.record_hash or "",
-        ])
+        writer.writerow(
+            [
+                r.id,
+                r.user_id or "",
+                r.action,
+                r.entity or "",
+                r.entity_id or "",
+                r.details or "",
+                r.ip_address or "",
+                r.created_at.isoformat() if r.created_at else "",
+                r.previous_hash or "",
+                r.record_hash or "",
+            ]
+        )
     return {"filename": f"audit_log_{fmt}.csv", "content": output.getvalue()}
 
 
 # === Sprint 4.2: Audit log retention ===
+
 
 @router.post("/audit-log/purge")
 def purge_audit_log(
@@ -631,6 +654,7 @@ def purge_audit_log(
 
 # === Sprint 3.6.3: AI kill switch (persistent через Redis) ===
 
+
 async def _read_kill_switch(redis) -> set[int]:
     """Читает kill switch из Redis (key='ai:kill_switch')."""
     try:
@@ -648,6 +672,7 @@ async def _write_kill_switch(redis, ids: set[int]) -> None:
         await redis.set("ai:kill_switch", "".join(str(x) for x in sorted(ids)))
     except Exception as e:
         import logging
+
         logging.getLogger(__name__).warning("kill_switch write failed: %s", e)
 
 
@@ -655,6 +680,7 @@ async def _get_redis_for_admin():
     """Получить Redis instance (используем тот же что в rate_limit)."""
     try:
         import redis.asyncio as aioredis
+
         url = __import__("os").environ.get("REDIS_URL", "redis://redis:6379/0")
         return aioredis.from_url(url, decode_responses=False)
     except Exception:
@@ -711,7 +737,6 @@ async def add_ai_kill_switch(
     )
     db.commit()
     return {"ok": True, "user_id": user_id, "all_killed": sorted(new_ids)}
-
 
 
 @router.post("/config/reload-ai-budget")
@@ -874,11 +899,13 @@ def _load_evidence() -> dict[str, dict]:
     if path is None:
         return {}
     import json
+
     return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _save_evidence(data: dict[str, dict]) -> None:
     import json
+
     path = _find_evidence_path()
     if path is None:
         path = _EVIDENCE_PATHS[0]
@@ -951,19 +978,24 @@ def list_evidence(
         divergence = "ok"
         if persisted_promo and not canonical_promo:
             divergence = "persisted_overrides_canonical"
-        out.append({
-            "subject_code": code,
-            "mvp_status": _evidence_mvp_status(canonical),
-            "pilot_visible": bool(canonical.get("pilot_visible")),
-            "promotion_allowed": bool(canonical.get("promotion_allowed")),
-            "blocked_reason": canonical.get("blocked_reason"),
-            "gates": {g: bool(canonical.get(g)) for g in EVIDENCE_GATES},
-            "persisted_promotion_allowed": persisted_promo,
-            "canonical_divergence": divergence,
-        })
+        out.append(
+            {
+                "subject_code": code,
+                "mvp_status": _evidence_mvp_status(canonical),
+                "pilot_visible": bool(canonical.get("pilot_visible")),
+                "promotion_allowed": bool(canonical.get("promotion_allowed")),
+                "blocked_reason": canonical.get("blocked_reason"),
+                "gates": {g: bool(canonical.get(g)) for g in EVIDENCE_GATES},
+                "persisted_promotion_allowed": persisted_promo,
+                "canonical_divergence": divergence,
+            }
+        )
     service.record(
-        db, user=current, action="evidence.list",
-        entity="evidence", details={"count": len(out)},
+        db,
+        user=current,
+        action="evidence.list",
+        entity="evidence",
+        details={"count": len(out)},
     )
     db.commit()
     return {"evidence": out}
@@ -1015,18 +1047,14 @@ def update_evidence(
     # будут перезаписаны canonical. Сначала проверяем инвариант по persistence,
     # чтобы admin не мог записать promotion=true при неполных gates.
     if promotion.get("promotion_allowed") is True:
-        post_gates = {
-            g: bool(row.get(g)) for g in EVIDENCE_GATES
-        }
+        post_gates = {g: bool(row.get(g)) for g in EVIDENCE_GATES}
         if not all(post_gates.values()):
             missing = [g for g in EVIDENCE_GATES if not post_gates[g]]
             raise HTTPException(
                 400,
                 f"Cannot set promotion_allowed=true; missing gates: {missing}",
             )
-    if promotion.get("pilot_visible") is True and not promotion.get(
-        "promotion_allowed"
-    ):
+    if promotion.get("pilot_visible") is True and not promotion.get("promotion_allowed"):
         # Если pilot=true без promo=true, но исходное persisted promo=true,
         # разрешаем (canonical sync). Иначе — guard.
         if not row.get("promotion_allowed"):
@@ -1042,9 +1070,8 @@ def update_evidence(
     row["pilot_visible"] = bool(canonical_row["pilot_visible"])
     row["promotion_allowed"] = bool(canonical_row["promotion_allowed"])
 
-    if (
-        canonical_row["promotion_allowed"] != row.get("promotion_allowed")
-        or canonical_row["pilot_visible"] != row.get("pilot_visible")
+    if canonical_row["promotion_allowed"] != row.get("promotion_allowed") or canonical_row["pilot_visible"] != row.get(
+        "pilot_visible"
     ):
         # Не падаем — пишем canonical + log warning.
         import logging
@@ -1089,6 +1116,7 @@ def update_evidence(
     # Сбросить кеш evidence-store, чтобы следующий /api/v1/subjects подхватил.
     try:
         from app.subjects import evidence as _ev_mod
+
         _ev_mod.reset_evidence_cache()
     except Exception:
         pass
@@ -1110,6 +1138,7 @@ def update_evidence(
 
 def _evidence_pilot_scope() -> set[str]:
     from app.subjects.evidence_schema import PILOT_SCOPE
+
     return PILOT_SCOPE
 
 
@@ -1145,6 +1174,7 @@ def promote_evidence(
     db.commit()
     try:
         from app.subjects import evidence as _ev_mod
+
         _ev_mod.reset_evidence_cache()
     except Exception:
         pass
@@ -1179,6 +1209,7 @@ def revoke_evidence(
     db.commit()
     try:
         from app.subjects import evidence as _ev_mod
+
         _ev_mod.reset_evidence_cache()
     except Exception:
         pass

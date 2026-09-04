@@ -7,6 +7,7 @@ v2 endpoint'ы должны применять `sanitize_user_input` и `detect_
 
 Этот тест — последний slice из subagent-отчёта.
 """
+
 from __future__ import annotations
 
 import os
@@ -82,13 +83,11 @@ def test_v2_answer_sanitizes_injection_in_user_answer(client):
     """
     token = _register(client)
     h = {"Authorization": f"Bearer {token}"}
-    topic_id = SessionLocal().scalar(
-        __import__("sqlalchemy").select(subj_models.Topic).order_by(subj_models.Topic.id)
-    ).id
+    topic_id = (
+        SessionLocal().scalar(__import__("sqlalchemy").select(subj_models.Topic).order_by(subj_models.Topic.id)).id
+    )
 
-    gen = client.post(
-        "/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}
-    ).json()
+    gen = client.post("/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}).json()
     with SessionLocal() as s:
         inst = s.get(GeneratedExerciseInstance, gen["exercise_id"])
         correct = inst.correct_answer
@@ -119,13 +118,11 @@ def test_v2_answer_handles_long_user_answer(client):
     """
     token = _register(client)
     h = {"Authorization": f"Bearer {token}"}
-    topic_id = SessionLocal().scalar(
-        __import__("sqlalchemy").select(subj_models.Topic).order_by(subj_models.Topic.id)
-    ).id
+    topic_id = (
+        SessionLocal().scalar(__import__("sqlalchemy").select(subj_models.Topic).order_by(subj_models.Topic.id)).id
+    )
 
-    gen = client.post(
-        "/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}
-    ).json()
+    gen = client.post("/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}).json()
     long_answer = "x" * 80000
     r = client.post(
         f"/api/v2/exercises/{gen['exercise_id']}/answer",
@@ -143,13 +140,11 @@ def test_v2_generate_does_not_leak_pii_in_payload(client):
     """
     token = _register(client)
     h = {"Authorization": f"Bearer {token}"}
-    topic_id = SessionLocal().scalar(
-        __import__("sqlalchemy").select(subj_models.Topic).order_by(subj_models.Topic.id)
-    ).id
+    topic_id = (
+        SessionLocal().scalar(__import__("sqlalchemy").select(subj_models.Topic).order_by(subj_models.Topic.id)).id
+    )
 
-    gen = client.post(
-        "/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}
-    ).json()
+    gen = client.post("/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}).json()
     serialized = str(gen)
     assert "correct_answer" not in serialized
     assert "explanation" not in serialized

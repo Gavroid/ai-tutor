@@ -1,4 +1,5 @@
 """Тесты diagnostic expire (Этап hardening)."""
+
 from __future__ import annotations
 
 import os
@@ -119,9 +120,7 @@ def test_expire_stale_diagnostics_function():
     # User уже создан через autouse fixture
     s = SessionLocal()
     try:
-        user = s.execute(
-            select(User).where(User.email == "kid@x.com")
-        ).scalar_one()
+        user = s.execute(select(User).where(User.email == "kid@x.com")).scalar_one()
     finally:
         s.close()
 
@@ -177,16 +176,12 @@ def test_expire_stale_diagnostics_function():
     s = SessionLocal()
     try:
         fresh = s.execute(
-            select(diag_models.DiagnosticSession).where(
-                diag_models.DiagnosticSession.id == fresh_id
-            )
+            select(diag_models.DiagnosticSession).where(diag_models.DiagnosticSession.id == fresh_id)
         ).scalar_one()
         assert fresh.status == "in_progress"
 
         old = s.execute(
-            select(diag_models.DiagnosticSession).where(
-                diag_models.DiagnosticSession.id == old_id
-            )
+            select(diag_models.DiagnosticSession).where(diag_models.DiagnosticSession.id == old_id)
         ).scalar_one()
         assert old.status == "expired"
         assert old.finished_at is not None
@@ -205,9 +200,7 @@ def test_expire_stale_respects_ttl():
         from app.users.models import User
         from sqlalchemy import select
 
-        user = s.execute(
-            select(User).where(User.email == "kid@x.com")
-        ).scalar_one()
+        user = s.execute(select(User).where(User.email == "kid@x.com")).scalar_one()
 
         sess = diag_models.DiagnosticSession(
             user_id=user.id,

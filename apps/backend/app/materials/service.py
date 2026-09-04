@@ -9,6 +9,7 @@
 Использует in-memory поиск (substring) — для MVP достаточно.
 Полнотекстовый поиск через PostgreSQL tsvector или ElasticSearch — TODO.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -137,9 +138,7 @@ def save_uploaded_material(
     return material
 
 
-def search_materials(
-    db: Session, query: str, topic_id: int | None = None, limit: int = 10
-) -> list[dict]:
+def search_materials(db: Session, query: str, topic_id: int | None = None, limit: int = 10) -> list[dict]:
     """Простой поиск по подстроке (case-insensitive).
 
     Для больших объёмов переключаем на PostgreSQL tsvector.

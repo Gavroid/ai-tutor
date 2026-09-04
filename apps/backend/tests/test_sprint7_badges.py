@@ -1,4 +1,5 @@
 """Sprint 7.5: баджи за усилие (НЕ за streak)."""
+
 from __future__ import annotations
 
 import json
@@ -59,13 +60,9 @@ class TestBadgeCatalog:
         """
         bad_keywords = ["under pressure", "missed", "penalty", "lost"]
         for badge in BADGES:
-            text = (
-                badge.slug + " " + badge.title + " " + badge.description
-            ).lower()
+            text = (badge.slug + " " + badge.title + " " + badge.description).lower()
             for kw in bad_keywords:
-                assert kw not in text, (
-                    f"Бейдж {badge.slug} содержит T1D-нарушающее: '{kw}'"
-                )
+                assert kw not in text, f"Бейдж {badge.slug} содержит T1D-нарушающее: '{kw}'"
 
     def test_all_badges_have_unique_slugs(self):
         slugs = [b.slug for b in BADGES]
@@ -119,14 +116,18 @@ class TestEvaluation:
         db = SessionLocal()
         try:
             seed_badge_definitions(db)
-            awarded = evaluate_and_award_badges(db, new_student["student_id"], {
-                "total_attempts": 0,
-                "quality_5_no_hint": 0,
-                "returned_to_incorrect": 0,
-                "max_mastery": 0.0,
-                "easy_solved": 0,
-                "questions_to_ai": 0,
-            })
+            awarded = evaluate_and_award_badges(
+                db,
+                new_student["student_id"],
+                {
+                    "total_attempts": 0,
+                    "quality_5_no_hint": 0,
+                    "returned_to_incorrect": 0,
+                    "max_mastery": 0.0,
+                    "easy_solved": 0,
+                    "questions_to_ai": 0,
+                },
+            )
             assert awarded == []
         finally:
             db.close()
@@ -135,14 +136,18 @@ class TestEvaluation:
         db = SessionLocal()
         try:
             seed_badge_definitions(db)
-            awarded = evaluate_and_award_badges(db, new_student["student_id"], {
-                "total_attempts": 1,
-                "quality_5_no_hint": 1,
-                "returned_to_incorrect": 0,
-                "max_mastery": 0.5,
-                "easy_solved": 1,
-                "questions_to_ai": 1,
-            })
+            awarded = evaluate_and_award_badges(
+                db,
+                new_student["student_id"],
+                {
+                    "total_attempts": 1,
+                    "quality_5_no_hint": 1,
+                    "returned_to_incorrect": 0,
+                    "max_mastery": 0.5,
+                    "easy_solved": 1,
+                    "questions_to_ai": 1,
+                },
+            )
             assert "first_step" in awarded
             # Explaied_in_own_words требует quality_5
             assert "explained_in_own_words" in awarded
@@ -207,11 +212,13 @@ class TestBadgesEndpoint:
 
             ctr = db.get(UserCounter, new_student["student_id"])
             if ctr is None:
-                db.add(UserCounter(
-                    user_id=new_student["student_id"],
-                    easy_solved=0,
-                    questions_to_ai=1,
-                ))
+                db.add(
+                    UserCounter(
+                        user_id=new_student["student_id"],
+                        easy_solved=0,
+                        questions_to_ai=1,
+                    )
+                )
             else:
                 ctr.questions_to_ai = (ctr.questions_to_ai or 0) + 1
             db.commit()
@@ -238,9 +245,7 @@ class TestBadgesNotStreak:
     """
 
     def test_no_t1d_punitive_keywords(self):
-        all_text = " ".join(
-            [b.slug + " " + b.title.lower() + " " + b.description.lower() for b in BADGES]
-        )
+        all_text = " ".join([b.slug + " " + b.title.lower() + " " + b.description.lower() for b in BADGES])
         for bad_word in ["штраф", "penalty", "lost your", "сгорела"]:
             assert bad_word not in all_text, f"T1D-punitive keyword: {bad_word}"
 

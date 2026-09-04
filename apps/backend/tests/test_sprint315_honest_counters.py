@@ -13,6 +13,7 @@
 v2/exercises.py (после создания Attempt при easy difficulty) и
 ai/router.py (после успешного chat).
 """
+
 from __future__ import annotations
 
 import os
@@ -104,17 +105,11 @@ def _login(c: TestClient) -> str:
 def _algebra_topic_id(s=None) -> int:
     s = s or SessionLocal()
     try:
-        subj = s.scalar(
-            select(subj_models.Subject).where(subj_models.Subject.code == "algebra")
-        )
+        subj = s.scalar(select(subj_models.Subject).where(subj_models.Subject.code == "algebra"))
         assert subj is not None
-        sec = s.scalar(
-            select(subj_models.Section).where(subj_models.Section.subject_id == subj.id)
-        )
+        sec = s.scalar(select(subj_models.Section).where(subj_models.Section.subject_id == subj.id))
         assert sec is not None
-        topic = s.scalar(
-            select(subj_models.Topic).where(subj_models.Topic.section_id == sec.id)
-        )
+        topic = s.scalar(select(subj_models.Topic).where(subj_models.Topic.section_id == sec.id))
         assert topic is not None
         return topic.id
     finally:

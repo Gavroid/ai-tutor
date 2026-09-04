@@ -7,6 +7,7 @@
 - POST /api/v1/admin/evidence/<code>/revoke.
 - non-admin → 401/403.
 """
+
 from __future__ import annotations
 
 import json
@@ -59,23 +60,27 @@ def admin_client(tmp_path, monkeypatch):
 
     # Подменить путь evidence.json на tmp через monkeypatch на сам модуль.
     from app.admin import router as admin_router
+
     monkeypatch.setattr(admin_router, "_EVIDENCE_PATH", tmp_evidence)
 
     # Подменить путь загрузки evidence в subjects.evidence.
     monkeypatch.setattr(
         "app.subjects.evidence._try_load_evidence_json",
-        lambda: {code: evidence_mod.SubjectEvidence(
-            code=code,
-            manifest_ready=bool(row.get("manifest_ready", False)),
-            mapping_ready=bool(row.get("mapping_ready", False)),
-            import_ready=bool(row.get("import_ready", False)),
-            rag_ready=bool(row.get("rag_ready", False)),
-            practice_ready=bool(row.get("practice_ready", False)),
-            manual_smoke_ready=bool(row.get("manual_smoke_ready", False)),
-            pilot_visible=bool(row.get("pilot_visible", False)),
-            promotion_allowed=bool(row.get("promotion_allowed", False)),
-            blocked_reason=row.get("blocked_reason"),
-        ) for code, row in initial.items()},
+        lambda: {
+            code: evidence_mod.SubjectEvidence(
+                code=code,
+                manifest_ready=bool(row.get("manifest_ready", False)),
+                mapping_ready=bool(row.get("mapping_ready", False)),
+                import_ready=bool(row.get("import_ready", False)),
+                rag_ready=bool(row.get("rag_ready", False)),
+                practice_ready=bool(row.get("practice_ready", False)),
+                manual_smoke_ready=bool(row.get("manual_smoke_ready", False)),
+                pilot_visible=bool(row.get("pilot_visible", False)),
+                promotion_allowed=bool(row.get("promotion_allowed", False)),
+                blocked_reason=row.get("blocked_reason"),
+            )
+            for code, row in initial.items()
+        },
     )
     evidence_mod.reset_evidence_cache()
 
@@ -211,10 +216,15 @@ def test_update_evidence_rejects_pilot_without_promotion_safety_net():
     Здесь мы smoke-проверяем, что canonical write работает согласованно.
     """
     from app.admin.router import _canonical_promotion
+
     # algebra в PILOT_SCOPE + закрытые gates → canonical promo=True.
     row = {
-        "manifest_ready": True, "mapping_ready": True, "import_ready": True,
-        "rag_ready": True, "practice_ready": True, "manual_smoke_ready": True,
+        "manifest_ready": True,
+        "mapping_ready": True,
+        "import_ready": True,
+        "rag_ready": True,
+        "practice_ready": True,
+        "manual_smoke_ready": True,
         "blocked_reason": None,
     }
     promo, pilot = _canonical_promotion(row, "algebra")

@@ -1,4 +1,5 @@
 """RAG search endpoint."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -81,6 +82,7 @@ async def index_document(
         add_chunks_persistent(db, payload.material_id, chunks, embeddings, payload.metadata)
     except Exception as e:
         import logging
+
         logging.getLogger(__name__).warning("rag_chunks insert failed (continuing): %s", e)
     return IndexResponse(indexed_chunks=len(chunks), chunk_ids=chunk_ids)
 
@@ -127,9 +129,7 @@ def search_bm25_endpoint(
 
     Returns top_k PersistentChunk с metadata.
     """
-    results = search_bm25_persistent(
-        db, payload.query, top_k=payload.top_k, material_id=payload.material_id
-    )
+    results = search_bm25_persistent(db, payload.query, top_k=payload.top_k, material_id=payload.material_id)
     return SearchResponse(
         query=payload.query,
         hits=[
@@ -143,8 +143,6 @@ def search_bm25_endpoint(
             for c in results
         ],
     )
-
-
 
 
 def _detect_hybrid_weights(query: str) -> tuple[float, float]:
@@ -257,9 +255,7 @@ def search_real_endpoint(
     if query_vec is None:
         raise HTTPException(500, "Encoding failed")
 
-    results = search_real_persistent(
-        db, query_vec, top_k=payload.top_k, material_id=payload.material_id
-    )
+    results = search_real_persistent(db, query_vec, top_k=payload.top_k, material_id=payload.material_id)
     return SearchResponse(
         query=payload.query,
         hits=[
@@ -291,11 +287,13 @@ def remove_material(
         from sqlalchemy import delete
 
         from app.rag_models import RagChunk
+
         result = db.execute(delete(RagChunk).where(RagChunk.material_id == material_id))
         db.commit()
         persistent_count = result.rowcount
     except Exception as e:
         import logging
+
         logging.getLogger(__name__).warning("rag_chunks delete failed: %s", e)
         db.rollback()
     return {

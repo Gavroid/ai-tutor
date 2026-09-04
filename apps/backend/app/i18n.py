@@ -3,6 +3,7 @@
 Позволяет возвращать localized error messages в зависимости от
 Accept-Language header. По умолчанию — русский (production).
 """
+
 from __future__ import annotations
 
 from typing import Optional

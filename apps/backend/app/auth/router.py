@@ -1,4 +1,5 @@
 """Роутер авторизации и профиля."""
+
 from __future__ import annotations
 
 from datetime import UTC
@@ -49,6 +50,7 @@ def register(
         from datetime import timezone as _tz
 
         from app.invites.models import Invite as _Invite
+
         invite = db.get(_Invite, payload.invite_code)
         if invite is not None:
             invite.uses_count += 1
@@ -133,6 +135,7 @@ class Login2FARequest(BaseModel):
     - access_token: intermediate token из /auth/login step 1
     - code: 6-значный TOTP или 12-char backup code
     """
+
     access_token: str = Field(min_length=10)
     code: str = Field(min_length=6, max_length=12)
 
@@ -312,9 +315,7 @@ student_router = APIRouter(prefix="/api/v1/students", tags=["students"])
 
 
 @student_router.get("/me", response_model=schemas.StudentProfileOut)
-def get_my_profile(
-    current: User = Depends(get_current_user), db: Session = Depends(get_db)
-) -> StudentProfile:
+def get_my_profile(current: User = Depends(get_current_user), db: Session = Depends(get_db)) -> StudentProfile:
     if current.role != Role.STUDENT:
         from fastapi import HTTPException
 

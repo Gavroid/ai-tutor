@@ -6,6 +6,7 @@
 - Резолвер модели для предмета (subject_id → provider+key+model).
 - Test connection (ping провайдера).
 """
+
 from __future__ import annotations
 
 import base64
@@ -25,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 # ----- Encryption -----
+
 
 def _derive_fernet_key(secret: str) -> bytes:
     """Derive 32-byte Fernet key из APP_SECRET_KEY через SHA256.
@@ -69,6 +71,7 @@ def api_key_last4(encrypted: bytes) -> str:
 
 
 # ----- Provider CRUD -----
+
 
 def list_providers(db: Session) -> list[dict[str, Any]]:
     """Список провайдеров с подсчётом моделей."""
@@ -168,12 +171,15 @@ def delete_provider(db: Session, provider_id: int) -> None:
 
 # ----- Model catalog -----
 
+
 def list_models(db: Session, provider_id: int) -> list[AIModelCatalog]:
-    rows = db.execute(
-        select(AIModelCatalog)
-        .where(AIModelCatalog.provider_id == provider_id)
-        .order_by(AIModelCatalog.model_name)
-    ).scalars().all()
+    rows = (
+        db.execute(
+            select(AIModelCatalog).where(AIModelCatalog.provider_id == provider_id).order_by(AIModelCatalog.model_name)
+        )
+        .scalars()
+        .all()
+    )
     return list(rows)
 
 
@@ -197,9 +203,8 @@ def delete_model(db: Session, model_id: int) -> None:
 
 # ----- Fetch models from provider -----
 
-async def fetch_models_from_provider(
-    db: Session, provider_id: int, *, timeout: float = 15.0
-) -> dict[str, Any]:
+
+async def fetch_models_from_provider(db: Session, provider_id: int, *, timeout: float = 15.0) -> dict[str, Any]:
     """Дёргает GET {base_url}/models у провайдера и сохраняет новые модели.
 
     OpenAI-compatible провайдеры (OpenRouter, Groq, OpenAI, MiniMax) отдают
@@ -220,9 +225,7 @@ async def fetch_models_from_provider(
     if r.status_code >= 400:
         # Возвращаем осмысленную ошибку с телом ответа (без ключа).
         body_snip = r.text[:300] if r.text else ""
-        raise RuntimeError(
-            f"Провайдер ответил HTTP {r.status_code} на GET /models: {body_snip}"
-        )
+        raise RuntimeError(f"Провайдер ответил HTTP {r.status_code} на GET /models: {body_snip}")
 
     data = r.json()
     if isinstance(data, dict) and "data" in data:
@@ -284,9 +287,8 @@ async def fetch_models_from_provider(
 
 # ----- Test connection -----
 
-async def test_provider_connection(
-    db: Session, provider_id: int, *, timeout: float = 10.0
-) -> dict[str, Any]:
+
+async def test_provider_connection(db: Session, provider_id: int, *, timeout: float = 10.0) -> dict[str, Any]:
     """Ping провайдера. Возвращает статус, latency_ms, error."""
     provider = get_provider(db, provider_id)
     if provider is None:
@@ -342,25 +344,16 @@ async def test_provider_connection(
 
 # ----- Subject routing -----
 
-def get_subject_assignment(
-    db: Session, subject_id: int
-) -> tuple[Optional[AIModelCatalog], Optional[AIModelCatalog]]:
+
+def get_subject_assignment(db: Session, subject_id: int) -> tuple[Optional[AIModelCatalog], Optional[AIModelCatalog]]:
     """Возвращает (primary, fallback) для предмета. Любой может быть None."""
-    assignments = (
-        db.execute(
-            select(SubjectAIModel).where(SubjectAIModel.subject_id == subject_id)
-        )
-        .scalars()
-        .all()
-    )
+    assignments = db.execute(select(SubjectAIModel).where(SubjectAIModel.subject_id == subject_id)).scalars().all()
     primary = next((a.model for a in assignments if a.role == "primary"), None)
     fallback = next((a.model for a in assignments if a.role == "fallback"), None)
     return primary, fallback
 
 
-def assign_model_to_subject(
-    db: Session, subject_id: int, *, model_id: int, role: str
-) -> SubjectAIModel:
+def assign_model_to_subject(db: Session, subject_id: int, *, model_id: int, role: str) -> SubjectAIModel:
     """Назначить модель на предмет с указанной ролью. Заменяет предыдущее назначение той же роли."""
     # Если назначение с такой ролью уже есть — обновляем model_id.
     existing = db.execute(
@@ -395,9 +388,7 @@ def clear_subject_assignment(db: Session, subject_id: int, *, role: str) -> None
         db.commit()
 
 
-def resolve_provider_for_subject(
-    db: Session, subject_id: int, *, role: str = "primary"
-) -> Optional[dict[str, Any]]:
+def resolve_provider_for_subject(db: Session, subject_id: int, *, role: str = "primary") -> Optional[dict[str, Any]]:
     """Резолвит провайдера для предмета. role='primary' или 'fallback'.
 
     Возвращает dict или None если для данной роли ничего не настроено.
@@ -419,8 +410,6 @@ def resolve_provider_for_subject(
     }
 
 
-def resolve_fallback_for_subject(
-    db: Session, subject_id: int
-) -> Optional[dict[str, Any]]:
+def resolve_fallback_for_subject(db: Session, subject_id: int) -> Optional[dict[str, Any]]:
     """То же самое для fallback роли."""
     return resolve_provider_for_subject(db, subject_id, role="fallback")

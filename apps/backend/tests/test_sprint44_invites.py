@@ -1,4 +1,5 @@
 """Sprint 44: Public invite flow tests."""
+
 from __future__ import annotations
 
 import pytest

@@ -1,4 +1,5 @@
 """Sprint 3 — тесты родительского дашборда."""
+
 from __future__ import annotations
 
 import os
@@ -113,9 +114,7 @@ def _get_kid_id(c: TestClient) -> int:
 
     s = SessionLocal()
     try:
-        kid = s.scalar(
-            __import__("sqlalchemy").select(User).where(User.email == "kid@example.com")
-        )
+        kid = s.scalar(__import__("sqlalchemy").select(User).where(User.email == "kid@example.com"))
         return kid.id
     finally:
         s.close()
@@ -168,11 +167,7 @@ def test_dashboard_404_for_unlinked_student(client):
 
     s = SessionLocal()
     try:
-        other = s.scalar(
-            __import__("sqlalchemy").select(User).where(
-                User.email == "other_kid@example.com"
-            )
-        )
+        other = s.scalar(__import__("sqlalchemy").select(User).where(User.email == "other_kid@example.com"))
         other_id = other.id
     finally:
         s.close()
@@ -303,8 +298,7 @@ def test_dashboard_recommendations_up_to_5_weak_topics(client):
     weak_recs = [rec for rec in body["recommendations"] if rec["title"] == "Повторить слабую тему"]
     assert len(body["weak_topics"]) >= 5
     assert len(weak_recs) >= 5, (
-        f"ожидали ≥5 weak-topic рекомендаций, получили {len(weak_recs)}: "
-        f"{body['recommendations']}"
+        f"ожидали ≥5 weak-topic рекомендаций, получили {len(weak_recs)}: " f"{body['recommendations']}"
     )
     # общий cap — 5 (как у ученика)
     assert len(body["recommendations"]) <= 5
@@ -409,11 +403,7 @@ def test_dashboard_due_for_review_count(client):
 
     past = datetime.now(UTC) - timedelta(days=1)
     with engine.begin() as conn:
-        conn.execute(
-            update(Progress)
-            .where(Progress.user_id == kid_id)
-            .values(next_review_at=past)
-        )
+        conn.execute(update(Progress).where(Progress.user_id == kid_id).values(next_review_at=past))
 
     mom = _token(client, "mom@example.com")
     r = client.get(
@@ -456,11 +446,7 @@ def test_dashboard_pdf_export_404_for_unlinked(client):
 
     s = SessionLocal()
     try:
-        other = s.scalar(
-            __import__("sqlalchemy").select(User).where(
-                User.email == "other_kid@example.com"
-            )
-        )
+        other = s.scalar(__import__("sqlalchemy").select(User).where(User.email == "other_kid@example.com"))
         other_id = other.id
     finally:
         s.close()

@@ -1,4 +1,5 @@
 """Sprint 8.5: CAT (Computerized Adaptive Testing) lite."""
+
 from __future__ import annotations
 
 import pytest
@@ -149,6 +150,7 @@ class TestNextTopicAdaptive:
         from unittest.mock import MagicMock
 
         from app.db.session import SessionLocal
+
         db = MagicMock()
         db.get.return_value = None  # session not found
         result = next_topic_adaptive(db, session_id=99999, state=AdaptiveState())
@@ -183,6 +185,7 @@ class TestNextTopicAdaptive:
             subject = db.scalar(select(subj_models.Subject).where(subj_models.Subject.code == "algebra"))
             # Создаём diagnostic session
             from app.diagnostics.service import start_diagnostic
+
             sess = start_diagnostic(db, student.id, subject.id)
 
             # Получаем первый вопрос (CAT-адаптивный)

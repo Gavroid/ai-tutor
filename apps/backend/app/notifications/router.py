@@ -1,4 +1,5 @@
 """Роутер уведомлений."""
+
 from __future__ import annotations
 
 from app.auth.security import get_current_user

@@ -13,6 +13,7 @@ TODO (Sprint 8.5+ расширения):
 - Item bank с информационной функцией (Fisher information).
 - Способность рассчитывать по Вальду (MLE).
 """
+
 from __future__ import annotations
 
 import logging
@@ -108,18 +109,18 @@ def next_topic_adaptive(
         state = AdaptiveState()
 
     # Берём список тем для предмета
-    all_topics = db.execute(
-        select(subj_models.Topic)
-        .join(subj_models.Section)
-        .where(subj_models.Section.subject_id == sess.subject_id)
-    ).scalars().all()
+    all_topics = (
+        db.execute(
+            select(subj_models.Topic).join(subj_models.Section).where(subj_models.Section.subject_id == sess.subject_id)
+        )
+        .scalars()
+        .all()
+    )
 
     answered_ids = set(
-        db.execute(
-            select(models.DiagnosticAnswer.topic_id).where(
-                models.DiagnosticAnswer.session_id == session_id
-            )
-        ).scalars().all()
+        db.execute(select(models.DiagnosticAnswer.topic_id).where(models.DiagnosticAnswer.session_id == session_id))
+        .scalars()
+        .all()
     )
 
     remaining = [t for t in all_topics if t.id not in answered_ids]
@@ -145,6 +146,7 @@ def next_topic_adaptive(
     async def _gen_question():
         svc = get_ai_service()
         from app.subjects.curriculum_7_class import CURRICULUM_7_CLASS  # noqa: F401
+
         # Используем существующий метод — generate_exercise
         try:
             gen = await svc.generate_exercise(

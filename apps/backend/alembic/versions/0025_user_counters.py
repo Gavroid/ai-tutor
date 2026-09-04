@@ -11,6 +11,7 @@
 Revision ID: 0025_user_counters
 Revises: 0024_parent_seen_badges
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa

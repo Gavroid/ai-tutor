@@ -2,6 +2,7 @@
 
 Используется тестами и в seed-скрипте (для исключения дублирования).
 """
+
 from __future__ import annotations
 
 from app.subjects import models
@@ -38,9 +39,7 @@ def seed_for_tests(db: Session, reset: bool = False) -> int:
         created += 1
 
         for sec_idx, (sec_name, topics) in enumerate(subj_data["sections"]):
-            section = models.Section(
-                subject_id=subject.id, name=sec_name, order_index=sec_idx
-            )
+            section = models.Section(subject_id=subject.id, name=sec_name, order_index=sec_idx)
             db.add(section)
             db.flush()
             created += 1
@@ -59,11 +58,7 @@ def seed_for_tests(db: Session, reset: bool = False) -> int:
                 for sub_idx, sub_name in enumerate(subtopics):
                     if not sub_name:
                         continue
-                    db.add(
-                        models.Subtopic(
-                            topic_id=topic.id, name=sub_name, order_index=sub_idx
-                        )
-                    )
+                    db.add(models.Subtopic(topic_id=topic.id, name=sub_name, order_index=sub_idx))
                     created += 1
 
     db.commit()

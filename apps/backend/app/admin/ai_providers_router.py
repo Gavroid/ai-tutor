@@ -16,6 +16,7 @@ Endpoints (все admin-only):
 - PUT    /api/v1/admin/subjects/{id}/ai-assignment    {primary?: model_id, fallback?: model_id}
 - DELETE /api/v1/admin/subjects/{id}/ai-assignment/{role}   убрать primary или fallback
 """
+
 from __future__ import annotations
 
 import logging
@@ -39,6 +40,7 @@ router = APIRouter(
 
 
 # ----- Providers CRUD -----
+
 
 @router.get("", response_model=list[schemas.AIProviderOut])
 def list_providers(
@@ -246,6 +248,7 @@ def get_subject_assignment(
 ):
     # Проверим что предмет существует.
     from app.subjects.models import Subject
+
     subj = db.get(Subject, subject_id)
     if subj is None:
         raise HTTPException(404, f"Предмет id={subject_id} не найден")
@@ -260,6 +263,7 @@ def get_subject_assignment(
 
 class SubjectAIModelPut(BaseModel):
     """PUT для обновления назначений. role → model_id (или None чтобы убрать)."""
+
     primary: Optional[int] = None
     fallback: Optional[int] = None
 
@@ -273,6 +277,7 @@ def set_subject_assignment(
 ):
     from app.admin.ai_providers import AIModelCatalog
     from app.subjects.models import Subject
+
     subj = db.get(Subject, subject_id)
     if subj is None:
         raise HTTPException(404, f"Предмет id={subject_id} не найден")

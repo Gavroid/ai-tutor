@@ -10,6 +10,7 @@ Definition of Done:
 Здесь — лёгкие in-process тесты для /health и /ready, плюс проверка
 disposable config (deploy/disposable-staging.toml + .sh).
 """
+
 from __future__ import annotations
 
 import os
@@ -60,6 +61,7 @@ def disposable_client():
 
 # === Health endpoint ==========================================================
 
+
 def test_health_liveness_does_not_touch_db(disposable_client):
     """Sprint 7: /health НЕ должен лезть в БД."""
     c = disposable_client
@@ -84,6 +86,7 @@ def test_health_returns_uptime_seconds(disposable_client):
 
 # === Readiness endpoint =======================================================
 
+
 def test_ready_returns_503_when_redis_unavailable(disposable_client):
     """Sprint 7 + §Scope: disposable staging без Redis = not_ready.
 
@@ -99,7 +102,9 @@ def test_ready_returns_503_when_redis_unavailable(disposable_client):
     else:
         body = r.json()
         assert body.get("status") == "not_ready"
-        assert body.get("reason") in ("db_unavailable", "redis_unavailable", None) or isinstance(body.get("reason"), str)
+        assert body.get("reason") in ("db_unavailable", "redis_unavailable", None) or isinstance(
+            body.get("reason"), str
+        )
 
 
 def test_ready_returns_200_with_status_ok_on_healthy(disposable_client):
@@ -126,6 +131,7 @@ def test_ready_does_not_require_auth(disposable_client):
 
 
 # === Disposable config validation ============================================
+
 
 def test_disposable_staging_toml_exists():
     """Sprint 7: deploy/disposable-staging.toml присутствует."""
@@ -179,6 +185,7 @@ def test_disposable_toml_has_idempotent_migrations():
 
 # === Idempotency check on in-memory SQLite ====================================
 
+
 def test_db_create_twice_is_noop():
     """Sprint 7 §Definition of Done: migrations idempotent.
 
@@ -200,6 +207,7 @@ def test_db_create_twice_is_noop():
 
 
 # === Backup/restore dry-run validation =======================================
+
 
 def test_backup_script_exists():
     """Sprint 7 §критерии выхода: backup restore подтверждён на disposable data."""
@@ -231,12 +239,15 @@ def test_health_payload_schema_contract(disposable_client):
     assert r.status_code == 200, r.text
     body = r.json()
     expected_keys = {
-        "status", "service", "env", "version", "uptime_seconds", "started_at",
+        "status",
+        "service",
+        "env",
+        "version",
+        "uptime_seconds",
+        "started_at",
     }
     actual_keys = set(body.keys())
-    assert actual_keys == expected_keys, (
-        f"/health schema drift: expected={expected_keys}, actual={actual_keys}"
-    )
+    assert actual_keys == expected_keys, f"/health schema drift: expected={expected_keys}, actual={actual_keys}"
     # Smoke каждое поле.
     assert body["status"] == "ok"
     assert isinstance(body["service"], str) and body["service"]
@@ -259,13 +270,13 @@ def test_health_uptime_is_monotonic(disposable_client):
     r1 = c.get("/health").json()
     _t.sleep(1.1)  # гарантированно пересекает секундную границу
     r2 = c.get("/health").json()
-    assert r2["uptime_seconds"] > r1["uptime_seconds"], (
-        f"uptime НЕ вырос за 1.1s: {r1['uptime_seconds']} → {r2['uptime_seconds']}"
-    )
+    assert (
+        r2["uptime_seconds"] > r1["uptime_seconds"]
+    ), f"uptime НЕ вырос за 1.1s: {r1['uptime_seconds']} → {r2['uptime_seconds']}"
     # started_at должен быть стабилен.
-    assert r1["started_at"] == r2["started_at"], (
-        f"started_at дрейфит между вызовами: {r1['started_at']} vs {r2['started_at']}"
-    )
+    assert (
+        r1["started_at"] == r2["started_at"]
+    ), f"started_at дрейфит между вызовами: {r1['started_at']} vs {r2['started_at']}"
 
 
 def test_ready_payload_structure_contract(disposable_client):

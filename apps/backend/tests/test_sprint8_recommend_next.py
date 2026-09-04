@@ -5,6 +5,7 @@
 2. Иначе → следующая непройденная тема в curriculum
 3. Иначе → "all_mastered" поздравление
 """
+
 from __future__ import annotations
 
 import os
@@ -181,7 +182,10 @@ def test_recommend_next_no_attempts_returns_next_topic(client):
     assert body["subject_id"] is not None
     assert body["mastery_score"] is None  # нет progress
     # encouragement — позитивное (содержит эмодзи или слово поддержки)
-    assert any(emoji in body["encouragement"] for emoji in ["🚀", "💪", "📚", "✨", "🌟"]) or len(body["encouragement"]) > 5
+    assert (
+        any(emoji in body["encouragement"] for emoji in ["🚀", "💪", "📚", "✨", "🌟"])
+        or len(body["encouragement"]) > 5
+    )
 
 
 def test_recommend_next_weak_topic_priority(client):
@@ -192,10 +196,7 @@ def test_recommend_next_weak_topic_priority(client):
         user_id = _setup_kid_with_seed()  # уже seed'нул
 
         # Найдём первые 2 topic_id (сохраняем id сразу чтобы избежать DetachedInstance)
-        topic_ids = [
-            row[0]
-            for row in s.query(subj_models.Topic.id).order_by(subj_models.Topic.id).limit(2).all()
-        ]
+        topic_ids = [row[0] for row in s.query(subj_models.Topic.id).order_by(subj_models.Topic.id).limit(2).all()]
         assert len(topic_ids) >= 2
         weak_topic_id = topic_ids[0]
         good_topic_id = topic_ids[1]
@@ -227,10 +228,7 @@ def test_recommend_next_weakest_topic_selected(client):
     try:
         user_id = _setup_kid_with_seed()  # уже seed'нул
 
-        topic_ids = [
-            row[0]
-            for row in s.query(subj_models.Topic.id).order_by(subj_models.Topic.id).limit(3).all()
-        ]
+        topic_ids = [row[0] for row in s.query(subj_models.Topic.id).order_by(subj_models.Topic.id).limit(3).all()]
         weakest_id = topic_ids[1]  # будет mastery=0.1 — самая слабая
         # topic1: mastery=0.3
         _add_progress(s, user_id, topic_ids[0], mastery=0.3, attempts=2)
@@ -298,7 +296,10 @@ def test_recommend_next_all_mastered(client):
     assert body["reason"] == "all_mastered"
     assert body["topic_id"] is None
     # encouragement позитивный
-    assert any(emoji in body["encouragement"] for emoji in ["🎉", "✨", "🏆"]) or "невероятно" in body["encouragement"].lower()
+    assert (
+        any(emoji in body["encouragement"] for emoji in ["🎉", "✨", "🏆"])
+        or "невероятно" in body["encouragement"].lower()
+    )
 
 
 def test_recommend_next_requires_auth(client):
@@ -341,7 +342,12 @@ def test_recommend_next_isolated_per_user(client):
             ),
         )
 
-        kid1_id = s.query(__import__("app.users.models", fromlist=["User"]).User).filter_by(email="kid@example.com").first().id
+        kid1_id = (
+            s.query(__import__("app.users.models", fromlist=["User"]).User)
+            .filter_by(email="kid@example.com")
+            .first()
+            .id
+        )
 
         # Даем kid1 слабую тему
         t1_id = s.query(subj_models.Topic.id).order_by(subj_models.Topic.id).first()[0]

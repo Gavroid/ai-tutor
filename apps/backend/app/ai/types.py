@@ -4,6 +4,7 @@
 - `HermesProvider` — реальный провайдер (OpenAI-compatible, MiniMax через Anthropic endpoint)
 - `MockProvider` — детерминированные ответы для тестов и разработки без ключа
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

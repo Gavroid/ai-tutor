@@ -6,6 +6,7 @@ Sprint 16.1 P1-5 already added proper error handling:
 - 504: Whisper API timeout
 - 502: Whisper API HTTP error / 5xx / config error
 """
+
 from __future__ import annotations
 
 import io
@@ -19,6 +20,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 # === Module-level tests ===
+
 
 def test_max_audio_size_constant_exists():
     """Sprint 72: MAX_AUDIO_SIZE_BYTES constant defined."""
@@ -35,6 +37,7 @@ def test_whisper_api_url_defined():
 
 
 # === Fixtures ===
+
 
 @pytest.fixture
 def client():
@@ -75,6 +78,7 @@ def user_token(client):
 
 # === Tests: 413 file too large ===
 
+
 def test_voice_file_too_large_returns_413(client, user_token):
     """Sprint 72: file > 25 MB → 413."""
     large_content = b"x" * (26 * 1024 * 1024)  # 26 MB
@@ -90,6 +94,7 @@ def test_voice_file_too_large_returns_413(client, user_token):
 
 
 # === Tests: 503 OPENAI_API_KEY not configured ===
+
 
 def test_voice_no_api_key_returns_503(client, user_token):
     """Sprint 72: OPENAI_API_KEY missing → 503 (не fallback заглушка)."""
@@ -111,9 +116,11 @@ def test_voice_no_api_key_returns_503(client, user_token):
 
 # === Tests: 504 timeout ===
 
+
 def test_voice_whisper_timeout_returns_504(client, user_token):
     """Sprint 72: Whisper API timeout → 504."""
     import httpx
+
     files = {"file": ("test.webm", io.BytesIO(b"fake audio"), "audio/webm")}
 
     with patch.dict(os.environ, {"OPENAI_API_KEY": "test_key"}):
@@ -135,9 +142,11 @@ def test_voice_whisper_timeout_returns_504(client, user_token):
 
 # === Tests: 502 HTTP error ===
 
+
 def test_voice_whisper_500_returns_502(client, user_token):
     """Sprint 72: Whisper API 500 → 502."""
     import httpx
+
     files = {"file": ("test.webm", io.BytesIO(b"fake audio"), "audio/webm")}
 
     with patch.dict(os.environ, {"OPENAI_API_KEY": "test_key"}):
@@ -162,6 +171,7 @@ def test_voice_whisper_500_returns_502(client, user_token):
 
 
 # === Tests: auth required ===
+
 
 def test_voice_requires_auth(client):
     """Sprint 72: /voice/transcribe требует auth."""

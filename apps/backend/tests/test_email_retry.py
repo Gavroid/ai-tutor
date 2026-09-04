@@ -1,4 +1,5 @@
 """Тесты email retry (Этап hardening)."""
+
 from __future__ import annotations
 
 import os

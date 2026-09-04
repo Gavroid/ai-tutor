@@ -6,6 +6,7 @@ Definition of Done:
 - source/page mapping корректен;
 - OCR-risk subjects не становятся pilot-visible автоматически.
 """
+
 from __future__ import annotations
 
 import os
@@ -28,6 +29,7 @@ from app.subjects.retrieval_benchmark import (
 
 # === Tokenize / scoring ========================================================
 
+
 def test_tokenize_lowercase_russian():
     toks = _tokenize("Среднее арифметическое — это сумма чисел.")
     assert "среднее" in toks
@@ -46,9 +48,7 @@ def test_evaluate_probes_recall_and_mrr_for_math_fixture():
         top_k=5,
     )
     assert result.total == 4
-    assert result.hits == 4, (
-        f"ожидалось 4 hit, got {result.hits}; failed={result.failed_probes}"
-    )
+    assert result.hits == 4, f"ожидалось 4 hit, got {result.hits}; failed={result.failed_probes}"
     assert result.recall_at_k >= 0.75, result.recall_at_k
     assert result.mrr_at_k >= 0.5, result.mrr_at_k
 
@@ -72,9 +72,9 @@ def test_evaluate_probes_fails_on_mismatch_query():
         },
     ]
     result = evaluate_probes(subject_code="math", probes=probes, chunks=chunks, top_k=5)
-    assert result.hits == 0, (
-        f"если relevant_key отсутствует в chunks, top-k не должен содержать его: hits={result.hits}"
-    )
+    assert (
+        result.hits == 0
+    ), f"если relevant_key отсутствует в chunks, top-k не должен содержать его: hits={result.hits}"
     assert result.recall_at_k == 0.0
     assert result.mrr_at_k == 0.0
     assert "miss-001" in result.failed_probes
@@ -100,9 +100,7 @@ def test_threshold_gating_for_math6_pilot():
     """Sprint 6: Math-6 benchmark должен проходить subject-specific threshold."""
     subj, probes, chunks = benchmark_math6_fixture()
     result = evaluate_probes(subject_code=subj, probes=probes, chunks=chunks, top_k=5)
-    assert result.passes_threshold, (
-        f"Math-6 benchmark failed gate: recall={result.recall_at_k} mrr={result.mrr_at_k}"
-    )
+    assert result.passes_threshold, f"Math-6 benchmark failed gate: recall={result.recall_at_k} mrr={result.mrr_at_k}"
 
 
 def test_threshold_gating_for_ocr_risk_subject_blocks_pilot():
@@ -129,6 +127,7 @@ def test_threshold_gating_for_ocr_risk_subject_blocks_pilot():
 
 
 # === Subject-specific thresholds ===============================================
+
 
 def test_math_threshold_strict():
     """Math требует 0.6 / 0.5 (Sprint 6 §thresholds)."""
@@ -163,9 +162,7 @@ def test_math_threshold_strict():
         ),
     ]
     bad_result = evaluate_probes(subject_code="math", probes=bad_probes, chunks=chunks, top_k=5)
-    assert not bad_result.passes_threshold, (
-        "Math-6 benchmark при recall=0 должен блокировать pilot visibility"
-    )
+    assert not bad_result.passes_threshold, "Math-6 benchmark при recall=0 должен блокировать pilot visibility"
 
 
 def test_retrieval_benchmark_result_serializes():

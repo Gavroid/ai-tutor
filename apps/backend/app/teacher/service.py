@@ -2,6 +2,7 @@
 
 Sprint 1.2-1.3.
 """
+
 from __future__ import annotations
 
 import json
@@ -175,9 +176,7 @@ def build_user_prompt(
     ]
     if hint:
         parts.append(f"\nДоп. указание от Учителя: {hint}")
-    parts.append(
-        "\nСгенерируй раздел по единому шаблону. Верни ТОЛЬКО JSON."
-    )
+    parts.append("\nСгенерируй раздел по единому шаблону. Верни ТОЛЬКО JSON.")
     return "\n".join(parts)
 
 
@@ -270,6 +269,7 @@ async def call_ai_for_material(
     # Sprint 8.1: метрика fallback (для UI/дашборда)
     try:
         from app.ai.service import _PARSE_CNT
+
         if _PARSE_CNT:
             _PARSE_CNT.labels(mode="teacher", result="fallback").inc()
     except Exception:
@@ -319,9 +319,7 @@ def save_generated_draft(
         approved_by=None,
         published_at=None,
         source_type=source_type,
-        ai_confidence=json.dumps(
-            content.ai_uncertainty_notes, ensure_ascii=False
-        ),
+        ai_confidence=json.dumps(content.ai_uncertainty_notes, ensure_ascii=False),
     )
     db.add(material)
     db.commit()
@@ -380,9 +378,7 @@ def approve_material(
 ) -> subj_models.LearningMaterial:
     """Переход в teacher_approved."""
     if not can_transition(material.status, "teacher_approved"):
-        raise WorkflowError(
-            f"Невозможно approve из статуса '{material.status}'"
-        )
+        raise WorkflowError(f"Невозможно approve из статуса '{material.status}'")
     material.status = "teacher_approved"
     material.approved_by = user.id
     db.commit()
@@ -425,10 +421,7 @@ def publish_material(
 ) -> subj_models.LearningMaterial:
     """Переход в published (только из teacher_approved)."""
     if not can_transition(material.status, "published"):
-        raise WorkflowError(
-            f"Невозможно publish из статуса '{material.status}' "
-            "(требуется teacher_approved)"
-        )
+        raise WorkflowError(f"Невозможно publish из статуса '{material.status}' " "(требуется teacher_approved)")
     material.status = "published"
     material.published_at = datetime.now(UTC)
     db.commit()
@@ -443,9 +436,7 @@ def unpublish_material(
 ) -> subj_models.LearningMaterial:
     """Снять с публикации (published → teacher_approved)."""
     if not can_transition(material.status, "teacher_approved"):
-        raise WorkflowError(
-            f"Невозможно unpublish из статуса '{material.status}'"
-        )
+        raise WorkflowError(f"Невозможно unpublish из статуса '{material.status}'")
     material.status = "teacher_approved"
     material.published_at = None
     db.commit()
@@ -464,9 +455,7 @@ def update_material_content(
         material.title = new_title
     if new_content is not None:
         material.content = new_content.model_dump_json()
-        material.ai_confidence = json.dumps(
-            new_content.ai_uncertainty_notes, ensure_ascii=False
-        )
+        material.ai_confidence = json.dumps(new_content.ai_uncertainty_notes, ensure_ascii=False)
     # Любое редактирование → требует повторного approve
     if material.status in ("teacher_approved", "published"):
         material.status = "ai_generated"
@@ -560,9 +549,7 @@ def list_materials_for_teacher(
     """
     from sqlalchemy import func, select  # noqa: F401
 
-    q = select(subj_models.LearningMaterial).order_by(
-        subj_models.LearningMaterial.id.desc()
-    )
+    q = select(subj_models.LearningMaterial).order_by(subj_models.LearningMaterial.id.desc())
     if user.role == user_models.Role.TEACHER:
         q = q.where(
             (subj_models.LearningMaterial.generated_by == user.id)
@@ -600,9 +587,7 @@ def list_published_for_student(
     """Только опубликованные материалы — для ученика."""
     from sqlalchemy import func, select  # noqa: F401
 
-    q = select(subj_models.LearningMaterial).where(
-        subj_models.LearningMaterial.status == "published"
-    )
+    q = select(subj_models.LearningMaterial).where(subj_models.LearningMaterial.status == "published")
     if topic_id:
         q = q.where(subj_models.LearningMaterial.topic_id == topic_id)
     q = q.order_by(subj_models.LearningMaterial.id.desc()).limit(min(limit, 200))

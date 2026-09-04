@@ -74,7 +74,12 @@ def test_execute_algebra_import_plan_dry_run_does_not_write_rows(tmp_path) -> No
         "audit_rows": [],
     }
 
-    result = execute_algebra_import_plan(manifest=manifest, target_env="staging", db_url=f"sqlite+pysqlite:///{tmp_path / 'target.sqlite3'}", dry_run=True)
+    result = execute_algebra_import_plan(
+        manifest=manifest,
+        target_env="staging",
+        db_url=f"sqlite+pysqlite:///{tmp_path / 'target.sqlite3'}",
+        dry_run=True,
+    )
 
     assert result["decision"] == "dry_run_only"
     assert result["rows_written"] == 0

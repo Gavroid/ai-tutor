@@ -6,6 +6,7 @@
 - HTTP error codes (413, 502, 504)
 - ASR API integration (mock)
 """
+
 from __future__ import annotations
 
 import io

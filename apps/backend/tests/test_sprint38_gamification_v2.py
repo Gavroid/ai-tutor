@@ -12,6 +12,7 @@ T1D-friendly гарантии:
 - streak=0 → streak_* НЕ вручаются, но и никаких негативных бейджей
 - пропуск 2+ дней → returned_after_pause вручается (поощрение)
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta, timezone
@@ -106,6 +107,7 @@ def _all_topics(db) -> list:
 
 # ============== Catalog tests ==============
 
+
 class TestCatalogV2:
     def test_catalog_has_60_badges_total(self, db_with_student_and_subjects):
         # Sprint 3.12: 20 (7.5+3.8) → 44 (3.11) → 60 (3.12): 15 на категорию.
@@ -116,10 +118,16 @@ class TestCatalogV2:
         n = seed_badge_definitions(db)
         slugs = {b.slug for b in db.query(BadgeDefinition).all()}
         new_slugs = {
-            "streak_3", "streak_7", "streak_30",
-            "returned_after_pause", "polymath_week",
-            "early_bird", "night_owl", "weekend_warrior",
-            "perfect_five", "ten_in_a_row",
+            "streak_3",
+            "streak_7",
+            "streak_30",
+            "returned_after_pause",
+            "polymath_week",
+            "early_bird",
+            "night_owl",
+            "weekend_warrior",
+            "perfect_five",
+            "ten_in_a_row",
         }
         assert new_slugs.issubset(slugs), f"missing: {new_slugs - slugs}"
 
@@ -134,9 +142,11 @@ class TestCatalogV2:
 
 # ============== streak_* tests ==============
 
+
 class TestStreakBadges:
     def test_streak_3_after_three_consecutive_days(
-        self, db_with_student_and_subjects,
+        self,
+        db_with_student_and_subjects,
     ):
         db = db_with_student_and_subjects["db"]
         sid = db_with_student_and_subjects["student_id"]
@@ -165,6 +175,7 @@ class TestStreakBadges:
 
 # ============== returned_after_pause ==============
 
+
 class TestReturnedAfterPause:
     def test_returned_after_2day_pause(self, db_with_student_and_subjects):
         """2+ дня пропуска → бадж 'Возвращение' (НЕ штраф)."""
@@ -192,20 +203,15 @@ class TestReturnedAfterPause:
 
 # ============== polymath_week ==============
 
+
 class TestPolymath:
     def test_three_subjects_in_seven_days(self, db_with_student_and_subjects):
         db = db_with_student_and_subjects["db"]
         sid = db_with_student_and_subjects["student_id"]
         # Берём topics из разных subjects (по 1 из каждого)
-        subj1_topic = db.query(subj_models.Topic).filter(
-            subj_models.Topic.name == "Topic 0-0"
-        ).first()
-        subj2_topic = db.query(subj_models.Topic).filter(
-            subj_models.Topic.name == "Topic 1-0"
-        ).first()
-        subj3_topic = db.query(subj_models.Topic).filter(
-            subj_models.Topic.name == "Topic 2-0"
-        ).first()
+        subj1_topic = db.query(subj_models.Topic).filter(subj_models.Topic.name == "Topic 0-0").first()
+        subj2_topic = db.query(subj_models.Topic).filter(subj_models.Topic.name == "Topic 1-0").first()
+        subj3_topic = db.query(subj_models.Topic).filter(subj_models.Topic.name == "Topic 2-0").first()
         today_utc = datetime.now(UTC)
         # 3 разных предмета в разные дни за последнюю неделю
         _add_attempt(db, sid, subj1_topic.id, True, today_utc - timedelta(days=1))
@@ -219,9 +225,9 @@ class TestPolymath:
         sid = db_with_student_and_subjects["student_id"]
         topics = _all_topics(db)
         # Берём только topics из одного subject (Topic 0-0 и Topic 0-1)
-        same_subj_topics = db.query(subj_models.Topic).filter(
-            subj_models.Topic.name.in_(["Topic 0-0", "Topic 0-1"])
-        ).all()
+        same_subj_topics = (
+            db.query(subj_models.Topic).filter(subj_models.Topic.name.in_(["Topic 0-0", "Topic 0-1"])).all()
+        )
         today_utc = datetime.now(UTC)
         for t in same_subj_topics:
             _add_attempt(db, sid, t.id, True, today_utc)
@@ -230,6 +236,7 @@ class TestPolymath:
 
 
 # ============== time-of-day ==============
+
 
 class TestTimeOfDay:
     def test_morning_attempt_awards_early_bird(self, db_with_student_and_subjects):
@@ -258,9 +265,11 @@ class TestTimeOfDay:
 
 # ============== weekend_warrior ==============
 
+
 class TestWeekend:
     def test_saturday_attempt_awards_weekend_warrior(
-        self, db_with_student_and_subjects,
+        self,
+        db_with_student_and_subjects,
     ):
         db = db_with_student_and_subjects["db"]
         sid = db_with_student_and_subjects["student_id"]
@@ -270,7 +279,9 @@ class TestWeekend:
         days_to_sat = (5 - today.weekday()) % 7
         if days_to_sat == 0 and today.weekday() != 5:
             days_to_sat = 7
-        sat = today - timedelta(days=today.weekday() - 5) if today.weekday() >= 5 else today + timedelta(days=days_to_sat)
+        sat = (
+            today - timedelta(days=today.weekday() - 5) if today.weekday() >= 5 else today + timedelta(days=days_to_sat)
+        )
         sat_noon = sat.replace(hour=12, minute=0, second=0, microsecond=0)
         _add_attempt(db, sid, topics[0].id, True, sat_noon)
         awarded = evaluate_and_award_badges(db, sid)
@@ -278,6 +289,7 @@ class TestWeekend:
 
 
 # ============== consecutive_correct ==============
+
 
 class TestConsecutiveCorrect:
     def test_five_correct_awards_perfect_five(self, db_with_student_and_subjects):
@@ -321,9 +333,11 @@ class TestConsecutiveCorrect:
 
 # ============== Idempotency / no regressions ==============
 
+
 class TestIdempotency:
     def test_double_evaluate_does_not_double_award(
-        self, db_with_student_and_subjects,
+        self,
+        db_with_student_and_subjects,
     ):
         db = db_with_student_and_subjects["db"]
         sid = db_with_student_and_subjects["student_id"]
@@ -367,6 +381,7 @@ class TestIdempotency:
 
 # ============== Stats API ==============
 
+
 class TestCollectStats:
     def test_collect_stats_returns_v2_fields(self, db_with_student_and_subjects):
         db = db_with_student_and_subjects["db"]
@@ -384,7 +399,8 @@ class TestCollectStats:
         assert "max_mastery" in stats
 
     def test_collect_stats_no_attempts_returns_zeros(
-        self, db_with_student_and_subjects,
+        self,
+        db_with_student_and_subjects,
     ):
         db = db_with_student_and_subjects["db"]
         sid = db_with_student_and_subjects["student_id"]

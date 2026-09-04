@@ -4,6 +4,7 @@ Sprint 66: все тесты используют cookie auth (не query string
 Sprint 16.1 P1-2 ввёл cookie-based auth для WS, Sprint 66 удалил
 query string fallback полностью.
 """
+
 from __future__ import annotations
 
 import os
@@ -132,9 +133,7 @@ def test_websocket_explain_streams(setup):
     try:
         from app.subjects import models as subj_models
 
-        topic = s.scalar(
-            __import__("sqlalchemy").select(subj_models.Topic).limit(1)
-        )
+        topic = s.scalar(__import__("sqlalchemy").select(subj_models.Topic).limit(1))
         tid = topic.id
     finally:
         s.close()
@@ -160,9 +159,7 @@ def test_websocket_generate_streams(setup):
     try:
         from app.subjects import models as subj_models
 
-        topic = s.scalar(
-            __import__("sqlalchemy").select(subj_models.Topic).limit(1)
-        )
+        topic = s.scalar(__import__("sqlalchemy").select(subj_models.Topic).limit(1))
         tid = topic.id
     finally:
         s.close()

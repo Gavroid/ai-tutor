@@ -1,4 +1,5 @@
 """Тесты Этапа 3: список предметов, темы, подтемы, seed."""
+
 from __future__ import annotations
 
 import os
@@ -27,9 +28,7 @@ def _reset_db():
 @pytest.fixture()
 def seeded_client():
     _reset_db()
-    app.dependency_overrides[get_db] = lambda: (lambda: (
-        yield SessionLocal()
-    ))() or _gen()
+    app.dependency_overrides[get_db] = lambda: (lambda: (yield SessionLocal()))() or _gen()
 
     def _gen():
         s = SessionLocal()
@@ -75,7 +74,18 @@ def test_seed_creates_curriculum(seeded_client):
         # S1.1 (2026-09-01): curriculum расширен с 12 до 16 (добавлены
         # chem/hist-world/lit-2/rus-2 согласно stakeholder D2.1).
         assert len(subjects) == len(CURRICULUM_7_CLASS) == 16
-        assert {x.code for x in subjects} >= {"rus", "algebra", "geom", "phys", "eng", "inf", "chem", "hist-world", "lit-2", "rus-2"}
+        assert {x.code for x in subjects} >= {
+            "rus",
+            "algebra",
+            "geom",
+            "phys",
+            "eng",
+            "inf",
+            "chem",
+            "hist-world",
+            "lit-2",
+            "rus-2",
+        }
     finally:
         s.close()
 
@@ -88,6 +98,7 @@ def test_list_subjects_returns_seed(seeded_client):
     eng, lit, lit-2, bio, soc, geo, chem).
     """
     from app.subjects import evidence as _ev_seed
+
     _ev_seed.reset_evidence_cache()
     r = seeded_client.get("/api/v1/subjects")
     assert r.status_code == 200
@@ -120,6 +131,7 @@ def test_pilot_visible_only_for_math_after_evidence_policy(seeded_client):
     прошли promotion.
     """
     from app.subjects import evidence as _ev_pol
+
     _ev_pol.reset_evidence_cache()
     r = seeded_client.get("/api/v1/subjects")
     assert r.status_code == 200
@@ -137,6 +149,7 @@ def test_evidence_load_from_json_overrides_default_policy(seeded_client, tmp_pat
     import json as json_mod
 
     from app.subjects import evidence as evidence_mod
+
     evidence_mod.reset_evidence_cache()
 
     payload = {
@@ -166,18 +179,21 @@ def test_evidence_load_from_json_overrides_default_policy(seeded_client, tmp_pat
     # Подменяем loader.
     monkeypatch.setattr(
         "app.subjects.evidence._try_load_evidence_json",
-        lambda: {code: evidence_mod.SubjectEvidence(
-            code=code,
-            manifest_ready=bool(row.get("manifest_ready", False)),
-            mapping_ready=bool(row.get("mapping_ready", False)),
-            import_ready=bool(row.get("import_ready", False)),
-            rag_ready=bool(row.get("rag_ready", False)),
-            practice_ready=bool(row.get("practice_ready", False)),
-            manual_smoke_ready=bool(row.get("manual_smoke_ready", False)),
-            pilot_visible=bool(row.get("pilot_visible", False)),
-            promotion_allowed=bool(row.get("promotion_allowed", False)),
-            blocked_reason=row.get("blocked_reason"),
-        ) for code, row in payload.items()},
+        lambda: {
+            code: evidence_mod.SubjectEvidence(
+                code=code,
+                manifest_ready=bool(row.get("manifest_ready", False)),
+                mapping_ready=bool(row.get("mapping_ready", False)),
+                import_ready=bool(row.get("import_ready", False)),
+                rag_ready=bool(row.get("rag_ready", False)),
+                practice_ready=bool(row.get("practice_ready", False)),
+                manual_smoke_ready=bool(row.get("manual_smoke_ready", False)),
+                pilot_visible=bool(row.get("pilot_visible", False)),
+                promotion_allowed=bool(row.get("promotion_allowed", False)),
+                blocked_reason=row.get("blocked_reason"),
+            )
+            for code, row in payload.items()
+        },
     )
     evidence_mod.reset_evidence_cache()
 
@@ -231,18 +247,21 @@ def test_evidence_load_from_json_overrides_default_policy(seeded_client, tmp_pat
     # Подменяем путь поиска на tmp_path.
     monkeypatch.setattr(
         "app.subjects.evidence._try_load_evidence_json",
-        lambda: {code: evidence_mod.SubjectEvidence(
-            code=code,
-            manifest_ready=bool(row.get("manifest_ready", False)),
-            mapping_ready=bool(row.get("mapping_ready", False)),
-            import_ready=bool(row.get("import_ready", False)),
-            rag_ready=bool(row.get("rag_ready", False)),
-            practice_ready=bool(row.get("practice_ready", False)),
-            manual_smoke_ready=bool(row.get("manual_smoke_ready", False)),
-            pilot_visible=bool(row.get("pilot_visible", False)),
-            promotion_allowed=bool(row.get("promotion_allowed", False)),
-            blocked_reason=row.get("blocked_reason"),
-        ) for code, row in payload.items()},
+        lambda: {
+            code: evidence_mod.SubjectEvidence(
+                code=code,
+                manifest_ready=bool(row.get("manifest_ready", False)),
+                mapping_ready=bool(row.get("mapping_ready", False)),
+                import_ready=bool(row.get("import_ready", False)),
+                rag_ready=bool(row.get("rag_ready", False)),
+                practice_ready=bool(row.get("practice_ready", False)),
+                manual_smoke_ready=bool(row.get("manual_smoke_ready", False)),
+                pilot_visible=bool(row.get("pilot_visible", False)),
+                promotion_allowed=bool(row.get("promotion_allowed", False)),
+                blocked_reason=row.get("blocked_reason"),
+            )
+            for code, row in payload.items()
+        },
     )
     evidence_mod.reset_evidence_cache()
 

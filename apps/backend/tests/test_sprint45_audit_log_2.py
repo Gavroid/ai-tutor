@@ -1,4 +1,5 @@
 """Sprint 45: Audit log 2.0 tests (hash chain integrity + export)."""
+
 from __future__ import annotations
 
 import json
@@ -101,9 +102,7 @@ def test_verify_chain_detects_tamper(client, admin_login):
 
     # Tamper: изменим action первой записи напрямую через SQL.
     with engine.begin() as conn:
-        conn.execute(
-            text("UPDATE audit_logs SET action = 'tampered.action' WHERE entity_id = '1'")
-        )
+        conn.execute(text("UPDATE audit_logs SET action = 'tampered.action' WHERE entity_id = '1'"))
 
     r = client.get(
         "/api/v1/admin/audit-log/verify",
@@ -191,22 +190,37 @@ def test_hash_deterministic(client):
     from app.admin.service import _compute_record_hash
 
     h1 = _compute_record_hash(
-        user_id=1, action="x", entity="y", entity_id="1",
-        details='{"a":1}', ip_address="1.1.1.1",
-        created_at_iso="2024-01-01T00:00:00", previous_hash="abc",
+        user_id=1,
+        action="x",
+        entity="y",
+        entity_id="1",
+        details='{"a":1}',
+        ip_address="1.1.1.1",
+        created_at_iso="2024-01-01T00:00:00",
+        previous_hash="abc",
     )
     h2 = _compute_record_hash(
-        user_id=1, action="x", entity="y", entity_id="1",
-        details='{"a":1}', ip_address="1.1.1.1",
-        created_at_iso="2024-01-01T00:00:00", previous_hash="abc",
+        user_id=1,
+        action="x",
+        entity="y",
+        entity_id="1",
+        details='{"a":1}',
+        ip_address="1.1.1.1",
+        created_at_iso="2024-01-01T00:00:00",
+        previous_hash="abc",
     )
     assert h1 == h2
     assert len(h1) == 64  # SHA-256 hex
 
     # Изменение любого поля → другой hash
     h3 = _compute_record_hash(
-        user_id=1, action="x", entity="y", entity_id="2",  # entity_id changed
-        details='{"a":1}', ip_address="1.1.1.1",
-        created_at_iso="2024-01-01T00:00:00", previous_hash="abc",
+        user_id=1,
+        action="x",
+        entity="y",
+        entity_id="2",  # entity_id changed
+        details='{"a":1}',
+        ip_address="1.1.1.1",
+        created_at_iso="2024-01-01T00:00:00",
+        previous_hash="abc",
     )
     assert h1 != h3

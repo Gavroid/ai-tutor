@@ -15,6 +15,7 @@ Sprint 50 улучшения:
 - В фоне: supervisor в deploy/monitoring/telegram-bot.sh
 - Cron каждые 5 мин: ai-tutor-telegram-bot.cron
 """
+
 from __future__ import annotations
 
 import json
@@ -191,7 +192,11 @@ def main() -> int:
     r = redis.from_url(REDIS_URL, decode_responses=True)
     logger.info(
         "alert_worker: started (Redis=%s, dedupe_ttl=%ds, list=%s, log=%s, drain_max=%d)",
-        REDIS_URL, ALERT_DEDUPE_TTL, ALERT_LIST_KEY, ALERT_LOG_FILE, ALERT_DRAIN_MAX_ITEMS,
+        REDIS_URL,
+        ALERT_DEDUPE_TTL,
+        ALERT_LIST_KEY,
+        ALERT_LOG_FILE,
+        ALERT_DRAIN_MAX_ITEMS,
     )
 
     # Sprint 50: exponential backoff для reconnect (1 → 30 сек).
@@ -211,9 +216,7 @@ def main() -> int:
             # Reset backoff на success.
             reconnect_delay = 1
         except redis_exceptions.ConnectionError as e:
-            logger.error(
-                "Redis connection error: %s. Reconnecting in %ds...", e, reconnect_delay
-            )
+            logger.error("Redis connection error: %s. Reconnecting in %ds...", e, reconnect_delay)
             time.sleep(reconnect_delay)
             # Exponential backoff (max 30 сек).
             reconnect_delay = min(reconnect_delay * 2, 30)
@@ -224,9 +227,7 @@ def main() -> int:
     # Sprint 50: graceful drain перед exit.
     logger.info("alert_worker: draining queue (max %d items)...", ALERT_DRAIN_MAX_ITEMS)
     drained = _drain_queue(r, max_items=ALERT_DRAIN_MAX_ITEMS)
-    logger.info(
-        "alert_worker: stopped (signal=%s, drained=%d)", _shutdown_reason, drained
-    )
+    logger.info("alert_worker: stopped (signal=%s, drained=%d)", _shutdown_reason, drained)
     return 0
 
 

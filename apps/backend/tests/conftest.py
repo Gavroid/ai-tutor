@@ -3,6 +3,7 @@
 Этап 1 — тестируем только healthcheck, без БД. С PostgreSQL-тестами
 перейдём в Этапе 2 (после появления users и миграций).
 """
+
 from __future__ import annotations
 
 import os

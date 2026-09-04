@@ -1,4 +1,5 @@
 """Sprint 76: audit-log/count date range protection tests."""
+
 from __future__ import annotations
 
 import os
@@ -49,6 +50,7 @@ def admin_token(client):
 
 
 # === Tests: date range protection ===
+
 
 def test_audit_log_count_default_uses_90_days(client, admin_token):
     """Sprint 76: без фильтров возвращает count за последние 90 дней."""

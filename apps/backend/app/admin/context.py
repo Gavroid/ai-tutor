@@ -6,6 +6,7 @@ Middleware сохраняет Request в contextvar при каждом запр
 Это позволяет НЕ передавать request в каждый вызов record() —
 но при этом корректно фиксировать IP.
 """
+
 from __future__ import annotations
 
 from contextvars import ContextVar, Token
@@ -14,9 +15,7 @@ from typing import Optional
 from fastapi import Request
 
 # ContextVar хранит текущий Request (или None)
-_current_request: ContextVar[Optional[Request]] = ContextVar(
-    "_current_request", default=None
-)
+_current_request: ContextVar[Optional[Request]] = ContextVar("_current_request", default=None)
 
 
 def get_current_request() -> Optional[Request]:

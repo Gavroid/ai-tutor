@@ -10,6 +10,7 @@ Pattern:
   _thread_local.explain_style = "simpler"
   ...  # AIService reads it
 """
+
 from __future__ import annotations
 
 import threading

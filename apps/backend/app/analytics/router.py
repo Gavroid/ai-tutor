@@ -1,4 +1,5 @@
 """Learning Analytics V1 for teacher/admin surfaces."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -95,11 +96,17 @@ def learning_analytics(
     total_attempts = sum(int(progress.attempts_count) for progress, *_ in progress_rows)
     total_correct = sum(int(progress.correct_count) for progress, *_ in progress_rows)
     active_topics = sum(1 for progress, *_ in progress_rows if int(progress.attempts_count) > 0)
-    weak_topic_rows = [row for row in progress_rows if int(row[0].attempts_count) > 0 and float(row[0].mastery_score) < 0.5]
-    average_mastery = round(
-        sum(float(progress.mastery_score) for progress, *_ in progress_rows) / len(progress_rows),
-        4,
-    ) if progress_rows else 0.0
+    weak_topic_rows = [
+        row for row in progress_rows if int(row[0].attempts_count) > 0 and float(row[0].mastery_score) < 0.5
+    ]
+    average_mastery = (
+        round(
+            sum(float(progress.mastery_score) for progress, *_ in progress_rows) / len(progress_rows),
+            4,
+        )
+        if progress_rows
+        else 0.0
+    )
 
     subject_map: dict[int, dict[str, object]] = {}
     for progress, _topic, _section, subject in progress_rows:

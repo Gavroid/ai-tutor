@@ -50,7 +50,6 @@ def test_remaining_subjects_fallbacks_are_checkable_single_choice_tasks() -> Non
         assert fallback["is_active"] is True
 
 
-
 def test_remaining_subjects_content_is_subject_specific_not_one_generic_template() -> None:
     manifest = build_remaining_subjects_internal_source_manifest()
     answers = {fallback["correct_answer"] for fallback in manifest["fallbacks"]}

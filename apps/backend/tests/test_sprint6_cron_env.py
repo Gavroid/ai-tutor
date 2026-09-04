@@ -9,6 +9,7 @@
 - Все cron файлы имеют правильный schedule
 - Все shell-скрипты в deploy/monitoring имеют +x permission
 """
+
 from __future__ import annotations
 
 import re
@@ -37,6 +38,7 @@ def _read_cron_content(path: Path) -> str:
 
 
 # === Тесты: правильный env path ===
+
 
 @pytest.mark.parametrize(
     "filename",
@@ -69,8 +71,7 @@ def test_cron_audit_cleanup_uses_correct_env_path():
     assert "source /opt/ai-tutor/.env" in content
     # НЕ должен source /etc/ai-tutor/.env (которого нет на проде)
     assert "source /etc/ai-tutor/.env" not in content, (
-        "BUG: /etc/ai-tutor/.env не существует на проде. "
-        "Используйте /opt/ai-tutor/.env"
+        "BUG: /etc/ai-tutor/.env не существует на проде. " "Используйте /opt/ai-tutor/.env"
     )
 
 
@@ -102,8 +103,7 @@ def test_cron_weekly_summary_uses_correct_env_path():
     content = _read_cron_content(path)
     assert "source /opt/ai-tutor/.env" in content
     assert "source /etc/ai-tutor/.env" not in content, (
-        "BUG (Sprint 6.3): /etc/ai-tutor/.env не существует на проде. "
-        "Используйте /opt/ai-tutor/.env"
+        "BUG (Sprint 6.3): /etc/ai-tutor/.env не существует на проде. " "Используйте /opt/ai-tutor/.env"
     )
 
 
@@ -134,6 +134,7 @@ def test_cron_backup_runs_offsite_after_local_backup():
 
 # === Тесты: executable permission ===
 
+
 def test_monitoring_scripts_are_executable():
     """Все shell-скрипты в deploy/monitoring/ должны быть +x."""
     for path in _read_monitoring_scripts():
@@ -152,6 +153,7 @@ def test_deploy_scripts_are_executable():
 
 # === Тесты: cron schedule валидный ===
 
+
 def test_cron_audit_cleanup_runs_daily():
     """audit-cleanup должен запускаться раз в день (0 3 * * *)."""
     path = DEPLOY_DIR / "monitoring" / "cron" / "ai-tutor-audit-cleanup.cron"
@@ -159,9 +161,7 @@ def test_cron_audit_cleanup_runs_daily():
         pytest.skip("File not in repo")
     content = _read_cron_content(path)
     # Ищем строку вида "0 3 * * *"
-    assert re.search(r"0\s+3\s+\*\s+\*\s+\*", content), (
-        "audit-cleanup должен запускаться в 03:00 (0 3 * * *)"
-    )
+    assert re.search(r"0\s+3\s+\*\s+\*\s+\*", content), "audit-cleanup должен запускаться в 03:00 (0 3 * * *)"
 
 
 def test_cron_backup_runs_daily():
@@ -170,9 +170,7 @@ def test_cron_backup_runs_daily():
     if not path.exists():
         pytest.skip("File not in repo")
     content = _read_cron_content(path)
-    assert re.search(r"0\s+3\s+\*\s+\*\s+\*", content), (
-        "backup должен запускаться в 03:00"
-    )
+    assert re.search(r"0\s+3\s+\*\s+\*\s+\*", content), "backup должен запускаться в 03:00"
 
 
 def test_cron_monitor_runs_every_5_minutes():
@@ -181,9 +179,7 @@ def test_cron_monitor_runs_every_5_minutes():
     if not path.exists():
         pytest.skip("File not in repo")
     content = _read_cron_content(path)
-    assert re.search(r"\*/5\s+\*\s+\*\s+\*\s+\*", content), (
-        "monitor должен запускаться каждые 5 минут"
-    )
+    assert re.search(r"\*/5\s+\*\s+\*\s+\*\s+\*", content), "monitor должен запускаться каждые 5 минут"
 
 
 def test_cron_telegram_bot_supervisor_runs_every_5_minutes():
@@ -193,7 +189,6 @@ def test_cron_telegram_bot_supervisor_runs_every_5_minutes():
         pytest.skip("File not in repo")
     content = _read_cron_content(path)
     assert re.search(r"\*/5\s+\*\s+\*\s+\*\s+\*", content)
-
 
 
 def test_restore_drill_cron_runs_first_monday_only():
@@ -219,6 +214,7 @@ def test_restore_drill_script_uses_lock_and_isolated_temp_files():
     assert "docker run -d --rm" in content
     assert 'psql -U tutor -d "$TEST_DB_NAME" -tA -c "SELECT 1"' in content
 
+
 # === Тесты: shell script syntax ===
 
 
@@ -233,6 +229,7 @@ def test_nginx_blocks_public_docs_schema_and_metrics_at_edge():
     assert content.count("return 404;") >= 4
     assert "Prometheus scrapes backend:8000/metrics directly inside Docker" in content
 
+
 def test_monitoring_shell_scripts_have_valid_syntax():
     """Все .sh файлы должны иметь валидный bash syntax."""
     import subprocess
@@ -244,9 +241,7 @@ def test_monitoring_shell_scripts_have_valid_syntax():
             capture_output=True,
             text=True,
         )
-        assert r.returncode == 0, (
-            f"{path.name} has syntax error: {r.stderr}"
-        )
+        assert r.returncode == 0, f"{path.name} has syntax error: {r.stderr}"
 
 
 def test_release_shell_scripts_have_valid_syntax():
@@ -264,6 +259,7 @@ def test_release_shell_scripts_have_valid_syntax():
 
 # === Тесты: deploy scripts не удаляют ssl/certs ===
 
+
 def test_deploy_from_ci_excludes_ssl_certs():
     """Sprint 4 fix: rsync в deploy-from-ci.sh НЕ удаляет ssl/certs (SSL сертификаты)."""
     path = DEPLOY_DIR / "release" / "deploy-from-ci.sh"
@@ -272,8 +268,7 @@ def test_deploy_from_ci_excludes_ssl_certs():
     content = _read_cron_content(path)
     # Должен быть --exclude=/deploy/ssl/certs
     assert "--exclude=/deploy/ssl/certs" in content, (
-        "BUG: deploy-from-ci.sh rsync удаляет SSL сертификаты! "
-        "Добавь --exclude=/deploy/ssl/certs"
+        "BUG: deploy-from-ci.sh rsync удаляет SSL сертификаты! " "Добавь --exclude=/deploy/ssl/certs"
     )
 
 
@@ -285,9 +280,7 @@ def test_telegram_bot_sh_checks_container_namespace():
     content = _read_cron_content(path)
     # Supervisor должен использовать 'docker exec ... ls /proc/' или похожий подход
     # чтобы проверить процесс в контейнере (не ps -p на хосте).
-    assert "docker exec" in content, (
-        "telegram-bot.sh должен использовать docker exec для проверки namespace"
-    )
+    assert "docker exec" in content, "telegram-bot.sh должен использовать docker exec для проверки namespace"
     # Не должен использовать просто 'ps -p $PID' (не работает между namespaces)
     # Это warning, не hard fail — допускаем если есть способ
     if "ps -p" in content and "docker exec" not in content:

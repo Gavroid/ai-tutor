@@ -4,6 +4,7 @@ T1D-friendly safety: записывает pause events от ребёнка.
 НЕ отправляет в Telegram автоматически.
 НЕ интерпретирует glucose data.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timezone
@@ -23,12 +24,14 @@ PauseReason = Literal["break", "hypo", "hyper", "other"]
 
 class PauseIn(BaseModel):
     """Sprint 34: pause event."""
+
     reason: PauseReason = Field(description="break | hypo | hyper | other")
     topic_id: int | None = Field(default=None)
 
 
 class PauseOut(BaseModel):
     """Sprint 34: pause response."""
+
     id: int
     started_at: str
     reason: str
@@ -36,6 +39,7 @@ class PauseOut(BaseModel):
 
 class ResumeOut(BaseModel):
     """Sprint 34: resume response."""
+
     paused_seconds: int
     reason: str
 
@@ -149,6 +153,7 @@ from fastapi import Depends as _Depends  # noqa: E402
 def get_db():
     """Пустая функция — реальная session через SessionLocal."""
     from app.db.session import SessionLocal
+
     db = SessionLocal()
     try:
         yield db

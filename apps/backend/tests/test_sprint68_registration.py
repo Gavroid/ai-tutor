@@ -7,6 +7,7 @@
 - /register-with-invite: invite code redemption (Sprint 44)
 - /auth/redeem-invite: validate before register
 """
+
 from __future__ import annotations
 
 import os
@@ -30,6 +31,7 @@ def client():
 
 
 # === Tests: /auth/register role-based access ===
+
 
 def test_register_student_allowed(client):
     """Sprint 68: student registration через API (PUBLIC_REGISTRATION_ALLOWED_ROLES)."""
@@ -94,6 +96,7 @@ def test_register_admin_blocked(client):
 
 # === Tests: duplicate email ===
 
+
 def test_register_duplicate_email_rejected(client):
     """Sprint 68: duplicate email → 409."""
     r1 = client.post(
@@ -123,6 +126,7 @@ def test_register_duplicate_email_rejected(client):
 
 
 # === Tests: validation ===
+
 
 def test_register_short_password_rejected(client):
     """Sprint 68: password < 8 chars → 422."""
@@ -155,6 +159,7 @@ def test_register_invalid_email_rejected(client):
 
 
 # === Tests: invite code flow (Sprint 44) ===
+
 
 def test_register_with_invalid_invite_rejected(client):
     """Sprint 68: invalid invite code → 400."""

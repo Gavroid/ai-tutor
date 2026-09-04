@@ -10,6 +10,7 @@ Definition of Done (Sprint 4 §Критерии выхода):
 P0 список берётся из data/textbooks/7-class/mappings/math-topic-page-map.json
 (первые 15 записей). Эти же IDs используются в mapping.json как topic_id.
 """
+
 from __future__ import annotations
 
 import json
@@ -42,6 +43,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 # === P0 Math topics: первый section curriculum 7-class (math 6 ревью) =====
+
 
 def _math_p0_topics() -> list[tuple[int, str]]:
     """Возвращает (placeholder_id, topic_name) для 15 P0 Math topics.
@@ -145,16 +147,12 @@ def _math_topic_ids_by_name(c: TestClient, token: str) -> dict[str, int]:
     headers = {"Authorization": f"Bearer {token}"}
     s = SessionLocal()
     try:
-        math = s.scalar(
-            select(subj_models.Subject).where(subj_models.Subject.code == "math")
-        )
+        math = s.scalar(select(subj_models.Subject).where(subj_models.Subject.code == "math"))
         if math is None:
             return {}
         topics = (
             s.execute(
-                select(subj_models.Topic)
-                .join(subj_models.Section)
-                .where(subj_models.Section.subject_id == math.id)
+                select(subj_models.Topic).join(subj_models.Section).where(subj_models.Section.subject_id == math.id)
             )
             .scalars()
             .all()
@@ -193,9 +191,7 @@ def assert_no_raw_ai_garbage(content: str) -> None:
     """Sprint 4: student output не содержит internal markers / raw JSON / debug."""
     lower = content.lower()
     for marker in _RAW_JSON_TOKENS + _FORBIDDEN_MARKERS:
-        assert marker.lower() not in lower, (
-            f"artifact leakage detected: {marker!r} in {content[:200]!r}"
-        )
+        assert marker.lower() not in lower, f"artifact leakage detected: {marker!r} in {content[:200]!r}"
 
 
 def assert_student_safe_text(content: str) -> None:
@@ -206,6 +202,7 @@ def assert_student_safe_text(content: str) -> None:
 
 
 # === Math-6 pilot per-topic contract ==========================================
+
 
 @pytest.mark.parametrize(
     "topic_index, topic_name",
@@ -225,16 +222,12 @@ def test_math6_p0_topic_explain_contract(math6_client, topic_index, topic_name):
         headers=headers,
         json={"topic_id": topic_id},
     )
-    assert r.status_code == 200, (
-        f"topic #{topic_index} {topic_name!r}: status={r.status_code}, body={r.text[:300]}"
-    )
+    assert r.status_code == 200, f"topic #{topic_index} {topic_name!r}: status={r.status_code}, body={r.text[:300]}"
     body = r.json()
     assert "content" in body, f"missing 'content' for {topic_name!r}"
     assert_student_safe_text(body["content"])
     # Sprint 4 §4: explain должен быть >= 50 символов и пригоден для UI.
-    assert len(body["content"]) >= 50, (
-        f"explain слишком короткий для {topic_name!r}: {len(body['content'])} символов"
-    )
+    assert len(body["content"]) >= 50, f"explain слишком короткий для {topic_name!r}: {len(body['content'])} символов"
 
 
 @pytest.mark.parametrize(
@@ -259,14 +252,10 @@ def test_math6_p0_topic_generate_exercise_contract(math6_client, topic_index, to
         headers=headers,
         json={"topic_id": topic_id, "difficulty": 2},
     )
-    assert r.status_code == 200, (
-        f"topic #{topic_index} {topic_name!r}: status={r.status_code}, body={r.text[:300]}"
-    )
+    assert r.status_code == 200, f"topic #{topic_index} {topic_name!r}: status={r.status_code}, body={r.text[:300]}"
     body = r.json()
     # Sprint 4 §4: correct_answer НЕ должен быть виден ученику.
-    assert "correct_answer" not in body, (
-        f"correct_answer leaked for {topic_name!r}: {list(body.keys())}"
-    )
+    assert "correct_answer" not in body, f"correct_answer leaked for {topic_name!r}: {list(body.keys())}"
     assert "question_text" in body
     assert "options" in body or body.get("type") == "text"
     assert_student_safe_text(body["question_text"])
@@ -295,15 +284,14 @@ def test_math6_p0_topic_chat_contract(math6_client, topic_index, topic_name):
             "topic_id": topic_id,
         },
     )
-    assert r.status_code == 200, (
-        f"chat {topic_name!r}: status={r.status_code}, body={r.text[:300]}"
-    )
+    assert r.status_code == 200, f"chat {topic_name!r}: status={r.status_code}, body={r.text[:300]}"
     body = r.json()
     assert "content" in body
     assert_student_safe_text(body["content"])
 
 
 # === Math-6 pilot gating tests ===============================================
+
 
 def test_math6_pilot_in_pilot_scope_only(math6_client):
     """Subject code 'math' ∈ PILOT_SCOPE (Sprint 3 §Scope policy)."""
@@ -356,9 +344,7 @@ def test_math6_followups_endpoint_exists(math6_client):
             ok += 1
     # Не требуем все 15 имеют followups (их просто может не быть в regex-match);
     # но хотя бы несколько должны быть.
-    assert ok >= 1, (
-        "followups endpoint существует, но ни один из 15 P0 не получил followups"
-    )
+    assert ok >= 1, "followups endpoint существует, но ни один из 15 P0 не получил followups"
 
 
 def test_math6_no_payload_leaks_across_topics(math6_client):

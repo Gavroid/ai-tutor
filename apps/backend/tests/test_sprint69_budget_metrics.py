@@ -4,6 +4,7 @@ Sprint 16.1 добавил BudgetExceeded + IP whitelist. Sprint 69:
 - Admin bypass для AI budget (operational necessity)
 - /metrics access logging
 """
+
 from __future__ import annotations
 
 import os
@@ -80,6 +81,7 @@ def student_token(client):
 
 # === AI budget tests ===
 
+
 def test_admin_bypasses_ai_budget(client, admin_token):
     """Sprint 69: admin role bypasses AI budget (operational)."""
     # Admin делает 1000+ AI requests — должен всегда проходить
@@ -120,6 +122,7 @@ def test_student_budget_exceeded_returns_429(client, student_token, monkeypatch)
 
     def mock_check_and_increment(user_id, *, estimated_output_tokens=0):
         from app.ai.budget import BudgetExceeded
+
         raise BudgetExceeded("requests", 100, 50)
 
     monkeypatch.setattr("app.ai.router.check_and_increment", mock_check_and_increment)
@@ -154,13 +157,13 @@ def test_student_normal_request_under_budget(client, student_token, monkeypatch)
 
 # === /metrics access tests ===
 
+
 def test_metrics_access_from_testclient_allowed(client):
     """Sprint 69: testclient host → 200 (pytest-friendly)."""
     r = client.get("/metrics")
     # TestClient → ip=testclient → allowed
     assert r.status_code == 200
     assert "# HELP" in r.text  # Prometheus format
-
 
 
 def test_metrics_access_from_private_docker_network_allowed(client):
@@ -173,6 +176,7 @@ def test_metrics_access_from_private_docker_network_allowed(client):
 
     assert r.status_code == 200
     assert "# HELP" in r.text
+
 
 def test_metrics_access_from_blocked_ip_rejected(client):
     """Sprint 69: blocked IP → 403."""

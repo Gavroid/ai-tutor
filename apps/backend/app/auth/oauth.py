@@ -15,6 +15,7 @@ Env:
 - OAUTH_YANDEX_CLIENT_ID, OAUTH_YANDEX_CLIENT_SECRET
 - OAUTH_REDIRECT_BASE (default: https://192.168.1.86)
 """
+
 from __future__ import annotations
 
 import os
@@ -128,9 +129,7 @@ async def oauth_callback(
             headers={"Accept": "application/json"},
         )
         if token_resp.status_code != 200:
-            raise HTTPException(
-                400, f"Token exchange failed: {token_resp.text[:200]}"
-            )
+            raise HTTPException(400, f"Token exchange failed: {token_resp.text[:200]}")
         token_data = token_resp.json()
         access_token = token_data.get("access_token")
 
@@ -178,14 +177,10 @@ async def oauth_callback(
     refresh = create_refresh_token(user)
 
     # 6. Редирект на frontend с токеном в query
-    frontend_base = os.environ.get(
-        "OAUTH_REDIRECT_BASE", "https://192.168.1.86"
-    )
+    frontend_base = os.environ.get("OAUTH_REDIRECT_BASE", "https://192.168.1.86")
     frontend_redirect = state or "/subjects"
     # В query params (для SPA который сам кладёт в localStorage)
-    params = urlencode(
-        {"access_token": access, "refresh_token": refresh, "redirect": frontend_redirect}
-    )
+    params = urlencode({"access_token": access, "refresh_token": refresh, "redirect": frontend_redirect})
     return RedirectResponse(url=f"{frontend_base}/oauth-callback?{params}")
 
 

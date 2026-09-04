@@ -3,6 +3,7 @@
 Каркас Этапа 1: healthcheck + OpenAPI + базовая структура роутеров.
 Авторизация, учебные модули и AI будут подключаться в следующих этапах.
 """
+
 import logging
 import os
 import time as _time
@@ -46,14 +47,18 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
                 wait_seconds = 2 ** (attempt - 1)
                 logger.warning(
                     "startup DB ping failed (attempt %d/%d): %r. Retrying in %ds...",
-                    attempt, max_attempts, exc, wait_seconds,
+                    attempt,
+                    max_attempts,
+                    exc,
+                    wait_seconds,
                 )
                 await asyncio.sleep(wait_seconds)
             else:
                 # Last attempt — fail gracefully (Sprint 16.1 P1-4).
                 logger.warning(
                     "startup DB ping failed after %d attempts: %r. Healthcheck will report unhealthy.",
-                    max_attempts, exc,
+                    max_attempts,
+                    exc,
                 )
     yield
     engine.dispose()
@@ -90,15 +95,30 @@ def create_app() -> FastAPI:
             "- `/ready` — readiness probe (БД ping)\n"
         ),
         openapi_tags=[
-            {"name": "auth", "description": "Sprint 10.1 + 27. Регистрация, login, refresh, logout, /me. httpOnly cookies."},
-            {"name": "teacher", "description": "Sprint 35. Генерация, список (с search), bulk approve материалов. Только teacher/admin."},
+            {
+                "name": "auth",
+                "description": "Sprint 10.1 + 27. Регистрация, login, refresh, logout, /me. httpOnly cookies.",
+            },
+            {
+                "name": "teacher",
+                "description": "Sprint 35. Генерация, список (с search), bulk approve материалов. Только teacher/admin.",
+            },
             {"name": "parent", "description": "Sprint 32. Приглашения, дашборд ребёнка, 2FA TOTP endpoints."},
             {"name": "students", "description": "Профиль ученика, привязка к parent."},
-            {"name": "sessions", "description": "Sprint 34. T1D-friendly session pauses (break/hypo/hyper/other). Streak НЕ ломается."},
+            {
+                "name": "sessions",
+                "description": "Sprint 34. T1D-friendly session pauses (break/hypo/hyper/other). Streak НЕ ломается.",
+            },
             {"name": "ai", "description": "Sprint 25. Генерация ответов AI, check-answer, hint-metrics, budget/usage."},
             {"name": "voice", "description": "Sprint 16.1. Whisper ASR endpoint (async, proper HTTP codes)."},
-            {"name": "cgm", "description": "Sprint 40. Nightscout CGM opt-in прокси (HTTPS-only, SSRF protection, БЕЗ сохранения glucose в БД)."},
-            {"name": "progress", "description": "Sprint 8.2 + 16.2. Streak, recommend-next (T1D-friendly), progress tracking."},
+            {
+                "name": "cgm",
+                "description": "Sprint 40. Nightscout CGM opt-in прокси (HTTPS-only, SSRF protection, БЕЗ сохранения glucose в БД).",
+            },
+            {
+                "name": "progress",
+                "description": "Sprint 8.2 + 16.2. Streak, recommend-next (T1D-friendly), progress tracking.",
+            },
             {"name": "admin", "description": "Sprint 9.2 + 10.4. Stats, audit-log (с entity filter), kill switch."},
             {"name": "meta", "description": "Healthchecks, version."},
         ],
@@ -120,6 +140,7 @@ def create_app() -> FastAPI:
     # Sprint 62: OpenTelemetry tracing (опционально, env-управляемо).
     from app.db.session import engine as db_engine
     from app.observability_otel import setup_telemetry
+
     setup_telemetry(app=app, engine=db_engine)
 
     # Healthcheck — НЕ авторизуется, не трогает БД.
@@ -247,9 +268,7 @@ def create_app() -> FastAPI:
             if not allowed:
                 return JSONResponse(
                     status_code=429,
-                    content={
-                        "detail": "Слишком много регистраций с этого IP. Подождите 1 час."
-                    },
+                    content={"detail": "Слишком много регистраций с этого IP. Подождите 1 час."},
                 )
             return await call_next(request)
 
@@ -285,9 +304,7 @@ def create_app() -> FastAPI:
             if not allowed:
                 return JSONResponse(
                     status_code=429,
-                    content={
-                        "detail": "Слишком много попыток входа. Подождите 15 минут."
-                    },
+                    content={"detail": "Слишком много попыток входа. Подождите 15 минут."},
                 )
             return await call_next(request)
 
@@ -312,6 +329,7 @@ def create_app() -> FastAPI:
             now = _time.time()
             window = 60.0
             from app.config import get_settings
+
             _ai_settings = get_settings()  # Sprint 3.6.3: local var, не теньет outer settings
             max_calls = _ai_settings.rate_limit_ai_per_minute
 
@@ -335,6 +353,7 @@ def create_app() -> FastAPI:
 
             if uid in kill_switch_ids:
                 from fastapi.responses import JSONResponse
+
                 return JSONResponse(
                     status_code=503,
                     content={
@@ -511,6 +530,7 @@ def create_app() -> FastAPI:
                 if auth.startswith("Bearer "):
                     try:
                         from app.auth.security import decode_token
+
                         claim = decode_token(auth[7:])
                         user_id = int(claim.get("sub", 0))
                     except Exception:
@@ -542,23 +562,28 @@ def create_app() -> FastAPI:
                 # читает из `ai:alerts` и шлёт в Telegram с dedupe.
                 try:
                     import json as _json_alert
+
                     _redis_alert = _get_redis()
                     if _redis_alert is not None:
                         await _redis_alert.rpush(
                             "ai:alerts",
-                            _json_alert.dumps({
-                                "kind": "http_5xx",
-                                "status": response.status_code,
-                                "method": request.method,
-                                "path": request.url.path,
-                                "request_id": request_id,
-                                "ts": _time.time(),
-                            }),
+                            _json_alert.dumps(
+                                {
+                                    "kind": "http_5xx",
+                                    "status": response.status_code,
+                                    "method": request.method,
+                                    "path": request.url.path,
+                                    "request_id": request_id,
+                                    "ts": _time.time(),
+                                }
+                            ),
                         )
                 except Exception as alert_err:
                     import logging
+
                     logging.getLogger(__name__).warning(
-                        "Failed to enqueue 5xx alert: %s", alert_err,
+                        "Failed to enqueue 5xx alert: %s",
+                        alert_err,
                     )
 
             except Exception as audit_err:
@@ -566,9 +591,13 @@ def create_app() -> FastAPI:
                 # Не даём observability сломать основной запрос,
                 # но фиксируем факт сбоя (иначе audit gap незаметен).
                 import logging
+
                 logging.getLogger(__name__).error(
                     "Audit log failed: %s (request_id=%s, status=%s, path=%s)",
-                    audit_err, request_id, response.status_code, request.url.path,
+                    audit_err,
+                    request_id,
+                    response.status_code,
+                    request.url.path,
                     exc_info=True,
                 )
 
@@ -632,18 +661,23 @@ def create_app() -> FastAPI:
         if not allowed:
             # Sprint 69: логируем denied requests для security audit.
             import logging
+
             logging.getLogger(__name__).warning(
                 "Metrics access DENIED from ip=%s path=%s",
-                client_ip, request.url.path,
+                client_ip,
+                request.url.path,
             )
             from fastapi.exceptions import HTTPException
+
             raise HTTPException(status_code=403, detail="Metrics access denied")
 
         # Sprint 69: логируем successful scrapes (audit trail).
         import logging
+
         logging.getLogger(__name__).info(
             "Metrics access from ip=%s path=%s",
-            client_ip, request.url.path,
+            client_ip,
+            request.url.path,
         )
         from app.observability import metrics_endpoint
 
@@ -708,6 +742,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_realtime_router)
     # Sprint 3.23: Admin endpoint для Telegram bind codes (/api/v1/admin/telegram-code).
     from app.admin.telegram_code_router import router as telegram_code_router
+
     app.include_router(telegram_code_router)
     # Sprint 3.9.6: AI-providers (multi-provider + per-subject routing)
     from app.admin.ai_providers_router import (
@@ -719,6 +754,7 @@ def create_app() -> FastAPI:
     from app.admin.ai_providers_router import (
         subject_ai_router,
     )
+
     app.include_router(ai_providers_router)
     app.include_router(ai_models_router)
     app.include_router(subject_ai_router)
@@ -728,6 +764,7 @@ def create_app() -> FastAPI:
     app.include_router(feedback_router)  # Sprint P1
     # S3.6 (2026-09-01): bug/error report (отдельный router, не Sprint P1)
     from app.feedback.report_router import router as feedback_report_router
+
     app.include_router(feedback_report_router)
     app.include_router(ws_router)
     app.include_router(ws_more_router)
@@ -796,6 +833,7 @@ def _ip_in_cidrs(ip: str, cidrs: list[str]) -> bool:
     except Exception:
         pass
     return False
+
 
 # Заполняется в create_app() — нужно для /health (uptime)
 _app_start_time: float = 0.0

@@ -1,4 +1,5 @@
 """Sprint 50: Alert worker v2 (drain queue + persistent log + exponential backoff)."""
+
 from __future__ import annotations
 
 import json
@@ -20,6 +21,7 @@ def _patch_alert_log_file(tmp_path, monkeypatch):
     import importlib
 
     from app.bot import alert_worker
+
     importlib.reload(alert_worker)
     return log_file
 
@@ -94,6 +96,7 @@ def test_log_to_file_creates_nested_directory(tmp_path, monkeypatch):
     import importlib
 
     from app.bot import alert_worker
+
     importlib.reload(alert_worker)
 
     alert_worker._log_to_file({"x": 1}, "sent", 1)
@@ -114,6 +117,7 @@ def test_log_to_file_includes_timestamp_and_payload(tmp_log_file):
     assert "timestamp" in entry
     # ISO 8601 timestamp
     from datetime import datetime
+
     datetime.fromisoformat(entry["timestamp"])  # raises if invalid
 
 
@@ -198,12 +202,14 @@ def test_process_one_dedupes(tmp_log_file):
     # SET NX EX returns False → уже dedupe'нуто
     mock_r.set.return_value = False
 
-    payload = json.dumps({
-        "kind": "http_5xx",
-        "status": 500,
-        "method": "GET",
-        "path": "/test",
-    })
+    payload = json.dumps(
+        {
+            "kind": "http_5xx",
+            "status": 500,
+            "method": "GET",
+            "path": "/test",
+        }
+    )
     result = process_one(mock_r, payload)
     assert result is False
     # Должна быть запись deduped в log
@@ -230,6 +236,7 @@ def test_send_telegram_missing_token(monkeypatch):
     import importlib
 
     from app.bot import alert_worker
+
     importlib.reload(alert_worker)
 
     result = alert_worker.send_telegram("test")
@@ -244,6 +251,7 @@ def test_main_returns_error_if_no_token(monkeypatch):
     import importlib
 
     from app.bot import alert_worker
+
     importlib.reload(alert_worker)
 
     result = alert_worker.main()

@@ -3,6 +3,7 @@
 Переход с SQLite (/tmp) на PostgreSQL (telegram_bindings).
 Тесты используют основную in-memory DB фикстуру (shared с backend).
 """
+
 from __future__ import annotations
 
 import os
@@ -29,7 +30,8 @@ def db_session():
     engine = create_engine("sqlite+pysqlite:///:memory:", future=True)
     # Создаём минимальные таблицы для теста
     with engine.begin() as conn:
-        conn.execute(text("""
+        conn.execute(
+            text("""
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email VARCHAR(255) UNIQUE NOT NULL,
@@ -38,8 +40,10 @@ def db_session():
                 role VARCHAR(20) NOT NULL DEFAULT 'student',
                 is_active BOOLEAN NOT NULL DEFAULT 1
             )
-        """))
-        conn.execute(text("""
+        """)
+        )
+        conn.execute(
+            text("""
             CREATE TABLE telegram_bindings (
                 chat_id INTEGER PRIMARY KEY,
                 user_id INTEGER NOT NULL,
@@ -49,12 +53,16 @@ def db_session():
                 updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
-        """))
+        """)
+        )
         # Создаём тестового пользователя
-        conn.execute(text(
-            "INSERT INTO users (email, password_hash, display_name, role, is_active) "
-            "VALUES (:e, :p, 'Kid', 'student', 1)"
-        ), {"e": "kid@example.com", "p": hash_password("testpass1")})
+        conn.execute(
+            text(
+                "INSERT INTO users (email, password_hash, display_name, role, is_active) "
+                "VALUES (:e, :p, 'Kid', 'student', 1)"
+            ),
+            {"e": "kid@example.com", "p": hash_password("testpass1")},
+        )
 
     # Подменяем engine в боте
     telegram_bot._engine = engine
@@ -73,12 +81,12 @@ def test_init_db_creates_table(db_session):
     # Sprint 3.23: использует engine from app.db.session
     telegram_bot.init_db()
     with engine.connect() as conn:
-        row = conn.execute(text(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='telegram_bindings'"
-        )).fetchone()
-        row2 = conn.execute(text(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='telegram_bind_codes'"
-        )).fetchone()
+        row = conn.execute(
+            text("SELECT name FROM sqlite_master WHERE type='table' AND name='telegram_bindings'")
+        ).fetchone()
+        row2 = conn.execute(
+            text("SELECT name FROM sqlite_master WHERE type='table' AND name='telegram_bind_codes'")
+        ).fetchone()
     assert row is not None
     assert row2 is not None  # Sprint 3.23
 

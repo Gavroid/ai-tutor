@@ -84,13 +84,15 @@ def test_quality_issue_serializes_to_plain_dict() -> None:
 
 
 def test_explanation_sample_audit_flags_short_raw_provider_output() -> None:
-    report = audit_explanation_samples([
-        {
-            "topic_id": 187,
-            "topic_name": "Среднее арифметическое",
-            "content": '{"answer": "42"} <think>hidden</think> AI не вернул JSON',
-        }
-    ])
+    report = audit_explanation_samples(
+        [
+            {
+                "topic_id": 187,
+                "topic_name": "Среднее арифметическое",
+                "content": '{"answer": "42"} <think>hidden</think> AI не вернул JSON',
+            }
+        ]
+    )
 
     assert report.topic_count == 1
     assert report.fail_count == 1
@@ -115,9 +117,7 @@ def test_explanation_sample_audit_accepts_structured_child_readable_sample() -> 
         "Почему для чисел 2, 6, 7 и 5 мы делим сумму на 4?"
     )
 
-    report = audit_explanation_samples([
-        {"topic_id": 187, "topic_name": "Среднее арифметическое", "content": content}
-    ])
+    report = audit_explanation_samples([{"topic_id": 187, "topic_name": "Среднее арифметическое", "content": content}])
 
     assert report.topic_count == 1
     assert report.pass_count == 1

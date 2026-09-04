@@ -8,6 +8,7 @@ Weekly summary email: код есть (app/notifications/weekly.py + cron), ша
 
 Реактивировать когда настроишь SMTP (1-2 дня моей работы).
 """
+
 from __future__ import annotations
 
 import json
@@ -16,8 +17,7 @@ from datetime import UTC, datetime, timedelta, timezone
 import pytest
 
 pytestmark = pytest.mark.skip(
-    reason="Sprint 3.5.1: SMTP не настроен, weekly email никуда не уходит. "
-           "Реактивировать когда настроишь SMTP."
+    reason="Sprint 3.5.1: SMTP не настроен, weekly email никуда не уходит. " "Реактивировать когда настроишь SMTP."
 )
 
 import pytest
@@ -95,8 +95,14 @@ class TestWeeklyRenderHtml:
         html = _render_html(
             "Кирилл <script>alert(1)</script>",
             "01.01—07.01.2027",
-            {"attempts_total": 0, "attempts_correct": 0, "accuracy_pct": 0.0,
-             "topics_in_progress": 0, "mastery_avg_pct": 0.0, "active_days": 0},
+            {
+                "attempts_total": 0,
+                "attempts_correct": 0,
+                "accuracy_pct": 0.0,
+                "topics_in_progress": 0,
+                "mastery_avg_pct": 0.0,
+                "active_days": 0,
+            },
         )
         # XSS не должен пройти
         assert "<script>" not in html
@@ -106,8 +112,14 @@ class TestWeeklyRenderHtml:
         html = _render_html(
             "Кирилл",
             "01.01—07.01.2027",
-            {"attempts_total": 12, "attempts_correct": 10, "accuracy_pct": 83.3,
-             "topics_in_progress": 4, "mastery_avg_pct": 65.0, "active_days": 5},
+            {
+                "attempts_total": 12,
+                "attempts_correct": 10,
+                "accuracy_pct": 83.3,
+                "topics_in_progress": 4,
+                "mastery_avg_pct": 65.0,
+                "active_days": 5,
+            },
         )
         assert "12" in html  # attempts
         assert "83.3" in html  # accuracy

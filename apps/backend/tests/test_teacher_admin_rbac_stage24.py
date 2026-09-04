@@ -1,4 +1,5 @@
 """Stage 24: teacher/admin RBAC boundary regression tests."""
+
 from __future__ import annotations
 
 import pytest
@@ -20,11 +21,36 @@ def client():
 
     with SessionLocal() as db:
         users = [
-            User(email="student@example.com", password_hash=hash_password("strongpass1"), display_name="Student", role=Role.STUDENT),
-            User(email="parent@example.com", password_hash=hash_password("strongpass1"), display_name="Parent", role=Role.PARENT),
-            User(email="teacher1@example.com", password_hash=hash_password("strongpass1"), display_name="Teacher 1", role=Role.TEACHER),
-            User(email="teacher2@example.com", password_hash=hash_password("strongpass1"), display_name="Teacher 2", role=Role.TEACHER),
-            User(email="admin@example.com", password_hash=hash_password("strongpass1"), display_name="Admin", role=Role.ADMIN),
+            User(
+                email="student@example.com",
+                password_hash=hash_password("strongpass1"),
+                display_name="Student",
+                role=Role.STUDENT,
+            ),
+            User(
+                email="parent@example.com",
+                password_hash=hash_password("strongpass1"),
+                display_name="Parent",
+                role=Role.PARENT,
+            ),
+            User(
+                email="teacher1@example.com",
+                password_hash=hash_password("strongpass1"),
+                display_name="Teacher 1",
+                role=Role.TEACHER,
+            ),
+            User(
+                email="teacher2@example.com",
+                password_hash=hash_password("strongpass1"),
+                display_name="Teacher 2",
+                role=Role.TEACHER,
+            ),
+            User(
+                email="admin@example.com",
+                password_hash=hash_password("strongpass1"),
+                display_name="Admin",
+                role=Role.ADMIN,
+            ),
         ]
         db.add_all(users)
         db.flush()

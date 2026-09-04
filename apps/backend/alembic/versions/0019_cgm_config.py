@@ -14,6 +14,7 @@ Sprint 40 scope:
 - /cgm/status — proxy к Nightscout /api/v1/status
 - Опциональный фронтенд badge (CGMStatus component)
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence

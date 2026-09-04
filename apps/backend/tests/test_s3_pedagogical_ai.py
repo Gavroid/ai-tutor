@@ -10,6 +10,7 @@ Covers:
 
 Не тестирует сам AI-провайдер (это external), а только Python-обвязку.
 """
+
 from __future__ import annotations
 
 import os
@@ -180,11 +181,14 @@ def test_chat_offtopic_short_circuits_without_provider(monkeypatch) -> None:
 
     svc = ai_service.AIService(provider=_BoomProvider())
     import asyncio
-    out = asyncio.run(svc.chat(
-        history=[{"role": "user", "content": "Расскажи про секс"}],
-        subject_name="Математика",
-        topic_name="Дроби",
-    ))
+
+    out = asyncio.run(
+        svc.chat(
+            history=[{"role": "user", "content": "Расскажи про секс"}],
+            subject_name="Математика",
+            topic_name="Дроби",
+        )
+    )
     assert called["n"] == 0, f"provider was called {called['n']} times for offtopic"
     assert "помогаю только с учёбой" in out.content
     assert out.model == "offtopic-guard"
@@ -204,11 +208,14 @@ def test_chat_nonofftopic_calls_provider(monkeypatch) -> None:
 
     svc = ai_service.AIService(provider=_StubProvider())
     import asyncio
-    out = asyncio.run(svc.chat(
-        history=[{"role": "user", "content": "Объясни тему Дроби"}],
-        subject_name="Математика",
-        topic_name="Дроби",
-    ))
+
+    out = asyncio.run(
+        svc.chat(
+            history=[{"role": "user", "content": "Объясни тему Дроби"}],
+            subject_name="Математика",
+            topic_name="Дроби",
+        )
+    )
     assert called["n"] == 1
     assert out.content == "ответ AI"
     assert out.model == "stub"

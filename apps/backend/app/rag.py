@@ -8,6 +8,7 @@
 
 Для production: заменить на pgvector / Qdrant / FAISS.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -18,6 +19,7 @@ from typing import Optional
 import httpx
 
 # === Embedding provider ===
+
 
 async def get_embedding(text: str) -> list[float]:
     """Генерирует embedding через OpenAI-compatible API."""
@@ -58,7 +60,7 @@ def _hash_embedding(text: str, dim: int = 384) -> list[float]:
     vec = []
     for i in range(dim):
         # Берём 4 байта из hash (rolling)
-        b = h[(i * 4) % len(h):(i * 4) % len(h) + 4].ljust(4, b'\x00')
+        b = h[(i * 4) % len(h) : (i * 4) % len(h) + 4].ljust(4, b"\x00")
         val = int.from_bytes(b, "big", signed=False)
         # Нормализуем в [-1, 1]
         vec.append((val / 2**31) - 1.0)
@@ -82,6 +84,7 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
 
 
 # === Chunking ===
+
 
 def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]:
     """Режет текст на чанки с overlap."""
@@ -115,6 +118,7 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]
 
 # === Vector store (in-memory для MVP) ===
 
+
 @dataclass
 class DocumentChunk:
     id: str
@@ -128,7 +132,9 @@ class DocumentChunk:
 _store: dict[str, DocumentChunk] = {}
 
 
-def add_chunks(material_id: int, chunks: list[str], embeddings: list[list[float]], metadata: dict | None = None) -> list[str]:
+def add_chunks(
+    material_id: int, chunks: list[str], embeddings: list[list[float]], metadata: dict | None = None
+) -> list[str]:
     """Добавляет чанки в хранилище, возвращает их ID."""
     ids = []
     for text, emb in zip(chunks, embeddings, strict=False):
