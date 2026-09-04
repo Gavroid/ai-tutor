@@ -13,7 +13,10 @@ import logging
 
 from app.ai import prompts
 from app.ai.service import (
-    _record_ai, _clean_student_visible_text, _fallback_explanation, _verified_rag_sources,
+    _clean_student_visible_text,
+    _fallback_explanation,
+    _record_ai,
+    _verified_rag_sources,
 )
 from app.ai.types import AIMessage, AIRequest, AIResponse
 from app.subjects import models as subj_models
