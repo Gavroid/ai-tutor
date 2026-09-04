@@ -74,7 +74,8 @@ jobs:
           pip install --upgrade pip
           pip install -q -r requirements.txt -r requirements-dev.txt
           # Sprint 3.15: test_mapping_quality_audit удалён (модуль scripts/mapping_quality_audit не существует).
-          pytest --tb=short -q
+          # Sprint 3.31: parallel pytest через xdist (-n 4). Baseline 9:32 → 2:45 (×3.46 speedup).
+          pytest --tb=short -q -n 4
 
       - name: Run frontend tsc + build + lint
         if: matrix.command == 'frontend'
