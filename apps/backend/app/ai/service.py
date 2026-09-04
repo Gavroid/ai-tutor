@@ -25,29 +25,10 @@ from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
-
-@dataclass
-class CheckResult:
-    is_correct: bool
-    score: float
-    first_error: str | None
-    explanation: str
-    hint_level: int
-    next_difficulty: int
-    # Sprint 4.3.1: тип ошибки для context-aware hints.
-    # ARITHMETIC/CONCEPTUAL/LOGIC/CARELESS или None если ответ правильный.
-    error_type: str | None = None
-
-
-@dataclass
-class GeneratedExercise:
-    question_text: str
-    type: str
-    options: list[str] | None
-    correct_answer: str
-    explanation: str
-    typical_mistakes: list[str]
-
+# Sprint 3.28: dataclasses вынесены в app.ai.datatypes.
+# Re-export для backward compat (внешние модули делают `from app.ai.service
+# import CheckResult`).
+from app.ai.datatypes import CheckResult, GeneratedExercise  # noqa: F401
 
 def _rag_enabled_for_subject(subject_name: str) -> bool:
     """Return whether RAG should be attempted for a subject.
@@ -885,28 +866,8 @@ def _fallback_generated_exercise(
         typical_mistakes=["Копировать определение без понимания", "Отвечать слишком общо"],
     )
 
-
-@dataclass
-class QuizQuestion:
-    """Один вопрос квиза (режим mode='quiz').
-
-    Поля совпадают со схемой, которую LLM возвращает в JSON.
-    """
-
-    question_text: str
-    type: str  # "single" | "multiple" | "numeric" | "text"
-    options: list[str] | None
-    correct_answer: str
-    explanation: str
-
-
-@dataclass
-class Quiz:
-    """Набор вопросов, сгенерированных AI для квиза."""
-
-    questions: list[QuizQuestion]
-
-
+# Sprint 3.28: QuizQuestion/Quiz вынесены в app.ai.quiz_types.
+from app.ai.quiz_types import Quiz, QuizQuestion  # noqa: F401  (re-export)
 def _record_ai(
     mode: str,
     status: str,
