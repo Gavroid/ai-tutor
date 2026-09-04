@@ -11,7 +11,7 @@ Authorization header (обратная совместимость с фронт�
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Callable, cast
 
 from app.config import get_settings
 from app.db.session import get_db
@@ -37,11 +37,11 @@ REFRESH_COOKIE = "ai_tutor_refresh"
 
 
 def hash_password(plain: str) -> str:
-    return pwd_context.hash(plain)
+    return str(pwd_context.hash(plain))
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return bool(pwd_context.verify(plain, hashed))
 
 
 def _create_token(subject: str, role: str, ttl: timedelta, token_type: str) -> str:
@@ -53,7 +53,7 @@ def _create_token(subject: str, role: str, ttl: timedelta, token_type: str) -> s
         "iat": int(now.timestamp()),
         "exp": int((now + ttl).timestamp()),
     }
-    return jwt.encode(payload, _settings.app_secret_key, algorithm=_settings.jwt_algorithm)
+    return str(jwt.encode(payload, _settings.app_secret_key, algorithm=_settings.jwt_algorithm))
 
 
 def create_access_token(user: User) -> tuple[str, int]:
@@ -68,7 +68,7 @@ def create_refresh_token(user: User) -> str:
 
 def decode_token(token: str) -> dict[str, Any]:
     try:
-        return jwt.decode(token, _settings.app_secret_key, algorithms=[_settings.jwt_algorithm])
+        return cast(dict[str, Any], jwt.decode(token, _settings.app_secret_key, algorithms=[_settings.jwt_algorithm]))
     except JWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -149,7 +149,7 @@ def get_current_user(
     return user
 
 
-def require_role(*roles: Role):
+def require_role(*roles: Role) -> Callable[..., User]:
     """Dependency factory: пропускает только пользователей с указанными ролями."""
 
     def _checker(user: User = Depends(get_current_user)) -> User:

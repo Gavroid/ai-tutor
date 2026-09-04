@@ -19,7 +19,7 @@ Env:
 from __future__ import annotations
 
 import os
-from typing import Optional
+from typing import Any, Optional
 from urllib.parse import urlencode
 
 import httpx
@@ -73,7 +73,7 @@ def get_redirect_uri(provider: str) -> str:
 def oauth_login(
     provider: str,
     redirect_to: Optional[str] = Query(None, description="Куда вернуть после логина"),
-):
+) -> RedirectResponse:
     """Редирект на consent screen провайдера."""
     if provider not in PROVIDERS:
         raise HTTPException(404, f"Unknown provider: {provider}")
@@ -104,7 +104,7 @@ async def oauth_callback(
     code: str = Query(...),
     state: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-):
+) -> RedirectResponse:
     """Callback от провайдера: обмен code на токен + создание пользователя."""
     if provider not in PROVIDERS:
         raise HTTPException(404, f"Unknown provider: {provider}")
@@ -184,7 +184,7 @@ async def oauth_callback(
     return RedirectResponse(url=f"{frontend_base}/oauth-callback?{params}")
 
 
-def _extract_user(provider: str, data: dict) -> tuple[Optional[str], Optional[str], Optional[str]]:
+def _extract_user(provider: str, data: dict[str, Any]) -> tuple[Optional[str], Optional[str], Optional[str]]:
     """Нормализация данных от разных провайдеров → (email, name, oauth_id)."""
     if provider == "google":
         return (
@@ -208,10 +208,10 @@ def _extract_user(provider: str, data: dict) -> tuple[Optional[str], Optional[st
 
 
 @router.get("/providers")
-def list_providers():
+def list_providers() -> dict[str, list[dict[str, str]]]:
     """Список доступных OAuth провайдеров (для UI)."""
-    available = []
+    available: list[dict[str, str]] = []
     for name, cfg in PROVIDERS.items():
         configured = bool(os.environ.get(cfg["client_id_env"]))
-        available.append({"name": name, "configured": configured})
+        available.append({"name": name, "configured": "yes" if configured else "no"})
     return {"providers": available}

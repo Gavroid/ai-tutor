@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC
+from typing import Any
 
 from app.admin import service as audit_service
 from app.auth import password_reset
@@ -21,7 +22,7 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 def register(
     payload: schemas.UserCreate,
     db: Session = Depends(get_db),
-):
+) -> Any:
     # Sprint 44: validate invite_code if provided.
     if payload.invite_code:
         from datetime import datetime as _dt
@@ -287,14 +288,14 @@ class PasswordResetConfirm(BaseModel):
 
 
 @router.post("/password-reset/request", status_code=status.HTTP_200_OK)
-def password_reset_request(payload: PasswordResetRequest, db: Session = Depends(get_db)) -> dict:
+def password_reset_request(payload: PasswordResetRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
     """Запрос на сброс пароля. ВСЕГДА возвращает 200 — не палит существование email."""
     password_reset.request_reset(db, payload.email)
     return {"ok": True, "message": "Если email зарегистрирован, ссылка для сброса отправлена."}
 
 
 @router.post("/password-reset/confirm", status_code=status.HTTP_200_OK)
-def password_reset_confirm(payload: PasswordResetConfirm, db: Session = Depends(get_db)) -> dict:
+def password_reset_confirm(payload: PasswordResetConfirm, db: Session = Depends(get_db)) -> dict[str, Any]:
     """Подтверждение сброса пароля по токену из email.
 
     Возвращает 200 всегда — но если токен неверный/просрочен,

@@ -237,4 +237,4 @@ def list_user_notifications(
     if unread_only:
         q = q.where(models.Notification.is_read.is_(False))
     q = q.order_by(models.Notification.created_at.desc()).limit(limit)
-    return db.scalars(q).all()
+    return list(db.scalars(q).all())

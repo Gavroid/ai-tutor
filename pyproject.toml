@@ -69,10 +69,63 @@ exclude = [
 ]
 
 [[tool.mypy.overrides]]
-# Pilot strict-only: /parents и /student (Этап 2.3 план).
 module = "app.parents.*"
 strict = true
 
 [[tool.mypy.overrides]]
 module = "app.student.*"
 strict = true
+
+# Sprint 3.36: расширение strict на security/auth core (Этап 5 — type safety).
+[[tool.mypy.overrides]]
+module = "app.auth.*"
+strict = true
+
+[[tool.mypy.overrides]]
+module = "app.users.twofa"
+strict = false
+
+[[tool.mypy.overrides]]
+module = "app.diagnostics.*"
+strict = true
+
+[[tool.mypy.overrides]]
+module = "app.subjects.*"
+strict = true
+
+[[tool.mypy.overrides]]
+module = "app.bot.*"
+strict = true
+
+[[tool.mypy.overrides]]
+module = "app.observability_otel"
+strict = true
+
+# Sprint 3.36: app.ai пока не strict — 61 error в Sprint 3.29 step 1-5 не вытянуть за один sprint.
+[[tool.mypy.overrides]]
+module = "app.ai.*"
+strict = false
+
+# app.bot транзитивно зависит от app.ai._* (Sprint 3.29 split) — пока
+# остаётся default (strict=false). Будет strict после Sprint 3.36a.
+[[tool.mypy.overrides]]
+module = "app.bot.*"
+strict = false
+
+# app.subjects транзитивно зависит от app.ai.mock (Sprint 3.x) и app.rag
+# (Sprint 3.x). Пока default.
+[[tool.mypy.overrides]]
+module = "app.subjects.*"
+strict = false
+
+# app.diagnostics — 82 errors в strict, отложено на Sprint 3.36a (требует
+# отдельного спринта). Пока default.
+[[tool.mypy.overrides]]
+module = "app.diagnostics.*"
+strict = false
+
+# app.observability_otel — optional OTel stub с try/except ImportError;
+# strict-mode несовместим с None-assignments к импортированным types.
+[[tool.mypy.overrides]]
+module = "app.observability_otel"
+strict = false

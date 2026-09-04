@@ -100,7 +100,7 @@ async def build_rag_context(service, db: Session, topic: subj_models.Topic, top_
             blocklist = blocked
             break
     if blocklist:
-        filtered: list = []
+        filtered_blocked: list = []
         for c in chunks:
             meta = getattr(c, "metadata", {}) or {}
             mat_title = (meta.get("material_title") or "").lower()
@@ -113,8 +113,8 @@ async def build_rag_context(service, db: Session, topic: subj_models.Topic, top_
                     blocklist,
                 )
                 continue
-            filtered.append(c)
-        chunks = filtered[:top_k]
+            filtered_blocked.append(c)
+        chunks = filtered_blocked[:top_k]
 
     if not chunks:
         return None, []
