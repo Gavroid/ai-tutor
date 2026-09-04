@@ -26,7 +26,7 @@ ALIVE=$(docker exec "$CONTAINER" bash -c '
     pid=$(basename "$pid_dir")
     cmdline=$(tr "\0" " " < "$pid_dir/cmdline" 2>/dev/null) || continue
     case "$cmdline" in
-      *app.bot.telegram_bot*) found="$pid"; break ;;
+      "python3 -m app.bot.telegram_bot "*) found="$pid"; break ;;
     esac
   done
   echo "$found"
