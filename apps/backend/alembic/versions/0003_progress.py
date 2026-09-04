@@ -4,7 +4,8 @@ Revision ID: 0003_progress
 Revises: 0002_initial_subjects
 Create Date: 2026-07-11 23:00:00.000000
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
 import sqlalchemy as sa
 from alembic import op

@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture
 def client():
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
 
     Base.metadata.drop_all(engine)

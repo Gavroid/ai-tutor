@@ -28,10 +28,10 @@ def client():
 
 @pytest.fixture()
 def admin_token(client: TestClient) -> str:
-    from sqlalchemy.orm import Session
     from app.auth.security import hash_password
     from app.db.session import engine
     from app.users.models import Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         db.add(User(

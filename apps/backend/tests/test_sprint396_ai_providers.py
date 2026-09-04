@@ -21,10 +21,9 @@ os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
 os.environ["CORS_ORIGINS"] = "http://localhost:3000"
 os.environ["AI_API_KEY"] = "mock-key-for-tests"
 
-import pytest
-from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from app.admin import ai_providers as prov_models
 from app.admin import ai_providers_service as prov_service
 from app.auth.security import hash_password
@@ -35,6 +34,7 @@ from app.users import service as user_service
 from app.users.models import Role as UserRole
 from app.users.models import User
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -431,8 +431,8 @@ def test_resolve_provider_for_subject_returns_config(client: TestClient):
     s = SessionLocal()
     try:
         from app.admin.ai_providers_service import (
-            create_provider,
             assign_model_to_subject,
+            create_provider,
             resolve_provider_for_subject,
         )
         prov = create_provider(
@@ -474,8 +474,8 @@ def test_resolve_provider_returns_none_if_inactive(client: TestClient):
     s = SessionLocal()
     try:
         from app.admin.ai_providers_service import (
-            create_provider,
             assign_model_to_subject,
+            create_provider,
             resolve_provider_for_subject,
         )
         prov = create_provider(
@@ -503,8 +503,8 @@ async def test_complete_with_fallback_primary_ok(client: TestClient):
     s = SessionLocal()
     try:
         from app.admin.ai_providers_service import (
-            create_provider,
             assign_model_to_subject,
+            create_provider,
         )
         from app.ai.types import AIRequest, AIResponse
 
@@ -522,9 +522,8 @@ async def test_complete_with_fallback_primary_ok(client: TestClient):
         assign_model_to_subject(s, subj.id, model_id=m.id, role="primary")
 
         # Создаём AIService с default provider (mock).
-        from app.ai.service import AIService
         from app.ai.mock import MockProvider
-        from app.ai.types import AIRequest
+        from app.ai.service import AIService
         svc = AIService(MockProvider())
 
         # Mock primary provider's complete.
@@ -547,8 +546,8 @@ async def test_complete_with_fallback_primary_fails_fallback_ok(client: TestClie
     s = SessionLocal()
     try:
         from app.admin.ai_providers_service import (
-            create_provider,
             assign_model_to_subject,
+            create_provider,
         )
         from app.ai.types import AIRequest, AIResponse
 
@@ -573,8 +572,8 @@ async def test_complete_with_fallback_primary_fails_fallback_ok(client: TestClie
         assign_model_to_subject(s, subj.id, model_id=m1.id, role="primary")
         assign_model_to_subject(s, subj.id, model_id=m2.id, role="fallback")
 
-        from app.ai.service import AIService
         from app.ai.mock import MockProvider
+        from app.ai.service import AIService
         svc = AIService(MockProvider())
 
         # Primary fails, fallback succeeds.
@@ -598,8 +597,8 @@ async def test_complete_with_fallback_primary_fails_fallback_ok(client: TestClie
 @pytest.mark.asyncio
 async def test_complete_with_no_subject_falls_back_to_default(client: TestClient):
     """Без subject_id — используется env default provider."""
-    from app.ai.service import AIService
     from app.ai.mock import MockProvider
+    from app.ai.service import AIService
     from app.ai.types import AIRequest
 
     s = SessionLocal()

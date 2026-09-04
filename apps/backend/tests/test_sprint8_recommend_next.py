@@ -17,15 +17,14 @@ os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
 os.environ.setdefault("AI_API_KEY", "mock-key-for-tests")
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.db.session import Base, SessionLocal, engine
 from app.main import app
-from app.users import service as user_service
-from app.users.schemas import UserCreate
+from app.math_plan import MATH_TOPIC_PLAN
 from app.progress import models as prog_models
 from app.subjects import models as subj_models
-from app.math_plan import MATH_TOPIC_PLAN
+from app.users import service as user_service
+from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()

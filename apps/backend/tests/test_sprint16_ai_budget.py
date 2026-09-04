@@ -15,11 +15,9 @@ os.environ.setdefault("AI_API_KEY", "mock-key-for-tests")
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "mock-token")
 
 import pytest
-
 from app.ai import budget
-from app.users.models import User, Role
-from app.auth.security import hash_password
-from app.auth.security import create_access_token
+from app.auth.security import create_access_token, hash_password
+from app.users.models import Role, User
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 

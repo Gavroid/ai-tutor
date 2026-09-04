@@ -13,8 +13,6 @@ os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
 os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.ai.mock import MockProvider
 from app.ai.service import AIService
 from app.db.session import Base, SessionLocal, engine, get_db
@@ -22,6 +20,7 @@ from app.main import app
 from app.subjects.scripts_seed_runner import seed_for_tests
 from app.users import service as user_service
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -71,7 +70,7 @@ def _login(c: TestClient) -> str:
 async def test_mock_explain_returns_text():
     svc = AIService(MockProvider())
     # Заглушка: объяснение не зависит от БД (мы напрямую передаём subject/grade в промпт)
-    from app.ai.types import AIRequest, AIMessage
+    from app.ai.types import AIMessage, AIRequest
 
     req = AIRequest(
         messages=[AIMessage(role="system", content="Объясни тему «Дроби»."), AIMessage(role="user", content="Объясни")],
@@ -132,7 +131,7 @@ async def test_generate_quiz_returns_structured():
 
 
 def test_sanitize_short_input():
-    from app.ai.sanitize import sanitize_user_input, detect_injection
+    from app.ai.sanitize import detect_injection, sanitize_user_input
 
     assert sanitize_user_input("норм", 100) == "норм"
     assert sanitize_user_input("", 100) == ""

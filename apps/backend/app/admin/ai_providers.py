@@ -18,6 +18,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
+from app.db.session import Base
+from app.users.models import BigIntPK
 from sqlalchemy import (
     Boolean,
     DateTime,
@@ -29,9 +31,6 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.session import Base
-from app.users.models import BigIntPK
 
 
 class AIProvider(Base):
@@ -62,7 +61,7 @@ class AIProvider(Base):
         nullable=False,
     )
 
-    models: Mapped[list["AIModelCatalog"]] = relationship(
+    models: Mapped[list[AIModelCatalog]] = relationship(
         "AIModelCatalog",
         back_populates="provider",
         cascade="all, delete-orphan",
@@ -94,8 +93,8 @@ class AIModelCatalog(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    provider: Mapped["AIProvider"] = relationship("AIProvider", back_populates="models")
-    subject_assignments: Mapped[list["SubjectAIModel"]] = relationship(
+    provider: Mapped[AIProvider] = relationship("AIProvider", back_populates="models")
+    subject_assignments: Mapped[list[SubjectAIModel]] = relationship(
         "SubjectAIModel",
         back_populates="model",
         cascade="all, delete-orphan",
@@ -122,4 +121,4 @@ class SubjectAIModel(Base):
     # 'primary' | 'fallback'.
     role: Mapped[str] = mapped_column(String(16), nullable=False, server_default="primary")
 
-    model: Mapped["AIModelCatalog"] = relationship("AIModelCatalog", back_populates="subject_assignments")
+    model: Mapped[AIModelCatalog] = relationship("AIModelCatalog", back_populates="subject_assignments")

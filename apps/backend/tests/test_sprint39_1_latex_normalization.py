@@ -11,7 +11,6 @@
 from __future__ import annotations
 
 import pytest
-
 from app.ai.sanitize import _normalize_latex, sanitize_output
 
 

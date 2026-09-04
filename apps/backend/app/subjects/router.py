@@ -8,15 +8,11 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
-
 from app.cache import (
     MATERIALS_TTL,
     SUBJECTS_TTL,
-    TOPICS_TTL,
     TOPIC_TTL,
+    TOPICS_TTL,
     cache_get,
     cache_set,
 )
@@ -28,6 +24,9 @@ from app.subjects.evidence import (
     evidence_to_dict,
     get_evidence_for,
 )
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -252,8 +251,8 @@ def get_topic(topic_id: int, db: Session = Depends(get_db)):
 
     # Sprint 3.9.7.3: загружаем с JOIN чтобы получить subject_id для
     # back-link из /topics/{id} на /subjects/{subject_id}.
+    from app.subjects.models import Section, Subject, Topic
     from sqlalchemy import select
-    from app.subjects.models import Topic, Section, Subject
 
     stmt = (
         select(Topic, Section.subject_id)

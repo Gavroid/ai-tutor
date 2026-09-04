@@ -5,7 +5,7 @@
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -47,7 +47,7 @@ def redeem_invite(
         raise HTTPException(status_code=404, detail="Invite code не найден или невалиден")
 
     # Проверяем expires_at
-    if invite.expires_at and invite.expires_at <= datetime.now(timezone.utc):
+    if invite.expires_at and invite.expires_at <= datetime.now(UTC):
         raise HTTPException(status_code=410, detail="Invite code истёк")
 
     # Проверяем max_uses

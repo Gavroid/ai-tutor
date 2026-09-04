@@ -20,21 +20,20 @@ os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
 # Импортируем ВСЕ модели, чтобы Base.metadata.create_all включал их в SQLite-in-memory.
 # Каждый тест начинает с drop_all + create_all на чистой in-memory БД.
-from app.db.session import Base  # noqa: E402
-from app.users import models as _users_models  # noqa: F401, E402
-from app.subjects import models as _subjects_models  # noqa: F401, E402
-from app.progress import models as _progress_models  # noqa: F401, E402
-from app.diagnostics import models as _diagnostics_models  # noqa: F401, E402
-from app.admin import models as _admin_models  # noqa: F401, E402
-from app.admin import ai_providers as _ai_providers_models  # noqa: F401, E402  # Sprint 3.9.6
-from app.notifications import models as _notifications_models  # noqa: F401, E402
-from app.auth import password_reset_models as _password_reset_models  # noqa: F401, E402
-from app import rag_models as _rag_models  # noqa: F401, E402  # Sprint 3.5.2: RagChunk для persistent RAG
-from app.sessions import models as _sessions_models  # noqa: F401, E402  # Sprint 34: SessionPause
-from app.cgm import models as _cgm_models  # noqa: F401, E402  # Sprint 40: CGMConfig
-from app.invites import models as _invites_models  # noqa: F401, E402  # Sprint 44: Invite
-
 import pytest  # noqa: E402
+from app import rag_models as _rag_models  # noqa: F401, E402  # Sprint 3.5.2: RagChunk для persistent RAG
+from app.admin import ai_providers as _ai_providers_models  # noqa: F401, E402  # Sprint 3.9.6
+from app.admin import models as _admin_models  # noqa: F401, E402
+from app.auth import password_reset_models as _password_reset_models  # noqa: F401, E402
+from app.cgm import models as _cgm_models  # noqa: F401, E402  # Sprint 40: CGMConfig
+from app.db.session import Base  # noqa: E402
+from app.diagnostics import models as _diagnostics_models  # noqa: F401, E402
+from app.invites import models as _invites_models  # noqa: F401, E402  # Sprint 44: Invite
+from app.notifications import models as _notifications_models  # noqa: F401, E402
+from app.progress import models as _progress_models  # noqa: F401, E402
+from app.sessions import models as _sessions_models  # noqa: F401, E402  # Sprint 34: SessionPause
+from app.subjects import models as _subjects_models  # noqa: F401, E402
+from app.users import models as _users_models  # noqa: F401, E402
 
 
 @pytest.fixture(autouse=True)
@@ -52,10 +51,10 @@ def _reset_state():
     """
     from app.config import get_settings
     from app.main import (
+        _ai_call_log,
         _login_attempts_log,
         _register_attempts_log,
         _ws_concurrent_log,
-        _ai_call_log,
         app,
     )
 

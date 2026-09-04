@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 LICENSE_READY_DECISIONS = {
     "approved",
     "approved_with_attribution",

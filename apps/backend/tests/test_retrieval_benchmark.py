@@ -18,15 +18,13 @@ os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 os.environ["AI_DETERMINISTIC_MODE"] = "1"
 
 import pytest
-
 from app.subjects.retrieval_benchmark import (
     RetrievalBenchmarkResult,
     RetrievalProbe,
+    _tokenize,
     benchmark_math6_fixture,
     evaluate_probes,
-    _tokenize,
 )
-
 
 # === Tokenize / scoring ========================================================
 

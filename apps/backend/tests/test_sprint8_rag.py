@@ -12,7 +12,6 @@ from __future__ import annotations
 import os
 
 import pytest
-
 from app.rag_persist import (
     EMBEDDING_CACHE_ENABLED,
     EMBEDDING_DIM,

@@ -29,8 +29,6 @@ os.environ["AI_DETERMINISTIC_MODE"] = "1"
 os.environ["AI_API_KEY"] = "mock-key-for-tests"  # defensive: deterministic overrides anyway
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.ai.mock import MockProvider
 from app.ai.service import AIService, _provider_instance, get_ai_service
 from app.db.session import Base, SessionLocal, engine, get_db
@@ -38,6 +36,7 @@ from app.main import app
 from app.subjects.scripts_seed_runner import seed_for_tests
 from app.users import service as user_service
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()

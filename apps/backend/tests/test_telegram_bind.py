@@ -25,29 +25,28 @@ import time
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from sqlalchemy.exc import IntegrityError
+from app import rag_models as _rag_models  # noqa: F401  # Sprint 3.5.2
+from app.admin import ai_providers as _ai_providers_models  # noqa: F401  # Sprint 3.9.6
+from app.admin import models as _admin_models  # noqa: F401
+from app.auth import password_reset_models as _password_reset_models  # noqa: F401
+from app.bot.telegram_bot import (
+    init_db,
+    issue_code,
+    validate_and_bind,
+)
+from app.cgm import models as _cgm_models  # noqa: F401  # Sprint 40
+from app.diagnostics import models as _diagnostics_models  # noqa: F401
+from app.invites import models as _invites_models  # noqa: F401  # Sprint 44
+from app.notifications import models as _notifications_models  # noqa: F401
+from app.progress import models as _progress_models  # noqa: F401
+from app.sessions import models as _sessions_models  # noqa: F401  # Sprint 34
+from app.subjects import models as _subjects_models  # noqa: F401
 
 # Импортируем ВСЕ модели до того как их используем в Base.metadata.
 # Без этого при первом запуске сессии SQLite in-memory в Base.metadata
 # пустой — issue_code() упадёт на SELECT users.
 from app.users import models as _users_models  # noqa: F401
-from app.subjects import models as _subjects_models  # noqa: F401
-from app.progress import models as _progress_models  # noqa: F401
-from app.diagnostics import models as _diagnostics_models  # noqa: F401
-from app.admin import models as _admin_models  # noqa: F401
-from app.admin import ai_providers as _ai_providers_models  # noqa: F401  # Sprint 3.9.6
-from app.notifications import models as _notifications_models  # noqa: F401
-from app.auth import password_reset_models as _password_reset_models  # noqa: F401
-from app import rag_models as _rag_models  # noqa: F401  # Sprint 3.5.2
-from app.sessions import models as _sessions_models  # noqa: F401  # Sprint 34
-from app.cgm import models as _cgm_models  # noqa: F401  # Sprint 40
-from app.invites import models as _invites_models  # noqa: F401  # Sprint 44
-
-from app.bot.telegram_bot import (
-    issue_code,
-    validate_and_bind,
-    init_db,
-)
+from sqlalchemy.exc import IntegrityError
 
 
 def _setup_db():
@@ -80,8 +79,8 @@ class TestTelegramBindCodes:
         """Sprint 3.23 helper: создать user'а в shared DB для теста."""
         from app.db.session import SessionLocal
         from app.users import service as user_service
-        from app.users.schemas import UserCreate
         from app.users.models import User
+        from app.users.schemas import UserCreate
 
         db = SessionLocal()
         try:
@@ -160,8 +159,8 @@ class TestTelegramBindCodes:
         self._make_user(email="eve@example.com")
         code = issue_code(email="eve@example.com")
         # Вручную сдвигаем expires_at на 20 мин назад
-        from sqlalchemy import text
         from app.db.session import engine
+        from sqlalchemy import text
         with engine.begin() as conn:
             conn.execute(
                 text("UPDATE telegram_bind_codes SET expires_at = :exp WHERE code = :c"),

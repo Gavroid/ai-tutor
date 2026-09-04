@@ -9,18 +9,17 @@ Authorization header (обратная совместимость с фронт�
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
 
+from app.config import get_settings
+from app.db.session import get_db
+from app.users.models import Role, User
 from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
-
-from app.config import get_settings
-from app.db.session import get_db
-from app.users.models import Role, User
 
 _settings = get_settings()
 
@@ -45,7 +44,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 def _create_token(subject: str, role: str, ttl: timedelta, token_type: str) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload: dict[str, Any] = {
         "sub": subject,
         "role": role,

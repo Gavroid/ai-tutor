@@ -10,7 +10,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # === Source verification ===
 
 def test_lifespan_has_retry_logic():

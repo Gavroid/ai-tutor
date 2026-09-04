@@ -4,11 +4,10 @@
 """
 from __future__ import annotations
 
-from sqlalchemy import delete
-from sqlalchemy.orm import Session
-
 from app.subjects import models
 from app.subjects.curriculum_7_class import CURRICULUM_7_CLASS
+from sqlalchemy import delete
+from sqlalchemy.orm import Session
 
 
 def seed_for_tests(db: Session, reset: bool = False) -> int:

@@ -20,7 +20,6 @@ from __future__ import annotations
 
 from alembic import op
 
-
 # revision identifiers, used by Alembic.
 revision = "0026_parent_link_no_self"
 down_revision = "0025_user_counters"

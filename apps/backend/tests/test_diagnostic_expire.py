@@ -9,10 +9,9 @@ os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
 os.environ["CORS_ORIGINS"] = "http://localhost:3000"
 os.environ["AI_API_KEY"] = "mock-key-for-tests"
 
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import select
+from datetime import UTC
 
+import pytest
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.diagnostics import models as diag_models
 from app.diagnostics import service as diag_service
@@ -20,6 +19,8 @@ from app.main import app
 from app.subjects.scripts_seed_runner import seed_for_tests
 from app.users import service as user_service
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 
 @pytest.fixture(autouse=True)
@@ -91,8 +92,8 @@ def _login(c: TestClient, email: str = "kid@x.com") -> str:
 
 def _create_admin(c: TestClient):
     """Создаём admin в БД напрямую."""
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.users.models import Role, User
 
     s = SessionLocal()
     try:
@@ -113,8 +114,6 @@ def test_expire_stale_diagnostics_function():
     """Функция expire_stale_diagnostic_sessions помечает старые сессии как expired."""
     from datetime import datetime, timedelta, timezone
 
-    from sqlalchemy import select
-
     from app.users.models import User
 
     # User уже создан через autouse fixture
@@ -134,29 +133,29 @@ def test_expire_stale_diagnostics_function():
             subject_id=1,
             status="in_progress",
             total_questions=5,
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
         sess_old = diag_models.DiagnosticSession(
             user_id=user.id,
             subject_id=1,
             status="in_progress",
             total_questions=5,
-            started_at=datetime.now(timezone.utc) - timedelta(hours=25),
+            started_at=datetime.now(UTC) - timedelta(hours=25),
         )
         sess_very_old = diag_models.DiagnosticSession(
             user_id=user.id,
             subject_id=1,
             status="in_progress",
             total_questions=5,
-            started_at=datetime.now(timezone.utc) - timedelta(hours=48),
+            started_at=datetime.now(UTC) - timedelta(hours=48),
         )
         sess_finished = diag_models.DiagnosticSession(
             user_id=user.id,
             subject_id=1,
             status="finished",
             total_questions=5,
-            started_at=datetime.now(timezone.utc) - timedelta(hours=48),
-            finished_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC) - timedelta(hours=48),
+            finished_at=datetime.now(UTC),
         )
         s.add_all([sess_fresh, sess_old, sess_very_old, sess_finished])
         s.commit()
@@ -203,9 +202,8 @@ def test_expire_stale_respects_ttl():
     try:
         # User уже создан через autouse fixture
         # (skip register — it conflicts)
-        from sqlalchemy import select
-
         from app.users.models import User
+        from sqlalchemy import select
 
         user = s.execute(
             select(User).where(User.email == "kid@x.com")
@@ -217,7 +215,7 @@ def test_expire_stale_respects_ttl():
             status="in_progress",
             total_questions=5,
             # Время 2 часа назад — должно попасть под TTL=1ч
-            started_at=datetime.now(timezone.utc) - timedelta(hours=2),
+            started_at=datetime.now(UTC) - timedelta(hours=2),
         )
         s.add(sess)
         s.commit()
@@ -303,7 +301,7 @@ def test_audit_log_date_range_filter(client):
     assert r.status_code == 200
 
     # Фильтр since — будущее (пусто). Quote + → %2B для URL.
-    future = (datetime.now(timezone.utc) + timedelta(days=365)).isoformat()
+    future = (datetime.now(UTC) + timedelta(days=365)).isoformat()
     r = client.get(
         f"/api/v1/admin/audit-log?since={quote(future)}",
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -312,7 +310,7 @@ def test_audit_log_date_range_filter(client):
     assert r.json() == []
 
     # Фильтр until — прошлое (всё должно быть)
-    past = (datetime.now(timezone.utc) - timedelta(days=365)).isoformat()
+    past = (datetime.now(UTC) - timedelta(days=365)).isoformat()
     r = client.get(
         f"/api/v1/admin/audit-log?until={quote(past)}",
         headers={"Authorization": f"Bearer {admin_token}"},

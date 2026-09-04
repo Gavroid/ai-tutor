@@ -8,7 +8,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from app.ai import prompts as ai_prompts
 from app.ai import sanitize as ai_sanitize
 from app.ai.service import AIService
-from app.ai.types import AIMessage, AIRequest, AIProvider
+from app.ai.types import AIMessage, AIProvider, AIRequest
 from app.subjects import models as subj_models
 from app.teacher import schemas as teacher_schemas
 from app.users import models as user_models
@@ -430,7 +430,7 @@ def publish_material(
             "(требуется teacher_approved)"
         )
     material.status = "published"
-    material.published_at = datetime.now(timezone.utc)
+    material.published_at = datetime.now(UTC)
     db.commit()
     db.refresh(material)
     return material

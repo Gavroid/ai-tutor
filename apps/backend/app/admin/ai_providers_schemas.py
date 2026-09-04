@@ -12,7 +12,6 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 # ----- AI Provider -----
 
 class AIProviderCreate(BaseModel):

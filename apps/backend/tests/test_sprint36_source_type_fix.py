@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture
 def client():
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
 
     Base.metadata.drop_all(engine)
@@ -25,10 +25,10 @@ def client():
 @pytest.fixture
 def teacher_login(client):
     """Sprint 36.1: teacher через прямой SQL (НЕ /auth/register — 403)."""
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         user = User(
@@ -51,10 +51,10 @@ def teacher_login(client):
 
 def test_source_type_literal_includes_pdf():
     """Sprint 36.1: SourceType Literal включает 'pdf'."""
-    from app.teacher.schemas import SourceType
-
     # Compile-time проверка через typing.get_args
     import typing
+
+    from app.teacher.schemas import SourceType
 
     args = typing.get_args(SourceType)
     assert "pdf" in args, f"Expected 'pdf' in {args}"
@@ -65,10 +65,10 @@ def test_source_type_literal_includes_pdf():
 
 def test_material_list_item_accepts_pdf_source(client, teacher_login):
     """Sprint 36.1: MaterialListItem принимает source_type='pdf'."""
-    from app.db.session import SessionLocal
-    from app.subjects.models import Subject, Section, Topic, LearningMaterial
-    from jose import jwt
     from app.config import get_settings
+    from app.db.session import SessionLocal
+    from app.subjects.models import LearningMaterial, Section, Subject, Topic
+    from jose import jwt
 
     s = get_settings()
     user_id = int(jwt.get_unverified_claims(teacher_login)["sub"])
@@ -107,10 +107,10 @@ def test_material_list_item_accepts_pdf_source(client, teacher_login):
 
 def test_material_list_item_accepts_all_source_types(client, teacher_login):
     """Sprint 36.1: все 4 source_type значения работают."""
-    from app.db.session import SessionLocal
-    from app.subjects.models import Subject, Section, Topic, LearningMaterial
-    from jose import jwt
     from app.config import get_settings
+    from app.db.session import SessionLocal
+    from app.subjects.models import LearningMaterial, Section, Subject, Topic
+    from jose import jwt
 
     s = get_settings()
     user_id = int(jwt.get_unverified_claims(teacher_login)["sub"])
@@ -148,10 +148,10 @@ def test_material_list_item_accepts_all_source_types(client, teacher_login):
 
 def test_material_list_with_search_works_after_fix(client, teacher_login):
     """Sprint 36.1: search + pdf materials работает."""
-    from app.db.session import SessionLocal
-    from app.subjects.models import Subject, Section, Topic, LearningMaterial
-    from jose import jwt
     from app.config import get_settings
+    from app.db.session import SessionLocal
+    from app.subjects.models import LearningMaterial, Section, Subject, Topic
+    from jose import jwt
 
     s = get_settings()
     user_id = int(jwt.get_unverified_claims(teacher_login)["sub"])

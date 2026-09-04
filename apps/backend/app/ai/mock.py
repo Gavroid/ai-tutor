@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 
-from app.ai.types import AIMessage, AIRequest, AIResponse, AIProvider
+from app.ai.types import AIMessage, AIProvider, AIRequest, AIResponse
 
 
 class MockProvider(AIProvider):

@@ -2,19 +2,18 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
-
+from app.admin import models as _admin_models  # noqa: F401
+from app.auth import password_reset_models as _password_reset_models  # noqa: F401
 from app.config import get_settings
 from app.db.session import Base
+from app.diagnostics import models as _diagnostics_models  # noqa: F401
+from app.notifications import models as _notifications_models  # noqa: F401
+from app.progress import models as _progress_models  # noqa: F401
+from app.subjects import models as _subjects_models  # noqa: F401
 
 # Импорт моделей нужен, чтобы Alembic увидел их в metadata.
 from app.users import models as _users_models  # noqa: F401
-from app.subjects import models as _subjects_models  # noqa: F401
-from app.progress import models as _progress_models  # noqa: F401
-from app.diagnostics import models as _diagnostics_models  # noqa: F401
-from app.admin import models as _admin_models  # noqa: F401
-from app.notifications import models as _notifications_models  # noqa: F401
-from app.auth import password_reset_models as _password_reset_models  # noqa: F401
+from sqlalchemy import engine_from_config, pool
 
 config = context.config
 if config.config_file_name is not None:

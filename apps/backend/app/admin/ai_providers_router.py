@@ -21,15 +21,14 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
-
 from app.admin import ai_providers as models
 from app.admin import ai_providers_schemas as schemas
 from app.admin import ai_providers_service as service
 from app.common.deps import User, require_admin
 from app.db.session import get_db
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -272,8 +271,8 @@ def set_subject_assignment(
     db: Session = Depends(get_db),
     _admin: User = Depends(require_admin()),
 ):
-    from app.subjects.models import Subject
     from app.admin.ai_providers import AIModelCatalog
+    from app.subjects.models import Subject
     subj = db.get(Subject, subject_id)
     if subj is None:
         raise HTTPException(404, f"Предмет id={subject_id} не найден")

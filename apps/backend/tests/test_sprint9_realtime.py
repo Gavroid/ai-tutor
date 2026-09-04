@@ -23,14 +23,13 @@ pytestmark = pytest.mark.skip(
 )
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.admin.realtime import _metrics_snapshot, _system_health
 from app.auth.security import create_access_token
 from app.db.session import Base, SessionLocal, engine
 from app.main import app
 from app.users import service as user_service
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()

@@ -8,8 +8,8 @@ Sprint 2026-08-22.
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Iterable
 
 CHUNK_SIZE = 1200  # символов; production-tuned
 CHUNK_OVERLAP = 200

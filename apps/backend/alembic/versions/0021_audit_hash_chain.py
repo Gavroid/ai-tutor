@@ -7,7 +7,8 @@
 Hash chain защищает от tampering: если кто-то меняет запись,
 hash перестаёт совпадать → tamper detected.
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
 import sqlalchemy as sa
 from alembic import op

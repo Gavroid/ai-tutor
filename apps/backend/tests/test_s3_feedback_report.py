@@ -20,21 +20,20 @@ os.environ.setdefault("AI_API_KEY", "mock-key-for-tests")
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
-
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.feedback.models import (
-    FeedbackReport,
     FB_CATEGORY_OTHER,
     FB_CATEGORY_VALUES,
     FB_STATUS_OPEN,
     FB_STATUS_VALUES,
+    FeedbackReport,
 )
 from app.main import app
 from app.users import service as user_service
 from app.users.models import Role
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 
 @pytest.fixture()

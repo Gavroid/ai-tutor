@@ -15,15 +15,13 @@ from __future__ import annotations
 import re
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import select
-
 from app.auth.security import hash_password
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
 from app.subjects.scripts_seed_runner import seed_for_tests
 from app.users.models import ParentStudentLink, Role, User
-
+from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 EMAIL_REGEX = re.compile(r"[A-Za-z0-9._%_+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
 
@@ -83,9 +81,9 @@ def client_with_parent():
         db.commit()
 
     # linked_student объект detached после with SessionLocal() — нужен свежий lookup.
-    from sqlalchemy import select as _select
     from app.db.session import SessionLocal as _SL
     from app.users.models import User as _User
+    from sqlalchemy import select as _select
 
     with _SL() as s2:
         linked_id = s2.scalar(

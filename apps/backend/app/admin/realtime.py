@@ -16,15 +16,14 @@ import asyncio
 import json
 import logging
 import os
-from datetime import datetime, timedelta, timezone
-
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
-from app.auth.security import ACCESS_COOKIE
-from app.common.deps import require_admin
+from datetime import UTC, datetime, timedelta, timezone
 
 from app.ai.budget import get_usage
+from app.auth.security import ACCESS_COOKIE
+from app.common.deps import require_admin
 from app.observability import collect_ops_metrics, metrics_payload
 from app.users.models import User
+from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +124,7 @@ def _metrics_snapshot() -> dict:
 
     sys = _system_health()
     return {
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         **parsed,
         "system": sys,
     }

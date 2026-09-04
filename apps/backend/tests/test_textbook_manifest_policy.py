@@ -8,7 +8,6 @@ from app.subjects.textbook_manifest_policy import (
     validate_textbook_manifest,
 )
 
-
 REPO_ROOT = Path("/root/workspace/ai-tutor")
 MANIFEST = REPO_ROOT / "data/textbooks/7-class/textbook-manifest.csv"
 

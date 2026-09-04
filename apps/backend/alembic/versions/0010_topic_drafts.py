@@ -15,7 +15,8 @@
 
 Downgrade: drop table (данные теряются, что приемлемо).
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
 import sqlalchemy as sa
 from alembic import op

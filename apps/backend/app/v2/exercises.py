@@ -16,7 +16,7 @@ POST /api/v2/exercises/{exercise_id}/answer
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -30,7 +30,6 @@ from app.db.session import get_db
 from app.progress import models as progress_models
 from app.subjects import models as subj_models
 from app.users.models import Role, User
-
 
 router = APIRouter(prefix="/api/v2/exercises", tags=["v2-exercises"])
 
@@ -182,8 +181,9 @@ async def generate_exercise(
     target_difficulty = payload.difficulty
     if target_difficulty == 0:
         # Sprint 42: проверяем recovery_mode (недавняя hypo/hyper пауза)
+        from datetime import datetime, timedelta, timezone
+
         from app.sessions.models import SessionPause
-        from datetime import datetime, timezone, timedelta
         recovery = (
             db.query(SessionPause)
             .filter(
@@ -195,10 +195,10 @@ async def generate_exercise(
         )
         recovery_mode = False
         if recovery and recovery.started_at:
-            ref_time = datetime.now(timezone.utc)
+            ref_time = datetime.now(UTC)
             started = recovery.started_at
             if started.tzinfo is None:
-                started = started.replace(tzinfo=timezone.utc)
+                started = started.replace(tzinfo=UTC)
             minutes_ago = (ref_time - started).total_seconds() / 60
             if minutes_ago < 30:
                 recovery_mode = True
@@ -316,8 +316,9 @@ async def submit_answer(
         effective_checker = "exact"
 
     if effective_checker != "exact":
-        from app.practice.checkers import check_answer, check_answer_async
         import json as _json
+
+        from app.practice.checkers import check_answer, check_answer_async
 
         keywords_list: list[str] = []
         if inst.required_keywords:
@@ -353,7 +354,7 @@ async def submit_answer(
         score = 1.0 if is_correct else 0.0
         feedback = "Верно!" if is_correct else "Есть ошибка"
 
-    inst.submitted_at = datetime.now(timezone.utc)
+    inst.submitted_at = datetime.now(UTC)
     inst.submission_answer = payload.user_answer
     inst.submission_score = score
 
@@ -426,7 +427,7 @@ async def submit_answer(
     # Sprint 49: update parent metrics (attempts counter).
     from app.parent_metrics import increment_attempt, observe_session_duration
 
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = datetime.now(UTC).strftime("%Y-%m-%d")
     increment_attempt(user_id=current.id, day=today)
     # Наблюдаем session duration (~avg 600s типично).
     # TODO Sprint 50: track actual session duration from first WS connect.

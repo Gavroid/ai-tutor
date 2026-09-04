@@ -20,11 +20,10 @@ os.environ.setdefault("AI_API_KEY", "mock-key-for-tests")
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
 import pytest
-
 from app.ai.router import (
-    _socratic_questions_for,
-    _parse_questions,
     UnderstandCheckOut,
+    _parse_questions,
+    _socratic_questions_for,
 )
 
 
@@ -115,8 +114,8 @@ def test_understand_check_out_model() -> None:
 
 def test_endpoint_requires_auth() -> None:
     """Без токена /understand-check/{id} возвращает 401."""
-    from fastapi.testclient import TestClient
     from app.main import app
+    from fastapi.testclient import TestClient
 
     c = TestClient(app)
     r = c.get("/api/v1/ai/understand-check/1")
@@ -128,14 +127,14 @@ def test_endpoint_404_on_missing_topic(tmp_path) -> None:
     """GET /understand-check/{id} для несуществующего topic → 404.
     Используем in-memory БД + seed.
     """
-    from fastapi.testclient import TestClient
-    from sqlalchemy.orm import Session
+    from app.auth.security import hash_password
     from app.db.session import Base, SessionLocal, engine
+    from app.subjects import models
     from app.subjects.scripts_seed_runner import seed_for_tests
     from app.users.models import User
-    from app.auth.security import hash_password
-    from app.subjects import models
+    from fastapi.testclient import TestClient
     from sqlalchemy import select
+    from sqlalchemy.orm import Session
 
     Base.metadata.create_all(engine)
     sess = SessionLocal()

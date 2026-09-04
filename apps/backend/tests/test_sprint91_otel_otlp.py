@@ -9,7 +9,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # === Source verification ===
 
 def test_otel_module_imports():

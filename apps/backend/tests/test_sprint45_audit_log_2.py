@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture
 def client():
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
 
     Base.metadata.drop_all(engine)
@@ -20,10 +20,10 @@ def client():
 @pytest.fixture
 def admin_login(client):
     """Sprint 45: admin via direct SQL."""
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         user = User(
@@ -46,10 +46,10 @@ def admin_login(client):
 
 def test_record_creates_hash_chain(client, admin_login):
     """Sprint 45: record() создаёт record_hash + previous_hash."""
-    from app.db.session import SessionLocal
     from app.admin.service import record
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import SessionLocal
+    from app.users.models import Role, User
 
     with SessionLocal() as db:
         admin = db.query(User).filter_by(email="admin@example.com").first()
@@ -65,8 +65,8 @@ def test_record_creates_hash_chain(client, admin_login):
 
 def test_verify_chain_returns_valid(client, admin_login):
     """Sprint 45: GET /audit-log/verify → all verified."""
-    from app.db.session import SessionLocal
     from app.admin.service import record
+    from app.db.session import SessionLocal
     from app.users.models import User
 
     with SessionLocal() as db:
@@ -88,11 +88,11 @@ def test_verify_chain_returns_valid(client, admin_login):
 
 def test_verify_chain_detects_tamper(client, admin_login):
     """Sprint 45: изменение записи → tampered."""
-    from sqlalchemy import text
-    from app.db.session import SessionLocal, engine
-    from app.admin.service import record
-    from app.users.models import User
     from app.admin.models import AuditLog
+    from app.admin.service import record
+    from app.db.session import SessionLocal, engine
+    from app.users.models import User
+    from sqlalchemy import text
 
     with SessionLocal() as db:
         admin = db.query(User).filter_by(email="admin@example.com").first()
@@ -117,8 +117,8 @@ def test_verify_chain_detects_tamper(client, admin_login):
 
 def test_export_audit_log_json(client, admin_login):
     """Sprint 45: GET /audit-log/export?fmt=json → list of records."""
-    from app.db.session import SessionLocal
     from app.admin.service import record
+    from app.db.session import SessionLocal
     from app.users.models import User
 
     with SessionLocal() as db:
@@ -140,8 +140,8 @@ def test_export_audit_log_json(client, admin_login):
 
 def test_export_audit_log_csv(client, admin_login):
     """Sprint 45: GET /audit-log/export?fmt=csv → csv string."""
-    from app.db.session import SessionLocal
     from app.admin.service import record
+    from app.db.session import SessionLocal
     from app.users.models import User
 
     with SessionLocal() as db:

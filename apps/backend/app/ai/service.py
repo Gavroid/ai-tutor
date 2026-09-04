@@ -16,7 +16,7 @@ from typing import Any
 
 from app.ai import prompts, sanitize
 from app.ai.hermes import HermesProvider, _strip_reasoning_blocks
-from app.ai.types import AIMessage, AIRequest, AIResponse, AIProvider
+from app.ai.types import AIMessage, AIProvider, AIRequest, AIResponse
 from app.config import get_settings
 from app.subjects import models as subj_models
 from app.users import models as user_models
@@ -990,7 +990,7 @@ class AIService:
         Возвращает (response, used_provider_label) где label — что использовалось:
         "subject:Physics" / "fallback:Chemistry" / "default".
         """
-        from app.admin.ai_providers_service import resolve_provider_for_subject, resolve_fallback_for_subject
+        from app.admin.ai_providers_service import resolve_fallback_for_subject, resolve_provider_for_subject
 
         primary_cfg = None
         fallback_cfg = None
@@ -1228,7 +1228,7 @@ class AIService:
         # Форматируем chunk'и в читаемый контекст для LLM + собираем sources.
         # app/rag.py::DocumentChunk: id, material_id, text, embedding, metadata.
         # material_title и page_number — в metadata dict.
-        lines = ["Контекст из загруженных учебников (top-{} chunk'ов):".format(len(chunks))]
+        lines = [f"Контекст из загруженных учебников (top-{len(chunks)} chunk'ов):"]
         sources: list[dict] = []
         for i, c in enumerate(chunks, 1):
             meta = getattr(c, "metadata", {}) or {}

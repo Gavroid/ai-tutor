@@ -7,7 +7,6 @@ os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
 import pytest
 
-
 # === get_locale tests ===
 
 def test_get_locale_ru():
@@ -145,10 +144,9 @@ def test_messages_dict_has_both_languages():
 
 def test_locale_middleware_header_ru():
     """Sprint 96: middleware добавляет X-Locale: ru header."""
-    from fastapi.testclient import TestClient
-
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
+    from fastapi.testclient import TestClient
 
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
@@ -161,10 +159,9 @@ def test_locale_middleware_header_ru():
 
 def test_locale_middleware_header_en():
     """Sprint 96: middleware добавляет X-Locale: en header."""
-    from fastapi.testclient import TestClient
-
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
+    from fastapi.testclient import TestClient
 
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
@@ -177,10 +174,9 @@ def test_locale_middleware_header_en():
 
 def test_locale_middleware_default_no_header():
     """Sprint 96: без Accept-Language → default 'ru'."""
-    from fastapi.testclient import TestClient
-
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
+    from fastapi.testclient import TestClient
 
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)

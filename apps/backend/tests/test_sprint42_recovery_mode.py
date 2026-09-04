@@ -7,14 +7,15 @@ T1D safety:
 """
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta, timezone
+
 import pytest
 from fastapi.testclient import TestClient
-from datetime import datetime, timezone, timedelta
 
 
 @pytest.fixture
 def client():
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
 
     Base.metadata.drop_all(engine)
@@ -58,11 +59,11 @@ def test_recommend_next_no_pause_no_recovery(client, student_login):
 
 def test_recommend_next_recent_hypo_enables_recovery(client, student_login):
     """Sprint 42: недавняя hypo пауза → recovery_mode=True."""
+    from app.config import get_settings
     from app.db.session import SessionLocal
     from app.sessions.models import SessionPause
     from app.users.models import User
     from jose import jwt
-    from app.config import get_settings
 
     s = get_settings()
     user_id = int(jwt.get_unverified_claims(student_login)["sub"])
@@ -73,7 +74,7 @@ def test_recommend_next_recent_hypo_enables_recovery(client, student_login):
             user_id=user_id,
             topic_id=None,
             reason="hypo",
-            started_at=datetime.now(timezone.utc) - timedelta(minutes=10),
+            started_at=datetime.now(UTC) - timedelta(minutes=10),
         )
         db.add(recent_pause)
         db.commit()
@@ -92,10 +93,10 @@ def test_recommend_next_recent_hypo_enables_recovery(client, student_login):
 
 def test_recommend_next_recent_hyper_enables_recovery(client, student_login):
     """Sprint 42: недавняя hyper пауза → recovery_mode=True."""
+    from app.config import get_settings
     from app.db.session import SessionLocal
     from app.sessions.models import SessionPause
     from jose import jwt
-    from app.config import get_settings
 
     s = get_settings()
     user_id = int(jwt.get_unverified_claims(student_login)["sub"])
@@ -105,7 +106,7 @@ def test_recommend_next_recent_hyper_enables_recovery(client, student_login):
             user_id=user_id,
             topic_id=None,
             reason="hyper",
-            started_at=datetime.now(timezone.utc) - timedelta(minutes=5),
+            started_at=datetime.now(UTC) - timedelta(minutes=5),
         )
         db.add(recent_pause)
         db.commit()
@@ -121,10 +122,10 @@ def test_recommend_next_recent_hyper_enables_recovery(client, student_login):
 
 def test_recommend_next_old_pause_no_recovery(client, student_login):
     """Sprint 42: pause 60 мин назад → recovery_mode=False (за окном)."""
+    from app.config import get_settings
     from app.db.session import SessionLocal
     from app.sessions.models import SessionPause
     from jose import jwt
-    from app.config import get_settings
 
     s = get_settings()
     user_id = int(jwt.get_unverified_claims(student_login)["sub"])
@@ -134,7 +135,7 @@ def test_recommend_next_old_pause_no_recovery(client, student_login):
             user_id=user_id,
             topic_id=None,
             reason="hypo",
-            started_at=datetime.now(timezone.utc) - timedelta(minutes=60),
+            started_at=datetime.now(UTC) - timedelta(minutes=60),
         )
         db.add(old_pause)
         db.commit()
@@ -150,10 +151,10 @@ def test_recommend_next_old_pause_no_recovery(client, student_login):
 
 def test_recommend_next_break_pause_no_recovery(client, student_login):
     """Sprint 42: 'break' пауза НЕ включает recovery mode (только hypo/hyper)."""
+    from app.config import get_settings
     from app.db.session import SessionLocal
     from app.sessions.models import SessionPause
     from jose import jwt
-    from app.config import get_settings
 
     s = get_settings()
     user_id = int(jwt.get_unverified_claims(student_login)["sub"])
@@ -163,7 +164,7 @@ def test_recommend_next_break_pause_no_recovery(client, student_login):
             user_id=user_id,
             topic_id=None,
             reason="break",
-            started_at=datetime.now(timezone.utc) - timedelta(minutes=5),
+            started_at=datetime.now(UTC) - timedelta(minutes=5),
         )
         db.add(break_pause)
         db.commit()

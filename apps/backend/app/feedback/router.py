@@ -7,11 +7,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
 from app.admin import service as audit_service
 from app.auth.security import get_current_user
 from app.db.session import get_db
-from sqlalchemy.orm import Session
 from app.users.models import User
 
 router = APIRouter(prefix="/api/v1/feedback", tags=["feedback"])

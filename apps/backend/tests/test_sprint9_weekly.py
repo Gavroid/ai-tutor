@@ -11,7 +11,7 @@ Weekly summary email: код есть (app/notifications/weekly.py + cron), ша
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -21,7 +21,6 @@ pytestmark = pytest.mark.skip(
 )
 
 import pytest
-
 from app.db.session import Base, SessionLocal, engine
 from app.notifications import weekly
 from app.notifications.weekly import (
@@ -80,7 +79,7 @@ class TestWeeklyAggregate:
         parent_id, student_id = _setup()
         db = SessionLocal()
         try:
-            agg = _aggregate_progress_for_student(db, student_id, datetime.now(timezone.utc))
+            agg = _aggregate_progress_for_student(db, student_id, datetime.now(UTC))
             assert agg["attempts_total"] == 0
             assert agg["attempts_correct"] == 0
             assert agg["accuracy_pct"] == 0.0

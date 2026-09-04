@@ -8,13 +8,15 @@ import os
 # отдельную БД.
 os.environ["DATABASE_URL"] = "sqlite+pysqlite:///file:memdb1?mode=memory&cache=shared&uri=true"
 
+from datetime import UTC
+
 import pytest
 from fastapi.testclient import TestClient
 
 
 @pytest.fixture
 def client():
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
 
     Base.metadata.drop_all(engine)
@@ -118,17 +120,18 @@ def test_list_recent_pauses(client, student_login):
     # Create 3 pauses с явными started_at через прямой INSERT
     # (in-memory SQLite: server_default NOW() одинаковый для всех записей в 1 транзакции).
     from datetime import datetime, timedelta, timezone
-    from sqlalchemy import text
-    from app.db.session import engine as eng
-    from app.common.deps import get_current_user
 
-    base = datetime.now(timezone.utc)
+    from app.common.deps import get_current_user
+    from app.db.session import engine as eng
+    from sqlalchemy import text
+
+    base = datetime.now(UTC)
     headers = {"Authorization": f"Bearer {student_login}"}
 
     with eng.begin() as conn:
         # Получаем user_id из текущего токена (JWT subject).
-        from jose import jwt
         from app.config import get_settings
+        from jose import jwt
         s = get_settings()
         token = headers["Authorization"].split()[1]
         user_id = int(jwt.get_unverified_claims(token)["sub"])

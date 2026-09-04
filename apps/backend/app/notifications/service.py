@@ -9,12 +9,11 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from email.message import EmailMessage
 
-from sqlalchemy.orm import Session
-
 from app.notifications import models
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +82,7 @@ async def send_email(
         try:
             await _send_via_smtp(smtp_url, to_email, subject, body)
             record.status = "sent"
-            record.sent_at = datetime.now(timezone.utc)
+            record.sent_at = datetime.now(UTC)
             record.error = None
             db.commit()
             logger.info(
@@ -121,8 +120,9 @@ async def _send_via_smtp(smtp_url: str, to_email: str, subject: str, body: str) 
     URL: smtp://[user[:pass]@]host[:port][/starttls|tls]
     По умолчанию: port=587, security=STARTTLS.
     """
-    import aiosmtplib
     from urllib.parse import urlparse
+
+    import aiosmtplib
 
     p = urlparse(smtp_url)
     username = p.username
@@ -186,7 +186,7 @@ def notify_parents_of_milestone(
             type_="info",
             title=f"Веха: {student.display_name}",
             body=f"{milestone}\n\n{details}",
-            link=f"/parents",
+            link="/parents",
         )
 
         # Email (асинхронно, fire-and-forget)

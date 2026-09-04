@@ -1,4 +1,5 @@
 from app.algebra_plan import ALGEBRA_TOPIC_PLAN
+
 from scripts.algebra_fallback_seed import FALLBACKS, build_rows
 
 

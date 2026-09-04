@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -780,7 +780,7 @@ def collect_stats(db: Session, user_id: int) -> dict:
     - morning/evening/weekend: 1 если хотя бы один attempt в это окно
     - max_consecutive_correct: длина самой длинной серии правильных ответов
     """
-    from datetime import datetime, timedelta, timezone
+    from datetime import timedelta
     from zoneinfo import ZoneInfo
 
     from app.config import get_settings
@@ -926,7 +926,7 @@ def collect_stats(db: Session, user_id: int) -> dict:
         # ts хранится в UTC (TIMESTAMP WITHOUT TZ); конвертим в student TZ
         if isinstance(ts, datetime):
             if ts.tzinfo is None:
-                ts = ts.replace(tzinfo=timezone.utc)
+                ts = ts.replace(tzinfo=UTC)
             local_dt = ts.astimezone(student_tz)
             d = local_dt.date()
             active_dates.add(d.isoformat())
@@ -962,7 +962,7 @@ def collect_stats(db: Session, user_id: int) -> dict:
             # Sprint 3.12: дата с правильным ответом — для streak_correct_N.
             if isinstance(ts, datetime):
                 if ts.tzinfo is None:
-                    ts_utc = ts.replace(tzinfo=timezone.utc)
+                    ts_utc = ts.replace(tzinfo=UTC)
                 else:
                     ts_utc = ts
                 correct_dates.add(ts_utc.astimezone(student_tz).date().isoformat())

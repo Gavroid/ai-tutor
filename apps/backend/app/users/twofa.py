@@ -8,15 +8,14 @@ from __future__ import annotations
 
 import json
 import secrets
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import TYPE_CHECKING
 
 import pyotp
-from cryptography.fernet import Fernet
-
 from app.auth.security import hash_password, verify_password
 from app.config import get_settings
 from app.db.session import engine as _engine
+from cryptography.fernet import Fernet
 from sqlalchemy import select, text
 
 if TYPE_CHECKING:
@@ -125,7 +124,7 @@ def verify_backup_code(parent_id: int, code: str) -> bool:
                     ),
                     {
                         "h": json.dumps(new_hashed),
-                        "ts": datetime.now(timezone.utc),
+                        "ts": datetime.now(UTC),
                         "pid": parent_id,
                     },
                 )
@@ -169,7 +168,7 @@ def enable_2fa(parent_id: int, email: str) -> dict:
                 "pid": parent_id,
                 "sec": encrypt_secret(secret),
                 "codes": hash_backup_codes(codes),
-                "ts": datetime.now(timezone.utc),
+                "ts": datetime.now(UTC),
             },
         )
 
@@ -229,5 +228,5 @@ def _update_last_used(parent_id: int) -> None:
     with engine.begin() as conn:
         conn.execute(
             text("UPDATE parent_2fa SET last_used_at = :ts WHERE parent_id = :pid"),
-            {"ts": datetime.now(timezone.utc), "pid": parent_id},
+            {"ts": datetime.now(UTC), "pid": parent_id},
         )

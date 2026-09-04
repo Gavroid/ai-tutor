@@ -13,7 +13,7 @@ Safety net в app.ai.service._build_rag_context:
 from __future__ import annotations
 
 import os
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 os.environ.setdefault("APP_SECRET_KEY", "test-secret-key-for-rag-safety-net-1234567890")
 os.environ.setdefault("APP_ENV", "development")
@@ -23,7 +23,6 @@ os.environ.setdefault("AI_API_KEY", "mock-key-for-tests")
 os.environ.setdefault("AI_DETERMINISTIC_MODE", "1")
 
 import pytest
-
 from app.ai.mock import MockProvider
 from app.ai.service import AIService
 

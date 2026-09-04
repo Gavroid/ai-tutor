@@ -8,7 +8,8 @@ Backwards compatible: новая таблица, существующие SQLite
 мигрировать отдельно (Sprint 16.x) или оставить если у вас уже есть
 Telegram-юзеры — они перепривяжутся через /start.
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
 import sqlalchemy as sa
 from alembic import op

@@ -29,7 +29,6 @@ from app.db.session import Base  # noqa: E402
 from app.main import app  # noqa: E402
 from app.users.models import User  # noqa: E402
 
-
 PYTHON = sys.executable
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 SEED_SCRIPT = BACKEND_DIR / "app" / "scripts" / "seed_users.py"
@@ -135,9 +134,8 @@ def test_seed_admin_via_flag_creates_user_and_audit():
     """--admin sets the admin role for the user and writes user.seed to audit log."""
     db_url = _prepare_sqlite_db()
     _create_schema_in(db_url)
-    from sqlalchemy import create_engine, select
-
     from app.admin.models import AuditLog
+    from sqlalchemy import create_engine, select
 
     env = {
         "APP_SECRET_KEY": "test-secret-key-for-pytest-only-1234567890",
@@ -289,9 +287,8 @@ def test_seed_audit_details_must_not_contain_secret_or_password():
     proc = _run_seed(env, "--demo")
     assert proc.returncode == 0, proc.stdout + proc.stderr
 
-    from sqlalchemy import create_engine, select
-
     from app.admin.models import AuditLog
+    from sqlalchemy import create_engine, select
 
     eng = create_engine(db_url)
     with eng.connect() as conn:

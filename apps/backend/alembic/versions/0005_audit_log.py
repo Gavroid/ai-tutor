@@ -4,7 +4,8 @@ Revision ID: 0005_audit_log
 Revises: 0004_diagnostics
 Create Date: 2026-07-12 04:30:00.000000
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
 import sqlalchemy as sa
 from alembic import op

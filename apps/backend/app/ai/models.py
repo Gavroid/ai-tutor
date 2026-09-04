@@ -5,8 +5,10 @@ Pilot Core не доверяет браузеру: `correct_answer` хранит
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
+from app.db.session import Base
+from app.users.models import BigIntPK
 from sqlalchemy import (
     DateTime,
     ForeignKey,
@@ -17,10 +19,6 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
-
-from app.db.session import Base
-from app.users.models import BigIntPK
-
 
 # Default exercise lifetime (TTL). Pилот: 60 минут.
 DEFAULT_EXERCISE_TTL_MINUTES = 60
@@ -84,7 +82,7 @@ class GeneratedExerciseInstance(Base):
     def __init__(self, **kwargs: object) -> None:
         # Авто-проставление expires_at если не передано явно.
         if "expires_at" not in kwargs:
-            kwargs["expires_at"] = datetime.now(timezone.utc) + timedelta(
+            kwargs["expires_at"] = datetime.now(UTC) + timedelta(
                 minutes=DEFAULT_EXERCISE_TTL_MINUTES
             )
         super().__init__(**kwargs)
@@ -97,8 +95,8 @@ class GeneratedExerciseInstance(Base):
         # SQLite возвращает naive datetime даже для DateTime(timezone=True).
         # Нормализуем к UTC для сравнения с datetime.now(timezone.utc).
         if expires.tzinfo is None:
-            expires = expires.replace(tzinfo=timezone.utc)
-        return datetime.now(timezone.utc) >= expires
+            expires = expires.replace(tzinfo=UTC)
+        return datetime.now(UTC) >= expires
 
     @property
     def is_submitted(self) -> bool:

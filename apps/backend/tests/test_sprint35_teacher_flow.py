@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture
 def client():
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
 
     Base.metadata.drop_all(engine)
@@ -22,10 +22,10 @@ def teacher_login(client):
     Sprint 35: teacher регистрируется только через seed_users CLI
     с PILOT_SEED_TOKEN. В тесте создаём напрямую через ORM.
     """
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         user = User(
@@ -49,17 +49,17 @@ def teacher_login(client):
     def test_list_materials_with_search(client, teacher_login):
         """Sprint 35: GET /teacher/materials?search=... фильтрует по title."""
         # Создаём 3 материала с ASCII titles (для совместимости с SQLite LIKE).
+        from app.config import get_settings
         from app.db.session import SessionLocal
         from app.subjects.models import LearningMaterial
         from jose import jwt
-        from app.config import get_settings
 
         s = get_settings()
         token = teacher_login
         user_id = int(jwt.get_unverified_claims(token)["sub"])
 
         with SessionLocal() as db:
-            from app.subjects.models import Subject, Section, Topic
+            from app.subjects.models import Section, Subject, Topic
             subject = Subject(code="math", name="Math")
             db.add(subject)
             db.flush()
@@ -113,10 +113,10 @@ def teacher_login(client):
 
 def test_list_materials_search_combined_with_filters(client, teacher_login):
     """Sprint 35: search + status + topic_id работают вместе."""
-    from app.db.session import SessionLocal
-    from app.subjects.models import LearningMaterial, Subject, Section, Topic
-    from jose import jwt
     from app.config import get_settings
+    from app.db.session import SessionLocal
+    from app.subjects.models import LearningMaterial, Section, Subject, Topic
+    from jose import jwt
 
     s = get_settings()
     token = teacher_login
@@ -170,10 +170,10 @@ def test_list_materials_search_empty(client, teacher_login):
 
 def test_bulk_approve_all_success(client, teacher_login):
     """Sprint 35: bulk approve нескольких материалов сразу."""
-    from app.db.session import SessionLocal
-    from app.subjects.models import LearningMaterial, Subject, Section, Topic
-    from jose import jwt
     from app.config import get_settings
+    from app.db.session import SessionLocal
+    from app.subjects.models import LearningMaterial, Section, Subject, Topic
+    from jose import jwt
 
     s = get_settings()
     user_id = int(jwt.get_unverified_claims(teacher_login)["sub"])
@@ -213,10 +213,10 @@ def test_bulk_approve_all_success(client, teacher_login):
 
 def test_bulk_approve_partial_failure(client, teacher_login):
     """Sprint 35: bulk approve с частичным failure — failed + approved раздельно."""
-    from app.db.session import SessionLocal
-    from app.subjects.models import LearningMaterial, Subject, Section, Topic
-    from jose import jwt
     from app.config import get_settings
+    from app.db.session import SessionLocal
+    from app.subjects.models import LearningMaterial, Section, Subject, Topic
+    from jose import jwt
 
     s = get_settings()
     user_id = int(jwt.get_unverified_claims(teacher_login)["sub"])

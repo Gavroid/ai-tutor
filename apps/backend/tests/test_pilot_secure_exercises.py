@@ -23,12 +23,11 @@ os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
 os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
 
 import pytest
-from sqlalchemy import create_engine, select
-from sqlalchemy.orm import sessionmaker
-
 from app.ai.models import GeneratedExerciseInstance  # noqa: E402
 from app.db.session import Base  # noqa: E402
 from app.users.models import Role, User  # noqa: E402
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import sessionmaker
 
 
 def test_model_imports_and_has_required_columns():

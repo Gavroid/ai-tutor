@@ -17,9 +17,8 @@ import re
 from typing import Any
 
 import httpx
-
 from app.ai.sanitize import sanitize_output, sanitize_user_input
-from app.ai.types import AIMessage, AIRequest, AIResponse, AIProvider
+from app.ai.types import AIMessage, AIProvider, AIRequest, AIResponse
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)

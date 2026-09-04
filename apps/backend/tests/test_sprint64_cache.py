@@ -11,15 +11,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # === Fixture ===
 
 @pytest.fixture
 def client():
     """Sprint 64: TestClient fixture."""
-    from fastapi.testclient import TestClient
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
+    from fastapi.testclient import TestClient
 
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
@@ -165,8 +164,8 @@ def test_ttl_constants_reasonable():
     from app.cache import (
         MATERIALS_TTL,
         SUBJECTS_TTL,
-        TOPICS_TTL,
         TOPIC_TTL,
+        TOPICS_TTL,
     )
 
     # 2-5 минут range

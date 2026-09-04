@@ -13,11 +13,10 @@ import os
 
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
-
 
 # === Module-level tests ===
 
@@ -40,7 +39,7 @@ def test_whisper_api_url_defined():
 @pytest.fixture
 def client():
     """Sprint 72: TestClient + DB setup."""
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
 
     Base.metadata.drop_all(engine)
@@ -51,10 +50,10 @@ def client():
 @pytest.fixture
 def user_token(client):
     """Sprint 72: student token."""
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         user = User(

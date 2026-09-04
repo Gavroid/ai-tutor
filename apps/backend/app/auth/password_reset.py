@@ -13,16 +13,14 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Optional
-
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from app.auth.security import hash_password
 from app.notifications import service as notif_service
 from app.users.models import User
-
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 RESET_TTL = timedelta(hours=1)
 MAX_REQUESTS_PER_HOUR = 5
@@ -46,7 +44,7 @@ def request_reset(db: Session, email: str) -> Optional[str]:
         return None
 
     # Лимит запросов за час (anti-flood)
-    one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+    one_hour_ago = datetime.now(UTC) - timedelta(hours=1)
     recent = db.scalars(
         select(PasswordResetToken).where(
             PasswordResetToken.user_id == user.id,
@@ -59,7 +57,7 @@ def request_reset(db: Session, email: str) -> Optional[str]:
 
     raw_token = secrets.token_urlsafe(32)
     token_hash = _hash_token(raw_token)
-    expires_at = datetime.now(timezone.utc) + RESET_TTL
+    expires_at = datetime.now(UTC) + RESET_TTL
 
     record = PasswordResetToken(
         user_id=user.id,
@@ -126,8 +124,8 @@ def confirm_reset(db: Session, raw_token: str, new_password: str) -> bool:
     # Проверка срока — БД может вернуть naive datetime, сравниваем без TZ
     expires = record.expires_at
     if expires.tzinfo is None:
-        expires = expires.replace(tzinfo=timezone.utc)
-    if expires < datetime.now(timezone.utc):
+        expires = expires.replace(tzinfo=UTC)
+    if expires < datetime.now(UTC):
         return False
 
     # Устанавливаем новый пароль

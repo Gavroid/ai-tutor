@@ -5,9 +5,9 @@ import os
 
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
-import pytest
 from unittest.mock import MagicMock, patch
 
+import pytest
 
 # === Source verification ===
 

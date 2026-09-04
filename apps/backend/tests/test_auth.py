@@ -5,10 +5,10 @@
 """
 from __future__ import annotations
 
+import os
+
 import pytest
 from fastapi.testclient import TestClient
-
-import os
 
 os.environ.setdefault("APP_SECRET_KEY", "test-secret-key-for-pytest-only-1234567890")
 os.environ.setdefault("APP_ENV", "development")
@@ -89,10 +89,8 @@ def test_admin_role_self_registration_blocked(client):
     future Pydantic validator pre-empts the call). The hard requirement is
     that no row is inserted.
     """
-    from sqlalchemy import select
-
     from app.db.session import SessionLocal
-    from app.users.models import User
+    from sqlalchemy import select
 
     r = client.post(
         "/api/v1/auth/register",
@@ -111,10 +109,8 @@ def test_teacher_role_self_registration_blocked(client):
     Pilot policy (see pilot-core-stage-1.md §P1.1.1): teacher and admin roles are
     privileged and must be created only via the seed script.
     """
-    from sqlalchemy import select
-
     from app.db.session import SessionLocal
-    from app.users.models import User
+    from sqlalchemy import select
 
     r = client.post(
         "/api/v1/auth/register",
@@ -140,10 +136,8 @@ def test_admin_role_does_not_create_user(client):
     The existing test_admin_role_self_registration_blocked only asserts the HTTP
     status; this test additionally proves that no row was inserted.
     """
-    from sqlalchemy import select
-
     from app.db.session import SessionLocal
-    from app.users.models import User
+    from sqlalchemy import select
 
     r = client.post(
         "/api/v1/auth/register",
@@ -232,7 +226,7 @@ def test_login_accepts_seed_local_email_without_422(client):
     """
     from app.auth.security import hash_password
     from app.db.session import SessionLocal
-    from app.users.models import Role, User
+    from app.users.models import Role
 
     with SessionLocal() as session:
         session.add(

@@ -2,14 +2,21 @@
 from __future__ import annotations
 
 import json
-
 from types import SimpleNamespace
 
 import pytest
-
 from app.ai.hermes import _extract_structured_json, _prepare_model_output
-from app.ai.service import AIService, GeneratedExercise, _dedupe_rag_sources, _exercise_matches_topic, _rag_enabled_for_subject, _verified_rag_sources, _trim_incomplete_trailing_fragment, _valid_generated_exercise
-from app.ai.types import AIMessage, AIRequest, AIResponse, AIProvider
+from app.ai.service import (
+    AIService,
+    GeneratedExercise,
+    _dedupe_rag_sources,
+    _exercise_matches_topic,
+    _rag_enabled_for_subject,
+    _trim_incomplete_trailing_fragment,
+    _valid_generated_exercise,
+    _verified_rag_sources,
+)
+from app.ai.types import AIMessage, AIProvider, AIRequest, AIResponse
 
 
 class StaticProvider(AIProvider):

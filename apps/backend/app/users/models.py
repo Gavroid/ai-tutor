@@ -10,20 +10,21 @@ from __future__ import annotations
 from datetime import datetime
 from enum import Enum
 
+from app.db.session import Base
 from sqlalchemy import (
     BigInteger,
     CheckConstraint,
     DateTime,
-    Enum as SAEnum,
     ForeignKey,
     Integer,
     String,
     Text,
     func,
 )
+from sqlalchemy import (
+    Enum as SAEnum,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.session import Base
 
 # В Postgres используется BIGINT (масштабируется до 2^63), в SQLite —
 # INTEGER, иначе автоинкремент не работает (SQLite требует именно INTEGER PK
@@ -62,7 +63,7 @@ class User(Base):
         nullable=False,
     )
 
-    student_profile: Mapped["StudentProfile | None"] = relationship(
+    student_profile: Mapped[StudentProfile | None] = relationship(
         "StudentProfile", back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
 

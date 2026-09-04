@@ -1,11 +1,11 @@
 from types import SimpleNamespace
 
+from app.db.session import Base, SessionLocal, engine
 from app.diagnostics import models as diag_models
 from app.diagnostics import service as diag_service
 from app.math_plan import MATH_SUBJECT_ID, diagnostic_topic_ids
 from app.subjects import models as subj_models
 from app.subjects.scripts_seed_runner import seed_for_tests
-from app.db.session import Base, SessionLocal, engine
 
 
 def test_math_diagnostic_uses_balanced_route_topics(monkeypatch):

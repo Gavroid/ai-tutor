@@ -24,12 +24,11 @@ os.environ["UPLOAD_DIR"] = "/tmp/ai-tutor-test-uploads-teacher"
 import json
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
 from app.users import service as user_service
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture(autouse=True)
@@ -52,7 +51,8 @@ def client():
     Base.metadata.create_all(engine)
 
     from app.auth.security import hash_password
-    from app.users.models import Role as UserRole, User
+    from app.users.models import Role as UserRole
+    from app.users.models import User
 
     s = SessionLocal()
     try:
@@ -103,8 +103,8 @@ def client():
             allow_private_bypass=True,
         )
         # Сидим curriculum → получаем topic
-        from app.subjects.scripts_seed_runner import seed_for_tests
         from app.subjects.models import Topic
+        from app.subjects.scripts_seed_runner import seed_for_tests
 
         seed_for_tests(s, reset=False)
         topic = s.query(Topic).first()
@@ -383,7 +383,7 @@ def test_generate_injection_in_source_rejected(client):
 
 def test_upload_source_txt(client):
     teacher = _token(client, "teacher@example.com")
-    files = {"file": ("notes.txt", "Это мой учебный материал про дроби.".encode("utf-8"), "text/plain")}
+    files = {"file": ("notes.txt", "Это мой учебный материал про дроби.".encode(), "text/plain")}
     r = client.post(
         "/api/v1/teacher/materials/upload-source",
         files=files,

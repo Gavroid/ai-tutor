@@ -17,11 +17,10 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-
 from app.config import get_settings
 from app.subjects import models as subj_models
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 ALLOWED_EXTS = {".txt", ".md", ".pdf", ".docx", ".png", ".jpg", ".jpeg"}
 MAX_FILE_BYTES = 20 * 1024 * 1024  # 20 MB

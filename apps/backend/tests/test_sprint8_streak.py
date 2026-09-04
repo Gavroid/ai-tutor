@@ -10,7 +10,7 @@ T1D-friendly дизайн:
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 os.environ.setdefault("APP_SECRET_KEY", "test-secret-key-for-pytest-only-1234567890")
 os.environ.setdefault("APP_ENV", "development")
@@ -19,13 +19,12 @@ os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
 os.environ.setdefault("AI_API_KEY", "mock-key-for-tests")
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.db.session import Base, SessionLocal, engine
 from app.main import app
+from app.progress import models as prog_models
 from app.users import service as user_service
 from app.users.schemas import UserCreate
-from app.progress import models as prog_models
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -63,7 +62,7 @@ def _login(client, email: str = "kid@example.com") -> str:
 
 def _add_attempt(s, user_id: int, topic_id: int, is_correct: bool, days_ago: int) -> None:
     """Добавляет attempt в БД с created_at = days_ago назад от сегодня."""
-    when = datetime.now(timezone.utc) - timedelta(days=days_ago)
+    when = datetime.now(UTC) - timedelta(days=days_ago)
     a = prog_models.Attempt(
         user_id=user_id,
         topic_id=topic_id,

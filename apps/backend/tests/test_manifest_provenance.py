@@ -17,7 +17,6 @@ from collections import defaultdict
 from pathlib import Path
 
 import pytest
-
 from app.subjects.textbook_manifest_policy import validate_textbook_manifest
 
 REPO_ROOT = Path("/root/workspace/ai-tutor")

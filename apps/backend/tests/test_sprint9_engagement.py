@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 os.environ.setdefault("APP_SECRET_KEY", "test-secret-key-for-pytest-only-1234567890")
 os.environ.setdefault("APP_ENV", "development")
@@ -19,13 +19,12 @@ os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
 os.environ.setdefault("AI_API_KEY", "mock-key-for-tests")
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.db.session import Base, SessionLocal, engine
 from app.main import app
+from app.progress import models as prog_models
 from app.users import service as user_service
 from app.users.schemas import UserCreate
-from app.progress import models as prog_models
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -60,8 +59,8 @@ def _create_user(s, email: str, role: str = "student") -> int:
 
 def _create_admin(s, email: str) -> int:
     """Sprint 9: admin создаётся напрямую в БД (через /auth/register нельзя)."""
-    from app.users import models as user_models
     from app.auth.security import hash_password
+    from app.users import models as user_models
 
     user = user_models.User(
         email=email,
@@ -85,7 +84,7 @@ def _login(client, email: str) -> str:
 
 def _add_attempt(s, user_id: int, topic_id: int, is_correct: bool = True, days_ago: int = 0) -> None:
     """Добавляет attempt в БД."""
-    when = datetime.now(timezone.utc) - timedelta(days=days_ago)
+    when = datetime.now(UTC) - timedelta(days=days_ago)
     a = prog_models.Attempt(
         user_id=user_id,
         topic_id=topic_id,
@@ -199,8 +198,8 @@ def test_engagement_dau_calculation(client):
     body = r.json()
     # DAU за 14 дней — найдём конкретные даты
     days_dict = {d["date"]: d["active_users"] for d in body["dau_last_14_days"]}
-    target_3_days_ago = (datetime.now(timezone.utc) - timedelta(days=3)).date().isoformat()
-    target_1_day_ago = (datetime.now(timezone.utc) - timedelta(days=1)).date().isoformat()
+    target_3_days_ago = (datetime.now(UTC) - timedelta(days=3)).date().isoformat()
+    target_1_day_ago = (datetime.now(UTC) - timedelta(days=1)).date().isoformat()
     # Day 3 days ago: 2 users (kid1 + kid2)
     assert days_dict[target_3_days_ago] == 2
     # Day 1 day ago: 1 user (только kid1)
@@ -211,7 +210,7 @@ def test_engagement_dau_calculation(client):
 
 
 def _date_n_days_ago(n: int) -> str:
-    return (datetime.now(timezone.utc) - timedelta(days=n)).date().isoformat()
+    return (datetime.now(UTC) - timedelta(days=n)).date().isoformat()
 
 
 def test_engagement_dau_response_shape(client):

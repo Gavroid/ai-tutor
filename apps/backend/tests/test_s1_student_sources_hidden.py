@@ -17,10 +17,8 @@ os.environ.setdefault("AI_API_KEY", "mock-key-for-tests")
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
 import pytest
-
 from app.ai import service as ai_service
 from app.ai.service import AIService, _verified_rag_sources
-
 
 # === Pure unit test (no DB) ============================================
 

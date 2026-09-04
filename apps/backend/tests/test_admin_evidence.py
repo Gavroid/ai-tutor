@@ -20,11 +20,10 @@ os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
 os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.db.session import Base, SessionLocal, engine
 from app.main import app
 from app.subjects import evidence as evidence_mod
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -87,8 +86,9 @@ def admin_client(tmp_path, monkeypatch):
 
     s = SessionLocal()
     try:
-        from app.users.models import User, Role as UserRole
         from app.auth.security import hash_password
+        from app.users.models import Role as UserRole
+        from app.users.models import User
 
         admin = User(
             email="admin@test.local",
@@ -126,8 +126,9 @@ def student_client():
     Base.metadata.create_all(engine)
     s = SessionLocal()
     try:
-        from app.users.models import User, Role as UserRole
         from app.auth.security import hash_password
+        from app.users.models import Role as UserRole
+        from app.users.models import User
 
         student = User(
             email="student2@test.local",

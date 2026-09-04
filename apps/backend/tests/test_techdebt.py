@@ -10,11 +10,12 @@ os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
 os.environ["CORS_ORIGINS"] = "http://localhost:3000"
 os.environ["AI_API_KEY"] = "mock-key-for-tests"
 
-import pytest
-from fastapi.testclient import TestClient
+from datetime import UTC
 
+import pytest
 from app.db.session import Base, SessionLocal, engine, get_db
-from app.main import app, _client_ip, _ip_in_cidrs
+from app.main import _client_ip, _ip_in_cidrs, app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -200,15 +201,14 @@ def test_purge_deletes_old_logs(client):
     """Старые логи удаляются, свежие остаются."""
     from datetime import datetime, timedelta, timezone
 
-    from sqlalchemy import insert
-
     from app.admin.models import AuditLog
+    from sqlalchemy import insert
 
     admin_id = _create_admin(client)
     s = SessionLocal()
     try:
-        old_dt = datetime.now(timezone.utc) - timedelta(days=100)
-        new_dt = datetime.now(timezone.utc) - timedelta(days=10)
+        old_dt = datetime.now(UTC) - timedelta(days=100)
+        new_dt = datetime.now(UTC) - timedelta(days=10)
         s.execute(
             insert(AuditLog).values(
                 user_id=admin_id, action="old.test", created_at=old_dt

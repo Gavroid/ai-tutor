@@ -6,14 +6,13 @@ os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
 os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
 
 import pytest
-from fastapi.testclient import TestClient
-
+from app.algebra_plan import ALGEBRA_SUBJECT_ID
 from app.db.session import Base, SessionLocal, engine, get_db
+from app.geometry_plan import GEOMETRY_SUBJECT_ID
 from app.main import app
 from app.math_plan import MATH_SUBJECT_ID
-from app.algebra_plan import ALGEBRA_SUBJECT_ID
-from app.geometry_plan import GEOMETRY_SUBJECT_ID
 from app.subjects.scripts_seed_runner import seed_for_tests
+from fastapi.testclient import TestClient
 
 
 def _reset_db():

@@ -6,7 +6,8 @@ state. Создаёт индексы для owner/created для быстрог�
 
 Backwards compatible: существующие таблицы не затронуты.
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
 import sqlalchemy as sa
 from alembic import op

@@ -1,16 +1,16 @@
 """Модели модуля student: черновики уроков, баджи (Sprint 7.5)."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 from sqlalchemy import (
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
     UniqueConstraint,
-    Index,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -18,7 +18,7 @@ from app.db.session import Base
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class TopicDraft(Base):

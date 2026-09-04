@@ -12,10 +12,9 @@ os.environ["AI_API_KEY"] = "mock-key-for-tests"
 import json
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -222,8 +221,8 @@ def test_observability_exports():
     from app.observability import (
         AI_REQUESTS_TOTAL,
         AI_TOKENS_TOTAL,
-        HTTP_REQUESTS_TOTAL,
         HTTP_REQUEST_DURATION,
+        HTTP_REQUESTS_TOTAL,
         metrics_endpoint,
         metrics_middleware,
         record_ai_request,

@@ -6,14 +6,13 @@ T1D-friendly safety: записывает pause events от ребёнка.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Literal
-
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
 
 from app.common.deps import User, get_current_user
 from app.db.session import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/v1/sessions", tags=["sessions"])
@@ -101,7 +100,7 @@ def resume_pause(
     if pause is None:
         raise HTTPException(404, "No active pause")
 
-    pause.ended_at = datetime.now(timezone.utc)
+    pause.ended_at = datetime.now(UTC)
     db.commit()
     db.refresh(pause)
 
@@ -145,6 +144,7 @@ def list_recent_pauses(
 
 # Local imports для type hints
 from fastapi import Depends as _Depends  # noqa: E402
+
 
 def get_db():
     """Пустая функция — реальная session через SessionLocal."""

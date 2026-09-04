@@ -128,8 +128,9 @@ def test_rag_metadata_audit_summary_counts_good_and_bad_rows():
 
 
 def test_rag_metadata_cli_can_audit_known_good_bad_fixture(tmp_path, capsys):
-    from scripts import rag_metadata_audit
     import sys
+
+    from scripts import rag_metadata_audit
 
     fixture = tmp_path / "rows.json"
     fixture.write_text(

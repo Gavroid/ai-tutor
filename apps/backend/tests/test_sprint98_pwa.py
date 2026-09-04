@@ -5,13 +5,12 @@ import os
 
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
+# Sprint 98: resolve paths to frontend from this test file.
+import os as _os
 import re
 
 import pytest
 
-
-# Sprint 98: resolve paths to frontend from this test file.
-import os as _os
 TEST_DIR = _os.path.dirname(_os.path.abspath(__file__))
 REPO_ROOT = _os.path.abspath(_os.path.join(TEST_DIR, "..", "..", ".."))
 FRONTEND_DIR = _os.path.join(REPO_ROOT, "apps", "frontend")
@@ -35,7 +34,7 @@ def test_sw_js_has_install_listener():
         SW_PATH
     ) as f:
         content = f.read()
-    assert f"addEventListener(\"install\"" in content
+    assert "addEventListener(\"install\"" in content
 
 
 def test_sw_js_has_activate_listener():
@@ -44,7 +43,7 @@ def test_sw_js_has_activate_listener():
         SW_PATH
     ) as f:
         content = f.read()
-    assert f"addEventListener(\"activate\"" in content
+    assert "addEventListener(\"activate\"" in content
 
 
 def test_sw_js_has_fetch_listener():
@@ -53,7 +52,7 @@ def test_sw_js_has_fetch_listener():
         SW_PATH
     ) as f:
         content = f.read()
-    assert f"addEventListener(\"fetch\"" in content
+    assert "addEventListener(\"fetch\"" in content
 
 
 def test_sw_js_caches_app_shell():

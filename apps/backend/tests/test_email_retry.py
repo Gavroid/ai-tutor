@@ -13,9 +13,9 @@ os.environ.setdefault("AI_API_KEY", "mock-key-for-tests")
 os.environ.setdefault("SMTP_URL", "smtp://user:pass@smtp.example.com:587")
 
 import asyncio
-import pytest
 from unittest.mock import patch
 
+import pytest
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.notifications import models as notif_models
 from app.notifications import service

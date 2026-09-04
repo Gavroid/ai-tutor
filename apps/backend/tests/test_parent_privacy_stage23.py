@@ -2,12 +2,9 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import select
-
 from app.auth.security import hash_password
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
@@ -15,6 +12,8 @@ from app.progress import models as progress_models
 from app.subjects.models import Topic
 from app.subjects.scripts_seed_runner import seed_for_tests
 from app.users.models import ParentStudentLink, Role, User
+from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 
 @pytest.fixture()
@@ -48,7 +47,7 @@ def client():
                 is_correct=False,
                 score=0.0,
                 feedback="RAW_PRIVATE_AI_FEEDBACK: hidden chat-style feedback",
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             )
         )
         db.add(
@@ -67,7 +66,7 @@ def client():
                 mistake_type="conceptual",
                 description="Aggregate mistake summary only",
                 count=1,
-                last_seen=datetime.now(timezone.utc),
+                last_seen=datetime.now(UTC),
             )
         )
         db.add(
@@ -79,7 +78,7 @@ def client():
                 correct_answer="OTHER_PRIVATE_CORRECT_ANSWER",
                 is_correct=True,
                 score=1.0,
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             )
         )
         db.commit()
@@ -95,8 +94,8 @@ def client():
 
     app.dependency_overrides[get_db] = _gen
     with TestClient(app) as test_client:
-        setattr(test_client, "linked_student_id", linked_id)
-        setattr(test_client, "other_student_id", other_id)
+        test_client.linked_student_id = linked_id
+        test_client.other_student_id = other_id
         yield test_client
     app.dependency_overrides.clear()
     Base.metadata.drop_all(engine)

@@ -6,9 +6,8 @@ import os
 # Sprint 64: disable OpenTelemetry для tests
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
-import pytest
 import numpy as np
-
+import pytest
 
 # === Module-level tests (без DB) ===
 

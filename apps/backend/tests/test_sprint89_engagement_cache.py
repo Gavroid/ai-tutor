@@ -5,16 +5,16 @@ import os
 
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
-import pytest
 from unittest.mock import MagicMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 
 @pytest.fixture
 def client():
     """Sprint 89: TestClient + DB setup."""
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
 
     Base.metadata.drop_all(engine)
@@ -25,10 +25,10 @@ def client():
 @pytest.fixture
 def admin_token(client):
     """Sprint 89: admin token."""
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         admin = User(

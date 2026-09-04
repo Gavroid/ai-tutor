@@ -11,6 +11,8 @@
 """
 from __future__ import annotations
 
+from datetime import UTC
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -18,7 +20,7 @@ from fastapi.testclient import TestClient
 @pytest.fixture
 def client():
     """Sprint 61: TestClient fixture."""
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
 
     Base.metadata.drop_all(engine)
@@ -203,10 +205,10 @@ def test_adaptive_recovery_overrides_high_accuracy():
 def test_generate_with_explicit_difficulty_uses_it(client):
     """Sprint 61: difficulty=2 (explicit) → используется как есть, не adaptive."""
     # Setup: topic
-    from app.db.session import engine, Base, SessionLocal
-    from app.subjects.models import Subject, Section, Topic
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import Base, SessionLocal, engine
+    from app.subjects.models import Section, Subject, Topic
+    from app.users.models import Role, User
 
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
@@ -257,10 +259,10 @@ def test_generate_with_explicit_difficulty_uses_it(client):
 
 def test_generate_with_difficulty_zero_uses_adaptive(client):
     """Sprint 61: difficulty=0 (auto) → используется adaptive logic."""
-    from app.db.session import engine, Base, SessionLocal
-    from app.subjects.models import Subject, Section, Topic
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import Base, SessionLocal, engine
+    from app.subjects.models import Section, Subject, Topic
+    from app.users.models import Role, User
 
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
@@ -311,12 +313,13 @@ def test_generate_with_difficulty_zero_uses_adaptive(client):
 
 def test_generate_with_recovery_pause_uses_easy(client):
     """Sprint 61: recent hypo/hyper pause → auto difficulty = easy (1)."""
-    from app.db.session import engine, Base, SessionLocal
-    from app.subjects.models import Subject, Section, Topic
-    from app.users.models import User, Role
+    from datetime import datetime, timedelta, timezone
+
     from app.auth.security import hash_password
+    from app.db.session import Base, SessionLocal, engine
     from app.sessions.models import SessionPause
-    from datetime import datetime, timezone, timedelta
+    from app.subjects.models import Section, Subject, Topic
+    from app.users.models import Role, User
 
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
@@ -354,7 +357,7 @@ def test_generate_with_recovery_pause_uses_easy(client):
             user_id=user.id,
             topic_id=topic_id,
             reason="hypo",
-            started_at=datetime.now(timezone.utc) - timedelta(minutes=5),
+            started_at=datetime.now(UTC) - timedelta(minutes=5),
         )
         db.add(pause)
         db.commit()
@@ -376,9 +379,9 @@ def test_generate_with_recovery_pause_uses_easy(client):
 
 def test_generate_requires_topic(client):
     """Sprint 61: несуществующий topic → 404."""
-    from app.db.session import SessionLocal
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import SessionLocal
+    from app.users.models import Role, User
 
     with SessionLocal() as db:
         user = User(

@@ -11,7 +11,6 @@ from unittest.mock import patch
 
 import pytest
 
-
 # === setup_telemetry() tests ===
 
 def test_setup_telemetry_disabled_via_env(monkeypatch):

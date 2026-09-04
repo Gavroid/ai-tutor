@@ -9,7 +9,8 @@
 Revision ID: 0009_spaced_repetition
 Revises: 0008_material_workflow
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
 import sqlalchemy as sa
 from alembic import op

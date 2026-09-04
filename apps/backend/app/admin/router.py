@@ -7,18 +7,17 @@ from __future__ import annotations
 
 import asyncio
 import os
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from datetime import datetime, timezone
 from typing import Annotated
-
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
 
 from app.admin import models, schemas, service
 from app.admin import service as audit_service
 from app.common.deps import Role, User, require_admin
 from app.db.session import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
@@ -101,7 +100,7 @@ def audit_log_count(
     # Защищает от случайного чтения всей таблицы.
     if since_dt is None and until_dt is None:
         from datetime import timedelta
-        until_dt = datetime.now(timezone.utc)
+        until_dt = datetime.now(UTC)
         since_dt = until_dt - timedelta(days=90)
 
     # Sprint 76: если только один фильтр, ограничиваем диапазон max 2 года.
@@ -176,8 +175,8 @@ def admin_ops_status(
     current: User = Depends(require_admin()),
 ):
     """Stage 6: one-shot operator preflight status for MVP manual testing."""
-    from sqlalchemy import text
     from app.config import get_settings
+    from sqlalchemy import text
 
     settings = get_settings()
     db_ok = False
@@ -230,7 +229,7 @@ def admin_ops_status(
     overall_ok = bool(db_ok and redis_ok and upload_dir.exists())
     return {
         "ok": overall_ok,
-        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "checked_at": datetime.now(UTC).isoformat(),
         "environment": settings.app_env,
         "checks": checks,
     }
@@ -281,13 +280,13 @@ def admin_engagement(
     - top_subjects: топ-3 предмета по attempts
     - daily_active_users: DAU за последние 14 дней (для графика)
     """
-    from datetime import datetime, timedelta, timezone
+    import json
+    from datetime import datetime, timedelta
 
+    import redis as redis_lib
     from app.progress import models as prog_models
     from app.subjects import models as subj_models
     from sqlalchemy import func as sqlfunc
-    import json
-    import redis as redis_lib
 
     # Sprint 89: Redis cache для expensive engagement queries.
     # TTL 60 секунд — дашборд не критичный к fresh data.
@@ -302,12 +301,12 @@ def admin_engagement(
         # Cache miss/fail — proceed to DB query
         pass
 
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(UTC) - timedelta(days=days)
 
     # DAU за последние 14 дней (для графика)
     dau_14 = []
     for d in range(13, -1, -1):
-        day_start = (datetime.now(timezone.utc) - timedelta(days=d)).date()
+        day_start = (datetime.now(UTC) - timedelta(days=d)).date()
         day_end = day_start + timedelta(days=1)
         # attempts за этот день
         cnt = db.scalar(
@@ -370,7 +369,7 @@ def admin_engagement(
     # Cohort weeks: последние N недель, в пределах period
     cohort_week_count = min(days // 7, 8) if days >= 7 else 0
     if cohort_week_count > 0:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for week_offset in range(cohort_week_count):
             cohort_end = now - timedelta(weeks=week_offset)
             cohort_start = cohort_end - timedelta(days=7)
@@ -486,7 +485,7 @@ def test_notification(
                 f"Это тестовое письмо от AI-репетитора.\n\n"
                 f"Отправлено: {current.email}\n"
                 f"Получатель: {email}\n"
-                f"Время: {datetime.now(timezone.utc).isoformat()}\n"
+                f"Время: {datetime.now(UTC).isoformat()}\n"
             ),
         )
 
@@ -540,23 +539,24 @@ def export_audit_log(
 ):
     """Sprint 45: export audit log (для compliance).
     Sprint 87: max_records query param (1-100000)."""
-    from datetime import datetime
-    from sqlalchemy import select
     import csv
     import io
+    from datetime import datetime
+
+    from sqlalchemy import select
 
     q = select(models.AuditLog)
     if since:
         from datetime import timezone
         since_dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
         if since_dt.tzinfo is None:
-            since_dt = since_dt.replace(tzinfo=timezone.utc)
+            since_dt = since_dt.replace(tzinfo=UTC)
         q = q.where(models.AuditLog.created_at >= since_dt)
     if until:
         from datetime import timezone
         until_dt = datetime.fromisoformat(until.replace("Z", "+00:00"))
         if until_dt.tzinfo is None:
-            until_dt = until_dt.replace(tzinfo=timezone.utc)
+            until_dt = until_dt.replace(tzinfo=UTC)
         q = q.where(models.AuditLog.created_at <= until_dt)
     q = q.order_by(models.AuditLog.id.asc()).limit(max_records)
     rows = db.execute(q).scalars().all()

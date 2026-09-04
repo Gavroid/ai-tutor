@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import asyncio
-import pytest
 
+import pytest
 from app.ai import prompts
 from app.ai.prompts import hint_system_at_level
 

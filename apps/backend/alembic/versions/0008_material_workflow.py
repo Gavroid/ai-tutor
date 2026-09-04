@@ -16,7 +16,8 @@
 Revision ID: 0008_material_workflow
 Revises: 0007_password_reset
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
 import sqlalchemy as sa
 from alembic import op

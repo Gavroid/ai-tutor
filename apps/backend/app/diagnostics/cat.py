@@ -15,8 +15,8 @@ TODO (Sprint 8.5+ расширения):
 """
 from __future__ import annotations
 
-import math
 import logging
+import math
 from dataclasses import dataclass
 
 from sqlalchemy import select
@@ -138,8 +138,9 @@ def next_topic_adaptive(
     theta_if_wrong = estimate_theta_after_answer(state.theta, correct=False)
 
     # Генерируем вопрос через существующую инфраструктуру
-    from app.ai.service import AIService, get_ai_service
     import asyncio
+
+    from app.ai.service import AIService, get_ai_service
 
     async def _gen_question():
         svc = get_ai_service()

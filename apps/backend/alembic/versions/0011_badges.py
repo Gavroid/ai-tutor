@@ -14,7 +14,8 @@ T1D: ни streak'ов, ни обратных таймеров — НЕЛЬЗЯ �
 - badge_definitions — каталог баджей (slug, title, description, icon, criteria_json)
 - user_badges — факт получения (user_id, badge_slug, awarded_at, evidence_json)
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
 import sqlalchemy as sa
 from alembic import op

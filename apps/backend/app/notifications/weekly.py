@@ -19,13 +19,12 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from html import escape
 
+from app.users import models as user_models
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-
-from app.users import models as user_models
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +127,7 @@ def send_weekly_summary_for_parent(
     from app.notifications.service import _send_via_smtp
 
     week_start = week_start or (
-        datetime.now(timezone.utc) - timedelta(days=7)
+        datetime.now(UTC) - timedelta(days=7)
     ).replace(hour=0, minute=0, second=0, microsecond=0)
     week_label = week_start.strftime("%d.%m") + "—" + (week_start + timedelta(days=6)).strftime("%d.%m.%Y")
 

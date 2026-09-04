@@ -15,12 +15,11 @@ os.environ["AI_API_KEY"] = "mock-key-for-tests"
 os.environ["UPLOAD_DIR"] = "/tmp/ai-tutor-test-uploads"
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
 from app.users import service as user_service
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -30,7 +29,8 @@ def client():
     Base.metadata.create_all(engine)
 
     from app.auth.security import hash_password
-    from app.users.models import Role as UserRole, User
+    from app.users.models import Role as UserRole
+    from app.users.models import User
 
     s = SessionLocal()
     try:
@@ -38,7 +38,8 @@ def client():
         # PUBLIC_REGISTRATION_ALLOWED_ROLES через прямые вставки User.
         # Это эквивалент «privileged role via seed» в тестовой среде.
         from app.auth.security import hash_password
-        from app.users.models import Role as UserRole, User
+        from app.users.models import Role as UserRole
+        from app.users.models import User
 
         admin = User(
             email="admin@example.com",
@@ -84,9 +85,8 @@ def client():
         topic = s.query(Topic).first()
         if topic is None:
             # fallback: создать section+topic вручную
-            from app.subjects.models import Section
-
             from app.subjects.curriculum_7_class import CURRICULUM
+            from app.subjects.models import Section
 
             # первый subject + первый topic
             subj_data = next(iter(CURRICULUM.values()))

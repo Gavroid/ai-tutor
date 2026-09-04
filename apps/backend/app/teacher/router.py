@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import os
+from datetime import UTC
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
@@ -17,9 +18,9 @@ from app.common.deps import User, require_teacher_or_admin
 from app.db.session import get_db
 from app.subjects import models as subj_models
 from app.subjects.router import _followup_count_for_topic
+from app.teacher import content_registry
 from app.teacher import schemas as teacher_schemas
 from app.teacher import service as teacher_service
-from app.teacher import content_registry
 
 router = APIRouter(prefix="/api/v1/teacher", tags=["teacher"])
 
@@ -65,8 +66,8 @@ def topic_readiness(
     db: Session = Depends(get_db),
     current: User = Depends(require_teacher_or_admin()),
 ):
-    from app.rag_models import RagChunk
     from app.math_plan import PLAN_BY_TOPIC_ID
+    from app.rag_models import RagChunk
 
     query = (
         db.query(subj_models.Topic)
@@ -237,6 +238,7 @@ def teacher_rebuild_topic_rag(
     current: User = Depends(require_teacher_or_admin()),
 ):
     from datetime import datetime, timezone
+
     from app.rag_models import RagChunk
 
     topic = _get_topic_or_404(db, topic_id)
@@ -247,7 +249,7 @@ def teacher_rebuild_topic_rag(
         .scalar()
         or 0
     )
-    job_id = f"rag-topic-{topic.id}-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+    job_id = f"rag-topic-{topic.id}-{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
     payload = {
         "job_id": job_id,
         "topic_id": topic.id,
@@ -751,8 +753,8 @@ def unpublish_material(
 
 def _get_ai_provider():
     """Ленивая инициализация AI-провайдера (как в app.ai)."""
-    from app.config import get_settings
     from app.ai.mock import MockProvider
+    from app.config import get_settings
 
     settings = get_settings()
     api_key = os.environ.get("AI_API_KEY", "").strip()

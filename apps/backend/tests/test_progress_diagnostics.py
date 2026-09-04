@@ -13,14 +13,13 @@ os.environ.setdefault("APP_ENV", "development")
 os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
 os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
 
-from fastapi.testclient import TestClient
 import pytest
-from sqlalchemy import select
-
 from app.db.session import Base, SessionLocal, get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.subjects import models as subj_models  # noqa: E402
 from app.subjects.scripts_seed_runner import seed_for_tests  # noqa: E402
+from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 
 @pytest.fixture()

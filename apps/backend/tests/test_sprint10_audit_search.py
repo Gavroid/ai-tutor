@@ -12,7 +12,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 os.environ.setdefault("APP_SECRET_KEY", "test-secret-key-for-pytest-only-1234567890")
 os.environ.setdefault("APP_ENV", "development")
@@ -23,14 +23,13 @@ os.environ.setdefault("AI_API_KEY", "mock-key-for-tests")
 import json
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.admin import models as audit_models
 from app.admin import service as audit_service
 from app.auth.security import hash_password
 from app.db.session import Base, SessionLocal, engine
 from app.main import app
 from app.users import models as user_models
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -68,7 +67,7 @@ def _login_admin(client) -> str:
 
 def _add_log(s, action, entity="users", user_id=None, days_ago=0, details=None) -> int:
     """Добавляет audit_log запись с заданным action/entity."""
-    when = datetime.now(timezone.utc) - timedelta(days=days_ago)
+    when = datetime.now(UTC) - timedelta(days=days_ago)
     entry = audit_models.AuditLog(
         user_id=user_id,
         action=action,
@@ -247,7 +246,7 @@ def test_audit_since_filter(client):
         s.close()
 
     token = _login_admin(client)
-    since = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
+    since = (datetime.now(UTC) - timedelta(days=5)).isoformat()
     # URL-encode '+' (требуется для ISO datetime)
     since_encoded = quote(since, safe="")
     r = client.get(
@@ -344,7 +343,7 @@ def test_audit_combined_filters_all(client):
         s.close()
 
     token = _login_admin(client)
-    since = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    since = (datetime.now(UTC) - timedelta(days=7)).isoformat()
     since_encoded = quote(since, safe="")
     r = client.get(
         f"/api/v1/admin/audit-log?action=user.delete&entity=users"

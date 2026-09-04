@@ -11,15 +11,15 @@ os.environ["AI_API_KEY"] = "mock-key-for-tests"
 os.environ["UPLOAD_DIR"] = "/tmp/ai-tutor-test-uploads"
 
 import io
-import pytest
-from fastapi.testclient import TestClient
 
+import pytest
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
 from app.subjects import models as subj_models
 from app.subjects.scripts_seed_runner import seed_for_tests
 from app.users import service as user_service
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -255,7 +255,7 @@ def test_link_with_invalid_code(client):
 def test_upload_material_txt(client):
     teacher_token = _login(client, "teacher@example.com")
     tid = _first_algebra_topic_id()
-    content = "# Степени с натуральным показателем\n\nСтепень числа a в степени n — это произведение n множителей, каждый из которых равен a.".encode("utf-8")
+    content = "# Степени с натуральным показателем\n\nСтепень числа a в степени n — это произведение n множителей, каждый из которых равен a.".encode()
     r = client.post(
         "/api/v1/materials/upload",
         headers={"Authorization": f"Bearer {teacher_token}"},
@@ -288,7 +288,7 @@ def test_search_materials(client):
     teacher_token = _login(client, "teacher@example.com")
     kid_token = _login(client, "kid@example.com")
     tid = _first_algebra_topic_id()
-    content = "Уникальное слово зеленоперсиковый для поиска в материалах. Просто текст.".encode("utf-8")
+    content = "Уникальное слово зеленоперсиковый для поиска в материалах. Просто текст.".encode()
     client.post(
         "/api/v1/materials/upload",
         headers={"Authorization": f"Bearer {teacher_token}"},

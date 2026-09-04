@@ -23,7 +23,7 @@ import os
 import signal
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 import httpx
@@ -78,7 +78,7 @@ def _log_to_file(payload: dict, status: str, telegram_message_id: int | None) ->
         log_path = Path(ALERT_LOG_FILE)
         log_path.parent.mkdir(parents=True, exist_ok=True)
         entry = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "status": status,  # sent | deduped | error
             "telegram_message_id": telegram_message_id,
             "payload": payload,

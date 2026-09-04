@@ -1,4 +1,5 @@
 from app.geometry_plan import GEOMETRY_TOPIC_PLAN
+
 from scripts.geometry_fallback_seed import FALLBACKS, build_rows
 
 

@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from scripts.math_fallback_seed import FALLBACKS
 from scripts.math_quality_lab import (
-    audit_explanation_samples,
-    build_local_sample_capture,
-    build_sample_quality_matrix,
-    format_sample_quality_matrix_markdown,
     DEFAULT_SAMPLE_TOPIC_IDS,
     QualityIssue,
+    audit_explanation_samples,
     audit_fallback_bank,
     audit_student_visible_text,
+    build_local_sample_capture,
     build_quality_report,
+    build_sample_quality_matrix,
+    format_sample_quality_matrix_markdown,
     select_default_sample_topics,
 )
 

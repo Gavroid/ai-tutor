@@ -10,15 +10,14 @@ os.environ["CORS_ORIGINS"] = "http://localhost:3000"
 os.environ["AI_API_KEY"] = "mock-key-for-tests"
 os.environ["UPLOAD_DIR"] = "/tmp/ai-tutor-test-uploads-sprint2"
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
 from app.users import service as user_service
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -28,7 +27,8 @@ def client():
     Base.metadata.create_all(engine)
 
     from app.auth.security import hash_password
-    from app.users.models import Role as UserRole, User
+    from app.users.models import Role as UserRole
+    from app.users.models import User
 
     s = SessionLocal()
     try:
@@ -60,8 +60,8 @@ def client():
             ),
         )
 
-        from app.subjects.scripts_seed_runner import seed_for_tests
         from app.subjects.models import Topic
+        from app.subjects.scripts_seed_runner import seed_for_tests
 
         seed_for_tests(s, reset=False)
         topic = s.query(Topic).first()
@@ -120,7 +120,7 @@ def _publish_material(c: TestClient, topic_id: int) -> int:
 def test_sm2_first_correct_review_schedules_for_1_day():
     from app.progress.spaced import schedule_next_review
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     r = schedule_next_review(None, 0, 2.5, quality=5, now=now)
     assert r.interval_days == 1
     assert r.review_count == 1
@@ -131,7 +131,7 @@ def test_sm2_first_correct_review_schedules_for_1_day():
 def test_sm2_second_correct_review_schedules_for_6_days():
     from app.progress.spaced import schedule_next_review
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     r = schedule_next_review(now, 1, 2.5, quality=5, now=now)
     assert r.interval_days == 6
     assert r.review_count == 2
@@ -140,7 +140,7 @@ def test_sm2_second_correct_review_schedules_for_6_days():
 def test_sm2_incorrect_resets_count():
     from app.progress.spaced import schedule_next_review
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     # review_count=5, но ответили плохо
     r = schedule_next_review(now, 5, 2.5, quality=1, now=now)
     assert r.interval_days == 1
@@ -152,7 +152,7 @@ def test_sm2_ef_floor_at_13():
     """EF не падает ниже 1.3 даже при q=0."""
     from app.progress.spaced import schedule_next_review
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     r = schedule_next_review(now, 0, 1.3, quality=0, now=now)
     assert r.new_ef >= 1.3
 
@@ -221,12 +221,11 @@ def test_due_for_review_returns_overdue_topic(client):
     assert c_review.status_code == 200, c_review.text
 
     # Сдвигаем next_review_at в прошлое через прямой SQL.
-    from sqlalchemy import update
-
     from app.db.session import engine
     from app.progress.models import Progress
+    from sqlalchemy import update
 
-    past = datetime.now(timezone.utc) - timedelta(days=3)
+    past = datetime.now(UTC) - timedelta(days=3)
     with engine.begin() as conn:
         result = conn.execute(
             update(Progress)

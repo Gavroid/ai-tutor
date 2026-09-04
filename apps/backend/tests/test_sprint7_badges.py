@@ -5,8 +5,6 @@ import json
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.auth.security import create_access_token
 from app.db.session import Base, SessionLocal, engine
 from app.main import app
@@ -20,6 +18,7 @@ from app.student.badges import (
 from app.student.models import BadgeDefinition, UserBadge
 from app.users import service as user_service
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()

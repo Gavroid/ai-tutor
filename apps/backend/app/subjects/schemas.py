@@ -16,7 +16,6 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 # Evidence status values, которые могут появляться в mvp_status после fail-closed.
 MVP_STATUS_VALUES = (
     "mvp_ready",        # все evidence gates закрыты

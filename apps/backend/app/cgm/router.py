@@ -12,6 +12,7 @@ Nightscout API docs: https://github.com/nightscout/cgm-remote-monitor
 from __future__ import annotations
 
 import logging
+from datetime import UTC
 from typing import Any
 
 import httpx
@@ -216,7 +217,7 @@ async def get_latest(current: User = Depends(get_current_user)) -> CGMLatestOut:
     return CGMLatestOut(
         reading=reading,
         units=entry.get("units", "mg/dL"),
-        fetched_at=datetime.now(timezone.utc).isoformat(),
+        fetched_at=datetime.now(UTC).isoformat(),
     )
 
 

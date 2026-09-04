@@ -5,15 +5,14 @@ Read-эндпоинты (search, by-topic) — для всех авторизо�
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-
 from app.admin import service as audit_service
 from app.common.deps import User, current_user, require_teacher_or_admin
 from app.db.session import get_db
 from app.materials import schemas, service
 from app.subjects import models as subj_models
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/v1/materials", tags=["materials"])
 

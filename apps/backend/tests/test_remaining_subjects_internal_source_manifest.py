@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from app.subjects.curriculum_7_class import CURRICULUM_7_CLASS
+
+from scripts.rag_metadata_audit import audit_rows, summarize_audit
 from scripts.remaining_subjects_internal_source_manifest import (
     REMAINING_SUBJECT_CODES,
     build_remaining_subjects_internal_source_manifest,
 )
-from scripts.rag_metadata_audit import audit_rows, summarize_audit
 
 
 def test_remaining_subjects_manifest_covers_all_non_ready_preview_topics() -> None:

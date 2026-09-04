@@ -16,7 +16,6 @@ from __future__ import annotations
 import sqlalchemy as sa
 from alembic import op
 
-
 # revision identifiers, used by Alembic.
 revision = "0025_user_counters"
 down_revision = "0024_parent_seen_badges"

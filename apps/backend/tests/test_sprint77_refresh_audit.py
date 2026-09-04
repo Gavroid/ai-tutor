@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 @pytest.fixture
 def client():
     """Sprint 77: TestClient + DB setup."""
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
 
     Base.metadata.drop_all(engine)
@@ -23,10 +23,10 @@ def client():
 @pytest.fixture
 def tokens(client):
     """Sprint 77: login + return tokens (access + refresh)."""
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         user = User(
@@ -60,9 +60,9 @@ def test_refresh_logs_audit_record(client, tokens):
     assert "access_token" in r.json()
 
     # Verify audit log entry
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
     from app.admin.models import AuditLog
+    from app.db.session import engine
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         logs = db.query(AuditLog).filter(AuditLog.action == "auth.refresh").all()
@@ -87,9 +87,9 @@ def test_refresh_via_cookie_logs_audit(client, tokens):
     assert r.status_code == 200
 
     # Verify audit
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
     from app.admin.models import AuditLog
+    from app.db.session import engine
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         logs = db.query(AuditLog).filter(AuditLog.action == "auth.refresh").all()
@@ -106,9 +106,9 @@ def test_refresh_invalid_token_no_audit(client, tokens):
     assert r.status_code == 401
 
     # Verify NO audit log для invalid refresh
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
     from app.admin.models import AuditLog
+    from app.db.session import engine
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         logs = db.query(AuditLog).filter(AuditLog.action == "auth.refresh").all()
@@ -128,9 +128,10 @@ def test_refresh_logs_via_field(client, tokens):
 
     # Verify details
     import json
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
+
     from app.admin.models import AuditLog
+    from app.db.session import engine
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         log = (

@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +107,7 @@ def reset_budget_state() -> None:
 
 
 def _today() -> str:
-    return datetime.now(timezone.utc).strftime("%Y%m%d")
+    return datetime.now(UTC).strftime("%Y%m%d")
 
 
 def _key(user_id: int, kind: str) -> str:

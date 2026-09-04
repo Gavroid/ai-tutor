@@ -9,9 +9,6 @@ from __future__ import annotations
 import json
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import func, select
-
 from app.ai.markdown_render import render_markdown, split_into_blocks
 from app.auth.security import create_access_token
 from app.db.session import Base, SessionLocal, engine, get_db
@@ -20,7 +17,8 @@ from app.subjects.scripts_seed_runner import seed_for_tests
 from app.users import models as user_models
 from app.users import service as user_service
 from app.users.schemas import UserCreate
-
+from fastapi.testclient import TestClient
+from sqlalchemy import func, select
 
 # ============ 7.1: Markdown-рендер ============
 

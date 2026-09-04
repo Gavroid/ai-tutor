@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 @pytest.fixture
 def client():
     """Sprint 88: TestClient + DB setup."""
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
 
     Base.metadata.drop_all(engine)
@@ -23,10 +23,10 @@ def client():
 @pytest.fixture
 def user_token(client):
     """Sprint 88: student token."""
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         user = User(
@@ -80,7 +80,7 @@ def _add_test_chunks_with_both_embeddings():
     assert embeddings is not None
 
     with SessionLocal() as db:
-        for i, (t, emb) in enumerate(zip(texts, embeddings)):
+        for i, (t, emb) in enumerate(zip(texts, embeddings, strict=False)):
             add_chunks_persistent(
                 db,
                 material_id=i + 1,

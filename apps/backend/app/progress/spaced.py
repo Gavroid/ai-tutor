@@ -11,7 +11,7 @@ EF (easiness factor) — множитель интервала, ≥1.3.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 # Минимальный EF (из SM-2)
 MIN_EF = 1.3
@@ -53,7 +53,7 @@ def schedule_next_review(
       - EF' = EF + (0.1 - (5-q) * (0.08 + (5-q) * 0.02))
       - EF' = max(EF', 1.3)
     """
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     quality = max(0, min(5, quality))
 
     # EF update

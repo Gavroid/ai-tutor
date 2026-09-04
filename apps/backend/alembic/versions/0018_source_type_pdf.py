@@ -11,7 +11,8 @@ Sprint 36.1 fix:
 
 PostgreSQL safe: NOT NULL DEFAULT, нет NULL строк в реальной БД.
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
 import sqlalchemy as sa
 from alembic import op

@@ -4,7 +4,8 @@ Revision ID: 0007_password_reset
 Revises: 0006_notifications
 Create Date: 2026-07-12 07:40:00.000000
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
 import sqlalchemy as sa
 from alembic import op

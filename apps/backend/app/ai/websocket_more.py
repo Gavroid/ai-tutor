@@ -12,11 +12,10 @@ from __future__ import annotations
 import json
 import logging
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-
 from app.ai.service import get_ai_service
 from app.auth.security import ACCESS_COOKIE, decode_token
 from app.db.session import SessionLocal
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +48,9 @@ async def ai_explain_stream(websocket: WebSocket):
 
     # Sprint 69: AI budget guard на WS уровне (admin bypass).
     try:
+        from app.ai.budget import BudgetExceeded, check_and_increment
         from app.db.session import SessionLocal
         from app.users import models as user_models
-        from app.ai.budget import BudgetExceeded, check_and_increment
 
         with SessionLocal() as db_session:
             user = db_session.get(user_models.User, user_id)
@@ -154,9 +153,9 @@ async def ai_generate_stream(websocket: WebSocket):
 
     # Sprint 69: AI budget guard на WS уровне (admin bypass).
     try:
+        from app.ai.budget import BudgetExceeded, check_and_increment
         from app.db.session import SessionLocal
         from app.users import models as user_models
-        from app.ai.budget import BudgetExceeded, check_and_increment
 
         with SessionLocal() as db_session:
             user = db_session.get(user_models.User, user_id)

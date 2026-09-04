@@ -1,14 +1,13 @@
 """Сервис прогресса: запись попыток, пересчёт mastery, группировка по темам."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from typing import Tuple
-
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
 
 from app.progress import models, schemas
 from app.subjects import models as subj_models
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 
 def _server_validate_attempt(
@@ -16,7 +15,7 @@ def _server_validate_attempt(
     correct_answer: str | None,
     client_is_correct: bool,
     client_score: float,
-) -> Tuple[bool, float]:
+) -> tuple[bool, float]:
     """Pilot Core Stage 1 — P1.2.1: server-owned truth.
 
     Закрывает exploit «client шлёт is_correct=True, score=1.0, а на самом деле
@@ -261,7 +260,7 @@ def due_for_review(
     Включает overdue (next_review_at в прошлом) и свежие (ещё рано — отрицательный days_overdue).
     Возвращаются только темы, по которым есть хотя бы одна попытка.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     rows = db.execute(
         select(
             models.Progress,
@@ -283,7 +282,7 @@ def due_for_review(
         next_review = prog.next_review_at
         # next_review может быть naive (SQLite) или tz-aware (Postgres)
         if next_review.tzinfo is None:
-            next_review = next_review.replace(tzinfo=timezone.utc)
+            next_review = next_review.replace(tzinfo=UTC)
         delta = next_review - now
         days_overdue = -int(delta.total_seconds() // 86400)
         items.append(
@@ -347,7 +346,7 @@ def schedule_topic_for_review(
     )
 
     prog.next_review_at = sched.next_review_at
-    prog.last_reviewed_at = datetime.now(timezone.utc)
+    prog.last_reviewed_at = datetime.now(UTC)
     prog.review_count = sched.review_count
     prog.easiness_factor = sched.new_ef
     db.commit()

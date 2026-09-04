@@ -1,11 +1,6 @@
 """Сервис регистрации/логина."""
 from __future__ import annotations
 
-from fastapi import HTTPException, status
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
-
 from app.auth.security import create_access_token, create_refresh_token, hash_password, verify_password
 from app.users import schemas
 from app.users.models import Role, StudentProfile, User
@@ -13,6 +8,10 @@ from app.users.models import Role, StudentProfile, User
 # Pilot Core Stage 1 — P1.1.3: единый allowlist ролей для публичной регистрации.
 # Импортируется из схем, чтобы источник правды был один и тот же.
 from app.users.schemas import PUBLIC_REGISTRATION_ALLOWED_ROLES  # noqa: E402,F401
+from fastapi import HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 
 def register_user(

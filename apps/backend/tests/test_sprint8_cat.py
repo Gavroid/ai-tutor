@@ -2,15 +2,14 @@
 from __future__ import annotations
 
 import pytest
-
 from app.diagnostics.cat import (
-    AdaptiveState,
     DIFFICULTY_STEP_DOWN,
     DIFFICULTY_STEP_UP,
     INITIAL_THETA,
     MAX_DIFFICULTY,
     MIN_DIFFICULTY,
     TARGET_SUCCESS_RATE,
+    AdaptiveState,
     choose_next_difficulty,
     difficulty_label,
     estimate_theta_after_answer,
@@ -147,8 +146,9 @@ class TestNextTopicAdaptive:
 
     def test_returns_404_when_session_inactive(self):
         # Простой smoke: без БД возвращает None
-        from app.db.session import SessionLocal
         from unittest.mock import MagicMock
+
+        from app.db.session import SessionLocal
         db = MagicMock()
         db.get.return_value = None  # session not found
         result = next_topic_adaptive(db, session_id=99999, state=AdaptiveState())

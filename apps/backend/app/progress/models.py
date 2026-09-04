@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from app.db.session import Base
+from app.users.models import BigIntPK
 from sqlalchemy import (
     BigInteger,
     Boolean,
@@ -21,9 +23,6 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.session import Base
-from app.users.models import BigIntPK
 
 
 class Attempt(Base):

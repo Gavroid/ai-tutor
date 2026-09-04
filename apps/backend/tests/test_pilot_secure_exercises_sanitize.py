@@ -18,15 +18,14 @@ os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
 
 from datetime import datetime, timedelta, timezone
 
-from fastapi.testclient import TestClient
 import pytest
-
 from app.ai.models import GeneratedExerciseInstance
 from app.db.session import Base, SessionLocal, get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.subjects import models as subj_models  # noqa: E402
 from app.subjects.scripts_seed_runner import seed_for_tests  # noqa: E402
 from app.users.models import Role, User  # noqa: E402
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()

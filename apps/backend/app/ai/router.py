@@ -1,11 +1,8 @@
 """Роутер AI-эндпоинтов."""
 from __future__ import annotations
 
+from datetime import UTC
 from typing import Any
-
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
 
 from app.ai.budget import BudgetExceeded, check_and_increment, get_usage
 from app.ai.markdown_render import render_markdown
@@ -15,6 +12,9 @@ from app.common.deps import require_admin
 from app.db.session import get_db
 from app.subjects import models as subj_models
 from app.users import models as user_models
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/v1/ai", tags=["ai"])
 
@@ -139,7 +139,7 @@ def _enforce_budget(current: user_models.User) -> None:
         # Формируем человеческое сообщение на русском с указанием сброса.
         from datetime import datetime, timedelta, timezone
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if e.limit_kind == "hourly_requests":
             # Лимит сбрасывается в начале следующего часа (TTL 3600 сек).
             # Показываем сколько минут осталось.
@@ -528,8 +528,8 @@ async def understand_check_ai(
     динамических вопросов «своими словами?» — расходует AI-бюджет.
     Лучше для personalized обучения, но дороже.
     """
-    from app.ai import prompts as _prompts
     from app.ai import _thread_local
+    from app.ai import prompts as _prompts
     _thread_local.explain_style = "questions"
 
     topic = db.get(subj_models.Topic, topic_id)
@@ -561,7 +561,7 @@ async def understand_check_ai(
 
 def _build_request(sys_prompt: str, user_msg: str):
     """S3.2: локальный билдер AIRequest (избегаем circular import)."""
-    from app.ai.models import AIRequest, AIMessage
+    from app.ai.models import AIMessage, AIRequest
     return AIRequest(
         messages=[AIMessage(role="system", content=sys_prompt), AIMessage(role="user", content=user_msg)],
         mode="explain",

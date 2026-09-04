@@ -17,11 +17,11 @@ from __future__ import annotations
 
 from app.practice.checkers import (
     NUMERIC_ABS_TOLERANCE,
+    _extract_number,
     check_answer,
     check_exact,
     check_keyword,
     check_numeric,
-    _extract_number,
 )
 
 

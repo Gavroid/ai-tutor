@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from prometheus_client import Counter, Gauge, Histogram
 
-
 # Sprint 49: parent_streak_* (gauge per user).
 parent_streak_current_streak_days = Gauge(
     "parent_streak_current_streak_days",

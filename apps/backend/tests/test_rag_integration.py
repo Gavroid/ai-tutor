@@ -19,8 +19,8 @@ os.environ.setdefault("AI_API_KEY", "mock-key-for-tests")
 os.environ.setdefault("UPLOAD_DIR", "/tmp/ai-tutor-test-uploads")
 os.environ.setdefault("PYTHONDONTWRITEBYTECODE", "1")
 
-from app.ai import service as ai_service
 import app.rag as rag_mod
+from app.ai import service as ai_service
 
 
 class FakeSubject:

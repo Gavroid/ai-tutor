@@ -9,15 +9,14 @@ os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
 os.environ["CORS_ORIGINS"] = "http://localhost:3000"
 os.environ["AI_API_KEY"] = "mock-key-for-tests"
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
 from app.users import service as user_service
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -69,8 +68,8 @@ def client():
     # Линкуем mom + kid
     s = SessionLocal()
     try:
-        from app.users.models import User
         from app.parents import service as parents_service
+        from app.users.models import User
 
         mom = s.scalar(__import__("sqlalchemy").select(User).where(User.email == "mom@example.com"))
         kid = s.scalar(__import__("sqlalchemy").select(User).where(User.email == "kid@example.com"))
@@ -404,12 +403,11 @@ def test_dashboard_due_for_review_count(client):
     )
 
     # Сдвигаем в прошлое
-    from sqlalchemy import update
-
     from app.db.session import engine
     from app.progress.models import Progress
+    from sqlalchemy import update
 
-    past = datetime.now(timezone.utc) - timedelta(days=1)
+    past = datetime.now(UTC) - timedelta(days=1)
     with engine.begin() as conn:
         conn.execute(
             update(Progress)

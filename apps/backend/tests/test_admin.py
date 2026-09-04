@@ -10,13 +10,12 @@ os.environ["CORS_ORIGINS"] = "http://localhost:3000"
 os.environ["AI_API_KEY"] = "mock-key-for-tests"
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.admin import models as admin_models
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
 from app.users import service as user_service
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -28,8 +27,9 @@ def client():
     s = SessionLocal()
     try:
         # admin создаётся напрямую (через /register нельзя — защита от саморегистрации)
-        from app.users.models import User, Role as UserRole
         from app.auth.security import hash_password
+        from app.users.models import Role as UserRole
+        from app.users.models import User
 
         admin = User(
             email="admin@example.com",
@@ -340,8 +340,8 @@ def test_audit_log_captures_ip_via_middleware(client):
 
     s = SessionLocal()
     try:
-        from sqlalchemy import select
         from app.admin.models import AuditLog
+        from sqlalchemy import select
 
         events = s.scalars(
             select(AuditLog)

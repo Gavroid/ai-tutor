@@ -7,7 +7,6 @@ os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
 import pytest
 
-
 # === Source verification ===
 
 def test_ws_constants_defined():

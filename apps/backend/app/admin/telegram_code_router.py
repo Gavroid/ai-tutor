@@ -6,13 +6,12 @@ POST /api/v1/admin/telegram-code { email } → {code: "abcd1234", expires_at: ".
 """
 from __future__ import annotations
 
-from pydantic import BaseModel, EmailStr, Field
-
 from app.bot.telegram_bot import issue_code
 from app.common.deps import require_admin
 from app.db.session import get_db
 from app.users.models import User
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])

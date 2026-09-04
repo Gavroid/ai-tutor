@@ -21,8 +21,6 @@ os.environ["CORS_ORIGINS"] = "http://localhost:3000"
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
 from app.subjects.evidence_schema import (
@@ -37,7 +35,7 @@ from app.subjects.evidence_schema import (
 )
 from app.users import service as user_service
 from app.users.schemas import UserCreate
-
+from fastapi.testclient import TestClient
 
 # === Schema уровня ============================================================
 

@@ -17,7 +17,6 @@ from typing import Optional
 
 import httpx
 
-
 # === Embedding provider ===
 
 async def get_embedding(text: str) -> list[float]:
@@ -74,7 +73,7 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
     """Cosine similarity между двумя векторами."""
     if len(a) != len(b) or not a:
         return 0.0
-    dot = sum(x * y for x, y in zip(a, b))
+    dot = sum(x * y for x, y in zip(a, b, strict=False))
     norm_a = sum(x * x for x in a) ** 0.5
     norm_b = sum(x * x for x in b) ** 0.5
     if norm_a == 0 or norm_b == 0:
@@ -132,7 +131,7 @@ _store: dict[str, DocumentChunk] = {}
 def add_chunks(material_id: int, chunks: list[str], embeddings: list[list[float]], metadata: dict | None = None) -> list[str]:
     """Добавляет чанки в хранилище, возвращает их ID."""
     ids = []
-    for text, emb in zip(chunks, embeddings):
+    for text, emb in zip(chunks, embeddings, strict=False):
         cid = hashlib.sha256(f"{material_id}:{text}".encode()).hexdigest()[:16]
         _store[cid] = DocumentChunk(
             id=cid,

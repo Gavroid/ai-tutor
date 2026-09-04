@@ -31,9 +31,6 @@ os.environ["AI_API_KEY"] = "mock-key-for-tests"  # defensive
 # (которые проверяют дефолтные значения).
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import select
-
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
 from app.subjects import models as subj_models
@@ -41,7 +38,8 @@ from app.subjects.curriculum_7_class import CURRICULUM_7_CLASS
 from app.subjects.scripts_seed_runner import seed_for_tests
 from app.users import service as user_service
 from app.users.schemas import UserCreate
-
+from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 # === P0 Math topics: первый section curriculum 7-class (math 6 ревью) =====
 
@@ -330,7 +328,7 @@ def test_math6_only_one_pilot_code_for_now(math6_client):
 
 def test_math6_canonical_evidence_pilot_visible():
     """Canonical derivation должна выставить math pilot_visible=true."""
-    from app.subjects.evidence_schema import validate_evidence_file, find_evidence_path
+    from app.subjects.evidence_schema import find_evidence_path, validate_evidence_file
 
     path = find_evidence_path()
     if path is None:

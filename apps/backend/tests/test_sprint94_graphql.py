@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 @pytest.fixture
 def client():
     """Sprint 94: TestClient + DB setup."""
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
 
     Base.metadata.drop_all(engine)
@@ -43,10 +43,10 @@ def test_graphql_schema_has_hello_query():
 @pytest.mark.skip(reason="requires explicit DB setup outside fixture")
 def test_graphql_schema_has_subjects_query():
     """Sprint 94: GraphQL schema содержит subjects query."""
-    from app.graphql_schema import schema
-    from sqlalchemy.orm import Session
     from app.db.session import engine
+    from app.graphql_schema import schema
     from app.subjects.models import Subject
+    from sqlalchemy.orm import Session
 
     # Setup subject
     with Session(engine) as db:
@@ -83,9 +83,9 @@ def test_graphql_endpoint_via_http(client):
 def test_graphql_subjects_via_http(client):
     """Sprint 94: GraphQL subjects query через HTTP."""
     # Create a subject first
-    from sqlalchemy.orm import Session
     from app.db.session import engine
     from app.subjects.models import Subject
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         subject = Subject(

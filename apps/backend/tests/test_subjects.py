@@ -9,14 +9,13 @@ os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
 os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import select
-
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
 from app.subjects import models
 from app.subjects.curriculum_7_class import CURRICULUM_7_CLASS
 from app.subjects.scripts_seed_runner import seed_for_tests
+from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 
 def _reset_db():
@@ -136,6 +135,7 @@ def test_pilot_visible_only_for_math_after_evidence_policy(seeded_client):
 def test_evidence_load_from_json_overrides_default_policy(seeded_client, tmp_path, monkeypatch):
     """Если evidence.json существует, его значения используются вместо default policy."""
     import json as json_mod
+
     from app.subjects import evidence as evidence_mod
     evidence_mod.reset_evidence_cache()
 

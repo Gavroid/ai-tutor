@@ -5,15 +5,14 @@ Sprint 32: 2FA TOTP endpoints для parent.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
-
 from app.admin import service as audit_service
 from app.common.deps import User, require_parent, require_student
 from app.db.session import get_db
 from app.parents import schemas, service
 from app.users import twofa
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/v1/parents", tags=["parents"])
 
@@ -356,6 +355,7 @@ def verify_2fa(
     6-значный TOTP и проверяет что Authenticator работает.
     """
     import json as _json
+
     from app.db.session import engine as _engine
     from sqlalchemy import text
 

@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 
 import pytest
 
-
 # === Tokenization tests ===
 
 def test_tokenize_basic_russian():
@@ -278,10 +277,8 @@ def test_bm25_search_title_boost_works():
 
 def test_bm25_search_recency_boost_works():
     """Sprint 57: свежий контент выше старого при равном BM25 score."""
-    from app.rag_bm25 import bm25_search
-
     # Используем explicit "now" чтобы test был детерминированным.
-    from app.rag_bm25 import recency_boost
+    from app.rag_bm25 import bm25_search, recency_boost
     now = datetime(2024, 6, 1, 12, 0, 0)
     old = (now - timedelta(days=300)).isoformat()
     fresh = now.isoformat()
@@ -325,12 +322,12 @@ def test_bm25_search_recency_boost_works():
 
 def test_search_bm25_persistent_with_empty_db():
     """Sprint 57: empty DB → empty results."""
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
 
-    from app.rag_persist import search_bm25_persistent
     from app.db.session import SessionLocal
+    from app.rag_persist import search_bm25_persistent
 
     with SessionLocal() as db:
         results = search_bm25_persistent(db, "test query", top_k=5)
@@ -339,15 +336,16 @@ def test_search_bm25_persistent_with_empty_db():
 
 def test_search_bm25_persistent_with_chunks():
     """Sprint 57: BM25 search находит relevant chunks в БД."""
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
 
-    from app.rag_persist import add_chunks_persistent, search_bm25_persistent
-    from app.db.session import SessionLocal
-    from sqlalchemy import text
-    from app.rag_models import RagChunk
     import json
+
+    from app.db.session import SessionLocal
+    from app.rag_models import RagChunk
+    from app.rag_persist import add_chunks_persistent, search_bm25_persistent
+    from sqlalchemy import text
 
     # Insert test chunks напрямую через ORM.
     with SessionLocal() as db:

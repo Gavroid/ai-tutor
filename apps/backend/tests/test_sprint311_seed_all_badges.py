@@ -34,12 +34,12 @@ BACKEND_DIR = os.path.dirname(TESTS_DIR)
 sys.path.insert(0, BACKEND_DIR)
 
 from app.db.session import Base, SessionLocal, engine  # noqa: E402
+
 from scripts.seed_all_badges import (  # noqa: E402
     SEED_EVIDENCE,
     seed_all,
     seed_one,
 )
-
 
 EXPECTED_BADGES = set(SEED_EVIDENCE.keys())
 TOTAL_BADGES = 60  # Sprint 3.12: 15 в каждой из 4 категорий

@@ -5,7 +5,7 @@ import os
 
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 @pytest.fixture
 def client():
     """Sprint 85: TestClient + DB setup."""
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
 
     Base.metadata.drop_all(engine)
@@ -25,10 +25,10 @@ def client():
 @pytest.fixture
 def admin_token(client):
     """Sprint 85: admin token."""
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         admin = User(
@@ -87,11 +87,11 @@ def test_engagement_short_period_no_retention(client, admin_token):
 def test_engagement_has_d1_d7_d30_fields(client, admin_token):
     """Sprint 85: cohort имеет поля retained_d1, d7, d30."""
     # Setup: create user with attempt
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import engine
     from app.progress.models import Attempt
+    from app.users.models import Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         # User created 2 weeks ago
@@ -101,7 +101,7 @@ def test_engagement_has_d1_d7_d30_fields(client, admin_token):
             display_name="Old",
             role=Role.STUDENT,
             is_active=True,
-            created_at=datetime.now(timezone.utc) - timedelta(days=14),
+            created_at=datetime.now(UTC) - timedelta(days=14),
         )
         db.add(old_user)
         db.commit()

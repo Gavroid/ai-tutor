@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture
 def client():
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
 
     Base.metadata.drop_all(engine)
@@ -24,10 +24,10 @@ def client():
 @pytest.fixture
 def parent_with_2_children(client):
     """Sprint 59: parent + 2 students (multi-child)."""
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role, ParentStudentLink
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import ParentStudentLink, Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         # Create parent
@@ -73,10 +73,10 @@ def parent_with_2_children(client):
 
 def test_parent_with_no_children(client):
     """Sprint 59: parent без детей → пустой list."""
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         parent = User(
@@ -105,10 +105,10 @@ def test_parent_with_no_children(client):
 
 def test_parent_with_one_child(client):
     """Sprint 59: parent с 1 child → list из 1."""
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role, ParentStudentLink
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import ParentStudentLink, Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         parent = User(
@@ -219,10 +219,10 @@ def test_me_children_count(client, parent_with_2_children):
 
 def test_me_children_count_no_children(client):
     """Sprint 59: parent без детей → count=0."""
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         parent = User(
@@ -251,10 +251,10 @@ def test_me_children_count_no_children(client):
 
 def test_me_children_requires_parent(client):
     """Sprint 59: student role → 403."""
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         student = User(
@@ -283,10 +283,10 @@ def test_me_children_requires_parent(client):
 
 def test_unlinked_child_not_in_list(client):
     """Sprint 59: unlinked child НЕ в списке parent."""
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         parent = User(
@@ -333,11 +333,11 @@ def test_active_links_to_non_student_users_are_ignored(client):
     После Sprint 3.20 это поведение усилено: CHECK constraint не даёт
     СОЗДАТЬ такой link вообще. Тест проверяет именно это.
     """
+    from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import ParentStudentLink, Role, User
     from sqlalchemy.exc import IntegrityError
     from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role, ParentStudentLink
-    from app.auth.security import hash_password
 
     with Session(engine) as db:
         parent = User(
@@ -389,11 +389,11 @@ def test_parent_invite_does_not_reuse_corrupted_active_self_link(client):
     После Sprint 3.20 вставка такого link падает с IntegrityError → test
     проверяет что pending placeholder создаётся с НОВЫМ id (не равен stale).
     """
+    from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import ParentStudentLink, Role, User
     from sqlalchemy.exc import IntegrityError
     from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role, ParentStudentLink
-    from app.auth.security import hash_password
 
     with Session(engine) as db:
         parent = User(
@@ -438,10 +438,10 @@ def test_parent_invite_does_not_reuse_corrupted_active_self_link(client):
 
 def test_parent_with_existing_child_gets_pending_invite_for_another_child(client):
     """Creating an invite for a parent with children must return a pending link code."""
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role, ParentStudentLink
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import ParentStudentLink, Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         parent = User(

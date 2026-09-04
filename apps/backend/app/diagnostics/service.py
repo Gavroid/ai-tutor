@@ -6,17 +6,17 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.ai.service import get_ai_service
+from app.ai.types import AIMessage, AIRequest
 from app.diagnostics import models, schemas
+from app.math_plan import MATH_SUBJECT_ID, diagnostic_topic_ids
 from app.subjects import models as subj_models
 from app.subjects.curriculum_7_class import CURRICULUM_7_CLASS
-from app.ai.types import AIRequest, AIMessage
-from app.ai.service import get_ai_service
-from app.math_plan import MATH_SUBJECT_ID, diagnostic_topic_ids
 
 
 def _heuristic_check(question_text: str, correct: str, user_answer: str) -> bool:
@@ -196,7 +196,7 @@ def expire_stale_diagnostic_sessions(db: Session, ttl_hours: int = 24) -> int:
     # Sprint 3.17: убран inline-импорт `from datetime import datetime, timedelta, timezone`
     # — он делал datetime module-level local variable, что ломало finish_diagnostic
     # (UnboundLocalError) из-за Python scope rules. Используем top-level import.
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=ttl_hours)
+    cutoff = datetime.now(UTC) - timedelta(hours=ttl_hours)
 
     stale = db.scalars(
         select(models.DiagnosticSession).where(
@@ -208,7 +208,7 @@ def expire_stale_diagnostic_sessions(db: Session, ttl_hours: int = 24) -> int:
     count = 0
     for sess in stale:
         sess.status = "expired"
-        sess.finished_at = datetime.now(timezone.utc)
+        sess.finished_at = datetime.now(UTC)
         # Не считаем оценку — пользователь не ответил
         sess.overall_score = 0.0
         sess.recommendations = "Сессия истекла (24 часа). Начните диагностику заново."
@@ -245,13 +245,12 @@ def finish_diagnostic(db: Session, session_id: int, user_id: int) -> models.Diag
             "система покажет, какие темы стоит повторить."
         )
         sess.status = "finished"
-        sess.finished_at = datetime.now(timezone.utc)
+        sess.finished_at = datetime.now(UTC)
         db.commit()
         db.refresh(sess)
         return sess
 
     # Считаем по темам
-    from collections import defaultdict
 
     by_topic: dict[int, list[bool]] = defaultdict(list)
     for a in answers:
@@ -285,7 +284,7 @@ def finish_diagnostic(db: Session, session_id: int, user_id: int) -> models.Diag
     sess.recommendations = "\n".join(rec_lines)
     sess.status = "finished"
 
-    sess.finished_at = datetime.now(timezone.utc)
+    sess.finished_at = datetime.now(UTC)
     db.commit()
     db.refresh(sess)
 

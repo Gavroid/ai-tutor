@@ -17,13 +17,13 @@ os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 # Per-test budget override is applied via ai_budget.reload_limits(...) inside
 # _client().
 
-from fastapi.testclient import TestClient
+from app.ai import budget as ai_budget
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
-from app.ai import budget as ai_budget
 from app.subjects.scripts_seed_runner import seed_for_tests
 from app.users import service as user_service
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
 
 
 class _ClientCM:

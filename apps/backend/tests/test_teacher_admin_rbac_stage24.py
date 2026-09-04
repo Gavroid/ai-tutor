@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.auth.security import hash_password
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
@@ -11,6 +9,7 @@ from app.subjects.models import LearningMaterial, Topic
 from app.subjects.scripts_seed_runner import seed_for_tests
 from app.teacher.schemas import MaterialContent
 from app.users.models import Role, User
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()

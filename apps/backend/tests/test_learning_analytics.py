@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 os.environ.setdefault("APP_SECRET_KEY", "test-secret-key-for-pytest-only-1234567890")
 os.environ.setdefault("APP_ENV", "development")
@@ -10,9 +10,6 @@ os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
 os.environ.setdefault("AI_API_KEY", "mock-key-for-tests")
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import select
-
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
 from app.progress import models as progress_models
@@ -21,6 +18,8 @@ from app.subjects.scripts_seed_runner import seed_for_tests
 from app.users import service as user_service
 from app.users.models import Role, User
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 
 @pytest.fixture()
@@ -51,7 +50,7 @@ def client():
         math = s.scalar(select(subject_models.Subject).where(subject_models.Subject.code == "math"))
         algebra_topics = [topic for section in algebra.sections for topic in section.topics]
         math_topics = [topic for section in math.sections for topic in section.topics]
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         rows = [
             (algebra_topics[0].id, 0.25, 4, 1, now - timedelta(days=1)),
             (algebra_topics[1].id, 0.75, 4, 3, now - timedelta(days=2)),

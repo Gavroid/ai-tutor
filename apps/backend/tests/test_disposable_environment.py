@@ -23,11 +23,9 @@ os.environ["AI_DETERMINISTIC_MODE"] = "1"
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
-
+from fastapi.testclient import TestClient
 
 REPO_ROOT = Path("/root/workspace/ai-tutor")
 

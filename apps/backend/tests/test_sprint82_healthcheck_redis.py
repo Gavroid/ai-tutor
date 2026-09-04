@@ -5,16 +5,16 @@ import os
 
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 
 @pytest.fixture
 def client():
     """Sprint 82: TestClient + DB setup."""
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
 
     Base.metadata.drop_all(engine)

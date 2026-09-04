@@ -15,13 +15,12 @@ os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
 os.environ.setdefault("AI_API_KEY", "mock-key-for-tests")
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
 from app.users import service as user_service
 from app.users.models import Role
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -140,8 +139,8 @@ def test_feedback_does_not_persist_comment_to_audit(client_with_student):
     # (только comment_len).
     with SessionLocal() as db:
         # Ищем запись в audit_log
-        from sqlalchemy import select
         from app.admin.models import AuditLog
+        from sqlalchemy import select
         rec = db.scalar(select(AuditLog).where(AuditLog.id == feedback_id))
         assert rec is not None, f"audit record {feedback_id} not found"
         import json

@@ -3,7 +3,8 @@
 Создаёт таблицу invites для friends/classmates.
 Code создаётся admin/teacher, активируется при register.
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
 import sqlalchemy as sa
 from alembic import op

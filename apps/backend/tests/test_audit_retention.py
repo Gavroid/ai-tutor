@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 from app.admin import service as audit_service
 from app.admin.models import AuditLog
@@ -14,7 +14,7 @@ def _reset_db() -> None:
 
 def test_prune_audit_logs_reanchors_hash_chain():
     _reset_db()
-    now = datetime(2026, 8, 13, tzinfo=timezone.utc)
+    now = datetime(2026, 8, 13, tzinfo=UTC)
     db = SessionLocal()
     try:
         old_1 = audit_service.record(db, None, "old.one", entity="test")

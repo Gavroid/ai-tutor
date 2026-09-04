@@ -1,7 +1,6 @@
 from types import SimpleNamespace
 
 import pytest
-
 from app.ai.service import AIService
 from app.ai.types import AIResponse
 from app.teacher import content_registry

@@ -44,7 +44,7 @@ class FeedbackReportOut(BaseModel):
     created_at: str  # ISO datetime
 
     @classmethod
-    def model_validate_row(cls, row: FeedbackReport) -> "FeedbackReportOut":
+    def model_validate_row(cls, row: FeedbackReport) -> FeedbackReportOut:
         """S3.6: serialize datetime → ISO string."""
         from datetime import datetime as _dt
         created = row.created_at

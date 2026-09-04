@@ -14,10 +14,9 @@ T1D-friendly гарантии:
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
-
 from app.db.session import Base, SessionLocal, engine
 from app.progress import models as prog_models
 from app.student.badges import (
@@ -144,7 +143,7 @@ class TestStreakBadges:
         topics = _all_topics(db)
         # Сегодня вчера позавчера (UTC для простоты)
         # Europe/Moscow default TZ — текущая дата в UTC близка к MSK (разница ≤3ч).
-        today_utc = datetime.now(timezone.utc)
+        today_utc = datetime.now(UTC)
         for d in [2, 1, 0]:  # 3 дня подряд, последний — сегодня
             ts = today_utc - timedelta(days=d)
             _add_attempt(db, sid, topics[0].id, True, ts)
@@ -155,7 +154,7 @@ class TestStreakBadges:
         db = db_with_student_and_subjects["db"]
         sid = db_with_student_and_subjects["student_id"]
         topics = _all_topics(db)
-        today_utc = datetime.now(timezone.utc)
+        today_utc = datetime.now(UTC)
         # Только 6 дней — streak_7 НЕ должен вручиться
         for d in range(6):
             _add_attempt(db, sid, topics[0].id, True, today_utc - timedelta(days=d))
@@ -172,7 +171,7 @@ class TestReturnedAfterPause:
         db = db_with_student_and_subjects["db"]
         sid = db_with_student_and_subjects["student_id"]
         topics = _all_topics(db)
-        today_utc = datetime.now(timezone.utc)
+        today_utc = datetime.now(UTC)
         # Попытка 5 дней назад и сегодня
         _add_attempt(db, sid, topics[0].id, True, today_utc - timedelta(days=5))
         _add_attempt(db, sid, topics[0].id, True, today_utc)
@@ -183,7 +182,7 @@ class TestReturnedAfterPause:
         db = db_with_student_and_subjects["db"]
         sid = db_with_student_and_subjects["student_id"]
         topics = _all_topics(db)
-        today_utc = datetime.now(timezone.utc)
+        today_utc = datetime.now(UTC)
         # Все попытки сегодня и вчера — паузы не было
         _add_attempt(db, sid, topics[0].id, True, today_utc)
         _add_attempt(db, sid, topics[0].id, True, today_utc - timedelta(days=1))
@@ -207,7 +206,7 @@ class TestPolymath:
         subj3_topic = db.query(subj_models.Topic).filter(
             subj_models.Topic.name == "Topic 2-0"
         ).first()
-        today_utc = datetime.now(timezone.utc)
+        today_utc = datetime.now(UTC)
         # 3 разных предмета в разные дни за последнюю неделю
         _add_attempt(db, sid, subj1_topic.id, True, today_utc - timedelta(days=1))
         _add_attempt(db, sid, subj2_topic.id, True, today_utc - timedelta(days=3))
@@ -223,7 +222,7 @@ class TestPolymath:
         same_subj_topics = db.query(subj_models.Topic).filter(
             subj_models.Topic.name.in_(["Topic 0-0", "Topic 0-1"])
         ).all()
-        today_utc = datetime.now(timezone.utc)
+        today_utc = datetime.now(UTC)
         for t in same_subj_topics:
             _add_attempt(db, sid, t.id, True, today_utc)
         awarded = evaluate_and_award_badges(db, sid)
@@ -239,7 +238,7 @@ class TestTimeOfDay:
         topics = _all_topics(db)
         # 08:00 UTC → в MSK 11:00 — НЕ утро (07-10 MSK)
         # Используем 04:00 UTC = 07:00 MSK (граница)
-        ts = datetime.now(timezone.utc).replace(hour=4, minute=0, second=0, microsecond=0)
+        ts = datetime.now(UTC).replace(hour=4, minute=0, second=0, microsecond=0)
         _add_attempt(db, sid, topics[0].id, True, ts)
         awarded = evaluate_and_award_badges(db, sid)
         assert "early_bird" in awarded
@@ -250,7 +249,7 @@ class TestTimeOfDay:
         sid = db_with_student_and_subjects["student_id"]
         topics = _all_topics(db)
         # 19:00 UTC = 22:00 MSK → evening
-        ts = datetime.now(timezone.utc).replace(hour=19, minute=0, second=0, microsecond=0)
+        ts = datetime.now(UTC).replace(hour=19, minute=0, second=0, microsecond=0)
         _add_attempt(db, sid, topics[0].id, True, ts)
         awarded = evaluate_and_award_badges(db, sid)
         assert "night_owl" in awarded
@@ -267,7 +266,7 @@ class TestWeekend:
         sid = db_with_student_and_subjects["student_id"]
         topics = _all_topics(db)
         # Найдём ближайшую субботу в UTC
-        today = datetime.now(timezone.utc)
+        today = datetime.now(UTC)
         days_to_sat = (5 - today.weekday()) % 7
         if days_to_sat == 0 and today.weekday() != 5:
             days_to_sat = 7
@@ -285,7 +284,7 @@ class TestConsecutiveCorrect:
         db = db_with_student_and_subjects["db"]
         sid = db_with_student_and_subjects["student_id"]
         topics = _all_topics(db)
-        today_utc = datetime.now(timezone.utc)
+        today_utc = datetime.now(UTC)
         for i in range(5):
             _add_attempt(db, sid, topics[0].id, True, today_utc - timedelta(minutes=i))
         awarded = evaluate_and_award_badges(db, sid)
@@ -295,7 +294,7 @@ class TestConsecutiveCorrect:
         db = db_with_student_and_subjects["db"]
         sid = db_with_student_and_subjects["student_id"]
         topics = _all_topics(db)
-        today_utc = datetime.now(timezone.utc)
+        today_utc = datetime.now(UTC)
         for i in range(10):
             _add_attempt(db, sid, topics[0].id, True, today_utc - timedelta(minutes=i))
         awarded = evaluate_and_award_badges(db, sid)
@@ -307,7 +306,7 @@ class TestConsecutiveCorrect:
         db = db_with_student_and_subjects["db"]
         sid = db_with_student_and_subjects["student_id"]
         topics = _all_topics(db)
-        today_utc = datetime.now(timezone.utc)
+        today_utc = datetime.now(UTC)
         # 3 correct
         for i in range(3):
             _add_attempt(db, sid, topics[0].id, True, today_utc - timedelta(minutes=10 + i))
@@ -329,7 +328,7 @@ class TestIdempotency:
         db = db_with_student_and_subjects["db"]
         sid = db_with_student_and_subjects["student_id"]
         topics = _all_topics(db)
-        today_utc = datetime.now(timezone.utc)
+        today_utc = datetime.now(UTC)
         for i in range(5):
             _add_attempt(db, sid, topics[0].id, True, today_utc - timedelta(minutes=i))
         first = evaluate_and_award_badges(db, sid)
@@ -347,7 +346,7 @@ class TestIdempotency:
         db = db_with_student_and_subjects["db"]
         sid = db_with_student_and_subjects["student_id"]
         topics = _all_topics(db)
-        today_utc = datetime.now(timezone.utc)
+        today_utc = datetime.now(UTC)
         _add_attempt(db, sid, topics[0].id, True, today_utc)
         # Sprint 3.15: имитация вопроса AI для честной выдачи asked_question.
         from app.student.models import UserCounter

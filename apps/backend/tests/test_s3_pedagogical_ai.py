@@ -23,10 +23,8 @@ os.environ.setdefault("AI_API_KEY", "mock-key-for-tests")
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
 import pytest
-
 from app.ai import prompts
 from app.ai.service import AIResponse
-
 
 # === S3.1 Multi-explain styles ==========================================
 

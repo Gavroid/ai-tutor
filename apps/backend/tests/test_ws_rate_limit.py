@@ -10,13 +10,12 @@ os.environ["CORS_ORIGINS"] = "http://localhost:3000"
 os.environ["AI_API_KEY"] = "mock-key-for-tests"
 
 import pytest
-from fastapi.testclient import TestClient
-
-from app.db.session import Base, SessionLocal, engine, get_db
 from app.auth.security import ACCESS_COOKIE
-from app.main import app, _login_attempts_log, _ws_concurrent_log
+from app.db.session import Base, SessionLocal, engine, get_db
+from app.main import _login_attempts_log, _ws_concurrent_log, app
 from app.users import service as user_service
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -106,8 +105,9 @@ def test_ws_generate_under_limit(client):
 def test_ws_concurrent_limit_blocks_6th(client):
     """После 5 WS в минуту — middleware возвращает 429."""
     # Прямой unit-тест middleware: проверяем поведение лога
-    from app.main import _ws_concurrent_log
     import time
+
+    from app.main import _ws_concurrent_log
 
     # Симулируем 5 открытий
     uid = 1

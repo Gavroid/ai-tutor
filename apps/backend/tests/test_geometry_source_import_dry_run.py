@@ -1,7 +1,8 @@
 from typing import Any, cast
 
 from app.geometry_plan import GEOMETRY_TOPIC_PLAN
-from scripts.geometry_source_import_dry_run import build_manifest, build_geometry_source_mappings
+
+from scripts.geometry_source_import_dry_run import build_geometry_source_mappings, build_manifest
 
 
 def test_geometry_source_dry_run_covers_every_route_topic_once():

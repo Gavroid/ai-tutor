@@ -53,9 +53,10 @@ class Query:
         return "ai-tutor GraphQL API"
 
     @strawberry.field
-    def subjects(self) -> List[SubjectType]:
+    def subjects(self) -> list[SubjectType]:
         """Sprint 94: list всех subjects (без auth для simplicity)."""
         from sqlalchemy import select
+
         from app.db.session import SessionLocal
         from app.subjects.models import Subject
 

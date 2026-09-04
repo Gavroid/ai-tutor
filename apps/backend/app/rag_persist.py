@@ -203,7 +203,7 @@ def add_chunks_persistent(
 
     meta_json = json.dumps(metadata or {}, ensure_ascii=False)
     added_ids = []
-    for text, emb in zip(chunks, embeddings):
+    for text, emb in zip(chunks, embeddings, strict=False):
         h = chunk_hash(material_id, text)
         # Идемпотентность: если chunk с таким hash уже есть — пропускаем.
         existing = db.execute(
@@ -237,8 +237,8 @@ def search_persistent(
     384-dim × ~1000 chunks = ~1ms в Python. Если chunks > 10K — мигрировать
     на pgvector extension (Sprint 3.5.3+ TODO).
     """
-    from app.rag_models import RagChunk  # local import
     from app.rag import cosine_similarity
+    from app.rag_models import RagChunk  # local import
 
     q = select(RagChunk)
     if material_id is not None:
@@ -288,8 +288,9 @@ def search_real_persistent(
     Returns:
         list of PersistentChunk sorted by cosine similarity (desc)
     """
-    from app.rag_models import RagChunk  # local import
     import numpy as np
+
+    from app.rag_models import RagChunk  # local import
 
     q = select(RagChunk)
     if material_id is not None:
@@ -345,8 +346,8 @@ def search_bm25_persistent(
 
     Returns: top_k PersistentChunk sorted by BM25 score.
     """
-    from app.rag_models import RagChunk
     from app.rag_bm25 import bm25_search
+    from app.rag_models import RagChunk
 
     q = select(RagChunk)
     if material_id is not None:

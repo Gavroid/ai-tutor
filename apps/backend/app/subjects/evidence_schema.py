@@ -25,8 +25,9 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -212,7 +213,7 @@ def validate_evidence_payload(raw: dict[str, Any]) -> dict[str, dict[str, Any]]:
         # Fail-closed возвращает canonical=false для затронутых subjects.
         for e in errors:
             logger.warning("evidence canonical derivation: %s", e)
-    setattr(validate_evidence_payload, "_last_errors", errors)
+    validate_evidence_payload._last_errors = errors
     return normalized
 
 

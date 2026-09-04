@@ -3,15 +3,16 @@
 Каркас Этапа 1: healthcheck + OpenAPI + базовая структура роутеров.
 Авторизация, учебные модули и AI будут подключаться в следующих этапах.
 """
-from contextlib import asynccontextmanager
 import logging
 import os
 import time as _time
+from contextlib import asynccontextmanager
+from datetime import UTC
 from typing import AsyncIterator
 
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.db.session import engine
@@ -24,8 +25,9 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     """Startup/shutdown: пингуем БД с retry. Полноценные миграции запускаются отдельно (alembic upgrade head)."""
-    from sqlalchemy import text
     import asyncio
+
+    from sqlalchemy import text
 
     # Sprint 81: retry DB ping с exponential backoff (max 3 attempts).
     # Если PostgreSQL ещё не готова в docker-compose (race condition),
@@ -59,11 +61,12 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     import time as _t
-    from datetime import datetime as _dt, timezone as _tz
+    from datetime import datetime as _dt
+    from datetime import timezone as _tz
 
     settings = get_settings()
     app_start_time = _t.time()
-    app_started_iso = _dt.now(_tz.utc).isoformat()
+    app_started_iso = _dt.now(UTC).isoformat()
 
     # Делаем доступным для health endpoint
     global _app_start_time, _app_started_iso
@@ -115,8 +118,8 @@ def create_app() -> FastAPI:
     )
 
     # Sprint 62: OpenTelemetry tracing (опционально, env-управляемо).
-    from app.observability_otel import setup_telemetry
     from app.db.session import engine as db_engine
+    from app.observability_otel import setup_telemetry
     setup_telemetry(app=app, engine=db_engine)
 
     # Healthcheck — НЕ авторизуется, не трогает БД.
@@ -290,9 +293,10 @@ def create_app() -> FastAPI:
 
         # === Rate limit для AI endpoints ===
         if request.url.path.startswith("/api/v1/ai/"):
-            from app.auth.security import decode_token
             from fastapi import HTTPException
             from jose import JWTError
+
+            from app.auth.security import decode_token
 
             # Берём user_id из токена (если есть)
             auth = request.headers.get("authorization", "")
@@ -497,8 +501,8 @@ def create_app() -> FastAPI:
         # Sprint 5.2: 5xx → пишем в audit log (через отдельную сессию)
         if response.status_code >= 500:
             try:
-                from app.db.session import SessionLocal
                 from app.admin import service as audit_service
+                from app.db.session import SessionLocal
                 from app.users.models import User
 
                 # Пытаемся определить user из токена (best-effort)
@@ -574,7 +578,7 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def request_context(request, call_next):
         """Сохраняет текущий Request в contextvar для audit log."""
-        from app.admin.context import set_current_request, reset_current_request
+        from app.admin.context import reset_current_request, set_current_request
 
         token = set_current_request(request)
         try:
@@ -655,35 +659,35 @@ def create_app() -> FastAPI:
         }
 
     # Роутеры предметной области
-    from app.auth.router import router as auth_router
-    from app.auth.oauth import router as oauth_router
-    from app.voice.router import router as voice_router
-    from app.rag_router import router as rag_router
-    from app.v2 import router as v2_router  # Sprint 10.3 — /api/v2 каркас
-    from app.v2.exercises import router as v2_exercises_router  # Pilot Core P1.2.3
-    from app.auth.router import student_router as student_profile_router
-    from app.subjects.router import router as subjects_router
-    from app.subjects.router import topics_router
-    from app.ai.router import router as ai_router
-    from app.sessions.router import router as sessions_router  # Sprint 34
-    from app.cgm.router import router as cgm_router  # Sprint 40: Nightscout proxy
-    from app.invites.router import router as invites_admin_router  # Sprint 44
-    from app.invites.public_router import router as invites_public_router  # Sprint 44
-    from app.progress.router import router as progress_router
-    from app.analytics.router import router as analytics_router
-    from app.diagnostics.router import router as diagnostic_router
-    from app.parents.router import router as parents_router
-    from app.parents.router import student_router as link_parent_router
-    from app.materials.router import router as materials_router
-    from app.admin.router import router as admin_router
     from app.admin.realtime import router as admin_realtime_router  # Sprint 9.3 — WS для админа
-    from app.teacher.router import router as teacher_router
-    from app.student.router import router as student_materials_router
-    from app.student import models as _stu_models  # noqa: F401  (Alembic autogen + TopicDraft)
-    from app.notifications.router import router as notifications_router
-    from app.feedback.router import router as feedback_router  # Sprint P1
+    from app.admin.router import router as admin_router
+    from app.ai.router import router as ai_router
     from app.ai.websocket import router as ws_router
     from app.ai.websocket_more import router as ws_more_router
+    from app.analytics.router import router as analytics_router
+    from app.auth.oauth import router as oauth_router
+    from app.auth.router import router as auth_router
+    from app.auth.router import student_router as student_profile_router
+    from app.cgm.router import router as cgm_router  # Sprint 40: Nightscout proxy
+    from app.diagnostics.router import router as diagnostic_router
+    from app.feedback.router import router as feedback_router  # Sprint P1
+    from app.invites.public_router import router as invites_public_router  # Sprint 44
+    from app.invites.router import router as invites_admin_router  # Sprint 44
+    from app.materials.router import router as materials_router
+    from app.notifications.router import router as notifications_router
+    from app.parents.router import router as parents_router
+    from app.parents.router import student_router as link_parent_router
+    from app.progress.router import router as progress_router
+    from app.rag_router import router as rag_router
+    from app.sessions.router import router as sessions_router  # Sprint 34
+    from app.student import models as _stu_models  # noqa: F401  (Alembic autogen + TopicDraft)
+    from app.student.router import router as student_materials_router
+    from app.subjects.router import router as subjects_router
+    from app.subjects.router import topics_router
+    from app.teacher.router import router as teacher_router
+    from app.v2 import router as v2_router  # Sprint 10.3 — /api/v2 каркас
+    from app.v2.exercises import router as v2_exercises_router  # Pilot Core P1.2.3
+    from app.voice.router import router as voice_router
 
     app.include_router(auth_router)
     app.include_router(student_profile_router)
@@ -707,8 +711,12 @@ def create_app() -> FastAPI:
     app.include_router(telegram_code_router)
     # Sprint 3.9.6: AI-providers (multi-provider + per-subject routing)
     from app.admin.ai_providers_router import (
-        router as ai_providers_router,
         models_router as ai_models_router,
+    )
+    from app.admin.ai_providers_router import (
+        router as ai_providers_router,
+    )
+    from app.admin.ai_providers_router import (
         subject_ai_router,
     )
     app.include_router(ai_providers_router)
@@ -796,9 +804,12 @@ _app_started_iso: str = ""
 # Инициализируем сразу при импорте модуля, чтобы значения были доступны
 # даже если create_app() не вызывалась (например, в TestClient).
 import time as _init_time
-from datetime import datetime as _init_dt, timezone as _init_tz
+from datetime import UTC
+from datetime import datetime as _init_dt
+from datetime import timezone as _init_tz
+
 _app_start_time = _init_time.time()
-_app_started_iso = _init_dt.now(_init_tz.utc).isoformat()
+_app_started_iso = _init_dt.now(UTC).isoformat()
 _ws_concurrent_log: dict[int, list[float]] = {}  # uid -> ws handshake times
 _redis_client = None  # инициализируется при первом использовании
 

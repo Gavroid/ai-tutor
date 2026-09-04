@@ -25,7 +25,6 @@ from app.auth.security import get_current_user, require_role
 from app.db.session import get_db
 from app.users.models import Role, User
 
-
 # === Re-exports для удобства ===
 
 # Базовый dependency: вернуть активного пользователя по JWT.

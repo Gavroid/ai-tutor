@@ -5,9 +5,9 @@ import os
 
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 
 # === Module tests ===
 
@@ -48,10 +48,10 @@ def test_budget_exceeded_supports_hourly_requests():
 
 def test_get_usage_includes_hourly():
     """Sprint 80: get_usage возвращает hourly fields."""
-    from app.ai import budget as budget_module
-
     # Verify source has hourly fields
     import inspect
+
+    from app.ai import budget as budget_module
     source = inspect.getsource(budget_module.get_usage)
     assert "hourly_used" in source
     assert "hourly_limit" in source
@@ -97,6 +97,7 @@ def test_hourly_limit_default_value():
     try:
         # Re-import to get fresh default
         import importlib
+
         from app.ai import budget as budget_module
         importlib.reload(budget_module)
 

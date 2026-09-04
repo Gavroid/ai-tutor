@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from app.db.session import Base
+from app.users.models import BigIntPK
 from sqlalchemy import (
     Boolean,
     DateTime,
@@ -18,9 +20,6 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.session import Base
-from app.users.models import BigIntPK
 
 
 class Subject(Base):
@@ -41,7 +40,7 @@ class Subject(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    sections: Mapped[list["Section"]] = relationship(
+    sections: Mapped[list[Section]] = relationship(
         "Section", back_populates="subject", cascade="all, delete-orphan", order_by="Section.order_index"
     )
 
@@ -59,7 +58,7 @@ class Section(Base):
     order_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     subject: Mapped[Subject] = relationship("Subject", back_populates="sections")
-    topics: Mapped[list["Topic"]] = relationship(
+    topics: Mapped[list[Topic]] = relationship(
         "Topic", back_populates="section", cascade="all, delete-orphan", order_by="Topic.order_index"
     )
 
@@ -78,13 +77,13 @@ class Topic(Base):
     order_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     section: Mapped[Section] = relationship("Section", back_populates="topics")
-    subtopics: Mapped[list["Subtopic"]] = relationship(
+    subtopics: Mapped[list[Subtopic]] = relationship(
         "Subtopic", back_populates="topic", cascade="all, delete-orphan", order_by="Subtopic.order_index"
     )
-    materials: Mapped[list["LearningMaterial"]] = relationship(
+    materials: Mapped[list[LearningMaterial]] = relationship(
         "LearningMaterial", back_populates="topic", cascade="all, delete-orphan"
     )
-    questions: Mapped[list["Question"]] = relationship(
+    questions: Mapped[list[Question]] = relationship(
         "Question", back_populates="topic", cascade="all, delete-orphan"
     )
 

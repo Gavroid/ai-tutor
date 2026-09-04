@@ -1,9 +1,7 @@
 """Роутер авторизации и профиля."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy.orm import Session
+from datetime import UTC
 
 from app.admin import service as audit_service
 from app.auth import password_reset
@@ -11,6 +9,10 @@ from app.auth.security import get_current_user
 from app.db.session import get_db
 from app.users import schemas, service
 from app.users.models import Role, StudentProfile, User
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy.orm import Session
+
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
@@ -21,13 +23,15 @@ def register(
 ):
     # Sprint 44: validate invite_code if provided.
     if payload.invite_code:
+        from datetime import datetime as _dt
+        from datetime import timezone as _tz
+
         from app.invites.models import Invite
-        from datetime import datetime as _dt, timezone as _tz
 
         invite = db.get(Invite, payload.invite_code)
         if invite is None:
             raise HTTPException(400, "Invalid invite code")
-        if invite.expires_at and invite.expires_at <= _dt.now(_tz.utc):
+        if invite.expires_at and invite.expires_at <= _dt.now(UTC):
             raise HTTPException(400, "Invite code expired")
         if invite.uses_count >= invite.max_uses:
             raise HTTPException(400, "Invite code already used")
@@ -41,14 +45,16 @@ def register(
 
     # Sprint 44: redeem invite (mark as used).
     if payload.invite_code:
+        from datetime import datetime as _dt
+        from datetime import timezone as _tz
+
         from app.invites.models import Invite as _Invite
-        from datetime import datetime as _dt, timezone as _tz
         invite = db.get(_Invite, payload.invite_code)
         if invite is not None:
             invite.uses_count += 1
             if invite.uses_count >= invite.max_uses:
                 invite.used_by = user.id
-                invite.used_at = _dt.now(_tz.utc)
+                invite.used_at = _dt.now(UTC)
             db.commit()
 
     audit_service.record(
@@ -79,8 +85,9 @@ def login(
     if user.role.value == "parent" and twofa.has_2fa_enabled(user.id):
         # Step 1: password верный, но нужен TOTP.
         # Возвращаем "intermediate token" с коротким TTL (5 мин).
-        from app.auth.security import _create_token
         from datetime import timedelta
+
+        from app.auth.security import _create_token
 
         intermediate = _create_token(
             subject=str(user.id),
@@ -143,13 +150,12 @@ def refresh(
     1. JSON body (обратная совместимость — фронт сейчас так).
     2. httpOnly cookie `ai_tutor_refresh` (новый flow без localStorage).
     """
-    from fastapi import HTTPException
-
     from app.auth.security import (
         REFRESH_COOKIE,
         decode_token,
         set_auth_cookies,
     )
+    from fastapi import HTTPException
 
     raw = payload.refresh_token or request.cookies.get(REFRESH_COOKIE)
     if not raw:
@@ -199,10 +205,9 @@ def login_2fa(
     Sprint 32 NOTE: intermediate token живёт 5 минут. После — нужно
     заново пройти step 1 (password).
     """
-    from fastapi import HTTPException
-
     from app.auth.security import decode_token, set_auth_cookies
     from app.users import twofa
+    from fastapi import HTTPException
 
     try:
         claim = decode_token(payload.access_token)

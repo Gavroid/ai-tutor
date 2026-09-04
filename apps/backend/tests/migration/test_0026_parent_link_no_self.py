@@ -15,12 +15,11 @@ app/parents/service.py: создаётся pending с student_id=parent_id, acce
 from __future__ import annotations
 
 import pytest
-from sqlalchemy.exc import IntegrityError
-
 from app.db.session import Base, SessionLocal, engine
 from app.users import service as user_service
 from app.users.models import ParentStudentLink
 from app.users.schemas import UserCreate
+from sqlalchemy.exc import IntegrityError
 
 
 def _setup_users() -> tuple[int, int]:

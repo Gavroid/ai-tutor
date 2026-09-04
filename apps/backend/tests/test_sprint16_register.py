@@ -15,18 +15,17 @@ os.environ.setdefault("AI_API_KEY", "mock-key-for-tests")
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "mock-token")
 
 import pytest
-from fastapi.testclient import TestClient
-
-from app.main import app
-from app.db.session import SessionLocal
-from app.users.models import User, Role
 from app.auth.security import hash_password
+from app.db.session import SessionLocal
+from app.main import app
+from app.users.models import Role, User
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture
 def client():
     """Создаёт чистую in-memory DB перед каждым тестом."""
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     return TestClient(app)

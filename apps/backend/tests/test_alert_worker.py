@@ -14,7 +14,6 @@ os.environ.setdefault("TELEGRAM_BOT_TOKEN", "test-token")
 os.environ.setdefault("TELEGRAM_ALERT_CHAT_ID", "12345")
 
 import pytest
-
 from app.bot import alert_worker
 
 

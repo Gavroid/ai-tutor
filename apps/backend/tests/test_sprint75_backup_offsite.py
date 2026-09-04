@@ -12,9 +12,9 @@ import os
 # Sprint 64: disable OpenTelemetry для tests
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
-import pytest
 from unittest.mock import MagicMock, patch
 
+import pytest
 
 # === Unit tests (logic, не integration) ===
 

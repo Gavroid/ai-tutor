@@ -15,17 +15,16 @@ os.environ.setdefault("APP_ENV", "development")
 os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
 os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
 
-from datetime import datetime, timedelta, timezone
 import json
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.db.session import Base, SessionLocal, get_db  # noqa: E402
 from app.main import app  # noqa: E402
 from app.subjects import models as subj_models  # noqa: E402
 from app.subjects.scripts_seed_runner import seed_for_tests  # noqa: E402
 from app.users.models import Role, User  # noqa: E402
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -113,8 +112,8 @@ def test_v2_answer_correct_creates_attempt_and_progress(client):
     ).json()
 
     # Узнаём correct_answer через прямой БД-доступ (мы не можем через API)
-    from app.db.session import SessionLocal
     from app.ai.models import GeneratedExerciseInstance
+    from app.db.session import SessionLocal
 
     with SessionLocal() as s:
         inst = s.get(GeneratedExerciseInstance, gen["exercise_id"])
@@ -245,8 +244,8 @@ def test_v2_answer_idempotent_does_not_create_second_attempt(client):
         "/api/v2/exercises/generate", headers=h, json={"topic_id": topic_id}
     ).json()
 
-    from app.db.session import SessionLocal
     from app.ai.models import GeneratedExerciseInstance
+    from app.db.session import SessionLocal
     from app.progress import models as progress_models
 
     with SessionLocal() as s:
@@ -410,12 +409,12 @@ def test_v2_answer_expired_returns_410(client):
     ).json()
 
     # Вручную делаем exercise expired через прямой БД-доступ
-    from app.db.session import SessionLocal
     from app.ai.models import GeneratedExerciseInstance
+    from app.db.session import SessionLocal
 
     with SessionLocal() as s:
         inst = s.get(GeneratedExerciseInstance, gen["exercise_id"])
-        inst.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+        inst.expires_at = datetime.now(UTC) - timedelta(seconds=1)
         s.commit()
 
     r = client.post(

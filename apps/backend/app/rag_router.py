@@ -288,8 +288,9 @@ def remove_material(
     # Sprint 3.5.2: persistent тоже удаляем
     persistent_count = 0
     try:
-        from app.rag_models import RagChunk
         from sqlalchemy import delete
+
+        from app.rag_models import RagChunk
         result = db.execute(delete(RagChunk).where(RagChunk.material_id == material_id))
         db.commit()
         persistent_count = result.rowcount

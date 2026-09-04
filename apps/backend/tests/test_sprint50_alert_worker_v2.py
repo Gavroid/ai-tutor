@@ -18,6 +18,7 @@ def _patch_alert_log_file(tmp_path, monkeypatch):
     monkeypatch.setenv("ALERT_LOG_FILE", str(log_file))
     # Перезагружаем модуль чтобы подхватить env
     import importlib
+
     from app.bot import alert_worker
     importlib.reload(alert_worker)
     return log_file
@@ -91,6 +92,7 @@ def test_log_to_file_creates_nested_directory(tmp_path, monkeypatch):
     monkeypatch.setenv("ALERT_LOG_FILE", str(nested_log))
 
     import importlib
+
     from app.bot import alert_worker
     importlib.reload(alert_worker)
 
@@ -240,6 +242,7 @@ def test_main_returns_error_if_no_token(monkeypatch):
     monkeypatch.setenv("TELEGRAM_ALERT_CHAT_ID", "")
 
     import importlib
+
     from app.bot import alert_worker
     importlib.reload(alert_worker)
 

@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import shutil
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from fastapi import Request, Response
 from prometheus_client import (
@@ -23,7 +23,6 @@ from prometheus_client import (
     generate_latest,
     multiprocess,
 )
-
 
 # === Метрики ===
 
@@ -75,6 +74,7 @@ OPS_BACKUP_LATEST_AGE_SECONDS = Gauge(
 def _probe_db() -> float:
     try:
         from sqlalchemy import text
+
         from app.db.session import engine
 
         with engine.connect() as conn:
@@ -87,6 +87,7 @@ def _probe_db() -> float:
 def _probe_redis() -> float:
     try:
         import os
+
         import redis as redis_lib
 
         redis_url = os.environ.get("REDIS_URL", "redis://redis:6379/0")

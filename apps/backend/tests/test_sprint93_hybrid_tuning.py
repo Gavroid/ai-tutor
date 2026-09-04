@@ -7,7 +7,6 @@ os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
 import pytest
 
-
 # === Tests: _detect_hybrid_weights ===
 
 def test_detect_short_query_keyword_heavy():

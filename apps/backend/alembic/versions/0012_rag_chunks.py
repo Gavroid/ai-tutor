@@ -15,7 +15,8 @@ Persistence слоя RAG в БД (вместо in-memory).
 
 Downgrade: drop table — данные теряются, RAG переходит на in-memory (acceptable для dev).
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
 import sqlalchemy as sa
 from alembic import op

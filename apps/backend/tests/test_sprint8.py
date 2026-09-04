@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import asyncio
 import json
+from unittest.mock import AsyncMock, MagicMock
 
 from app.ai.service import _PARSE_CNT, _record_ai
 from app.ai.types import AIResponse
 from app.teacher.service import SourceContent, call_ai_for_material
-from unittest.mock import AsyncMock, MagicMock
 
 
 def _mk_response(content: str, structured: dict | None = None, in_t: int = 100, out_t: int = 50) -> AIResponse:

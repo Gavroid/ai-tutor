@@ -1,15 +1,16 @@
 """Роутер прогресса."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from datetime import UTC
 
 from app.auth.security import get_current_user
 from app.db.session import get_db
 from app.progress import models, schemas, service
 from app.users import models as user_models
+from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/v1/progress", tags=["progress"])
 
@@ -80,9 +81,9 @@ def recommend_next(
     """Sprint 8.2: рекомендация следующей темы (adaptive curriculum)."""
     import random
 
-    from app.subjects import models as subj_models
-    from app.progress import models as prog_models
     from app.math_plan import MATH_SUBJECT_ID, MATH_TOPIC_PLAN
+    from app.progress import models as prog_models
+    from app.subjects import models as subj_models
 
     # Sprint 16.2 P2-4: константы вместо магических чисел (Luna Pro).
     WEAK_THRESHOLD = 0.5  # mastery < 0.5 → тема "слабая"
@@ -96,8 +97,9 @@ def recommend_next(
     recovery_reason: str | None = None
     minutes_since_pause: int | None = None
 
+    from datetime import datetime, timedelta, timezone
+
     from app.sessions.models import SessionPause
-    from datetime import datetime, timezone, timedelta
 
     recent_pause = (
         db.query(SessionPause)
@@ -110,10 +112,10 @@ def recommend_next(
     )
 
     if recent_pause and recent_pause.started_at:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if recent_pause.started_at.tzinfo is None:
             # Sprint 42: SQLite возвращает naive datetime — нормализуем.
-            recent_pause_dt = recent_pause.started_at.replace(tzinfo=timezone.utc)
+            recent_pause_dt = recent_pause.started_at.replace(tzinfo=UTC)
         else:
             recent_pause_dt = recent_pause.started_at
         minutes_ago = int((now - recent_pause_dt).total_seconds() / 60)

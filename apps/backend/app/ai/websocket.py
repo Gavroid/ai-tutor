@@ -10,11 +10,10 @@ import json
 import logging
 import time
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-
 from app.ai.service import get_ai_service
 from app.auth.security import ACCESS_COOKIE, decode_token
 from app.db.session import SessionLocal
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 logger = logging.getLogger(__name__)
 # Sprint 83: WS keepalive + max lifetime.
@@ -66,9 +65,9 @@ async def ai_chat_stream(websocket: WebSocket):
     # Sprint 69: admin role bypasses budget (operational necessity).
     # Загружаем user из БД для role check.
     try:
+        from app.ai.budget import BudgetExceeded, check_and_increment
         from app.db.session import SessionLocal
         from app.users import models as user_models
-        from app.ai.budget import BudgetExceeded, check_and_increment
 
         with SessionLocal() as db_session:
             user = db_session.get(user_models.User, user_id)
@@ -120,7 +119,7 @@ async def ai_chat_stream(websocket: WebSocket):
                     websocket.receive_text(),
                     timeout=WS_PING_INTERVAL_SECONDS * 2,
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # No message received — that's OK, just continue
                 continue
             try:

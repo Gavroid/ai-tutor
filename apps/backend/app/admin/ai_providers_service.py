@@ -15,12 +15,11 @@ import time
 from typing import Any, Optional
 
 import httpx
+from app.admin.ai_providers import AIModelCatalog, AIProvider, SubjectAIModel
+from app.config import get_settings
 from cryptography.fernet import Fernet, InvalidToken
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-
-from app.admin.ai_providers import AIProvider, AIModelCatalog, SubjectAIModel
-from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 

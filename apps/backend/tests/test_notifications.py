@@ -11,14 +11,13 @@ os.environ["AI_API_KEY"] = "mock-key-for-tests"
 os.environ.pop("SMTP_URL", None)  # явно отключаем email
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
 from app.notifications import models as notif_models
 from app.subjects.scripts_seed_runner import seed_for_tests
 from app.users import service as user_service
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -224,6 +223,7 @@ def test_email_dry_run_without_smtp(client):
     coroutine и даёт unawaited warning.
     """
     import asyncio
+
     from app.notifications import service as notif_service
 
     s = SessionLocal()

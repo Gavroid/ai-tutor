@@ -10,7 +10,6 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-
 # === Module-level tests (без DB) ===
 
 def test_search_real_persistent_imports():
@@ -33,7 +32,7 @@ def test_search_real_endpoint_registered():
 @pytest.fixture
 def client():
     """Sprint 71: TestClient + DB setup."""
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
 
     Base.metadata.drop_all(engine)
@@ -44,10 +43,10 @@ def client():
 @pytest.fixture
 def user_token(client):
     """Sprint 71: student token."""
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         user = User(
@@ -71,8 +70,8 @@ def _add_test_chunks_with_real_embeddings():
     """Helper: добавить test chunks с real embeddings."""
     from app.db.session import SessionLocal
     from app.rag_embeddings import encode_texts
-    from app.rag_persist import add_chunks_persistent
     from app.rag_models import RagChunk
+    from app.rag_persist import add_chunks_persistent
 
     texts = [
         "Формула площади круга: S = π × r²",
@@ -84,7 +83,7 @@ def _add_test_chunks_with_real_embeddings():
     assert embeddings is not None
 
     with SessionLocal() as db:
-        for i, (t, emb) in enumerate(zip(texts, embeddings)):
+        for i, (t, emb) in enumerate(zip(texts, embeddings, strict=False)):
             add_chunks_persistent(
                 db,
                 material_id=i + 1,

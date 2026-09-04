@@ -77,19 +77,19 @@ class TestCmdStartSprint78And323:
     @pytest.fixture
     def db_setup(self):
         """Sprint 3.23: local DB setup для этого test_file (не импортируется из test_telegram_bind)."""
-        from app.db.session import Base, SessionLocal, engine
-        from app.users import models as _u  # noqa: F401
-        from app.subjects import models as _s  # noqa: F401
-        from app.progress import models as _p  # noqa: F401
-        from app.diagnostics import models as _d  # noqa: F401
-        from app.admin import models as _a  # noqa: F401
-        from app.notifications import models as _n  # noqa: F401
-        from app.auth import password_reset_models as _pr  # noqa: F401
         from app import rag_models as _r  # noqa: F401
-        from app.sessions import models as _ss  # noqa: F401
-        from app.cgm import models as _c  # noqa: F401
-        from app.invites import models as _i  # noqa: F401
+        from app.admin import models as _a  # noqa: F401
+        from app.auth import password_reset_models as _pr  # noqa: F401
         from app.bot.telegram_bot import init_db
+        from app.cgm import models as _c  # noqa: F401
+        from app.db.session import Base, SessionLocal, engine
+        from app.diagnostics import models as _d  # noqa: F401
+        from app.invites import models as _i  # noqa: F401
+        from app.notifications import models as _n  # noqa: F401
+        from app.progress import models as _p  # noqa: F401
+        from app.sessions import models as _ss  # noqa: F401
+        from app.subjects import models as _s  # noqa: F401
+        from app.users import models as _u  # noqa: F401
         from sqlalchemy import text
 
         engine.dispose()
@@ -107,8 +107,8 @@ class TestCmdStartSprint78And323:
         """Sprint 3.23 helper: создать user'а в shared DB для теста."""
         from app.db.session import SessionLocal
         from app.users import service as user_service
-        from app.users.schemas import UserCreate
         from app.users.models import User
+        from app.users.schemas import UserCreate
 
         db = SessionLocal()
         try:

@@ -18,7 +18,7 @@ from fastapi.testclient import TestClient
 @pytest.fixture
 def client():
     """Sprint 69: TestClient fixture."""
-    from app.db.session import engine, Base
+    from app.db.session import Base, engine
     from app.main import app
 
     Base.metadata.drop_all(engine)
@@ -29,10 +29,10 @@ def client():
 @pytest.fixture
 def admin_token(client):
     """Sprint 69: admin token через прямой SQL."""
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         admin = User(
@@ -55,10 +55,10 @@ def admin_token(client):
 @pytest.fixture
 def student_token(client):
     """Sprint 69: student token через прямой SQL."""
-    from sqlalchemy.orm import Session
-    from app.db.session import engine
-    from app.users.models import User, Role
     from app.auth.security import hash_password
+    from app.db.session import engine
+    from app.users.models import Role, User
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         student = User(
@@ -90,15 +90,15 @@ def test_admin_bypasses_ai_budget(client, admin_token):
             headers={"Authorization": f"Bearer {admin_token}"},
         )
         # 200 (success) или 500 (AI mock error) — главное НЕ 429
-        assert r.status_code != 429, f"Admin should bypass budget, got 429"
+        assert r.status_code != 429, "Admin should bypass budget, got 429"
 
 
 def test_student_budget_exceeded_returns_429(client, student_token, monkeypatch):
     """Sprint 69: student превышает budget → 429."""
     # Setup subject + topic для explain endpoint
-    from sqlalchemy.orm import Session
     from app.db.session import engine
-    from app.subjects.models import Subject, Section, Topic
+    from app.subjects.models import Section, Subject, Topic
+    from sqlalchemy.orm import Session
 
     with Session(engine) as db:
         subject = Subject(code="math", name="Математика", is_active=True)
@@ -178,6 +178,7 @@ def test_metrics_access_from_blocked_ip_rejected(client):
     """Sprint 69: blocked IP → 403."""
     # Mock client.host чтобы IP не в whitelist
     from unittest.mock import patch
+
     from app.main import app
 
     with patch("fastapi.Request.client") as mock_client:

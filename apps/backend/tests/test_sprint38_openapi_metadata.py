@@ -4,8 +4,8 @@ from __future__ import annotations
 
 def test_openapi_title():
     """Sprint 38: OpenAPI title содержит app_name."""
-    from app.main import app
     from app.config import get_settings
+    from app.main import app
 
     schema = app.openapi()
     assert schema["info"]["title"] == get_settings().app_name

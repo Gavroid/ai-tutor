@@ -10,15 +10,16 @@ os.environ["CORS_ORIGINS"] = "http://localhost:3000"
 os.environ["AI_API_KEY"] = "mock-key-for-tests"
 os.environ.pop("SMTP_URL", None)
 
-import pytest
-from fastapi.testclient import TestClient
+from datetime import UTC
 
+import pytest
 from app.auth import password_reset
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.main import app
 from app.users import service as user_service
 from app.users.models import User
 from app.users.schemas import UserCreate
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -133,7 +134,7 @@ def test_expired_token_rejected(client):
         rec = PasswordResetToken(
             user_id=user.id,
             token_hash=_hash_token(raw_token),
-            expires_at=datetime.now(timezone.utc) - timedelta(hours=2),
+            expires_at=datetime.now(UTC) - timedelta(hours=2),
             used=False,
         )
         s.add(rec)
@@ -162,7 +163,7 @@ def test_used_token_rejected(client):
         rec = PasswordResetToken(
             user_id=user.id,
             token_hash=_hash_token(raw_token),
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
             used=True,
         )
         s.add(rec)
@@ -190,7 +191,7 @@ def test_rate_limit_on_request(client):
             rec = PasswordResetToken(
                 user_id=user.id,
                 token_hash=secrets.token_hex(32),
-                expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+                expires_at=datetime.now(UTC) + timedelta(hours=1),
             )
             s.add(rec)
         s.commit()
@@ -223,7 +224,7 @@ def test_confirm_short_password_blocked_at_api_level(client):
         rec = PasswordResetToken(
             user_id=user.id,
             token_hash=_hash_token(raw_token),
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
             used=False,
         )
         s.add(rec)

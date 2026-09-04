@@ -1,7 +1,8 @@
 from typing import Any, cast
 
 from app.algebra_plan import ALGEBRA_TOPIC_PLAN
-from scripts.algebra_source_import_dry_run import build_manifest, build_algebra_source_mappings
+
+from scripts.algebra_source_import_dry_run import build_algebra_source_mappings, build_manifest
 
 
 def test_algebra_source_dry_run_covers_every_route_topic_once():

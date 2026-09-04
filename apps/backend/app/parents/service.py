@@ -10,17 +10,16 @@
 from __future__ import annotations
 
 import secrets
-from datetime import date as _date, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
+from datetime import date as _date
 
-from sqlalchemy import case, func, select
-from sqlalchemy.orm import Session
-
+from app.parents import schemas
 from app.progress import models as prog_models
+from app.student import badges as student_badges  # Sprint 3.11
 from app.subjects import models as subj_models
 from app.users import models as user_models
-from app.parents import schemas
-from app.student import badges as student_badges  # Sprint 3.11
-
+from sqlalchemy import case, func, select
+from sqlalchemy.orm import Session
 
 # Sprint 3.11: маппинг slug → category для родительского дашборда.
 # Должно совпадать с BADGE_CATEGORIES в apps/frontend/app/student/badges/client.tsx.
@@ -207,7 +206,7 @@ def child_overview(db: Session, parent: user_models.User, student_id: int) -> di
     ).all()
 
     # Активность по дням (последние 7 дней)
-    since = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    since = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
     since = since.replace(day=max(1, since.day - 6))  # последние 7 дней
     daily = db.execute(
         select(
@@ -561,7 +560,7 @@ def child_dashboard(
         select(func.count(prog_models.Progress.id)).where(
             prog_models.Progress.user_id == student_id,
             prog_models.Progress.next_review_at.is_not(None),
-            prog_models.Progress.next_review_at <= datetime.now(timezone.utc),
+            prog_models.Progress.next_review_at <= datetime.now(UTC),
         )
     ) or 0
 
@@ -586,7 +585,7 @@ def child_dashboard(
             display_name=student.display_name,
             # Sprint 2026-08-23 (H2.3): email удалён — PII minimization.
         ),
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
         total_attempts=int(total_attempts),
         correct_attempts=int(correct_attempts),
         accuracy=round(accuracy, 3),
@@ -736,7 +735,7 @@ def mark_badges_seen(
     if link is None:
         return None
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     link.last_seen_badges_at = now
     db.commit()
 

@@ -4,9 +4,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
-
 from app.users.models import Role
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 # Минимальная валидация пароля: 8+ символов. Подробная политика (буквы/цифры/спецсимволы)
 # будет ужесточена в Этапе 11, когда подключим rate limit и audit log.
