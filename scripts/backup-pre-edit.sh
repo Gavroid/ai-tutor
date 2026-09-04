@@ -34,9 +34,14 @@ trap 'rm -rf "$LOCAL_TMP"' EXIT
 tar --exclude='.venv' --exclude='node_modules' --exclude='.next' \
     --exclude='__pycache__' --exclude='.pytest_cache' --exclude='.mypy_cache' \
     --exclude='.ruff_cache' --exclude='test-results' --exclude='playwright-report' \
-    --exclude='*.pyc' --exclude='.git' --exclude='.hermes' --exclude='data/uploads' \
+    --exclude='*.pyc' --exclude='.git' --exclude='.hermes' \
+    --exclude='data' \
     -czf "$LOCAL_TMP/code.tar.gz" \
     -C "$(dirname "$PROJECT_DIR")" "$(basename "$PROJECT_DIR")"
+
+# 2026-09-04: data/ исключён целиком — data/textbooks (~1.1 ГБ PDF) раздувал
+# каждый снапшот до ~1 ГБ и забил квоту NAS (91 ГБ за 2 недели). PDF живут
+# на проде и перевыкладываются deploy-пайплайном; в pre-edit бэкапе нужен код.
 
 # sha256
 (cd "$LOCAL_TMP" && sha256sum code.tar.gz > SHA256SUMS)
@@ -78,15 +83,28 @@ smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
   -c "cd ${SMB_BASE}/manifests; lcd $LOCAL_TMP; put manifest.json" 2>&1 | grep -v "^$" || true
 
 # retention
+# 2026-09-04: retention была сломана — rmdir непустой директории падал с
+# NT_STATUS_DIRECTORY_NOT_EMPTY, заметался '|| true' → старые снапшоты
+# не удалялись НИКОГДА (накопилось 566 шт / 91 ГБ). Теперь: recurse-del
+# содержимого, затем rmdir, с проверкой результата.
 ALL_PRE=$(smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
-  -c "cd ${SMB_BASE}/pre-edit; ls" 2>/dev/null | grep -E '^[[:space:]]*preedit-' | awk '{print $NF}' | sort)
+  -c "cd ${SMB_BASE}/pre-edit; ls" 2>/dev/null | grep -E '^[[:space:]]*preedit-' | awk '{print $1}' | sort)
 COUNT=$(echo "$ALL_PRE" | grep -c '^preedit-' || true)
 if (( COUNT > RETENTION_PREEDIT )); then
   REMOVE_COUNT=$((COUNT - RETENTION_PREEDIT))
   echo "$ALL_PRE" | head -n "$REMOVE_COUNT" | while read -r OLD; do
-    [[ -n "$OLD" ]] && smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
-      -c "cd ${SMB_BASE}/pre-edit; rmdir ${OLD}" 2>&1 | grep -v "^$" || true
+    [[ -z "$OLD" ]] && continue
+    # deltree вместо recurse-del+rmdir: надёжно удаляет непустые деревья (2026-09-04).
+    smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
+      -c "deltree \\${SMB_BASE}\\pre-edit\\${OLD}" \
+      2>&1 | grep -E "NT_STATUS" || true
   done
+  # verify: retention сработала — иначе громко ругаемся
+  LEFT=$(smbclient "//${SMB_HOST}/${SMB_SHARE}" -A "$SMB_CREDS" \
+    -c "cd ${SMB_BASE}/pre-edit; ls" 2>/dev/null | grep -cE '^[[:space:]]*preedit-' || true)
+  if (( LEFT > RETENTION_PREEDIT + 5 )); then
+    echo "[preedit] WARN: retention не сработала, на NAS осталось $LEFT снапшотов (лимит $RETENTION_PREEDIT)" >&2
+  fi
 fi
 
 echo "[preedit] DONE: $ID (code=${CODE_SIZE}b)"
