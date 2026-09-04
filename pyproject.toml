@@ -1,0 +1,78 @@
+# Sprint 3.22 (Этап 2.1 плана 13-*): статические гейты качества.
+# ruff — линтер + форматтер. До добавления этой секции шлюзом была только
+# связка `tsc --noEmit` + pytest (линтеров не было, см. /audit-2026-09/13 п.1).
+
+[tool.ruff]
+# line-length 120 — мягче дефолта 88, чтобы не разносить SQL/HTTP-handlers;
+# ruff format всё равно не разрывает разумные строки (<120 ок).
+line-length = 120
+target-version = "py312"
+# Не трогать .venv, alembic cache, тесты (на первом проходе).
+exclude = [
+    ".venv",
+    "alembic/versions",
+    "__pycache__",
+    "scripts",
+]
+
+[tool.ruff.lint]
+# E,F,W,I,UP,B — стандарт по плану. B (bugbear) ловит реальные баги.
+# Игнорим legacy: E501 (line-too-long — мешает SQL), E402 (module-level import
+# not at top — feature-flags), E731 (lambda assignment — router deps),
+# F401 (import but unused — pytest fixtures динамические), F841 (local var).
+# Sprint 3.22 — поэтапное уменьшение ignored rules по мере починки.
+# Каждое правило ниже задокументировано: почему в legacy и когда планируем
+# вычистить.
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = [
+    "E501",  # line-too-long — нормально для SQL/HTTP handlers (line-length 120)
+    "E402",  # module-level import not at top — feature-flags dynamic import
+    "E731",  # lambda assignment — FastAPI Depends patterns
+    "F401",  # imported but unused — re-exports для backward-compat (router imports)
+    "F841",  # local variable assigned but never used — placeholder для split
+    "B008",  # do not perform function calls in argument defaults — FastAPI Query/Body
+    "B904",  # raise without from inside except — alembic migrations
+    "UP007", # Use X | Y for type annotations — pydantic v1 compat
+    # Sprint 3.22 baseline-ignore для test-suite:
+    "E701",  # multiple statements on one line (colon) — sprint тесты, потом split
+    "E702",  # multiple statements on one line (semicolon) — sprint тесты, потом split
+    "E741",  # ambiguous variable name: `l` — исторические test_admin.py
+    "B007",  # unused loop control variable `i` — sprint тесты плодят `for i in ...`
+    "B017",  # pytest.raises(Exception) — антипаттерн, но используется везде
+    "F811",  # redefined-while-unused — test_subjects.py:198, рефактор позже
+    "UP035", # deprecated typing.List/Tuple — OAuth + graphql_schema, pydantic v1
+    "UP038", # non-pep604-isinstance — один редкий случай в evidence_schema
+]
+
+[tool.ruff.lint.per-file-ignores]
+# tests: разрешаем длинные строки (parametrize tables) и assert-стиль.
+"tests/**/*.py" = ["E501", "B011"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+# Этап 2.3 план: mypy строгий только для app/parents и app/student.
+# Остальное постепенно, CI job non-blocking первые 2 недели.
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
+exclude = [
+    "tests/",
+    "scripts/",
+    "alembic/versions/",
+    "migrations/",
+]
+
+[[tool.mypy.overrides]]
+# Pilot strict-only: /parents и /student (Этап 2.3 план).
+module = "app.parents.*"
+strict = true
+
+[[tool.mypy.overrides]]
+module = "app.student.*"
+strict = true

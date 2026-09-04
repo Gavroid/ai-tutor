@@ -22,14 +22,14 @@ from typing import Optional
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
-
 from app.auth.security import create_access_token, create_refresh_token
 from app.db.session import get_db
 from app.users import schemas, service
 from app.users.models import Role, User
+from app.users.schemas import UserCreate
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/v1/auth/oauth", tags=["oauth"])
 
