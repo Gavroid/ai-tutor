@@ -15,6 +15,9 @@ playwright-report/
 test-results/
 *.log
 
+data/
+data/textbooks/
+data/uploads/
 # Hermes internal artifacts (plans, reviews) — not for git
 .hermes/
 
