@@ -16,6 +16,8 @@
 | 3.25b | `56cde46` | **Flaky fix**: `assert code.isupper()` → `assert code == code.upper()` (digits не имеют case, случайная hex-only строка ломала flake-guard) | `20260904T123033Z-56cde46` |
 | 3.26 | `599827b` | **ruff --fix batch**: 21 autofix (I001 unsorted-imports + W292 newline) в 257 файлах. Behavior не менялся. | (не нужен — git-only) |
 | 3.27 | `46b94a5` | **ruff format batch**: 284 файла отформатированы (whitespace only). Поведение идентично. | (не нужен — git-only) |
+| 3.28 | `61334f2` `06783ac` | **God-file split (Этап 3, шаг 1/4)**: dataclasses `CheckResult`/`GeneratedExercise` → `app/ai/datatypes.py`; `QuizQuestion`/`Quiz` → `app/ai/quiz_types.py`. service.py 1561 → 1522 строк (-39 LOC). Re-export для backward compat. Snapshot test публичного API 8/8 passed. | (не нужен — behavior unchanged) |
+| 3.29 | (deferred) | God-file split (Этап 3, шаг 2/4): class `AIService` (527 LOC, 12 методов) → 5 mixin-модулей. **Не сделан в этой сессии** (15+ sprint'ов уже). Детально в `docs/backlog/2026-09-04-sprint-3.26+.md`. | — |
 
 ## Итог
 
