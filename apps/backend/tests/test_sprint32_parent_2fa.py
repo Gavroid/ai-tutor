@@ -11,11 +11,10 @@ os.environ.setdefault("AI_API_KEY", "mock-key-for-tests")
 
 import pyotp
 import pytest
-from fastapi.testclient import TestClient
-
 from app.auth.security import hash_password
 from app.db.session import Base, engine
 from app.users.models import Role, User
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture(autouse=True)
@@ -76,10 +75,14 @@ def test_enable_2fa_returns_secret_and_codes(client, parent_token, parent_login)
     assert "provisioning_uri" in data
     assert data["provisioning_uri"].startswith("otpauth://totp/")
     assert len(data["backup_codes"]) == 8
-    # Каждый backup code = 12 hex chars uppercase
+    # Каждый backup code = 12 hex chars uppercase.
+    # Sprint 2026-09-04 fix: assert code.isupper() возвращает False для строк
+    # из одних цифр (например '399653867345'), хотя сами они и так uppercase.
+    # Используем code == code.upper() — корректная проверка «уже uppercase»
+    # независимо от наличия букв. Закрывает flaky-test в flake-guard.
     for code in data["backup_codes"]:
         assert len(code) == 12
-        assert code.isupper()
+        assert code == code.upper()
 
 
 def test_enable_2fa_twice_returns_400(client, parent_token, parent_login):
