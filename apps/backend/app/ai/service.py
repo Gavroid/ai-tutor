@@ -1023,39 +1023,19 @@ class AIService:
         return await build_rag_context(self, db, topic, top_k)
 
     async def hint(self, question_text: str, level: int = 1) -> AIResponse:
-        """Sprint 7.4: подсказка уровня 1 (наводящий вопрос).
-
-        Для уровней 2/3 используй hint_at_level().
-        """
-        return await self._hint_with_level(question_text, level=1)
+        # Sprint 3.29 step 3: body moved to app.ai._dialog.hint.
+        from app.ai._dialog import hint as _hint_impl
+        return await _hint_impl(self, question_text, level)
 
     async def hint_at_level(self, question_text: str, level: int, error_type: str | None = None) -> AIResponse:
-        """Sprint 7.4 + 4.3.2: подсказка уровня 1..3 с учётом типа ошибки.
-
-        error_type (опционально): ARITHMETIC/CONCEPTUAL/LOGIC/CARELESS от judge.
-        Если указан — промпт адаптируется под тип ошибки.
-        """
-        return await self._hint_with_level(question_text, level=level, error_type=error_type)
+        # Sprint 3.29 step 3: body moved to app.ai._dialog.hint_at_level.
+        from app.ai._dialog import hint_at_level as _hint_at_level_impl
+        return await _hint_at_level_impl(self, question_text, level, error_type)
 
     async def _hint_with_level(self, question_text: str, level: int, error_type: str | None = None) -> AIResponse:
-        level = max(1, min(3, level))  # clamp
-        req = AIRequest(
-            messages=[
-                AIMessage(role="system", content=prompts.hint_system_at_level(level, error_type=error_type)),
-                AIMessage(role="user", content=f"Задание: {question_text}"),
-            ],
-            mode="hint",
-            max_tokens=400,
-        )
-        try:
-            resp = await self.provider.complete(req)
-            resp.content = _clean_student_visible_text(resp.content)
-            _record_ai("hint", "ok", resp=resp)
-            return resp
-        except Exception as e:
-            _record_ai("hint", "error")
-            logger.exception("AI hint failed: %s", e)
-            raise
+        # Sprint 3.29 step 3: body moved to app.ai._dialog._hint_with_level.
+        from app.ai._dialog import _hint_with_level as _hwl_impl
+        return await _hwl_impl(self, question_text, level, error_type)
 
     async def check_answer(
         self,
@@ -1063,65 +1043,9 @@ class AIService:
         correct_answer: str,
         user_answer: str,
     ) -> CheckResult:
-        user_answer = sanitize.sanitize_user_input(user_answer, self._settings.ai_max_input_chars)
-        if sanitize.detect_injection(user_answer):
-            # Подозрительный ввод — не отправляем в LLM, считаем ошибкой
-            _record_ai("check", "ok", parse_status="fallback")  # не LLM, но это решение
-            return CheckResult(
-                is_correct=False,
-                score=0.0,
-                first_error="Подозрительный ввод",
-                explanation="Похоже, в ответе есть инструкции для модели. Дай обычный ответ на задание.",
-                hint_level=1,
-                next_difficulty=1,
-            )
-        req = AIRequest(
-            messages=[
-                AIMessage(
-                    role="system",
-                    content=prompts.check_answer_system(question_text, correct_answer, user_answer),
-                ),
-                AIMessage(role="user", content="Проверь."),
-            ],
-            mode="check",
-            max_tokens=500,
-            temperature=0.0,
-        )
-        try:
-            resp = await self.provider.complete(req)
-            if resp.structured:
-                try:
-                    result = CheckResult(
-                        is_correct=bool(resp.structured.get("is_correct")),
-                        score=float(resp.structured.get("score", 0.0)),
-                        first_error=_clean_student_visible_text(resp.structured.get("first_error")),
-                        explanation=_clean_student_visible_text(resp.structured.get("explanation", "")),
-                        hint_level=int(resp.structured.get("hint_level", 1)),
-                        next_difficulty=int(resp.structured.get("next_difficulty", 1)),
-                        # Sprint 4.3.1: error_type для context-aware hints.
-                        # Валидируем чтобы не принимать мусор от LLM.
-                        error_type=resp.structured.get("error_type")
-                        if resp.structured.get("error_type") in ("ARITHMETIC", "CONCEPTUAL", "LOGIC", "CARELESS")
-                        else None,
-                    )
-                    _record_ai("check", "ok", resp=resp, parse_status="ok")
-                    return result
-                except (TypeError, ValueError):
-                    _record_ai("check", "ok", resp=resp, parse_status="error")
-            # Fallback: эвристический парсинг или возврат общего ответа
-            _record_ai("check", "ok", resp=resp, parse_status="fallback")
-            return CheckResult(
-                is_correct=False,
-                score=0.0,
-                first_error=None,
-                explanation=_clean_student_visible_text(resp.content[:1000]) or "Не удалось разобрать ответ.",
-                hint_level=1,
-                next_difficulty=2,
-            )
-        except Exception as e:
-            _record_ai("check", "error")
-            logger.exception("AI check failed: %s", e)
-            raise
+        # Sprint 3.29 step 3: body moved to app.ai._dialog.check_answer.
+        from app.ai._dialog import check_answer as _check_answer_impl
+        return await _check_answer_impl(self, question_text, correct_answer, user_answer)
 
     async def generate_exercise(
         self,
