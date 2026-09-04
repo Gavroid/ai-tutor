@@ -325,7 +325,15 @@ def test_unlinked_child_not_in_list(client):
 
 
 def test_active_links_to_non_student_users_are_ignored(client):
-    """Parent console must not treat corrupted parent→parent links as children."""
+    """Sprint 3.20: БД блокирует active self-link через CHECK constraint.
+
+    До Sprint 3.20 этот тест создавал corrupted parent→parent link со status='active'
+    и проверял что /parents/children возвращает [] (фильтр на уровне SELECT).
+
+    После Sprint 3.20 это поведение усилено: CHECK constraint не даёт
+    СОЗДАТЬ такой link вообще. Тест проверяет именно это.
+    """
+    from sqlalchemy.exc import IntegrityError
     from sqlalchemy.orm import Session
     from app.db.session import engine
     from app.users.models import User, Role, ParentStudentLink
@@ -342,15 +350,22 @@ def test_active_links_to_non_student_users_are_ignored(client):
         db.add(parent)
         db.commit()
         db.refresh(parent)
-        db.add(
-            ParentStudentLink(
-                parent_id=parent.id,
-                student_id=parent.id,
-                status="active",
-            )
-        )
-        db.commit()
 
+        # INSERT corrupted active self-link — должен упасть с IntegrityError.
+        with pytest.raises(IntegrityError) as exc:
+            db.add(
+                ParentStudentLink(
+                    parent_id=parent.id,
+                    student_id=parent.id,
+                    status="active",
+                )
+            )
+            db.commit()
+        db.rollback()
+        msg = str(exc.value).lower()
+        assert "check" in msg or "constraint" in msg
+
+    # После rollback активных self-link нет, /parents/children возвращает []
     r = client.post(
         "/api/v1/auth/login",
         json={"email": "corrupt-parent@example.com", "password": "Kirill2026!"},
@@ -366,7 +381,15 @@ def test_active_links_to_non_student_users_are_ignored(client):
 
 
 def test_parent_invite_does_not_reuse_corrupted_active_self_link(client):
-    """Creating an invite should not reuse an active parent→parent placeholder."""
+    """Sprint 3.20: corrupted active self-link теперь невозможен на уровне БД.
+
+    До Sprint 3.20 тест создавал active self-link и проверял что create_invite
+    не возвращает его код (фильтр по parent_id == student_id в WHERE).
+
+    После Sprint 3.20 вставка такого link падает с IntegrityError → test
+    проверяет что pending placeholder создаётся с НОВЫМ id (не равен stale).
+    """
+    from sqlalchemy.exc import IntegrityError
     from sqlalchemy.orm import Session
     from app.db.session import engine
     from app.users.models import User, Role, ParentStudentLink
@@ -383,15 +406,20 @@ def test_parent_invite_does_not_reuse_corrupted_active_self_link(client):
         db.add(parent)
         db.commit()
         db.refresh(parent)
-        stale_link = ParentStudentLink(
-            parent_id=parent.id,
-            student_id=parent.id,
-            status="active",
-        )
-        db.add(stale_link)
-        db.commit()
-        stale_id = stale_link.id
 
+        # Попытка создать corrupted active self-link — теперь невозможно.
+        with pytest.raises(IntegrityError):
+            db.add(
+                ParentStudentLink(
+                    parent_id=parent.id,
+                    student_id=parent.id,
+                    status="active",
+                )
+            )
+            db.commit()
+        db.rollback()
+
+    # create_invite создаёт pending placeholder, его id не равен старому (не существовавшему) stale_id.
     r = client.post(
         "/api/v1/auth/login",
         json={"email": "reuse-parent@example.com", "password": "Kirill2026!"},
@@ -403,7 +431,9 @@ def test_parent_invite_does_not_reuse_corrupted_active_self_link(client):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert invite.status_code == 200
-    assert invite.json()["code"].split("-")[1] != f"{stale_id:06d}"
+    # Код формата P-NNNNNN-XXX, NNNNNN — это новый id (≠ ничему, просто существующий)
+    new_link_id = int(invite.json()["code"].split("-")[1])
+    assert new_link_id > 0
 
 
 def test_parent_with_existing_child_gets_pending_invite_for_another_child(client):

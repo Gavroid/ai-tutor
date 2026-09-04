@@ -12,6 +12,7 @@ from enum import Enum
 
 from sqlalchemy import (
     BigInteger,
+    CheckConstraint,
     DateTime,
     Enum as SAEnum,
     ForeignKey,
@@ -111,6 +112,20 @@ class ParentStudentLink(Base):
     # Используется для подсчёта "новых с прошлого визита".
     last_seen_badges_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
+    )
+
+    # Sprint 3.20: защита от self-link (parent_id == student_id) для АКТИВНЫХ связей.
+    # FK self-reference на users.id проходит, но логически parent ≠ student.
+    #
+    # ВАЖНО: pending invite-ссылки (см. app/parents/service.py::create_invite_for_parent)
+    # используют student_id = parent_id как placeholder, пока ребёнок не примет код.
+    # accept_invite() затем обновляет student_id и status='active'.
+    # CHECK разрешает self-link ТОЛЬКО для pending (placeholder), запрещает для active.
+    __table_args__ = (
+        CheckConstraint(
+            "(parent_id != student_id) OR (status = 'pending')",
+            name="ck_parent_student_links_no_self_active",
+        ),
     )
 
 
