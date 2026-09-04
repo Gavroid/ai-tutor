@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 # import CheckResult`).
 from app.ai.datatypes import CheckResult, GeneratedExercise  # noqa: F401
 
+
 def _rag_enabled_for_subject(subject_name: str) -> bool:
     """Return whether RAG should be attempted for a subject.
 
@@ -868,6 +869,8 @@ def _fallback_generated_exercise(
 
 # Sprint 3.28: QuizQuestion/Quiz вынесены в app.ai.quiz_types.
 from app.ai.quiz_types import Quiz, QuizQuestion  # noqa: F401  (re-export)
+
+
 def _record_ai(
     mode: str,
     status: str,

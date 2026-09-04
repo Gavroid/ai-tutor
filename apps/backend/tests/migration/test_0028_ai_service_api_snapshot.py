@@ -13,7 +13,6 @@ from __future__ import annotations
 import pytest
 from app.ai import service
 
-
 PUBLIC_CLASSES = [
     "CheckResult",
     "GeneratedExercise",
