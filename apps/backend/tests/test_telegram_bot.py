@@ -16,12 +16,11 @@ os.environ.setdefault("TELEGRAM_BOT_TOKEN", "mock-token-for-tests")
 os.environ.setdefault("TELEGRAM_DATABASE_URL", "sqlite+pysqlite:///:memory:")
 
 import pytest
+from app.auth.security import hash_password
+from app.bot import telegram_bot
+from app.users.models import Role, User
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-
-from app.bot import telegram_bot
-from app.users.models import User, Role
-from app.auth.security import hash_password
 
 
 @pytest.fixture
@@ -63,15 +62,25 @@ def db_session():
 
 
 def test_init_db_creates_table(db_session):
-    """Sprint 16.0: init_db создаёт telegram_bindings если её нет."""
-    engine = create_engine("sqlite+pysqlite:///:memory:", future=True)
-    telegram_bot._engine = engine
+    """Sprint 16.0: init_db создаёт telegram_bindings если её нет.
+
+    Sprint 3.23: вместо своего engine — использует engine из app.db.session
+    (init_db() теперь работает через shared engine, иначе SQLite in-memory
+    теряет tables из-за разных engine objects).
+    """
+    from app.db.session import engine
+
+    # Sprint 3.23: использует engine from app.db.session
     telegram_bot.init_db()
     with engine.connect() as conn:
         row = conn.execute(text(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='telegram_bindings'"
         )).fetchone()
+        row2 = conn.execute(text(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='telegram_bind_codes'"
+        )).fetchone()
     assert row is not None
+    assert row2 is not None  # Sprint 3.23
 
 
 def test_set_and_get_binding(db_session):

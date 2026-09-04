@@ -702,6 +702,9 @@ def create_app() -> FastAPI:
     app.include_router(materials_router)
     app.include_router(admin_router)
     app.include_router(admin_realtime_router)
+    # Sprint 3.23: Admin endpoint для Telegram bind codes (/api/v1/admin/telegram-code).
+    from app.admin.telegram_code_router import router as telegram_code_router
+    app.include_router(telegram_code_router)
     # Sprint 3.9.6: AI-providers (multi-provider + per-subject routing)
     from app.admin.ai_providers_router import (
         router as ai_providers_router,
