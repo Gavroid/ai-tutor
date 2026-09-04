@@ -101,7 +101,8 @@ strict = true
 module = "app.observability_otel"
 strict = true
 
-# Sprint 3.36: app.ai пока не strict — 61 error в Sprint 3.29 step 1-5 не вытянуть за один sprint.
+# Sprint 3.36a: app.ai требует аннотаций для transitive deps (62 errors
+# в strict mode — не успеем за этот sprint). Оставляем default mode.
 [[tool.mypy.overrides]]
 module = "app.ai.*"
 strict = false

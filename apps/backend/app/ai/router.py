@@ -8,6 +8,7 @@ from typing import Any
 from app.ai.budget import BudgetExceeded, check_and_increment, get_usage
 from app.ai.markdown_render import render_markdown
 from app.ai.service import get_ai_service
+from app.ai.types import AIRequest, AIMessage  # noqa: F401  (re-exported for _build_request local import)
 from app.auth.security import get_current_user
 from app.common.deps import require_admin
 from app.db.session import get_db
@@ -535,9 +536,9 @@ async def understand_check_ai(
     _enforce_budget(current)
     svc = get_ai_service()
     try:
-        from app.ai.explain_runner import run_explain as _run_explain  # type: ignore
+        from app.ai.explain_runner import run_explain as _run_explain
     except ImportError:
-        _run_explain = None  # type: ignore
+        _run_explain = None
 
     subject = topic.section.subject
     grade = current.student_profile.grade if current.student_profile else 7
@@ -554,9 +555,9 @@ async def understand_check_ai(
     )
 
 
-def _build_request(sys_prompt: str, user_msg: str):
+def _build_request(sys_prompt: str, user_msg: str) -> AIRequest:
     """S3.2: локальный билдер AIRequest (избегаем circular import)."""
-    from app.ai.models import AIMessage, AIRequest
+    from app.ai.types import AIMessage, AIRequest
 
     return AIRequest(
         messages=[AIMessage(role="system", content=sys_prompt), AIMessage(role="user", content=user_msg)],

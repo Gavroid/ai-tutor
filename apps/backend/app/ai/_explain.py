@@ -10,6 +10,7 @@ Behavioral identity (zero change). Public API: AIService.explain_topic
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from app.ai import prompts
 from app.ai.service import (
@@ -39,7 +40,8 @@ async def explain_topic(
     делает 1-line `return await explain_topic(self, db, user, topic)`.
     """
     subject = topic.section.subject
-    rag_context, sources = ("", [])
+    rag_context: str | None = ""
+    sources: list[dict[str, Any]] = []
     try:
         rag_context, sources = await service._build_rag_context(db, topic)
     except Exception as e:
