@@ -17,16 +17,21 @@
 | 3.26 | `599827b` | **ruff --fix batch**: 21 autofix (I001 unsorted-imports + W292 newline) в 257 файлах. Behavior не менялся. | (не нужен — git-only) |
 | 3.27 | `46b94a5` | **ruff format batch**: 284 файла отформатированы (whitespace only). Поведение идентично. | (не нужен — git-only) |
 | 3.28 | `61334f2` `06783ac` | **God-file split (Этап 3, шаг 1/4)**: dataclasses `CheckResult`/`GeneratedExercise` → `app/ai/datatypes.py`; `QuizQuestion`/`Quiz` → `app/ai/quiz_types.py`. service.py 1561 → 1522 строк (-39 LOC). Re-export для backward compat. Snapshot test публичного API 8/8 passed. | (не нужен — behavior unchanged) |
-| 3.29 | (deferred) | God-file split (Этап 3, шаг 2/4): class `AIService` (527 LOC, 12 методов) → 5 mixin-модулей. **Не сделан в этой сессии** (15+ sprint'ов уже). Детально в `docs/backlog/2026-09-04-sprint-3.26+.md`. | — |
+| 3.29 step 1 | `2fd6fc5` | God-file split (Этап 3): `explain_topic` body → `app/ai/_explain.py` (function-based extraction). service.py 1522 → 1438 (-84 LOC). | (не нужен — behavior unchanged) |
+| 3.29 step 2 | `87749b8` | God-file split: `_build_rag_context` body → `app/ai/_rag.py`. 1438 → 1313 (-125 LOC). | (не нужен) |
+| 3.29 step 3 | `6b890d5` | God-file split: `hint` + `hint_at_level` + `_hint_with_level` + `check_answer` → `app/ai/_dialog.py`. 1313 → 1236 (-77 LOC). | (не нужен) |
+| 3.29 step 4 | `f6140d6` | God-file split: `generate_exercise` + `generate_quiz` → `app/ai/_generation.py`. 1236 → 1145 (-91 LOC). | (не нужен) |
+| 3.29 step 5 | `78feb69` | God-file split: `chat` → `app/ai/_chat.py`. 1145 → **1099** строк (-46 LOC). | (не нужен) |
 
 ## Итог
 
-- **Все P0-этапы плана закрыты** (Этап 0, 1.1, 1.2, 1.3, 1.4; побочные supervisor + smoke + author rewrite; Этап 2.1, 2.2, 2.3).
+- **Все P0-этапы плана закрыты** (Этап 0, 1.1, 1.2, 1.3, 1.4; побочные supervisor + smoke + author rewrite; Этап 2.1, 2.2, 2.3; **Этап 3 god-file split полностью — Sprint 3.28 dataclasses + 3.29 steps 1-5 method bodies → 5 модулей**).
 - **Full pytest 1521 passed** (+10 к baseline 1511), 30 skipped, 1 xfailed (legacy xfail), 2 warnings.
 - **Frontend build:** ✓ Compiled successfully в 3.4s.
 - **Frontend lint:** 0 errors, 45 warnings (baseline зафиксирован, уменьшаем).
-- **Прод:** `/health=200`, alembic=0026, latest deploy `20260904T123033Z-56cde46`.
-- **HEAD `56cde46`** на remote `design-audit-2026-08-20-fixes`.
+- **Прод:** `/health=200`, alembic=0026, latest deploy `20260904T123033Z-56cde46` (Sprint 3.25b flaky fix). После этого — **5 рефактор-коммитов без deploy** (Sprint 3.28 + 3.29 step 1-5).
+- **HEAD `78feb69`** на remote `design-audit-2026-08-20-fixes` (5 коммитов поверх `56cde46`).
+- **service.py: 1561 → 1099 строк за 2 sprint'а (-462 LOC, -29.6%)**.
 
 ## Известные issues (для следующих sprint'ов)
 
