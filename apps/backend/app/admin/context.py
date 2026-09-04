@@ -8,7 +8,7 @@ Middleware сохраняет Request в contextvar при каждом запр
 """
 from __future__ import annotations
 
-from contextvars import ContextVar
+from contextvars import ContextVar, Token
 from typing import Optional
 
 from fastapi import Request
@@ -29,6 +29,6 @@ def set_current_request(request: Optional[Request]) -> object:
     return _current_request.set(request)
 
 
-def reset_current_request(token: object) -> None:
+def reset_current_request(token: Token[Request | None]) -> None:
     """Восстанавливает предыдущее значение contextvar."""
     _current_request.reset(token)

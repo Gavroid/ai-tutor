@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -18,7 +18,6 @@ from sqlalchemy.orm import Session
 from app.common.deps import User, current_user
 from app.config import get_settings
 from app.db.session import get_db
-from app.subjects import models as subj_models
 from app.student import models as stu_models
 from app.student.badges import (
     BADGES,
@@ -27,6 +26,7 @@ from app.student.badges import (
     evaluate_and_award_badges,
     seed_badge_definitions,
 )
+from app.subjects import models as subj_models
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ def save_draft(
     if len(payload_str) > 64 * 1024:
         raise HTTPException(413, "Черновик слишком большой (>64 КБ)")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     existing = db.execute(
         select(stu_models.TopicDraft).where(
             stu_models.TopicDraft.user_id == current.id,
@@ -156,7 +156,7 @@ def save_draft(
     # Audit в audit_logs (best-effort, через прямой вызов в Sprint 7.5+).
     # Не блокирует основной запрос — ошибки здесь не должны ронять черновик.
     try:
-        from app.admin.service import record_audit_action  # noqa: F401 (ленивый import)
+        from app.admin.service import record as record_audit_action  # lazy import
     except ImportError:
         pass
 
@@ -361,7 +361,8 @@ def my_streak(
 
     Пропуск дня НЕ наказывается. Можно вернуться в любой момент.
     """
-    from datetime import date as _date, datetime, timedelta, timezone
+    from datetime import date as _date
+    from datetime import datetime, timedelta
     from zoneinfo import ZoneInfo
 
     from app.parents.service import _compute_streak

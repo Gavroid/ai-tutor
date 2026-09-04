@@ -3,14 +3,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+from datetime import UTC, datetime
 from typing import Any, Optional
-
-from fastapi import Request
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from app.admin import models
 from app.users import models as user_models
+from fastapi import Request
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 
 def _compute_record_hash(
@@ -190,8 +190,8 @@ def list_logs(
     user_id: int | None = None,
     action: str | None = None,
     entity: str | None = None,
-    since: object | None = None,  # datetime | None
-    until: object | None = None,  # datetime | None
+    since: datetime | None = None,
+    until: datetime | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> list[models.AuditLog]:
@@ -213,16 +213,16 @@ def list_logs(
         if since_v.tzinfo is None:
             from datetime import timezone
 
-            since_v = since_v.replace(tzinfo=timezone.utc)
+            since_v = since_v.replace(tzinfo=UTC)
         q = q.where(models.AuditLog.created_at >= since_v)
     if until is not None:
         until_v = until
         if until_v.tzinfo is None:
             from datetime import timezone
 
-            until_v = until_v.replace(tzinfo=timezone.utc)
+            until_v = until_v.replace(tzinfo=UTC)
         q = q.where(models.AuditLog.created_at <= until_v)
-    return db.scalars(q).all()
+    return list(db.scalars(q).all())
 
 
 def count_logs(
@@ -230,8 +230,8 @@ def count_logs(
     user_id: int | None = None,
     action: str | None = None,
     entity: str | None = None,
-    since: object | None = None,
-    until: object | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
 ) -> int:
     """Sprint 10.4: total count для пагинации в audit log UI.
 
@@ -251,13 +251,13 @@ def count_logs(
         since_v = since
         if since_v.tzinfo is None:
             from datetime import timezone
-            since_v = since_v.replace(tzinfo=timezone.utc)
+            since_v = since_v.replace(tzinfo=UTC)
         q = q.where(models.AuditLog.created_at >= since_v)
     if until is not None:
         until_v = until
         if until_v.tzinfo is None:
             from datetime import timezone
-            until_v = until_v.replace(tzinfo=timezone.utc)
+            until_v = until_v.replace(tzinfo=UTC)
         q = q.where(models.AuditLog.created_at <= until_v)
     return db.scalar(q) or 0
 
@@ -275,7 +275,7 @@ def purge_old_logs(db: Session, ttl_days: int = 90) -> int:
 
     from sqlalchemy import delete
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=ttl_days)
+    cutoff = datetime.now(UTC) - timedelta(days=ttl_days)
     result = db.execute(
         delete(models.AuditLog).where(models.AuditLog.created_at < cutoff)
     )
@@ -303,7 +303,7 @@ def _rehash_chain(db: Session) -> None:
         previous_hash = row.record_hash
 
 
-def prune_logs_older_than(db: Session, retention_days: int, now: object | None = None) -> int:
+def prune_logs_older_than(db: Session, retention_days: int, now: datetime | None = None) -> int:
     """Delete audit logs older than retention window and re-anchor hash chain.
 
     This is a maintenance primitive; production callers should run it only after
@@ -311,11 +311,11 @@ def prune_logs_older_than(db: Session, retention_days: int, now: object | None =
     """
     if retention_days <= 0:
         raise ValueError("retention_days must be positive")
-    from datetime import datetime, timezone, timedelta
+    from datetime import datetime, timedelta, timezone
 
-    current = now if now is not None else datetime.now(timezone.utc)
+    current = now if now is not None else datetime.now(UTC)
     if getattr(current, "tzinfo", None) is None:
-        current = current.replace(tzinfo=timezone.utc)
+        current = current.replace(tzinfo=UTC)
     cutoff = current - timedelta(days=retention_days)
 
     old_rows = db.execute(select(models.AuditLog).where(models.AuditLog.created_at < cutoff)).scalars().all()
