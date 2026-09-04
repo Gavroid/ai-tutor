@@ -21,10 +21,44 @@ SSH_KEY="${SSH_KEY:-/root/.ssh/id_ed25519_kirill_ai}"
 PROD_HOST="${PROD_HOST:-192.168.1.86}"
 
 # Pilot Core Stage 1 (post-impl review): пилот-креденшалы через env,
-# НЕ hardcoded. Если не заданы — smoke использует admin@example.com
-# (по согласованию с владельцем, см. pilot-scenarios.md).
-SMOKE_USER="${SMOKE_USER:-admin@example.com}"
-SMOKE_PASS="${SMOKE_PASS:-strongpass1}"
+# НЕ hardcoded. Если не заданы — smoke пытается прочитать из /opt/ai-tutor/.env
+# через ssh (prod credential store), иначе fail-fast с понятной ошибкой.
+# Раньше дефолт strongpass1 маскировал невалидный пароль на проде.
+#
+# Порядок приоритета:
+#   1) $SMOKE_USER / $SMOKE_PASS в окружении (explicit override — для CI secrets)
+#   2) Чтение из /opt/ai-tutor/.env на проде (если ssh_key есть)
+#   3) FAIL с инструкцией 'set SMOKE_PASS в env или GitHub Secret'
+if [ -z "${SMOKE_USER:-}" ] || [ -z "${SMOKE_PASS:-}" ]; then
+  if [ -f /opt/ai-tutor/.env ]; then
+    # smoke запущен на самом проде (self-hosted runner / cron)
+    set -a; source /opt/ai-tutor/.env; set +a
+    SMOKE_USER="${SMOKE_USER:-admin@example.com}"
+    SMOKE_PASS="${SMOKE_PASS:-}"
+  elif [ -n "${SSH_KEY:-}" ] || [ -f "${SSH_KEY:-/root/.ssh/id_ed25519_kirill_ai}" ]; then
+    # smoke запущен на workspace — читаем .env с прода через ssh
+    SSH_KEY="${SSH_KEY:-/root/.ssh/id_ed25519_kirill_ai}"
+    PROD_HOST="${PROD_HOST:-192.168.1.86}"
+    ENV_FILE=$(ssh -o BatchMode=yes -o ConnectTimeout=5 -i "$SSH_KEY" "root@$PROD_HOST" "cat /opt/ai-tutor/.env 2>/dev/null" 2>/dev/null || true)
+    if [ -n "$ENV_FILE" ]; then
+      # Извлекаем SMOKE-specific creds если они есть
+      PROD_SMOKE_USER=$(echo "$ENV_FILE" | grep -E "^SMOKE_USER=" | cut -d= -f2-)
+      PROD_SMOKE_PASS=$(echo "$ENV_FILE" | grep -E "^SMOKE_PASS=" | cut -d= -f2-)
+      if [ -n "$PROD_SMOKE_PASS" ]; then
+        SMOKE_USER="${SMOKE_USER:-${PROD_SMOKE_USER:-admin@example.com}}"
+        SMOKE_PASS="${SMOKE_PASS:-$PROD_SMOKE_PASS}"
+      fi
+    fi
+  fi
+fi
+
+if [ -z "${SMOKE_USER:-}" ] || [ -z "${SMOKE_PASS:-}" ]; then
+  echo "[smoke FAIL] SMOKE_USER/SMOKE_PASS не заданы." >&2
+  echo "  Задайте через env:    SMOKE_USER=... SMOKE_PASS=... bash smoke.sh" >&2
+  echo "  Или GitHub Secret:    secrets.PRODUCTION_SMOKE_PASSWORD" >&2
+  echo "  Или в /opt/ai-tutor/.env на проде: SMOKE_USER=... SMOKE_PASS=..." >&2
+  exit 2
+fi
 
 log() { printf '\033[1;34m[smoke]\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31m[smoke FAIL]\033[0m %s\n' "$*"; exit 1; }
