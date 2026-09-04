@@ -45,7 +45,6 @@ export default function TeacherMaterialDetailPage() {
   useEffect(() => {
     if (!user || !id) return;
     refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, id]);
 
   async function refresh() {

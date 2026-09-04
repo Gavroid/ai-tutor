@@ -98,7 +98,6 @@ export default function ParentDashboardPage() {
     if (!studentId || Number.isNaN(studentId)) return;
     refresh();
     refreshBadges();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentId]);
 
   async function refresh() {

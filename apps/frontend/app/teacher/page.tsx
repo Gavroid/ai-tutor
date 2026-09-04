@@ -43,7 +43,6 @@ export default function TeacherPage() {
   useEffect(() => {
     if (!user) return;
     refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, statusFilter]);
 
   async function refresh() {

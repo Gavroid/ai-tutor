@@ -98,7 +98,6 @@ export default function AdminPage() {
         .then((d) => setEngagement(d))
         .catch(() => {});
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, current?.role]);
 
   async function refreshRealtimeSnapshot() {
@@ -132,7 +131,6 @@ export default function AdminPage() {
   useEffect(() => {
     if (tab !== "realtime" || current?.role !== "admin" || realtimeSnapshot) return;
     void refreshRealtimeSnapshot();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, current?.role]);
 
   async function refresh(which: AdminTab) {

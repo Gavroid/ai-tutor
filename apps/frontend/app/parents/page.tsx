@@ -95,7 +95,6 @@ export default function ParentsPage() {
   useEffect(() => {
     api.me().then(setUser).catch(() => router.push("/login"));
     refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   function refresh() {

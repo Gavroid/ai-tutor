@@ -76,7 +76,7 @@ jobs:
           # Sprint 3.15: test_mapping_quality_audit удалён (модуль scripts/mapping_quality_audit не существует).
           pytest --tb=short -q
 
-      - name: Run frontend tsc + build
+      - name: Run frontend tsc + build + lint
         if: matrix.command == 'frontend'
         working-directory: apps/frontend
         env:
@@ -85,6 +85,9 @@ jobs:
           set -e
           npm ci
           npx tsc --noEmit
+          # Sprint 3.24: lint — гейт качества. --max-warnings 45 = baseline
+          # зафиксирован в Sprint 3.24. Уменьшаем по мере чистки legacy.
+          npm run lint
           NEXT_TELEMETRY_DISABLED=1 npm run build
 
       # Прогоняет production smoke.sh на проде (через self-hosted runner).

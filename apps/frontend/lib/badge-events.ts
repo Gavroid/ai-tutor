@@ -47,7 +47,6 @@ export const badgeEvents = new BadgeEventBus();
 export function useBadgeEvents(handler: (e: BadgeEvent) => void): void {
   useEffect(() => {
     return badgeEvents.subscribe(handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }
 
