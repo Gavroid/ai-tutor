@@ -22,15 +22,17 @@
 | 3.29 step 3 | `6b890d5` | God-file split: `hint` + `hint_at_level` + `_hint_with_level` + `check_answer` → `app/ai/_dialog.py`. 1313 → 1236 (-77 LOC). | (не нужен) |
 | 3.29 step 4 | `f6140d6` | God-file split: `generate_exercise` + `generate_quiz` → `app/ai/_generation.py`. 1236 → 1145 (-91 LOC). | (не нужен) |
 | 3.29 step 5 | `78feb69` | God-file split: `chat` → `app/ai/_chat.py`. 1145 → **1099** строк (-46 LOC). | (не нужен) |
+| 3.31 | `4503dba` | **pytest-xdist -n 4**: 9:32 → 2:46 (×3.46 speedup). requirements-dev.txt + ci.yml + release-gate.yml. Flake-guard 3/3 pass (166s, 166s, 164s). | (CI/dev only — нет prod impact) |
 
 ## Итог
 
-- **Все P0-этапы плана закрыты** (Этап 0, 1.1, 1.2, 1.3, 1.4; побочные supervisor + smoke + author rewrite; Этап 2.1, 2.2, 2.3; **Этап 3 god-file split полностью — Sprint 3.28 dataclasses + 3.29 steps 1-5 method bodies → 5 модулей**).
-- **Full pytest 1521 passed** (+10 к baseline 1511), 30 skipped, 1 xfailed (legacy xfail), 2 warnings.
+- **Все P0-этапы плана закрыты** (Этап 0, 1.1, 1.2, 1.3, 1.4; побочные supervisor + smoke + author rewrite; Этап 2.1, 2.2, 2.3; **Этап 3 god-file split полностью — Sprint 3.28 dataclasses + 3.29 steps 1-5 method bodies → 5 модулей**; **Этап 4.3 xdist — Sprint 3.31**).
+- **Full pytest 1530 passed** (+10 к baseline 1511 → +9 от Sprint 3.28), 30 skipped, 1 xfailed (legacy xfail), 2 warnings sequential / 5 warnings параллельный (Pydantic × 4 workers + 1 pre-existing RuntimeWarning).
+- **pytest-xdist -n 4:** 572s → 165s (×3.46 speedup). Flake-guard 3/3 pass.
 - **Frontend build:** ✓ Compiled successfully в 3.4s.
 - **Frontend lint:** 0 errors, 45 warnings (baseline зафиксирован, уменьшаем).
-- **Прод:** `/health=200`, alembic=0026, latest deploy `20260904T123033Z-56cde46` (Sprint 3.25b flaky fix). После этого — **5 рефактор-коммитов без deploy** (Sprint 3.28 + 3.29 step 1-5).
-- **HEAD `78feb69`** на remote `design-audit-2026-08-20-fixes` (5 коммитов поверх `56cde46`).
+- **Прод:** `/health=200`, alembic=0026, latest deploy `20260904T123033Z-56cde46` (Sprint 3.25b flaky fix). После этого — **7 refactor/CI commits без deploy** (Sprint 3.28 + 3.29 step 1-5 + 3.31 xdist).
+- **HEAD `4503dba`** на remote `design-audit-2026-08-20-fixes` (7 коммитов поверх `56cde46`).
 - **service.py: 1561 → 1099 строк за 2 sprint'а (-462 LOC, -29.6%)**.
 
 ## Известные issues (для следующих sprint'ов)
