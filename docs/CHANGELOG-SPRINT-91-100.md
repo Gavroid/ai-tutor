@@ -14,6 +14,8 @@
 | 3.24 | `ce80fa3` | **ESLint flat config**: v10 + typescript-eslint v8 (без eslint-config-next — legacy peer-dep). 7 stale eslint-disable директив удалены. `npm run lint` exit 0 | (frontend-only) |
 | 3.25 | `d1cbdca` | **mypy baseline**: 13 type-фиксов (context.py, service.py, student/router.py). `Success: no issues found in 7 source files` для app/parents + app/student | `20260904T121630Z-d1cbdca` |
 | 3.25b | `56cde46` | **Flaky fix**: `assert code.isupper()` → `assert code == code.upper()` (digits не имеют case, случайная hex-only строка ломала flake-guard) | `20260904T123033Z-56cde46` |
+| 3.26 | `599827b` | **ruff --fix batch**: 21 autofix (I001 unsorted-imports + W292 newline) в 257 файлах. Behavior не менялся. | (не нужен — git-only) |
+| 3.27 | `46b94a5` | **ruff format batch**: 284 файла отформатированы (whitespace only). Поведение идентично. | (не нужен — git-only) |
 
 ## Итог
 
