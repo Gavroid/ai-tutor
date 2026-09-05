@@ -310,7 +310,8 @@ def _get_rag_context_for_topic(topic_id: int | None) -> str:
         return ""
     try:
         from app.db.session import SessionLocal
-        from app.rag_models import LearningMaterial, RagChunk
+        from app.rag_models import RagChunk
+        from app.subjects.models import LearningMaterial
 
         sess = SessionLocal()
         try:
