@@ -59,7 +59,10 @@ jobs:
           . .venv/bin/activate
           # Sprint 3.15: test_mapping_quality_audit удалён (модуль scripts/mapping_quality_audit не существует).
           # Sprint 3.31: parallel pytest через xdist (-n 4). Baseline 9:32 → 2:45 (×3.46 speedup).
-          pytest --tb=short -q -n 4
+          # Sprint 3.40: --cov-report=xml для diff-cover на следующем step.
+          pytest --tb=short -q -n 4 --cov=app --cov-report=xml
+          # Sprint 3.40: diff-cover — coverage gate для PR (сравнение с base branch).
+          diff-cover coverage.xml --compare-branch=origin/${{ github.event.pull_request.base.ref || github.ref_name }} --fail-under=80
 
   frontend:
     name: Frontend (tsc + lint + build)

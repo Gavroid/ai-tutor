@@ -130,3 +130,21 @@ strict = false
 [[tool.mypy.overrides]]
 module = "app.observability_otel"
 strict = false
+
+# Sprint 3.40: diff-cover config — coverage gate для PR.
+[tool.diff_cover]
+# Compare branch (по умолчанию origin/main). В CI можно override через
+# DIFF_COVER_COMPARE_BRANCH env (или git diff между base и head).
+compare_branch = "origin/main"
+# Coverage threshold (fail if diff coverage < X%). 80% — реалистичный
+# target для MVP. Sprint 3.40 baseline: 85% для изменений в этой ветке.
+fail_under = 80
+# Игнорируем файлы без coverage data (migrations, scripts и т.п.)
+exclude = [
+    "alembic/versions/*",
+    "scripts/*",
+    "tests/*",
+]
+# HTML + Markdown reports
+html_report = "diff-cover.html"
+markdown_report = "diff-cover.md"

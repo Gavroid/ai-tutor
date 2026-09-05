@@ -5,6 +5,7 @@ pytest==8.3.4
 pytest-asyncio==0.24.0
 pytest-cov==6.0.0
 pytest-xdist==3.6.1  # Sprint 3.31: parallel pytest (×3.5 speedup, 9:32 → 2:45)
+diff-cover==9.2.0    # Sprint 3.40: coverage gate в PR (diff vs base branch)
 httpx==0.28.1
 fakeredis==2.26.1
 
