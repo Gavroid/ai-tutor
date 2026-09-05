@@ -137,6 +137,16 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Sprint 3.38: Content-Security-Policy header. По умолчанию report-only
+    # (CSP_ENFORCE не выставлен), что безопасно для staged rollout.
+    # После того как violations исчезнут в логах — переключить на enforce.
+    import os as _os
+
+    _csp_enforce = _os.environ.get("CSP_ENFORCE", "false").lower() == "true"
+    from app.middleware.csp import CSPMiddleware
+
+    app.add_middleware(CSPMiddleware, enforce=_csp_enforce)
+
     # Sprint 62: OpenTelemetry tracing (опционально, env-управляемо).
     from app.db.session import engine as db_engine
     from app.observability_otel import setup_telemetry
@@ -762,6 +772,10 @@ def create_app() -> FastAPI:
     app.include_router(student_materials_router)
     app.include_router(notifications_router)
     app.include_router(feedback_router)  # Sprint P1
+    # Sprint 3.38: CSP violation report endpoint (POST /api/v1/csp-report).
+    from app.admin.csp_report_router import router as csp_report_router
+
+    app.include_router(csp_report_router)
     # S3.6 (2026-09-01): bug/error report (отдельный router, не Sprint P1)
     from app.feedback.report_router import router as feedback_report_router
 
