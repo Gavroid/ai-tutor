@@ -1,0 +1,19 @@
+# Sprint 3.45 (T5 из аудита): monthly doc-archive cron.
+#
+# Активация:
+#   sudo crontab -e   # добавить строку ниже
+#
+# Что делает:
+# - 1-го числа каждого месяца в 03:00 MSK
+# - Перемещает все docs/*YYYY-MM-*.md в docs/archive/YYYY-MM/ (git mv)
+# - Логирует в /var/log/docs-archive.log
+#
+# Зачем: Sprint 3.41 перенёс 140 отчётов за август 2026 вручную.
+# Этот cron автоматизирует процесс для следующих месяцев (T5 из аудита).
+
+# 0 3 1 * * /root/workspace/ai-tutor/scripts/docs-monthly-archive.sh >> /var/log/docs-archive.log 2>&1
+
+# Sprint 3.45 BACKLOG: uncomment для активации. Дефолт OFF потому что
+# (а) владелец должен подтвердить что git mv безопасен (нет pending commits),
+# (б) первый запуск (на сентябрь 2026) уже сделан вручную в Sprint 3.41,
+# (в) нужен backup script на случай если cron сработает во время deploy.
