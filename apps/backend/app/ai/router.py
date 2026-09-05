@@ -8,7 +8,7 @@ from typing import Any
 from app.ai.budget import BudgetExceeded, check_and_increment, get_usage
 from app.ai.markdown_render import render_markdown
 from app.ai.service import get_ai_service
-from app.ai.types import AIRequest, AIMessage  # noqa: F401  (re-exported for _build_request local import)
+from app.ai.types import AIMessage, AIRequest  # noqa: F401  (re-exported for _build_request local import)
 from app.auth.security import get_current_user
 from app.common.deps import require_admin
 from app.db.session import get_db

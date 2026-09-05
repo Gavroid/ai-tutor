@@ -7,6 +7,7 @@ Behavioral identity (zero change). Public API: AIService.explain_topic
 Эта функция принимает `service` (AIService instance) как первый аргумент
 для shared state (provider, _settings).
 """
+
 from __future__ import annotations
 
 import logging
@@ -70,7 +71,8 @@ async def explain_topic(
         used_fallback = False
         if len(resp.content.strip()) < 250:
             retry_req = AIRequest(
-                messages=req.messages + [
+                messages=req.messages
+                + [
                     AIMessage(
                         role="user",
                         content="Ответ слишком короткий. Дай полноценное объяснение: определение, правило, пример и проверочный вопрос. Не обрывай фразы.",
@@ -100,9 +102,7 @@ async def explain_topic(
 
     topic_id = getattr(topic, "id", None)
     verified_sources = (
-        _verified_rag_sources(sources, topic_id=topic_id, topic_name=topic.name)
-        if topic_id is not None
-        else []
+        _verified_rag_sources(sources, topic_id=topic_id, topic_name=topic.name) if topic_id is not None else []
     )
     if getattr(user, "role", None) == "student":
         verified_sources = []

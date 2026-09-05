@@ -8,6 +8,7 @@ Sprint 3.28 (Этап 3 god-файлы): разбиваем app/ai/service.py (1
 
 Если регрессируем — ловим сразу: imports и attrs.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -57,6 +58,4 @@ def test_ai_service_class_has_expected_methods():
         "resolve_provider_for_subject",
     }
     for method_name in expected_public:
-        assert hasattr(service.AIService, method_name), (
-            f"AIService.{method_name} отсутствует"
-        )
+        assert hasattr(service.AIService, method_name), f"AIService.{method_name} отсутствует"

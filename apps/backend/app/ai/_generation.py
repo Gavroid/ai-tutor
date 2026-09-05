@@ -6,6 +6,7 @@ Behavioral identity (zero change). Function-based extraction pattern
 Public API: AIService.{generate_exercise, generate_quiz} остались через
 1-line forwarding.
 """
+
 from __future__ import annotations
 
 import logging
@@ -66,6 +67,7 @@ async def generate_exercise(
         _record_ai("generate", "error")
         logger.warning("AI generate provider failure → fallback: %s", e)
         return _fallback_generated_exercise(subject_name, topic_name, difficulty, topic_id=topic_id)
+
 
 async def generate_quiz(
     service,
@@ -141,4 +143,3 @@ async def generate_quiz(
         _record_ai("quiz", "error")
         logger.exception("AI quiz failed: %s", e)
         raise
-

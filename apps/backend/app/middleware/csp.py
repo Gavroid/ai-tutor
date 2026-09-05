@@ -65,9 +65,7 @@ class CSPMiddleware(BaseHTTPMiddleware):
         # В report-only mode пишем в header `Content-Security-Policy-Report-Only`,
         # браузер только репортит violations но не блокирует.
         # В enforce mode пишем в `Content-Security-Policy` — браузер блокирует.
-        self.header_name = (
-            "Content-Security-Policy" if enforce else "Content-Security-Policy-Report-Only"
-        )
+        self.header_name = "Content-Security-Policy" if enforce else "Content-Security-Policy-Report-Only"
         self.csp_value = "; ".join(_CSP_DIRECTIVES)
 
     async def dispatch(self, request: Request, call_next: Any) -> Response:

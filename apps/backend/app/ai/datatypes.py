@@ -14,6 +14,7 @@ Re-exports сохраняются:
 
 Не содержат никакой бизнес-логики — только структура данных.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

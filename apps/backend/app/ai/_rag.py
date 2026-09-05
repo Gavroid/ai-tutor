@@ -4,6 +4,7 @@ Behavioral identity (zero change). Подход function-based extraction:
 функция принимает 'service' (AIService instance) как первый аргумент.
 Public API: AIService._build_rag_context остался через 1-line forwarding.
 """
+
 from __future__ import annotations
 
 import logging
@@ -15,7 +16,9 @@ from sqlalchemy.orm import Session
 logger = logging.getLogger(__name__)
 
 
-async def build_rag_context(service, db: Session, topic: subj_models.Topic, top_k: int = 3) -> tuple[str | None, list[dict]]:
+async def build_rag_context(
+    service, db: Session, topic: subj_models.Topic, top_k: int = 3
+) -> tuple[str | None, list[dict]]:
     """Sprint 3.5.2 + 4.1.3: RAG — топ-K chunk'ов из загруженных учебников.
 
     Returns:
@@ -47,8 +50,7 @@ async def build_rag_context(service, db: Session, topic: subj_models.Topic, top_
             material_ids = []
             if topic_id is not None:
                 material_ids = [
-                    row[0]
-                    for row in db.query(LearningMaterial.id).filter(LearningMaterial.topic_id == topic_id).all()
+                    row[0] for row in db.query(LearningMaterial.id).filter(LearningMaterial.topic_id == topic_id).all()
                 ]
             chunks = []
             if material_ids:
@@ -106,8 +108,7 @@ async def build_rag_context(service, db: Session, topic: subj_models.Topic, top_
             mat_title = (meta.get("material_title") or "").lower()
             if any(bad in mat_title for bad in blocklist):
                 logger.warning(
-                    "RAG safety net: dropping chunk with wrong subject "
-                    "(topic=%s material_title=%r blocklist=%s)",
+                    "RAG safety net: dropping chunk with wrong subject " "(topic=%s material_title=%r blocklist=%s)",
                     topic_id,
                     mat_title,
                     blocklist,
@@ -145,4 +146,3 @@ async def build_rag_context(service, db: Session, topic: subj_models.Topic, top_
             }
         )
     return "\n".join(lines), _dedupe_rag_sources(sources)
-

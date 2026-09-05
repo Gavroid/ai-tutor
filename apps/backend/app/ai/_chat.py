@@ -5,6 +5,7 @@ Behavioral identity (zero change). Function-based extraction pattern
 
 Public API: AIService.chat остался через 1-line forwarding.
 """
+
 from __future__ import annotations
 
 import logging
@@ -73,4 +74,3 @@ async def chat(
             model="fallback",
             sources=[],
         )
-

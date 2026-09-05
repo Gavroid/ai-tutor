@@ -21,10 +21,6 @@ from __future__ import annotations
 import uuid
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
 from app.ai.prompts import _get_rag_context_for_topic
 from app.db.session import Base
 from app.rag_models import RagChunk
@@ -32,6 +28,9 @@ from app.rag_persist import chunk_hash
 from app.subjects import models as subj_models
 from app.subjects.models import LearningMaterial
 from app.users import models as user_models
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 # Sprint 3.43 P1: отдельный engine чтобы избежать race с другими тестами.
 _test_engine = create_engine(
@@ -57,15 +56,11 @@ def _create_topic_with_chunk(text: str, slug: str) -> int:
         session.add(user)
         session.flush()
 
-        subject = subj_models.Subject(
-            name=f"Test {unique_slug}", code=unique_slug, is_active=True
-        )
+        subject = subj_models.Subject(name=f"Test {unique_slug}", code=unique_slug, is_active=True)
         session.add(subject)
         session.flush()
 
-        section = subj_models.Section(
-            subject_id=subject.id, name="S", order_index=1
-        )
+        section = subj_models.Section(subject_id=subject.id, name="S", order_index=1)
         session.add(section)
         session.flush()
 
@@ -108,15 +103,11 @@ def _create_empty_topic(slug: str) -> int:
         session.add(user)
         session.flush()
 
-        subject = subj_models.Subject(
-            name=f"Test {unique_slug}", code=unique_slug, is_active=True
-        )
+        subject = subj_models.Subject(name=f"Test {unique_slug}", code=unique_slug, is_active=True)
         session.add(subject)
         session.flush()
 
-        section = subj_models.Section(
-            subject_id=subject.id, name="S", order_index=1
-        )
+        section = subj_models.Section(subject_id=subject.id, name="S", order_index=1)
         session.add(section)
         session.flush()
 
@@ -185,7 +176,4 @@ class TestRagContextForTopicRegression:  # noqa: E801
 
         result = _get_rag_context_for_topic(topic_id)
 
-        assert result, (
-            "🚨 P1 BUG: RAG-контекст пустой — generate_exercise "
-            "теряет контекст реального учебника."
-        )
+        assert result, "🚨 P1 BUG: RAG-контекст пустой — generate_exercise " "теряет контекст реального учебника."

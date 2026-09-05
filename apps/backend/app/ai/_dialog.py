@@ -7,6 +7,7 @@ Behavioral identity (zero change). Function-based extraction pattern
 Public API: AIService.{hint, hint_at_level, _hint_with_level, check_answer}
 остались через 1-line forwarding.
 """
+
 from __future__ import annotations
 
 import logging
@@ -28,6 +29,7 @@ async def hint(service, question_text: str, level: int = 1) -> AIResponse:
     """
     return await _hint_with_level(service, question_text, level=1)
 
+
 async def hint_at_level(service, question_text: str, level: int, error_type: str | None = None) -> AIResponse:
     """Sprint 7.4 + 4.3.2: подсказка уровня 1..3 с учётом типа ошибки.
 
@@ -35,6 +37,7 @@ async def hint_at_level(service, question_text: str, level: int, error_type: str
     Если указан — промпт адаптируется под тип ошибки.
     """
     return await _hint_with_level(service, question_text, level=level, error_type=error_type)
+
 
 async def _hint_with_level(service, question_text: str, level: int, error_type: str | None = None) -> AIResponse:
     level = max(1, min(3, level))  # clamp
@@ -55,6 +58,7 @@ async def _hint_with_level(service, question_text: str, level: int, error_type: 
         _record_ai("hint", "error")
         logger.exception("AI hint failed: %s", e)
         raise
+
 
 async def check_answer(
     service,

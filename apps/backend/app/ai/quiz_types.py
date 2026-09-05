@@ -8,6 +8,7 @@ GeneratedExercise, QuizQuestion, Quiz). Sprint 3.28 step 1 — CheckResult
 После Sprint 3.28: чистые dataclasses в этом файле. service.py re-export'ит
 для backward compatibility.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -867,6 +867,7 @@ def _fallback_generated_exercise(
         typical_mistakes=["Копировать определение без понимания", "Отвечать слишком общо"],
     )
 
+
 # Sprint 3.28: QuizQuestion/Quiz вынесены в app.ai.quiz_types.
 from app.ai.quiz_types import Quiz, QuizQuestion  # noqa: F401  (re-export)
 
@@ -1013,6 +1014,7 @@ class AIService:
     async def explain_topic(self, db: Session, user: user_models.User, topic: subj_models.Topic) -> AIResponse:
         # Sprint 3.29: body moved to app.ai._explain.explain_topic (zero behavior change).
         from app.ai._explain import explain_topic as _explain_topic_impl
+
         return await _explain_topic_impl(self, db, user, topic)
 
     async def _build_rag_context(
@@ -1020,21 +1022,25 @@ class AIService:
     ) -> tuple[str | None, list[dict]]:
         # Sprint 3.29 step 2: body moved to app.ai._rag.build_rag_context.
         from app.ai._rag import build_rag_context
+
         return await build_rag_context(self, db, topic, top_k)
 
     async def hint(self, question_text: str, level: int = 1) -> AIResponse:
         # Sprint 3.29 step 3: body moved to app.ai._dialog.hint.
         from app.ai._dialog import hint as _hint_impl
+
         return await _hint_impl(self, question_text, level)
 
     async def hint_at_level(self, question_text: str, level: int, error_type: str | None = None) -> AIResponse:
         # Sprint 3.29 step 3: body moved to app.ai._dialog.hint_at_level.
         from app.ai._dialog import hint_at_level as _hint_at_level_impl
+
         return await _hint_at_level_impl(self, question_text, level, error_type)
 
     async def _hint_with_level(self, question_text: str, level: int, error_type: str | None = None) -> AIResponse:
         # Sprint 3.29 step 3: body moved to app.ai._dialog._hint_with_level.
         from app.ai._dialog import _hint_with_level as _hwl_impl
+
         return await _hwl_impl(self, question_text, level, error_type)
 
     async def check_answer(
@@ -1045,6 +1051,7 @@ class AIService:
     ) -> CheckResult:
         # Sprint 3.29 step 3: body moved to app.ai._dialog.check_answer.
         from app.ai._dialog import check_answer as _check_answer_impl
+
         return await _check_answer_impl(self, question_text, correct_answer, user_answer)
 
     async def generate_exercise(
@@ -1056,6 +1063,7 @@ class AIService:
     ) -> GeneratedExercise:
         # Sprint 3.29 step 4: body moved to app.ai._generation.generate_exercise.
         from app.ai._generation import generate_exercise as _gen_impl
+
         topic_name_for_impl = subject_name  # unused, but keeps args in order
         return await _gen_impl(self, subject_name, topic_name, difficulty, topic_id)
 
@@ -1068,6 +1076,7 @@ class AIService:
     ) -> Quiz:
         # Sprint 3.29 step 4: body moved to app.ai._generation.generate_quiz.
         from app.ai._generation import generate_quiz as _quiz_impl
+
         return await _quiz_impl(self, subject_name, topic_name, difficulty, count)
 
     async def chat(
@@ -1078,6 +1087,7 @@ class AIService:
     ) -> AIResponse:
         # Sprint 3.29 step 5: body moved to app.ai._chat.chat.
         from app.ai._chat import chat as _chat_impl
+
         return await _chat_impl(self, history, subject_name, topic_name)
 
 
