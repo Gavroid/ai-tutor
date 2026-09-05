@@ -10,6 +10,13 @@ import "./styles/mobile-chat.css";
 import CrashReporterInit from "@/components/CrashReporterInit";
 import GlobalBadgeToaster from "@/components/GlobalBadgeToaster";
 
+// Sprint 3.43 T1 follow-up: force-dynamic чтобы proxy.ts (CSP) выполнялся
+// для всех HTML pages. По умолчанию Next.js prerender'ит HTML при build,
+// и proxy middleware не вызывается (x-nextjs-prerender: 1 → static cache).
+// С force-dynamic каждая HTML request проходит через proxy → CSP header
+// добавляется.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "AI-репетитор 7 класса",
   description: "Персональный AI-репетитор для школьной программы 7 класса",
