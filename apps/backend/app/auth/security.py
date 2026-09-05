@@ -18,7 +18,7 @@ from app.db.session import get_db
 from app.users.models import Role, User
 from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+from jose import JWTError, jwt  # type: ignore[import-untyped]
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 

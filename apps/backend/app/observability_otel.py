@@ -107,7 +107,7 @@ def setup_telemetry(app=None, engine=None) -> bool:
         # HTTP более firewall-friendly (только HTTPS port 4318).
         exporter_configured = False
         try:
-            from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+            from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (  # type: ignore[import-not-found]
                 OTLPSpanExporter as GrpcExporter,
             )
 

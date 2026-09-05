@@ -64,6 +64,28 @@ jobs:
           # Sprint 3.40: diff-cover — coverage gate для PR (сравнение с base branch).
           diff-cover coverage.xml --compare-branch=origin/${{ github.event.pull_request.base.ref || github.ref_name }} --fail-under=80
 
+      # Sprint 3.43 C: Этап 2.1/2.3 плана — ruff + mypy gates в CI.
+      # Раньше CI не запускал их (Этап 2 не был закрыт полностью); теперь
+      # PR не пройдёт если ruff нашёл ошибки или mypy в strict mode упал.
+      # Оба инструмента уже в requirements-dev.txt (Sprint 3.22 + 3.25).
+      - name: Ruff lint + format check
+        working-directory: apps/backend
+        run: |
+          . .venv/bin/activate
+          # P2 (HEAD broken) аудит 2026-09-05: оба check должны быть зелёными.
+          ruff check .
+          ruff format --check .
+
+      - name: Mypy strict (parents + student)
+        working-directory: apps/backend
+        run: |
+          . .venv/bin/activate
+          # Этап 2.3 плана — pilot strict на /parents и /student.
+          # Sprint 3.36/3.36a расширил strict на +3 модуля, см. pyproject.toml.
+          # Если strict в каком-то модуле сломан — CI упадёт здесь,
+          # что и требовалось (раньше check'а не было вовсе).
+          mypy app/parents app/student app/auth app/observability_otel app/notifications/service.py
+
   frontend:
     name: Frontend (tsc + lint + build)
     runs-on: ubuntu-latest

@@ -14,3 +14,9 @@ fakeredis==2.26.1
 # mypy — проверка типов в строгом режиме для /parents и /student.
 ruff==0.7.4
 mypy==1.13.0
+
+# Sprint 3.43 C: type stubs для mypy strict (требуются в CI).
+# types-passlib: stubs для passlib.context (используется в app/auth/security.py).
+# aiosmtplib: runtime + stubs для app/notifications/service.py (SMTP).
+types-passlib==1.7.7.20260211  # noqa: E501
+aiosmtplib>=5.1.2,<6
