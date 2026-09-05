@@ -1,0 +1,109 @@
+---
+# Dependabot config для ai-tutor (Sprint 3.42).
+#
+# Автоматически проверяет обновления для backend (pip) и frontend (npm)
+# каждый понедельник. Создаёт PR с обновлением + тестами из CI.
+#
+# Если нужны security-only updates — добавить `open-pull-requests-limit: 10`
+# к каждому updater'у и убедиться что только security patches идут (default).
+version: 2
+updates:
+  # Backend: pip через requirements.txt + requirements-dev.txt
+  - package-ecosystem: "pip"
+    directory: "/apps/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Moscow"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "backend"
+    commit-message:
+      prefix: "deps(backend)"
+      prefix-development: "deps(backend-dev)"
+      include: "scope"
+    groups:
+      # Patch updates — auto-merge
+      patch:
+        applies-to: "version-updates"
+        update-types:
+          - "patch"
+      # Минорные + патч для dev-зависимостей — batch
+      dev-minor:
+        applies-to: "version-updates"
+        update-types:
+          - "minor"
+          - "patch"
+        dependency-type: "development"
+      # Production-минор — отдельные PR (для review)
+      prod-minor:
+        applies-to: "version-updates"
+        update-types:
+          - "minor"
+        dependency-type: "production"
+      # Major — отдельные PR (требует ручного review)
+      major:
+        applies-to: "version-updates"
+        update-types:
+          - "major"
+
+  # Frontend: npm через package.json
+  - package-ecosystem: "npm"
+    directory: "/apps/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Moscow"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "frontend"
+    commit-message:
+      prefix: "deps(frontend)"
+      prefix-development: "deps(frontend-dev)"
+      include: "scope"
+    groups:
+      patch:
+        applies-to: "version-updates"
+        update-types:
+          - "patch"
+      dev-minor:
+        applies-to: "version-updates"
+        update-types:
+          - "minor"
+          - "patch"
+        dependency-type: "development"
+      prod-minor:
+        applies-to: "version-updates"
+        update-types:
+          - "minor"
+        dependency-type: "production"
+      major:
+        applies-to: "version-updates"
+        update-types:
+          - "major"
+
+  # GitHub Actions: обновления версий actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Moscow"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "ci(actions)"
+      include: "scope"
+    groups:
+      actions-patch:
+        applies-to: "version-updates"
+        update-types:
+          - "patch"
+          - "minor"
