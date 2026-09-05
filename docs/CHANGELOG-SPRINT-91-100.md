@@ -26,17 +26,24 @@
 | 3.36 | `a6890b0` | **mypy strict expansion**: app.auth/* (security.py, oauth.py, router.py) → 0 errors. Plus app.users.twofa, app.observability_otel.py (с type: ignore[misc]), notifications/service.py list() fix. | (не нужен — pure type annotations) |
 | 3.36a | `af5ac3c` | **mypy app/ai type fixes**: реальный баг — app/ai/router.py:559 импортировал AIMessage/AIRequest из app.ai.models (где их нет), фикс на app.ai.types. types.py: dict → dict[str, Any] в AIRequest/AIResponse. _explain.py: явная type annotation rag_context: str \| None. | (не нужен) |
 | 3.37 | (pending) | **Snapshot-тесты для 6 публичных страниц × 2 viewport**: e2e/snapshots-public.spec.ts (12 snapshots: landing, login, register, forgot-password, link-parent, offline × desktop/mobile). maxDiffPixelRatio=0.02. GitHub Action snapshots.yml (manual trigger). 12 passed in 5.9s, 0 diff на repeat run. | (не нужен — фронт-only) |
+| 3.38 | `ce226b1` | **Content-Security-Policy (report-only)**: `app/middleware/csp.py` + `app/admin/csp_report_router.py` (POST /api/v1/csp-report). 9 directives, включая `frame-ancestors 'none'` (анти-clickjacking). CSP_ENFORCE env для переключения в enforce mode. | (требует deploy для активации на проде; default report-only безопасный) |
+| 3.39 | (skipped) | **passlib → bcrypt-direct migration**: план vague. passlib 1.7.4 + bcrypt 4.0.1 работает (только шумный deprecation warning). Низкий приоритет, deferred. | — |
+| 3.40 | `fce711c` | **diff-cover coverage gate**: requirements-dev.txt + pyproject.toml [tool.diff_cover] + CI workflow. Baseline: 85% на diff vs origin/main (pass, threshold 80%). | (CI/dev only) |
+| 3.41 | `d066c53` | **doc-archive**: 140 исторических отчётов `git mv` → `docs/archive/2026-08/`. 215 → 76 файлов в корне `docs/`. INDEX.md (5.7 KB) с категориями. archive/README.md (1 KB). | (docs only) |
+| 3.42 | `333944f` | **Dependabot**: `.github/dependabot.yml` — 3 ecosystems (pip, npm, github-actions). Weekly по понедельникам 09:00 MSK. 4 groups (patch/dev-minor/prod-minor/major). 10 PR limit. | (CI only; ручная активация через GitHub UI) |
 
 ## Итог
 
-- **Все P0-этапы плана закрыты** (Этап 0, 1.1, 1.2, 1.3, 1.4; побочные supervisor + smoke + author rewrite; Этап 2.1, 2.2, 2.3; **Этап 3 god-file split полностью — Sprint 3.28 dataclasses + 3.29 steps 1-5 method bodies → 5 модулей**; **Этап 4.3 xdist — Sprint 3.31**; **Этап 5 type safety — Sprint 3.36 + 3.36a**; **Sprint 3.37 snapshot-тесты для публичных страниц**).
+- **Все P0-этапы плана закрыты** (Этап 0, 1.1, 1.2, 1.3, 1.4; побочные supervisor + smoke + author rewrite; Этап 2.1, 2.2, 2.3; **Этап 3 god-file split полностью — Sprint 3.28 dataclasses + 3.29 steps 1-5 method bodies → 5 модулей**; **Этап 4.3 xdist — Sprint 3.31**; **Этап 5 type safety — Sprint 3.36 + 3.36a**; **Sprint 3.37 snapshot-тесты для публичных страниц**; **Sprint 3.38 CSP**; **Sprint 3.40 diff-cover**; **Sprint 3.41 doc-archive**; **Sprint 3.42 Dependabot**).
 - **Full pytest 1530 passed** (+10 к baseline 1511 → +9 от Sprint 3.28), 30 skipped, 1 xfailed (legacy xfail), 2 warnings sequential / 5 warnings параллельный (Pydantic × 4 workers + 1 pre-existing RuntimeWarning).
 - **pytest-xdist -n 4:** 572s → 165s (×3.46 speedup). Flake-guard 3/3 pass.
+- **diff-cover:** coverage 85% на diff vs origin/main (threshold 80%, pass).
 - **Frontend build:** ✓ Compiled successfully в 3.4s.
 - **Frontend lint:** 0 errors, 45 warnings (baseline зафиксирован, уменьшаем).
 - **Снапшоты:** 12 baseline (6 страниц × 2 viewport) в `e2e/snapshots-public.spec.ts-snapshots/`. Repeat run 0 diff.
-- **Прод:** `/health=200`, alembic=0026, latest deploy `20260904T123033Z-56cde46` (Sprint 3.25b flaky fix). После этого — **10 refactor/type/CI commits без deploy** (Sprint 3.28 + 3.29 step 1-5 + 3.31 xdist + 3.36 + 3.36a + 3.37).
-- **HEAD `(c658608 + Sprint 3.36/3.36a/3.37 commits)`** на remote `design-audit-2026-08-20-fixes`.
+- **CSP:** middleware активен в report-only mode. Переключение через env `CSP_ENFORCE=true` после verification.
+- **Прод:** `/health=200`, alembic=0026, latest deploy `20260904T123033Z-56cde46` (Sprint 3.25b flaky fix). После этого — **15+ refactor/type/CI/docs commits без deploy** (Sprint 3.28 + 3.29 step 1-5 + 3.31 xdist + 3.36 + 3.36a + 3.37 + 3.38 + 3.40 + 3.41 + 3.42).
+- **HEAD `(c658608 + Sprint 3.36/3.36a/3.37/3.38/3.40/3.41/3.42 commits)`** на remote `design-audit-2026-08-20-fixes`.
 - **service.py: 1561 → 1099 строк за 2 sprint'а (-462 LOC, -29.6%)**.
 
 ## Известные issues (для следующих sprint'ов)
