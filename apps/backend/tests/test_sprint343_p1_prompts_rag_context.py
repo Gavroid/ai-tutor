@@ -7,30 +7,49 @@ RAG-контекст в generate_exercise (P11) молча мёртв — фун
 
 Найдено независимым аудитом 2026-09-05 (`14-independent-audit-2026-09-05.md`).
 Тот же класс бага, что и AIMessage из Sprint 3.36a.
+
+Подход к изоляции БД:
+- Используем ОТДЕЛЬНЫЙ engine per-test модуль через StaticPool in-memory.
+- Это полностью изолирует наши данные от module-level engine в app.db.session,
+  и от drop_all/create_all в других тестах (test_sprint16_register и т.д.).
+- monkeypatch подменяет SessionLocal в app.db.session чтобы _get_rag_context_for_topic
+  использовал нашу test engine.
 """
 
 from __future__ import annotations
 
+import uuid
+
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
 from app.ai.prompts import _get_rag_context_for_topic
-from app.db.session import Base, SessionLocal, engine
+from app.db.session import Base
 from app.rag_models import RagChunk
 from app.rag_persist import chunk_hash
 from app.subjects import models as subj_models
 from app.subjects.models import LearningMaterial
 from app.users import models as user_models
 
-# Sprint 3.43 P1: SQLite :memory: shared через StaticPool — нужны таблицы.
-# conftest.py делает это один раз для всего test session, но наш helper
-# использует новый engine, поэтому нужно создать схему вручную.
-Base.metadata.create_all(engine)
+# Sprint 3.43 P1: отдельный engine чтобы избежать race с другими тестами.
+_test_engine = create_engine(
+    "sqlite:///:memory:",
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+Base.metadata.create_all(_test_engine)
+_TestSessionLocal = sessionmaker(bind=_test_engine)
 
 
 def _create_topic_with_chunk(text: str, slug: str) -> int:
-    """Создаёт user/subject/section/topic/material/chunk в БД, возвращает topic_id."""
-    session = SessionLocal()
+    """Создаёт user/subject/section/topic/material/chunk в изолированной БД."""
+    unique_slug = f"{slug}-{uuid.uuid4().hex[:8]}"
+    session = _TestSessionLocal()
     try:
         user = user_models.User(
-            email=f"{slug}@example.com",
+            email=f"{unique_slug}@example.com",
             password_hash="x",
             role=user_models.Role.STUDENT,
             display_name="Test User",
@@ -39,7 +58,7 @@ def _create_topic_with_chunk(text: str, slug: str) -> int:
         session.flush()
 
         subject = subj_models.Subject(
-            name=f"Test {slug}", code=slug, is_active=True
+            name=f"Test {unique_slug}", code=unique_slug, is_active=True
         )
         session.add(subject)
         session.flush()
@@ -76,11 +95,12 @@ def _create_topic_with_chunk(text: str, slug: str) -> int:
 
 
 def _create_empty_topic(slug: str) -> int:
-    """Создаёт user/subject/section/topic без material/chunk, возвращает topic_id."""
-    session = SessionLocal()
+    """Создаёт user/subject/section/topic без material/chunk."""
+    unique_slug = f"{slug}-{uuid.uuid4().hex[:8]}"
+    session = _TestSessionLocal()
     try:
         user = user_models.User(
-            email=f"{slug}@example.com",
+            email=f"{unique_slug}@example.com",
             password_hash="x",
             role=user_models.Role.STUDENT,
             display_name="Test User",
@@ -89,7 +109,7 @@ def _create_empty_topic(slug: str) -> int:
         session.flush()
 
         subject = subj_models.Subject(
-            name=f"Test {slug}", code=slug, is_active=True
+            name=f"Test {unique_slug}", code=unique_slug, is_active=True
         )
         session.add(subject)
         session.flush()
@@ -108,7 +128,17 @@ def _create_empty_topic(slug: str) -> int:
         session.close()
 
 
-class TestRagContextForTopicRegression:
+@pytest.fixture(autouse=True)
+def _patch_session_local(monkeypatch):
+    """Sprint 3.43 P1: подменяет SessionLocal чтобы _get_rag_context_for_topic
+    использовал наш test engine (а не module-level).
+
+    Без этого данные созданные в _test_engine невидимы для функции.
+    """
+    monkeypatch.setattr("app.db.session.SessionLocal", _TestSessionLocal)
+
+
+class TestRagContextForTopicRegression:  # noqa: E801
     """Sprint 3.43 P1: verify _get_rag_context_for_topic не падает молча."""
 
     def test_no_topic_id_returns_empty(self) -> None:
