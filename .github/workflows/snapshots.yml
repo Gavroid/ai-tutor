@@ -1,0 +1,73 @@
+---
+# Sprint 3.37: visual regression snapshots (manual trigger only).
+#
+# Прогоняет e2e/snapshots-public.spec.ts против production BASE_URL
+# (по умолчанию https://192.168.1.86, переопределяется через env).
+#
+# Manual trigger:
+#   gh workflow run snapshots.yml -f base_url=https://192.168.1.86
+# Update baseline:
+#   gh workflow run snapshots.yml -f base_url=https://192.168.1.86 -f update=true
+#
+# НЕ запускается на push/PR автоматически — snapshot'ы требуют живого
+# прод-окружения и могут быть flaky из-за external CDN/fonts. Включайте
+# вручную при visual regression review.
+name: snapshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Base URL to test against"
+        required: false
+        default: "https://192.168.1.86"
+        type: string
+      update:
+        description: "Update baseline snapshots"
+        required: false
+        default: "false"
+        type: boolean
+
+jobs:
+  snapshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install deps
+        working-directory: apps/frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: apps/frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run snapshots
+        working-directory: apps/frontend
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+          CI: "true"
+        run: |
+          if [ "${{ inputs.update }}" = "true" ]; then
+            npx playwright test e2e/snapshots-public.spec.ts \
+              --update-snapshots --reporter=list
+          else
+            npx playwright test e2e/snapshots-public.spec.ts \
+              --reporter=list
+          fi
+
+      - name: Upload snapshot diffs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-diffs
+          path: |
+            apps/frontend/test-results/
+            apps/frontend/playwright-report/
+          retention-days: 7
