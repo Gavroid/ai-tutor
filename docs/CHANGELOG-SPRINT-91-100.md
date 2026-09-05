@@ -35,6 +35,7 @@
 | 3.43 P2 | `f0dda81` | **ruff autofix + format**: 2 errors + 11 unformatted файлов (из аудита). `ruff check --fix` + `ruff format` — все 342 файла formatted. | (CI only) |
 | 3.43 C | `b00b5a0` | **CI gates**: добавлены ruff + mypy в `.github/workflows/ci.yml`. requirements-dev.txt: types-passlib, aiosmtplib. type: ignore для jose (no stubs) и opentelemetry grpc exporter. | (CI only) |
 | 3.43 T1 | `c961180` | **Next.js proxy для CSP (аудит fix)**: Sprint 3.38 CSP на FastAPI middleware не доходил до browser (HTML отдаёт Next.js). Sprint 3.43 T1: `apps/frontend/proxy.ts` (Next.js 16 переименовал middleware → proxy) генерирует per-request nonce, ставит CSP-Report-Only в каждый HTML response. 9 directives + Strict-Dynamic + ws: wss: для HMR. | (требует deploy для verify через curl -I) |
+| 3.45 | `b4a8f6c` | **monthly doc-archive cron** (T5 из аудита): `scripts/docs-monthly-archive.sh` + `.cron.example`. Автоматизирует Sprint 3.41 (140 файлов git mv в docs/archive/YYYY-MM/). Dry-run support. Cron закомментирован — активация требует решения владельца. | (cron — без deploy) |
 
 ## Итог
 
