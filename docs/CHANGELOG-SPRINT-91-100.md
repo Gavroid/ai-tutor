@@ -31,6 +31,10 @@
 | 3.40 | `fce711c` | **diff-cover coverage gate**: requirements-dev.txt + pyproject.toml [tool.diff_cover] + CI workflow. Baseline: 85% на diff vs origin/main (pass, threshold 80%). | (CI/dev only) |
 | 3.41 | `d066c53` | **doc-archive**: 140 исторических отчётов `git mv` → `docs/archive/2026-08/`. 215 → 76 файлов в корне `docs/`. INDEX.md (5.7 KB) с категориями. archive/README.md (1 KB). | (docs only) |
 | 3.42 | `333944f` | **Dependabot**: `.github/dependabot.yml` — 3 ecosystems (pip, npm, github-actions). Weekly по понедельникам 09:00 MSK. 4 groups (patch/dev-minor/prod-minor/major). 10 PR limit. | (CI only; ручная активация через GitHub UI) |
+| 3.43 P1 | `d85635c` `cfec5d0` | **Production bug fix (аудит 2026-09-05)**: `app/ai/prompts.py:313` импортировал LearningMaterial из неправильного модуля (app.rag_models) → RAG-контекст в generate_exercise (P11) молча мёртв. 1 строка фикса + 4 regression теста + изоляция engine (StaticPool in-memory). | (требует deploy для активации на проде) |
+| 3.43 P2 | `f0dda81` | **ruff autofix + format**: 2 errors + 11 unformatted файлов (из аудита). `ruff check --fix` + `ruff format` — все 342 файла formatted. | (CI only) |
+| 3.43 C | `b00b5a0` | **CI gates**: добавлены ruff + mypy в `.github/workflows/ci.yml`. requirements-dev.txt: types-passlib, aiosmtplib. type: ignore для jose (no stubs) и opentelemetry grpc exporter. | (CI only) |
+| 3.43 T1 | `c961180` | **Next.js proxy для CSP (аудит fix)**: Sprint 3.38 CSP на FastAPI middleware не доходил до browser (HTML отдаёт Next.js). Sprint 3.43 T1: `apps/frontend/proxy.ts` (Next.js 16 переименовал middleware → proxy) генерирует per-request nonce, ставит CSP-Report-Only в каждый HTML response. 9 directives + Strict-Dynamic + ws: wss: для HMR. | (требует deploy для verify через curl -I) |
 
 ## Итог
 
