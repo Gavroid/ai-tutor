@@ -15,6 +15,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+# Sprint 4.2: для UI отображения используем процентную версию (60%).
+# WEAK_MASTERY_THRESHOLD (0.60 в service.py) ↔ WEAK_MASTERY_THRESHOLD_PCT (60 здесь).
+WEAK_MASTERY_THRESHOLD_PCT = 60  # % для UI; backend logic использует 0.60
+
 router = APIRouter(prefix="/api/v1/parents", tags=["parents"])
 
 
@@ -210,7 +214,7 @@ small {{ color: #888; }}
 {rows_subjects or "<tr><td colspan=4>Нет данных</td></tr>"}
 </table>
 
-<h2>Слабые темы (mastery &lt; 60%)</h2>
+<h2>Слабые темы (mastery &lt; {WEAK_MASTERY_THRESHOLD_PCT:.0f}%)</h2>
 <table>
 <tr><th>Тема</th><th>Предмет</th><th>Mastery</th></tr>
 {rows_weak or "<tr><td colspan=3>Нет слабых тем</td></tr>"}

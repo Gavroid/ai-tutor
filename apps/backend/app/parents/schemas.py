@@ -37,6 +37,17 @@ class WeakTopic(BaseModel):
     attempts_count: int
 
 
+# Sprint 4.2: схема для review_topics (top-5 по last_reviewed_at).
+# Отдельная от WeakTopic — review_topics могут включать темы с mastery >= 60%
+# (если они просто давно не повторялись), что не является "слабыми".
+class ReviewTopic(BaseModel):
+    topic_id: int
+    topic_name: str
+    subject_name: str
+    mastery: float  # 0..1 (consistency с WeakTopic)
+    last_reviewed_at: datetime | None  # None = никогда не повторяли
+
+
 class DailyActivity(BaseModel):
     date: str
     attempts: int

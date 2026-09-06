@@ -22,6 +22,22 @@ from app.users import models as user_models
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
+# Sprint 4.2: mastery thresholds для parent recommendations.
+# Решение владельца (audit 2026-09-05, зафиксировано в
+# audit-2026-09/13-session-2026-09-04-blocked-decisions.md):
+#
+#   weak_topics:    mastery < 0.60 (60%)
+#   review_topics:  top-5 тем с наиболее старым last_reviewed_at
+#
+# Эти константы НЕ пересекаются с существующими WEAK_THRESHOLD (0.5) /
+# MASTERED_THRESHOLD (0.8) в app/progress/router.py — те используются
+# для student-facing dashboard, эти — для parent recommendations.
+#
+# Sprint 4.1 (single-source) будет читать эти же константы — единая точка
+# истины для frontend/backend контракта.
+WEAK_MASTERY_THRESHOLD = 0.60  # mastery < 60% → слабая тема
+REVIEW_TOPICS_LIMIT = 5  # top-5 тем по last_reviewed_at
+
 # Sprint 3.11: маппинг slug → category для родительского дашборда.
 # Должно совпадать с BADGE_CATEGORIES в apps/frontend/app/student/badges/client.tsx.
 _BADGE_CATEGORY: dict[str, str] = {
@@ -219,7 +235,7 @@ def child_overview(db: Session, parent: user_models.User, student_id: int) -> di
         or 0.0
     )
 
-    # Слабые темы (mastery < 0.6)
+    # Слабые темы (Sprint 4.2: mastery < WEAK_MASTERY_THRESHOLD = 0.60 = 60%)
     weak = db.execute(
         select(
             subj_models.Topic.id,
@@ -232,7 +248,7 @@ def child_overview(db: Session, parent: user_models.User, student_id: int) -> di
         .join(subj_models.Section, subj_models.Topic.section_id == subj_models.Section.id)
         .join(subj_models.Subject, subj_models.Section.subject_id == subj_models.Subject.id)
         .where(prog_models.Progress.user_id == student_id)
-        .where(prog_models.Progress.mastery_score < 0.6)
+        .where(prog_models.Progress.mastery_score < WEAK_MASTERY_THRESHOLD)
         .order_by(prog_models.Progress.mastery_score.asc())
         .limit(10)
     ).all()
@@ -398,6 +414,60 @@ def _parent_recommendations(
         )
     # Sprint 3.19: cap 3 → 5 (как у ученика; weak-рекомендации идут первыми).
     return recs[:5]
+
+
+def get_review_topics(db: Session, student_id: int) -> list[schemas.ReviewTopic]:
+    """Sprint 4.2: top-N (REVIEW_TOPICS_LIMIT=5) тем по last_reviewed_at.
+
+    Решение владельца (Sprint 4.2=A):
+    - "К повторению" — top-5 тем с наиболее старым last_reviewed_at.
+    - NULL трактуется как "никогда не повторяли" → попадают первыми.
+    - Сортировка детерминированная: NULLs first, затем ASC, tie-breaker по topic_id.
+    - Пересечение с weak_topics РАЗРЕШЕНО (semantically correct).
+
+    Sprint 4.1 (single-source) будет использовать эту функцию для
+    /api/v1/parents/students/{id}/recommendations endpoint.
+    """
+    # Детерминированная сортировка через CASE:
+    #   last_reviewed_at IS NULL → 0 (идут первыми)
+    #   last_reviewed_at NOT NULL → 1
+    # затем ASC по дате, tie-breaker по topic_id.
+    nulls_first = case(
+        (prog_models.Progress.last_reviewed_at.is_(None), 0),
+        else_=1,
+    )
+    rows = db.execute(
+        select(
+            subj_models.Topic.id,
+            subj_models.Topic.name,
+            subj_models.Subject.name,
+            prog_models.Progress.mastery_score,
+            prog_models.Progress.last_reviewed_at,
+        )
+        .join(prog_models.Progress, prog_models.Progress.topic_id == subj_models.Topic.id)
+        .join(subj_models.Section, subj_models.Topic.section_id == subj_models.Section.id)
+        .join(subj_models.Subject, subj_models.Section.subject_id == subj_models.Subject.id)
+        .where(prog_models.Progress.user_id == student_id)
+        # Исключаем только что "пройденные" темы (mastery >= WEAK_MASTERY_THRESHOLD уже фильтруется в weak_topics;
+        # для review включаем ВСЕ темы с Progress — даже mastery=100%, если давно не повторяли).
+        .order_by(
+            nulls_first,
+            prog_models.Progress.last_reviewed_at.asc().nulls_first(),
+            subj_models.Topic.id.asc(),  # tie-breaker для детерминизма
+        )
+        .limit(REVIEW_TOPICS_LIMIT)
+    ).all()
+
+    return [
+        schemas.ReviewTopic(
+            topic_id=r[0],
+            topic_name=r[1],
+            subject_name=r[2],
+            mastery=r[3] or 0.0,
+            last_reviewed_at=r[4],
+        )
+        for r in rows
+    ]
 
 
 def child_dashboard(
