@@ -2,10 +2,20 @@
 
 Sprint 10.1: JWT теперь можно передавать через cookie (httpOnly) ИЛИ через
 Authorization header (обратная совместимость с фронтом). Sprint 10.1 НЕ ломает
-существующий API- контракт: фронт продолжает использовать `Authorization: Bearer`,
+существующий API- контракт: фронт продолжает использовать `Authorization: ***`
 но сервер при логине теперь дополнительно устанавливает httpOnly-куки для
 постепенного перехода. После полного перехода фронта на cookie — header auth
 может быть выключен.
+
+Sprint 3.39: passlib → bcrypt-direct migration (TDD-подход).
+- Тесты в tests/test_sprint339_bcrypt_direct.py фиксируют behavior contract.
+- bcrypt-direct даёт тот же формат $2b$12$..., тот же cost factor 12,
+  salt из bcrypt.gensalt(rounds=12, prefix=b"2b").
+- Существующие хэши в БД (7 whitelist users + 2FA backup codes) совместимы —
+  verify_password принимает их без перехэширования.
+- passlib удалён из requirements.txt.
+- 72-byte limit: bcrypt выбрасывает ValueError на >72 байт (vs passlib silent
+  truncate). Регрессия в error reporting — намеренно, лучше явная ошибка.
 """
 
 from __future__ import annotations
@@ -13,22 +23,23 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, Callable, cast
 
+import bcrypt
 from app.config import get_settings
 from app.db.session import get_db
 from app.users.models import Role, User
-from fastapi import Depends, HTTPException, Request, Response, status
+from fastapi import Depends, HTTPException, Request, Response, status  # type: ignore[import-untyped]
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt  # type: ignore[import-untyped]
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 _settings = get_settings()
 
-# passlib bcrypt context. rounds=12 — баланс безопасности/скорости (≈250ms на хэш).
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
+# Bcrypt rounds (cost factor). 2^12 = 4096 iterations — баланс безопасности/скорости.
+# Исторически был передан в passlib CryptContext(bcrypt__rounds=12).
+BCRYPT_ROUNDS = 12
 
 # tokenUrl — это эндпоинт /api/v1/auth/login (OAuth2 password flow для Swagger).
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)  # type: ignore[arg-type]
 
 
 # Cookie names (Sprint 10.1)
@@ -37,11 +48,28 @@ REFRESH_COOKIE = "ai_tutor_refresh"
 
 
 def hash_password(plain: str) -> str:
-    return str(pwd_context.hash(plain))
+    """Sprint 3.39: bcrypt-direct. Format: $2b$12$.... (cost 12, salt random).
+
+    Passlib-replacement. bcrypt 4.x сам не имеет __about__ attribute
+    (Sprint 3.22: passlib warning). Теперь прямой bcrypt без warning.
+    """
+    # bcrypt имеет hard limit 72 байта на вход. Передаём password.encode()
+    # напрямую — bcrypt сам бросит ValueError если >72.
+    # НЕ делаем silent truncate как passlib (security regression).
+    return bcrypt.hashpw(
+        plain.encode("utf-8"),
+        bcrypt.gensalt(rounds=BCRYPT_ROUNDS, prefix=b"2b"),
+    ).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return bool(pwd_context.verify(plain, hashed))
+    """Sprint 3.39: bcrypt-direct. Совместим с существующими $2b$12$ хэшами от passlib."""
+    try:
+        return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+    except (ValueError, TypeError):
+        # Malformed hash / wrong encoding → отказ без exception.
+        # Возвращаем False для consistency с оригинальным поведением passlib.
+        return False
 
 
 def _create_token(subject: str, role: str, ttl: timedelta, token_type: str) -> str:
