@@ -750,6 +750,10 @@ def create_app() -> FastAPI:
     app.include_router(materials_router)
     app.include_router(admin_router)
     app.include_router(admin_realtime_router)
+    # Sprint 4 RAG production: admin API для PDF ingestion + reindex + monitoring.
+    from app.admin.rag_router import router as admin_rag_router
+
+    app.include_router(admin_rag_router)
     # Sprint 3.23: Admin endpoint для Telegram bind codes (/api/v1/admin/telegram-code).
     from app.admin.telegram_code_router import router as telegram_code_router
 
