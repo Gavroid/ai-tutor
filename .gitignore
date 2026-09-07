@@ -1,6 +1,10 @@
 .env
 .env.*
 !.env.example
+
+# Sprint 4.4: smoke-test credentials (deploy-time only).
+# Никогда не коммитить — содержит пароль в открытом виде.
+deploy/release/.smoke.env
 node_modules/
 .next/
 __pycache__/

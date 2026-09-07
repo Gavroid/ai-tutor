@@ -27,8 +27,20 @@ PROD_HOST="${PROD_HOST:-192.168.1.86}"
 #
 # Порядок приоритета:
 #   1) $SMOKE_USER / $SMOKE_PASS в окружении (explicit override — для CI secrets)
-#   2) Чтение из /opt/ai-tutor/.env на проде (если ssh_key есть)
-#   3) FAIL с инструкцией 'set SMOKE_PASS в env или GitHub Secret'
+#   2) Чтение из /opt/ai-tutor/deploy/release/.smoke.env (Sprint 4.4: отдельный
+#      smoke-test user, исключён из whitelist)
+#   3) Чтение из /opt/ai-tutor/.env на проде (если ssh_key есть)
+#   4) FAIL с инструкцией 'set SMOKE_PASS в env или GitHub Secret'
+if [ -z "${SMOKE_USER:-}" ] || [ -z "${SMOKE_PASS:-}" ]; then
+  # Sprint 4.4: читаем из .smoke.env на ПРОДЕ (chmod 600, исключён из whitelist).
+  if [ -f /opt/ai-tutor/deploy/release/.smoke.env ]; then
+    set -a; source /opt/ai-tutor/deploy/release/.smoke.env; set +a
+    # Маппинг SMOKE_TEST_EMAIL/PASSWORD → SMOKE_USER/PASS (для совместимости
+    # со всем остальным кодом smoke.sh).
+    SMOKE_USER="${SMOKE_USER:-${SMOKE_TEST_EMAIL:-}}"
+    SMOKE_PASS="${SMOKE_PASS:-${SMOKE_TEST_PASSWORD:-}}"
+  fi
+fi
 if [ -z "${SMOKE_USER:-}" ] || [ -z "${SMOKE_PASS:-}" ]; then
   if [ -f /opt/ai-tutor/.env ]; then
     # smoke запущен на самом проде (self-hosted runner / cron)
