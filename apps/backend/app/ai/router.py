@@ -535,10 +535,12 @@ async def understand_check_ai(
         raise HTTPException(404, "Topic not found")
     _enforce_budget(current)
     svc = get_ai_service()
-    try:
-        from app.ai.explain_runner import run_explain as _run_explain
-    except ImportError:
-        _run_explain = None
+    # NOTE: dead code (Sprint 3.43 triaging fix): старый блок
+    # try: from app.ai.explain_runner import run_explain as _run_explain
+    # except ImportError: _run_explain = None
+    # был удалён — модуль app.ai.explain_runner НЕ существует, и
+    # _run_explain НИКОГДА не вызывался в коде (просто dead import).
+    # Если модуль появится в будущем — добавить логику заново.
 
     subject = topic.section.subject
     grade = current.student_profile.grade if current.student_profile else 7
