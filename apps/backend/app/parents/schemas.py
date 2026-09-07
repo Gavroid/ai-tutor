@@ -72,6 +72,10 @@ class ChildOverview(BaseModel):
     weak_topics: list[WeakTopic]
     daily_activity: list[DailyActivity]
     privacy_note: str
+    # Sprint 4.1: recommendations строит backend (single-source).
+    recommendations: list[ParentRecommendation] = []
+    # Sprint 4.2: review_topics — top-5 по last_reviewed_at.
+    review_topics: list[ReviewTopic] = []
 
 
 # === Sprint 3.1: расширенный дашборд ===

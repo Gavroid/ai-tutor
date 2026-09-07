@@ -17,6 +17,14 @@ type LinkedStudent = {
 // Sprint 3.13: badge counter "N новых с прошлого визита" для каждого ребёнка.
 type NewBadgesByChild = Record<number, number>;
 
+type ParentRecommendation = {
+  title: string;
+  detail: string;
+  tone: string;
+  topic_id: number | null;
+  topic_name: string | null;
+};
+
 type Overview = {
   student: { id: number; display_name: string; email: string };
   total_attempts: number;
@@ -26,6 +34,8 @@ type Overview = {
   weak_topics: Array<{ topic_id: number; topic_name: string; subject_name: string; mastery: number; attempts_count: number }>;
   daily_activity: Array<{ date: string; attempts: number }>;
   privacy_note: string;
+  // Sprint 4.1: recommendations приходят с backend (single-source).
+  recommendations: ParentRecommendation[];
 };
 
 function formatActivityDay(value: string): string {
@@ -34,32 +44,6 @@ function formatActivityDay(value: string): string {
   return date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
 }
 
-
-function buildParentRecommendations(overview: Overview): string[] {
-  const recommendations: string[] = [];
-  if (overview.total_attempts === 0) {
-    return ["Начните с одного короткого занятия: открыть тему, попросить объяснение и решить 1 задачу."];
-  }
-  if (overview.accuracy < 0.6) {
-    recommendations.push("Сделайте короткое повторение: пусть ребёнок объяснит правило своими словами перед новой задачей.");
-  }
-  // Sprint 3.17: до 5 тем в рекомендациях (как у ученика в /subjects).
-  const weakForRecs = overview.weak_topics.slice(0, 5);
-  for (const topic of weakForRecs) {
-    recommendations.push(
-      `Вернитесь к теме «${topic.topic_name}» (mastery ${Math.round(topic.mastery * 100)}%) и решите 2–3 простые задачи.`
-    );
-  }
-  const recentActive = overview.daily_activity.slice(-7).some((day) => day.attempts > 0);
-  if (!recentActive) {
-    recommendations.push("Запланируйте мягкий возврат: 10 минут практики сегодня без длинной сессии.");
-  }
-  if (recommendations.length === 0) {
-    recommendations.push("Темп нормальный: продолжайте короткие регулярные занятия и добавьте одну задачу на закрепление.");
-  }
-  // Sprint 3.17: max=5 рекомендаций (Игорь).
-  return recommendations.slice(0, 5);
-}
 
 function summarizeActivity(days: Array<{ date: string; attempts: number }>) {
   const activeDays = days.filter((day) => day.attempts > 0);
@@ -275,7 +259,15 @@ export default function ParentsPage() {
                     <div className="mt-4 rounded-3xl border border-[color:var(--prism-line)] bg-[color:var(--prism-panel-solid)]/45 p-4">
                       <div className="prism-kicker">Что делать дальше</div>
                       <ul className="mt-3 grid gap-2 text-sm leading-6 text-[color:var(--prism-ink)]">
-                        {buildParentRecommendations(overview).map((item) => <li key={item}>• {item}</li>)}
+                        {/* Sprint 4.1: recommendations приходят с backend (single-source). */}
+                        {overview.recommendations.map((rec) => (
+                          <li
+                            key={`${rec.title}-${rec.topic_id ?? "none"}`}
+                            data-tone={rec.tone}
+                          >
+                            <strong>{rec.title}.</strong> {rec.detail}
+                          </li>
+                        ))}
                       </ul>
                     </div>
                   </>

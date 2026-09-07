@@ -269,6 +269,51 @@ def child_overview(db: Session, parent: user_models.User, student_id: int) -> di
         .order_by(func.date(prog_models.Attempt.created_at))
     ).all()
 
+    # Sprint 4.1 (single-source recommendations):
+    # конвертируем weak_topics dict → list[schemas.WeakTopic] для передачи
+    # в _parent_recommendations().
+    weak_topics_typed: list[schemas.WeakTopic] = [
+        schemas.WeakTopic(
+            topic_id=r[0],
+            topic_name=r[1],
+            subject_name=r[2],
+            mastery=round(float(r[3]), 3),
+            attempts_count=int(r[4]),
+        )
+        for r in weak
+    ]
+
+    accuracy = float(correct_attempts) / total_attempts if total_attempts > 0 else 0.0
+    last_7 = sum(int(r[1]) for r in daily)
+
+    # Sprint 4.1: due_count — кол-во тем, готовых к повторению (next_review_at <= NOW).
+    # Используем существующую логику из child_dashboard: считаем прогресс с
+    # next_review_at <= NOW для данного user.
+    from datetime import datetime as _dt
+    now_utc = _dt.now(UTC)
+    due_count = (
+        db.scalar(
+            select(func.count(prog_models.Progress.id)).where(
+                prog_models.Progress.user_id == student_id,
+                prog_models.Progress.next_review_at.is_not(None),
+                prog_models.Progress.next_review_at <= now_utc,
+            )
+        )
+        or 0
+    )
+
+    # Sprint 4.1: recommendations строит backend (single-source, единая точка истины).
+    # Frontend НЕ должен строить recommendations клиентски.
+    recommendations = _parent_recommendations(
+        weak_topics=weak_topics_typed,
+        due_count=int(due_count),
+        accuracy=accuracy,
+        last_7=last_7,
+    )
+
+    # Sprint 4.2: review_topics — top-5 тем по last_reviewed_at.
+    review_topics = get_review_topics(db, student_id)
+
     return {
         "student": {
             "id": student.id,
@@ -277,7 +322,7 @@ def child_overview(db: Session, parent: user_models.User, student_id: int) -> di
         },
         "total_attempts": int(total_attempts),
         "correct_attempts": int(correct_attempts),
-        "accuracy": float(correct_attempts) / total_attempts if total_attempts > 0 else 0.0,
+        "accuracy": accuracy,
         "average_mastery": round(float(avg_mastery), 3),
         "weak_topics": [
             {
@@ -289,6 +334,10 @@ def child_overview(db: Session, parent: user_models.User, student_id: int) -> di
             }
             for r in weak
         ],
+        # Sprint 4.1: recommendations от backend (single-source).
+        "recommendations": [rec.model_dump() for rec in recommendations],
+        # Sprint 4.2: review_topics (top-5 по last_reviewed_at).
+        "review_topics": [rt.model_dump() for rt in review_topics],
         "daily_activity": [{"date": str(r[0]), "attempts": int(r[1])} for r in daily],
         "privacy_note": "Переписка с AI-репетитором недоступна родителю по соображениям приватности.",
     }

@@ -497,6 +497,14 @@ export const api = {
       }>;
       daily_activity: Array<{ date: string; attempts: number }>;
       privacy_note: string;
+      // Sprint 4.1: recommendations приходят с backend (single-source).
+      recommendations: Array<{
+        title: string;
+        detail: string;
+        tone: string;
+        topic_id: number | null;
+        topic_name: string | null;
+      }>;
     }>(`/api/v1/parents/children/${student_id}`),
   linkParent: (code: string) =>
     request<{ ok: boolean }>("/api/v1/students/link-parent", {
