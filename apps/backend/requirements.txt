@@ -2,17 +2,17 @@
 # Production: rebuild with --no-cache in Docker. Dev: `pip install -r requirements.txt -r requirements-dev.txt`.
 
 # Web framework
-fastapi==0.115.5
-uvicorn[standard]==0.32.1
-pydantic==2.10.3
-prometheus-client==0.21.1  # Sprint 5.1 — метрики /metrics
-pydantic-settings==2.7.0
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+pydantic==2.13.5
+prometheus-client==0.26.0  # Sprint 5.1 — метрики /metrics
+pydantic-settings==2.15.0
 
 # Database
 sqlalchemy==2.0.36
-alembic==1.14.0
+alembic==1.19.1
 psycopg2-binary==2.9.10
-asyncpg==0.30.0
+asyncpg==0.31.0
 
 # Auth (Sprint 3.39: passlib → bcrypt-direct).
 # passlib 1.7.4 выдавал deprecation warning "module 'bcrypt' has no attribute
@@ -28,11 +28,11 @@ httpx==0.28.1
 
 # Utilities
 python-dotenv==1.2.2  # Sprint continuation 2026-08-23: PYSEC-2026-2270 (CVE-2026-...).
-email-validator==2.2.0
+email-validator==2.3.0
 
 # File processing (Этап 10)
 pypdf==5.1.0
-python-docx==1.1.2
+python-docx==1.2.0
 # OCR (Этап 10 — опционально, требует tesseract-ocr в системе)
 pytesseract==0.3.13
 Pillow==11.0.0
@@ -50,7 +50,7 @@ markdown-it-py==3.0.0
 # WebSockets client (Sprint 9.3 — admin WS smoke; уже нужен фронтом на prod-tools)
 websockets==13.1
 # 2FA TOTP (Sprint 32 — Parent 2FA)
-pyotp==2.9.0
+pyotp==2.10.0
 
 # Sprint 62: OpenTelemetry (distributed tracing)
 opentelemetry-api==1.44.0
@@ -62,8 +62,8 @@ opentelemetry-instrumentation-redis==0.65b0
 # Sprint 70: Real RAG embeddings (8GB RAM unlocked)
 # torch/torchvision из PyTorch CPU index (--index-url)
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.10.0
-torchvision==0.25.0
+torch==2.14.0+cpu
+torchvision==0.29.0+cpu
 sentence-transformers==5.6.1
 
 
@@ -71,4 +71,4 @@ sentence-transformers==5.6.1
 opentelemetry-exporter-otlp-proto-http==1.44.0
 
 # Sprint 94: GraphQL для mobile clients
-strawberry-graphql==0.253.1
+strawberry-graphql==0.327.2
