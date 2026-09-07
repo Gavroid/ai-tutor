@@ -9,9 +9,9 @@ prometheus-client==0.21.1  # Sprint 5.1 — метрики /metrics
 pydantic-settings==2.7.0
 
 # Database
-sqlalchemy==2.0.36
+sqlalchemy==2.0.52
 alembic==1.14.0
-psycopg2-binary==2.9.10
+psycopg2-binary==2.9.12
 asyncpg==0.30.0
 
 # Auth (Sprint 3.39: passlib → bcrypt-direct).
@@ -21,13 +21,13 @@ asyncpg==0.30.0
 # совместим со старыми хэшами в БД).
 bcrypt==4.0.1
 python-jose[cryptography]==3.5.0  # Sprint continuation 2026-08-23: 5 CVEs pinned to 3.4.0+, applied 3.5.0 (jose.utcnow internal patched upstream).
-python-multipart==0.0.20
+python-multipart==0.0.32
 
 # HTTP client (для AI Gateway)
 httpx==0.28.1
 
 # Utilities
-python-dotenv==1.2.2  # Sprint continuation 2026-08-23: PYSEC-2026-2270 (CVE-2026-...).
+python-dotenv==1.2.3  # Sprint continuation 2026-08-23: PYSEC-2026-2270 (CVE-2026-...).
 email-validator==2.2.0
 
 # File processing (Этап 10)
@@ -38,7 +38,7 @@ pytesseract==0.3.13
 Pillow==11.0.0
 
 # Rate limiting (Этап 11)
-slowapi==0.1.9
+slowapi==0.1.10
 
 # Redis для rate limit (Этап 11, опционально)
 redis==5.2.0
