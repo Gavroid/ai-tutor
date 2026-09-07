@@ -84,7 +84,7 @@ jobs:
           # Sprint 3.36/3.36a расширил strict на +3 модуля, см. pyproject.toml.
           # Если strict в каком-то модуле сломан — CI упадёт здесь,
           # что и требовалось (раньше check'а не было вовсе).
-          mypy app/parents app/student app/auth app/observability_otel app/notifications/service.py
+          mypy app/parents app/student app/auth app/observability_otel.py app/notifications/service.py
 
   frontend:
     name: Frontend (tsc + lint + build)
