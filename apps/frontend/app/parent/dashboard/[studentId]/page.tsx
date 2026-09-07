@@ -70,6 +70,8 @@ type Dashboard = {
   daily_activity_30d: Array<{ date: string; attempts: number }>;
   due_for_review_count: number;
   summary: string;
+  // Sprint 4.5+: daily_focus — 3 готовых строки (weekly, focusToday, helpSignal).
+  daily_focus: string[];
   recommendations: ParentRecommendation[];
   last_activity_label: string;
   privacy_note: string;
@@ -171,18 +173,10 @@ export default function ParentDashboardPage() {
 
   const weeklyAttempts = dash.daily_activity_30d.slice(-7).reduce((sum, day) => sum + day.attempts, 0);
   const weeklyActiveDays = dash.daily_activity_30d.slice(-7).filter((day) => day.attempts > 0).length;
-  const weeklySummary = (() => {
-    if (weeklyAttempts === 0) return "За неделю занятий не было — лучше начать с 10 минут лёгкой практики.";
-    if (dash.accuracy < 0.6) return "Неделя была активной, но точность просела — сначала повторить правило, потом решать новые задачи.";
-    if (dash.weak_topics.length > 0) return `Главный фокус недели: «${dash.weak_topics[0].topic_name}». Достаточно 2–3 коротких задач.`;
-    return "Неделя выглядит ровно: можно продолжать текущий темп и брать одну задачу на закрепление.";
-  })();
-  const tomorrowPlan = (() => {
-    if (dash.weak_topics.length > 0) return `Завтра: 10 минут на «${dash.weak_topics[0].topic_name}» — сначала объяснение, потом одна практика.`;
-    if (dash.due_for_review_count > 0) return `Завтра: повторить ${dash.due_for_review_count} тем(ы), которые пора закрепить.`;
-    if (weeklyAttempts === 0) return "Завтра: выбрать одну короткую тему и решить 2–3 простые задачи.";
-    return "Завтра: сохранить темп — одно объяснение и одна задача на закрепление.";
-  })();
+  // Sprint 4.5+: daily_focus приходит с backend (single-source).
+  // [0]=weekly, [1]=focusToday, [2]=helpSignal.
+  const weeklySummary = dash.daily_focus[0] ?? null;
+  const tomorrowPlan = dash.daily_focus[1] ?? null;
   const primarySubject = dash.subject_mastery[0] ?? null;
   const routeProgress = primarySubject
     ? `${primarySubject.topics_attempted}/${primarySubject.topics_total} тем · mastery ${Math.round(primarySubject.avg_mastery * 100)}%`
@@ -193,11 +187,7 @@ export default function ParentDashboardPage() {
     if (dash.accuracy >= 0.6) return "Есть рабочий темп: важно сохранить регулярность и короткие повторения.";
     return "Активность есть, но точность просела: сейчас важнее повторение, чем новые темы.";
   })();
-  const helpSignal = dash.weak_topics[0]
-    ? `Помочь с темой «${dash.weak_topics[0].topic_name}»: сначала правило, затем 2–3 простые задачи.`
-    : dash.due_for_review_count > 0
-      ? `Помочь с повторением: к закреплению ${dash.due_for_review_count} тем(ы).`
-      : "Явных слабых тем нет — достаточно короткого контроля и поддержки регулярности.";
+  const helpSignal = dash.daily_focus[2] ?? "Явных слабых тем нет — достаточно короткого контроля и поддержки регулярности.";
   const exportHref = `/api/v1/parents/students/${studentId}/dashboard.pdf`;
 
   return (

@@ -409,6 +409,52 @@ def _parent_summary(
     return f"Точность около {round(accuracy * 100)}%. Лучше закрепить текущие темы короткой практикой."
 
 
+# Sprint 4.5+: single-source для parent/dashboard focusToday/helpSignal/weeklyFocus.
+# Frontend раньше строил 3 строки клиентски с magic numbers (0.6, dash.weak_topics[0]).
+# Теперь backend возвращает готовый список — frontend просто рендерит.
+def _parent_daily_focus(
+    total_attempts: int,
+    accuracy: float,
+    weak_topics: list[schemas.WeakTopic],
+    last_activity_label: str,
+) -> list[str]:
+    """Возвращает 3 строки: focusToday, helpSignal, weeklyFocus.
+
+    Tone: warning если есть слабые темы или accuracy < WEAK_MASTERY_THRESHOLD (60%).
+    Tone: success если нет проблем.
+
+    Sprint 4.5+ = single-source (аналогично Sprint 4.1 для recommendations).
+    """
+    # Edge: нет попыток → пустой список (frontend не показывает focus section).
+    if total_attempts == 0:
+        return []
+
+    # 1) weeklyFocus: недельный обзор
+    if accuracy < 0.6:
+        weekly = "Неделя была активной, но точность просела — сначала повторить правило, потом решать новые задачи."
+    elif weak_topics:
+        weekly = f"Главный фокус недели: «{weak_topics[0].topic_name}». Достаточно 2–3 коротких задач."
+    else:
+        weekly = "Неделя стабильная — продолжайте в том же темпе."
+
+    # 2) focusToday: точка фокуса на сегодня
+    if weak_topics:
+        focus_today = f"Завтра: 10 минут на «{weak_topics[0].topic_name}» — сначала объяснение, потом одна практика."
+    else:
+        focus_today = "Сегодня: 2–3 короткие задачи по текущей теме для закрепления."
+
+    # 3) helpSignal: куда родитель может помочь
+    if weak_topics:
+        help_signal = (
+            f"Помочь с темой «{weak_topics[0].topic_name}»: сначала правило, "
+            f"затем 2–3 простые задачи."
+        )
+    else:
+        help_signal = "Поддерживать ритм: 10 минут занятий без длинных сессий."
+
+    return [weekly, focus_today, help_signal]
+
+
 def _parent_recommendations(
     weak_topics: list[schemas.WeakTopic],
     due_count: int,
@@ -735,6 +781,13 @@ def child_dashboard(
         accuracy,
         last_7,
     )
+    # Sprint 4.5+: daily_focus — 3 готовых строки для parent/dashboard.
+    daily_focus = _parent_daily_focus(
+        int(total_attempts),
+        accuracy,
+        weak_topics,
+        last_activity_label,
+    )
 
     return schemas.ChildDashboard(
         student=schemas.StudentBrief(
@@ -765,6 +818,8 @@ def child_dashboard(
         daily_activity_30d=daily_30,
         due_for_review_count=int(due_count),
         summary=summary,
+        # Sprint 4.5+: single-source для focusToday/helpSignal/weeklyFocus.
+        daily_focus=daily_focus,
         recommendations=recommendations,
         last_activity_label=last_activity_label,
         privacy_note=(

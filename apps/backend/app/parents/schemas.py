@@ -162,6 +162,9 @@ class ChildDashboard(BaseModel):
 
     # Stage 5: parent-friendly actionable summary.
     summary: str
+    # Sprint 4.5+: single-source для focusToday/helpSignal/weeklyFocus.
+    # Backend формирует 3 готовых строки — frontend НЕ строит клиентски.
+    daily_focus: list[str] = []
     recommendations: list[ParentRecommendation]
     last_activity_label: str
 
