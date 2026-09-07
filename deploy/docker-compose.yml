@@ -57,6 +57,11 @@ services:
       OPS_BACKUP_CRON_PATH: /app/ops/ai-tutor-backup
       OPS_BACKUP_OUT_PATH: /app/ops/backup_out
       UVICORN_WORKERS: ${UVICORN_WORKERS:-4}
+      # Sprint 4 RAG production: ingestion pipeline (env-overridable).
+      RAG_SYNC: ${RAG_SYNC:-0}
+      RAG_DRY_RUN: ${RAG_DRY_RUN:-0}
+      RAG_MAX_FILE_SIZE_MB: ${RAG_MAX_FILE_SIZE_MB:-50}
+      RAG_RATE_LIMIT_PER_MIN: ${RAG_RATE_LIMIT_PER_MIN:-10}
     depends_on:
       db:
         condition: service_healthy
