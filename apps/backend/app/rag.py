@@ -160,7 +160,11 @@ def remove_by_material(material_id: int) -> int:
 
 def search(query_embedding: list[float], top_k: int = 3, material_id: Optional[int] = None) -> list[DocumentChunk]:
     """Находит top_k релевантных чанков."""
-    candidates = _store.values()
+    # Sprint 3.43 P1 (follow-up, fix mypy error): явный cast.
+    # _store.values() — это dict_values[str, DocumentChunk], а параметр ниже —
+    # list comprehension → list[DocumentChunk]. mypy не сужает тип через LC,
+    # поэтому нужен явный list().
+    candidates: list[DocumentChunk] = list(_store.values())
     if material_id is not None:
         candidates = [c for c in candidates if c.material_id == material_id]
 
