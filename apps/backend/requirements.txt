@@ -19,7 +19,7 @@ asyncpg==0.30.0
 # '__about__'" при каждом вызове hash/verify. Sprint 3.39 заменил на прямые
 # вызовы bcrypt.hashpw/checkpw с тем же контрактом ($2b$12$..., salt,
 # совместим со старыми хэшами в БД).
-bcrypt==4.0.1
+bcrypt==5.0.0
 python-jose[cryptography]==3.5.0  # Sprint continuation 2026-08-23: 5 CVEs pinned to 3.4.0+, applied 3.5.0 (jose.utcnow internal patched upstream).
 python-multipart==0.0.20
 
@@ -31,24 +31,24 @@ python-dotenv==1.2.2  # Sprint continuation 2026-08-23: PYSEC-2026-2270 (CVE-202
 email-validator==2.2.0
 
 # File processing (Этап 10)
-pypdf==5.1.0
+pypdf==6.16.2
 python-docx==1.1.2
 # OCR (Этап 10 — опционально, требует tesseract-ocr в системе)
 pytesseract==0.3.13
-Pillow==11.0.0
+Pillow==12.3.0
 
 # Rate limiting (Этап 11)
 slowapi==0.1.9
 
 # Redis для rate limit (Этап 11, опционально)
-redis==5.2.0
+redis==8.1.0
 
 # Markdown render (Sprint 7.1)
 # Используется для безопасного рендеринга AI-ответов с markdown → HTML.
-markdown-it-py==3.0.0
+markdown-it-py==4.2.0
 
 # WebSockets client (Sprint 9.3 — admin WS smoke; уже нужен фронтом на prod-tools)
-websockets==13.1
+websockets==17.1
 # 2FA TOTP (Sprint 32 — Parent 2FA)
 pyotp==2.9.0
 
@@ -64,7 +64,7 @@ opentelemetry-instrumentation-redis==0.65b0
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.10.0
 torchvision==0.25.0
-sentence-transformers==5.6.1
+sentence-transformers==6.0.1
 
 
 # Sprint 91: OpenTelemetry OTLP HTTP exporter (для Jaeger/Zipkin)
