@@ -308,6 +308,12 @@ export default function AdminPage() {
         >
           AI-провайдеры →
         </a>
+        <a
+          href="/admin/rag"
+          className="px-3 py-1.5 rounded-lg text-sm font-medium border border-[var(--border)] hover:bg-[var(--surface)] no-underline"
+        >
+          RAG ingestion →
+        </a>
         </nav>
       </div>
 
