@@ -25,6 +25,11 @@ on:
         required: false
         default: "main"
         type: string
+      allow_non_main:
+        description: "Разрешить deploy не с main (осознанное исключение)"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -44,6 +49,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
+
+      - name: Guard — deploy только с main
+        run: |
+          REF="${{ inputs.ref }}"
+          if [ "$REF" != "main" ] && [ "${{ inputs.allow_non_main }}" != "true" ]; then
+            echo "::error::Deploy разрешён только с main (передано: '$REF'). Для осознанного исключения выставь allow_non_main=true."
+            exit 1
+          fi
+          echo "Guard OK: ref=$REF"
 
       - name: Show commit info
         run: |

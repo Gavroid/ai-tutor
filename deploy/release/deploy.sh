@@ -48,6 +48,16 @@ run_on_prod() {
   fi
 }
 
+# Deploy guard: локальный запуск только с ветки main — единая ветка-истина.
+# Причина: Sprint 3.39..4.5+ жили на feature-ветке, deploy.sh брал HEAD текущей
+# ветки → код "не доезжал" до прода и не отображался на GitHub (default = main).
+# Detached HEAD (actions/checkout в CI) пропускаем — там guard в deploy.yml.
+# Override для осознанных исключений: ALLOW_NON_MAIN_DEPLOY=1.
+CURRENT_BRANCH="$(git -C "$PROJECT_ROOT" symbolic-ref --short -q HEAD || true)"
+if [ -n "$CURRENT_BRANCH" ] && [ "$CURRENT_BRANCH" != "main" ] && [ "${ALLOW_NON_MAIN_DEPLOY:-0}" != "1" ]; then
+  fail "deploy разрешён только с ветки main (сейчас: $CURRENT_BRANCH). Override: ALLOW_NON_MAIN_DEPLOY=1"
+fi
+
 ACT="$(git -C "$PROJECT_ROOT" rev-parse --short HEAD 2>/dev/null || echo local)"
 TARGET_SHA="${1:-}"
 if [ -n "$TARGET_SHA" ]; then
