@@ -28,25 +28,20 @@ class TestSprint339PasswordHashingBackwardCompatibility:
         """Cost factor должен быть 12 (как у passlib CryptContext ранее)."""
         hashed = hash_password("TestPassword123!")
         # $2b$12$ — 12 это cost factor (2^12 = 4096 rounds).
-        assert hashed[:6] == "$2b$12", (
-            f"Expected cost factor 12, got: {hashed[:6]!r}"
-        )
+        assert hashed[:6] == "$2b$12", f"Expected cost factor 12, got: {hashed[:6]!r}"
 
     def test_hash_password_returns_string(self) -> None:
         """Sprint 3.22 fix: cast to str (passlib возвращал Any)."""
         hashed = hash_password("TestPassword123!")
         assert isinstance(hashed, str), (
-            f"Expected str, got {type(hashed).__name__}. "
-            "Sprint 3.22 уже исправил это с cast."
+            f"Expected str, got {type(hashed).__name__}. " "Sprint 3.22 уже исправил это с cast."
         )
 
     def test_verify_password_returns_bool(self) -> None:
         """Sprint 3.22 fix: cast to bool (passlib возвращал Any)."""
         hashed = hash_password("TestPassword123!")
         result = verify_password("TestPassword123!", hashed)
-        assert isinstance(result, bool), (
-            f"Expected bool, got {type(result).__name__}"
-        )
+        assert isinstance(result, bool), f"Expected bool, got {type(result).__name__}"
         assert result is True
 
     def test_verify_password_correct(self) -> None:
@@ -121,9 +116,9 @@ class TestSprint339PasswordHashingBackwardCompatibility:
             assert verify_password(long_password, hashed) is True
         except (ValueError, TypeError) as e:
             # Если reject'ит — это тоже OK (явная ошибка лучше silent truncate)
-            assert "72" in str(e).lower() or "byte" in str(e).lower() or len(long_password) > 72, (
-                f"Unexpected error for long password: {e}"
-            )
+            assert (
+                "72" in str(e).lower() or "byte" in str(e).lower() or len(long_password) > 72
+            ), f"Unexpected error for long password: {e}"
 
     def test_2fa_code_round_trip(self) -> None:
         """2FA коды (6-8 chars) должны хэшироваться и verify'иться.

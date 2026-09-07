@@ -23,7 +23,7 @@ import pytest
 # pytest требует чтобы фикстура была объявлена в test_*.py файле
 # в той же директории ИЛИ в conftest.py — но мы используем прямой import
 # для удобства (это известный pattern в этом проекте).
-from tests.test_parent_no_email_leak import client_with_parent, _login_parent
+from tests.test_parent_no_email_leak import _login_parent, client_with_parent
 
 
 def test_child_overview_has_recommendations_field(client_with_parent):
@@ -40,12 +40,11 @@ def test_child_overview_has_recommendations_field(client_with_parent):
 
     # Sprint 4.1: backend — single source, recommendations обязаны быть.
     assert "recommendations" in body, (
-        f"Sprint 4.1: 'recommendations' field missing from overview. "
-        f"Got keys: {list(body.keys())}"
+        f"Sprint 4.1: 'recommendations' field missing from overview. " f"Got keys: {list(body.keys())}"
     )
-    assert isinstance(body["recommendations"], list), (
-        f"recommendations must be a list, got {type(body['recommendations'])}"
-    )
+    assert isinstance(
+        body["recommendations"], list
+    ), f"recommendations must be a list, got {type(body['recommendations'])}"
 
 
 def test_child_overview_has_review_topics_field(client_with_parent):
@@ -62,12 +61,9 @@ def test_child_overview_has_review_topics_field(client_with_parent):
 
     # Sprint 4.1 + 4.2: review_topics — top-5 по last_reviewed_at.
     assert "review_topics" in body, (
-        f"Sprint 4.1+4.2: 'review_topics' field missing from overview. "
-        f"Got keys: {list(body.keys())}"
+        f"Sprint 4.1+4.2: 'review_topics' field missing from overview. " f"Got keys: {list(body.keys())}"
     )
-    assert isinstance(body["review_topics"], list), (
-        f"review_topics must be a list, got {type(body['review_topics'])}"
-    )
+    assert isinstance(body["review_topics"], list), f"review_topics must be a list, got {type(body['review_topics'])}"
 
 
 def test_recommendations_have_required_fields(client_with_parent):
@@ -85,9 +81,7 @@ def test_recommendations_have_required_fields(client_with_parent):
         assert "title" in rec, f"Recommendation missing 'title': {rec}"
         assert "detail" in rec, f"Recommendation missing 'detail': {rec}"
         assert "tone" in rec, f"Recommendation missing 'tone': {rec}"
-        assert rec["tone"] in ("neutral", "success", "warning"), (
-            f"Invalid tone: {rec['tone']}"
-        )
+        assert rec["tone"] in ("neutral", "success", "warning"), f"Invalid tone: {rec['tone']}"
 
 
 def test_recommendations_non_empty_for_real_student(client_with_parent):
@@ -102,6 +96,6 @@ def test_recommendations_non_empty_for_real_student(client_with_parent):
     body = r.json()
 
     assert len(body["recommendations"]) >= 1, (
-        f"Sprint 4.1: recommendations должны быть хотя бы одной, "
-        f"даже для нового student (fallback рекомендация). Got 0."
+        "Sprint 4.1: recommendations должны быть хотя бы одной, "
+        "даже для нового student (fallback рекомендация). Got 0."
     )

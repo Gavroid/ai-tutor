@@ -15,11 +15,9 @@ audit-2026-09/13-session-2026-09-04-blocked-decisions.md):
 
 from __future__ import annotations
 
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+from datetime import UTC, datetime, timedelta
 
+import pytest
 from app.db.session import Base
 from app.parents.schemas import ReviewTopic
 from app.parents.service import (
@@ -30,7 +28,9 @@ from app.parents.service import (
 from app.progress import models as prog_models
 from app.subjects import models as subj_models
 from app.users import models as user_models
-from datetime import UTC, datetime, timedelta
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 # Sprint 4.2: отдельный engine для изоляции от xdist races (Sprint 3.43 P1 lesson).
 # get_review_topics принимает db: Session параметром, НЕ использует SessionLocal,
@@ -62,15 +62,11 @@ def _create_topic_with_progress(
         session.add(user)
         session.flush()
 
-        subject = subj_models.Subject(
-            name=f"Subj {slug}", code=slug, is_active=True
-        )
+        subject = subj_models.Subject(name=f"Subj {slug}", code=slug, is_active=True)
         session.add(subject)
         session.flush()
 
-        section = subj_models.Section(
-            subject_id=subject.id, name="S", order_index=1
-        )
+        section = subj_models.Section(subject_id=subject.id, name="S", order_index=1)
         session.add(section)
         session.flush()
 
@@ -118,9 +114,6 @@ class TestSprint42GetReviewTopics:
 
     def test_returns_max_5_topics(self, test_db) -> None:
         """Если 10 тем с Progress — возвращаем top-5."""
-        user_id = _create_topic_with_progress(
-            f"max5-{i}", mastery=0.5, last_reviewed_at=datetime(2024, 1, i + 1, tzinfo=UTC)
-        ) if False else None  # placeholder, replaced below
         # Создаём 10 разных topics для одного user.
         session = _TestSessionLocal()
         try:
@@ -133,15 +126,11 @@ class TestSprint42GetReviewTopics:
             session.add(user)
             session.flush()
 
-            subject = subj_models.Subject(
-                name="Subj", code="max5", is_active=True
-            )
+            subject = subj_models.Subject(name="Subj", code="max5", is_active=True)
             session.add(subject)
             session.flush()
 
-            section = subj_models.Section(
-                subject_id=subject.id, name="S", order_index=1
-            )
+            section = subj_models.Section(subject_id=subject.id, name="S", order_index=1)
             session.add(section)
             session.flush()
 
@@ -169,9 +158,7 @@ class TestSprint42GetReviewTopics:
 
         result = get_review_topics(test_db, student_id=user_id)
 
-        assert len(result) == REVIEW_TOPICS_LIMIT, (
-            f"Expected {REVIEW_TOPICS_LIMIT} topics, got {len(result)}"
-        )
+        assert len(result) == REVIEW_TOPICS_LIMIT, f"Expected {REVIEW_TOPICS_LIMIT} topics, got {len(result)}"
 
     def test_nulls_last_reviewed_at_first(self, test_db) -> None:
         """Sprint 4.2=A: NULL last_reviewed_at трактуется как "никогда не повторяли"
@@ -187,15 +174,11 @@ class TestSprint42GetReviewTopics:
             session.add(user)
             session.flush()
 
-            subject = subj_models.Subject(
-                name="S", code="nullsfirst", is_active=True
-            )
+            subject = subj_models.Subject(name="S", code="nullsfirst", is_active=True)
             session.add(subject)
             session.flush()
 
-            section = subj_models.Section(
-                subject_id=subject.id, name="S", order_index=1
-            )
+            section = subj_models.Section(subject_id=subject.id, name="S", order_index=1)
             session.add(section)
             session.flush()
 
@@ -245,14 +228,10 @@ class TestSprint42GetReviewTopics:
         result = get_review_topics(test_db, student_id=user_id)
 
         # Ожидаем порядок: NULL, OLD (2024-01-01), NEW (2024-12-01).
-        assert result[0].topic_name == "NULL", (
-            f"First should be NULL (never reviewed), got {result[0].topic_name}"
-        )
+        assert result[0].topic_name == "NULL", f"First should be NULL (never reviewed), got {result[0].topic_name}"
         assert result[0].last_reviewed_at is None
         assert result[1].topic_name == "OLD"
-        assert result[1].last_reviewed_at is not None, (
-            "OLD topic должен иметь last_reviewed_at (не NULL)"
-        )
+        assert result[1].last_reviewed_at is not None, "OLD topic должен иметь last_reviewed_at (не NULL)"
         # Sprint 4.2: SQLite strips tzinfo при round-trip, сравниваем по date().
         assert result[1].last_reviewed_at.date() == datetime(2024, 1, 1, tzinfo=UTC).date()
         assert result[2].topic_name == "NEW"
@@ -290,16 +269,12 @@ class TestSprint42GetReviewTopics:
             session.add(subject)
             session.flush()
 
-            section = subj_models.Section(
-                subject_id=subject.id, name="S", order_index=1
-            )
+            section = subj_models.Section(subject_id=subject.id, name="S", order_index=1)
             session.add(section)
             session.flush()
 
             # Topic с mastery=0.9 (high) и last_reviewed_at = NULL (никогда).
-            topic = subj_models.Topic(
-                section_id=section.id, name="HIGH_MASTERY", order_index=1
-            )
+            topic = subj_models.Topic(section_id=section.id, name="HIGH_MASTERY", order_index=1)
             session.add(topic)
             session.flush()
             p = prog_models.Progress(
@@ -320,7 +295,6 @@ class TestSprint42GetReviewTopics:
         assert len(result) == 1
         assert result[0].topic_name == "HIGH_MASTERY"
         assert result[0].mastery == 0.9, (
-            "Sprint 4.2=A: review_topics должны включать темы с high mastery "
-            "если они давно не повторялись (NULL)."
+            "Sprint 4.2=A: review_topics должны включать темы с high mastery " "если они давно не повторялись (NULL)."
         )
         assert result[0].last_reviewed_at is None
