@@ -1,11 +1,11 @@
 # Dev/test-only dependencies. NOT installed in production image.
 -r requirements.txt
 
-pytest==8.3.4
-pytest-asyncio==0.24.0
-pytest-cov==6.0.0
+pytest==9.1.1
+pytest-asyncio==1.4.0
+pytest-cov==7.1.0
 pytest-xdist==3.6.1  # Sprint 3.31: parallel pytest (×3.5 speedup, 9:32 → 2:45)
-diff-cover==9.2.0    # Sprint 3.40: coverage gate в PR (diff vs base branch)
+diff-cover==10.5.1    # Sprint 3.40: coverage gate в PR (diff vs base branch)
 httpx==0.28.1
 fakeredis==2.26.1
 
@@ -13,7 +13,7 @@ fakeredis==2.26.1
 # ruff — линтер+форматтер (заменяет flake8+isort+black).
 # mypy — проверка типов в строгом режиме для /parents и /student.
 ruff==0.7.4
-mypy==1.13.0
+mypy==2.3.1
 
 # Sprint 3.43 C: type stubs для mypy strict (требуются в CI).
 # types-passlib: stubs для passlib.context (используется в app/auth/security.py).
